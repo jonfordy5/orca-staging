@@ -35,7 +35,7 @@ label{display:block;font-weight:800;color:#3d5b68;font-size:13px;margin:14px 0 5
 <script type="module">
 import { orcaStagingHref, selectSupabaseConfig, showOrcaStagingIndicator } from './orca-staging-config.js';
 showOrcaStagingIndicator();
-const {isOrcaStaging,projectUrl:URL,publishableKey:PUBLISHABLE_KEY}=await selectSupabaseConfig();
+const {isOrcaStaging,projectUrl:SUPABASE_URL,publishableKey:PUBLISHABLE_KEY}=await selectSupabaseConfig();
 const params=new URLSearchParams(location.search);
 const ticker=(params.get('ticker')||'RKLB').trim().toUpperCase();
 const returnTo=params.get('returnTo');
@@ -73,7 +73,7 @@ continueWorkspace.addEventListener('click',()=>{if(stagingReturnTo)location.assi
 async function showCurrent(){const {data,error}=await client.auth.getUser();if(error&&error.name!=='AuthSessionMissingError')console.warn('Authentication check:',error.message);showUser(data?.user||null);}
 try{
   const {createClient}=await import('https://esm.sh/@supabase/supabase-js@2');
-  client=createClient(URL,PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+  client=createClient(SUPABASE_URL,PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
   submit.disabled=false;submit.textContent='Sign in';
   await showCurrent();
   client.auth.onAuthStateChange((_event,session)=>{showUser(session?.user||null);});
@@ -85,7 +85,10 @@ form.addEventListener('submit',async(event)=>{
   busy=true;submit.disabled=true;submit.textContent='Please wait…';note('');
   try{
     if(mode==='signup'){
-      const emailRedirectTo=new URL('./',location.href).href;
+      const stagingRedirectPath=stagingReturnTo==='join-research.html'
+        ?'join-research.html'
+        :'research-workspace.html';
+      const emailRedirectTo=new URL(orcaStagingHref('./'+stagingRedirectPath,{ticker}),location.href).href;
       const {error}=await client.auth.signUp({email:e,password:p,options:{emailRedirectTo}});
       if(error)throw error;
       note('Check your inbox for a confirmation email. After you confirm, return to this account page and sign in. If no email arrives, check spam.','success');
