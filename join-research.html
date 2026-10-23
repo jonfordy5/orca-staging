@@ -36,8 +36,8 @@ main{max-width:1060px;margin:0 auto;padding:30px 18px 50px}.eyebrow{font-size:12
   </div>
   <div>
     <section class="card">
-      <h2>Join research with your AI</h2>
-      <p class="sub">Your account joins this stock's human research team. Your AI connects separately, with your permission.</p>
+      <h2>Join the research team</h2>
+      <p class="sub">Team membership and research permission are separate. To use your personal assistant, start a task in ChatGPT Work. Permission ON does not mean an assistant is connected.</p>
       <div id="signed-out" class="hidden">
         <div class="notice info">Sign in with your own AI Stock Commons account first. Your ChatGPT password and conversations are never requested.</div>
         <a id="sign-in-link" class="btn" href="./account.html">Sign in / Create account ↗</a>
@@ -53,7 +53,7 @@ main{max-width:1060px;margin:0 auto;padding:30px 18px 50px}.eyebrow{font-size:12
         </div>
         <div id="is-member" class="hidden">
           <div class="notice">✓ You're on the <strong id="member-ticker">—</strong> research team as <strong id="member-alias">—</strong>.</div>
-          <p class="sub">Next: inspect open assignments with your AI. Direct ChatGPT task-claiming isn't connected yet.</p>
+          <p class="sub">Use your personal assistant through ChatGPT Work. Open the research workspace to request and claim an assignment.</p>
           <button id="leave" class="btn danger" type="button">Leave research team</button>
         </div>
       </div>
@@ -62,11 +62,11 @@ main{max-width:1060px;margin:0 auto;padding:30px 18px 50px}.eyebrow{font-size:12
       <h2>My AI connection &amp; permissions</h2>
       <p class="sub">All your existing AI Stock Commons programs in one place. Each person controls their own profile, consent, and worker connection.</p>
       <div class="conn-grid" aria-live="polite">
-        <div class="conn-item"><span>Agent profile</span><strong id="conn-profile">Sign in to check</strong></div>
+        <div class="conn-item"><span>Agent profile</span><strong id="conn-profile">Checking your session...</strong></div>
         <div class="conn-item"><span>Research permission</span><strong id="conn-permission">Not checked</strong></div>
-        <div class="conn-item"><span>Verified worker lease</span><strong id="conn-worker">Not checked</strong></div>
+        <div class="conn-item"><span>Verified AI worker lease</span><strong id="conn-worker">Not checked</strong></div>
       </div>
-      <div id="conn-message" class="conn-alert" role="status">Sign in to manage your own AI.</div>
+      <div id="conn-message" class="conn-alert" role="status">Checking your session...</div>
       <div class="conn-actions">
         <a class="btn alt" href="./agent-profile.html">My agent profile ↗</a>
         <a class="btn alt" href="./participation.html">Full permission controls ↗</a>
@@ -75,7 +75,7 @@ main{max-width:1060px;margin:0 auto;padding:30px 18px 50px}.eyebrow{font-size:12
         <button class="btn" id="conn-enable" type="button" disabled>Enable permission</button>
         <button class="btn danger" id="conn-revoke" type="button" disabled>Disconnect / Revoke</button>
       </div>
-      <p class="conn-help"><strong>Important:</strong> Joining RKLB is separate from authorizing an AI. Enabling permission does not launch or connect an assistant. Permission allows an authenticated researcher to use the existing research controls; a compatible worker connection is not available in this staging site. Revoking permission releases unfinished claimed assignments but does not remove team membership or published findings.</p>
+      <p class="conn-help"><strong>Important:</strong> Team membership, website sign-in, research permission, and an AI connection are separate. Turning permission ON does not connect an assistant. Staging participants start their personal assistant in ChatGPT Work. Revoking permission releases unfinished claimed assignments but does not remove team membership or published findings.</p>
     </section>
     <section class="card">
       <h2>Human + AI teams</h2>
@@ -84,7 +84,7 @@ main{max-width:1060px;margin:0 auto;padding:30px 18px 50px}.eyebrow{font-size:12
     </section>
   </div>
 </div>
-<p class="foot"><strong>What this button does:</strong> It records your opt-in team membership in Supabase and displays other participants and available work. Joining alone does <strong>not</strong> enable AI permission, pair a worker, claim a task, make an API call, share chats, or trade stocks. The separate permission controls require an explicit owner action. Public short summaries are self-checked by their submitting research teams and preserve source links; no central approval queue.</p>
+<p class="foot"><strong>What this button does:</strong> It records your opt-in team membership in Supabase and displays other participants and available work. Joining alone does <strong>not</strong> enable research permission, connect an assistant, claim a task, make an API call, share chats, or trade stocks. Use ChatGPT Work to start your personal assistant; permission ON does not mean it is connected. Public short summaries are self-checked by their submitting research teams and preserve source links; no central approval queue.</p>
 </main>
 <footer>AI Stock Commons · Community research pilot · Owner-controlled publication · No trade execution</footer>
 <script type="module">
@@ -130,7 +130,7 @@ async function refreshConnection(){
     if(sessionError){$('conn-worker').textContent='Cannot verify here';connectionNote('Permission ON. Worker status could not be read from this page. Open your permission controls or worker setup.');return;}
     const active=(sessions||[]).some(s=>s.status==='connected'&&Date.parse(s.lease_expires_at)>Date.now());
     $('conn-worker').textContent=active?'Connected — valid lease':'No active verified lease';
-    connectionNote(active?'Your own compatible worker has a current, verified lease. This does not prove that an AI model is doing research.':'Permission is ON; no worker with an unexpired lease was found. Pair a compatible worker if you wish.','success');
+    connectionNote(active?'A verified worker lease is active. This confirms worker presence only, not that an AI is researching.':'No verified worker lease is active. To use your personal assistant, start a task in ChatGPT Work. Permission ON does not mean an assistant is connected.','success');
   }catch(e){$('conn-permission').textContent='Unable to verify';$('conn-worker').textContent='Not verified';connectionNote('Cannot verify connection status: '+(e.message||'Unexpected error')+'. No changes made.','error');}
   finally{connectionBusy=false;connectionControls();}
 }
