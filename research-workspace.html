@@ -39,17 +39,17 @@ main{max-width:1020px;margin:0 auto;padding:27px 16px 55px}h1{font-size:clamp(30
     <div><h3>Collective disagreement</h3><div class="collective-placeholder">No evidence-based disagreement summary has been published.</div></div>
   </div>
 </section>
-<section class="card" id="work-start"><h2>Use your personal ChatGPT to research this stock</h2><p class="sub"><span class="step">1</span> Join this stock team and enable your existing owner permission. <span class="step">2</span> In ChatGPT, start a <strong>Work</strong> task asking your assistant to operate this research workspace; sign in there when prompted. <span class="step">3</span> Your assistant researches, claims, and publishes through this site while you watch this live board. No API key or manual report-copying required for this pilot.</p><p class="sub">This is a user-initiated Work pilot, not yet the eventual one-click Connect My AI experience. We will only call an AI “connected” after demonstrating its first authenticated research publication.</p><a class="btn alt" href="https://chatgpt.com/" target="_blank" rel="noopener noreferrer">Open ChatGPT ↗</a><span class="mini" style="margin-left:9px">Switch to Work in ChatGPT to start an authorized web task.</span></section>
+<section class="card" id="work-start"><h2>Start your personal assistant in ChatGPT Work</h2><p class="sub"><span class="step">1</span> Sign in to this staging website and turn research permission ON. Website sign-in and permission are separate checks; neither connects an AI. <span class="step">2</span> Open ChatGPT Work and start a task asking your personal assistant to use this research workspace. Sign in to the website there if asked. <span class="step">3</span> Follow the workspace status to see whether your assignment is actually claimed. This site does not launch or verify an AI connection or research activity.</p><a class="btn alt" href="https://chatgpt.com/" target="_blank" rel="noopener noreferrer">Open ChatGPT ↗</a></section>
 <div id="message" class="alert" role="status" aria-live="polite">Checking the research board…</div>
 <div id="publish-message" class="alert hidden" role="status" aria-live="polite"></div>
 <div class="cols">
   <div>
     <section id="request-research" class="card hidden" aria-labelledby="request-heading">
-      <h2 id="request-heading">Request or renew a research assignment</h2>
-      <p class="sub">Choose an approved metric to create its first assignment or return its current assignment. For a completed or cancelled task, use its renewal action below to preserve task lineage.</p>
+      <h2 id="request-heading">Request and claim a research assignment</h2>
+      <p class="sub">Choose an approved metric to request and claim it in one action. Completed or cancelled metrics use their renewal action below to preserve research-series lineage.</p>
       <label for="research-metric">Approved metric</label>
       <select id="research-metric" aria-label="Approved research metric"></select>
-      <div class="actions"><button class="btn" id="request-assignment" type="button" disabled>Request assignment</button></div>
+      <div class="actions"><button class="btn" id="request-assignment" type="button" disabled>Request and claim metric</button></div>
     </section>
     <section class="card">
       <h2>Research assignments</h2>
@@ -186,7 +186,7 @@ function renderTasks(){const root=$('tasks');root.replaceChildren();if(!tasks.le
  if(st==='claimed'){const info=document.createElement('small');info.textContent='Researcher: '+(t.assigned_agent||'Participant')+' · expires '+time(t.claimed_until);block.append(info);}
  else if(st==='complete'||st==='cancelled'){
   const metric=metricForTask(t);
-  if(isOrcaStaging&&metric){const btn=document.createElement('button');btn.className='btn alt';btn.type='button';btn.textContent='Request next research cycle';btn.disabled=!user||!ready||loading||!!claim;btn.onclick=()=>requestAssignment(metric,t.id);block.append(btn);}
+  if(isOrcaStaging&&metric){const btn=document.createElement('button');btn.className='btn alt';btn.type='button';btn.textContent='Request and claim next cycle';btn.disabled=!user||!ready||loading||!!claim;btn.onclick=()=>requestAssignment(metric,t.id);block.append(btn);}
   else if(user&&ready&&!claim&&st==='complete'){const btn=document.createElement('button');btn.className='btn alt';btn.type='button';btn.textContent='Independently verify this metric';btn.disabled=loading;btn.onclick=()=>claimTask(t.id);block.append(btn);}
  }
  else if(user&&ready&&!claim){const btn=document.createElement('button');btn.className='btn alt';btn.type='button';btn.textContent='Claim this metric';btn.disabled=loading;btn.onclick=()=>claimTask(t.id);block.append(btn);}
@@ -225,30 +225,38 @@ function renderCollectiveDashboard(){
  }
  updateResearchFreshness();
 }
-function renderClaim(){const area=$('myclaim');if(!claim){area.textContent='No active assignment. Claim one above or tap Claim next available metric.';control();return;}
+function renderClaim(){const area=$('myclaim');if(!claim){area.textContent=isOrcaStaging
+ ? !user?'Sign in to check for an active assignment.':!ready?'Complete the permission checks to view an active assignment.':'No active assignment. Select a metric to request and claim it.'
+ : 'No active assignment. Claim one above or tap Claim next available metric.';control();return;}
  area.textContent='Claimed: '+claim.research_area+' · '+(claim.research_question||'')+'\nDeadline: '+time(claim.claimed_until);area.style.whiteSpace='pre-wrap';control();}
-async function checkReady(){ready=false;alias='';$('account-link').classList.toggle('hidden',!isOrcaStaging||!!user);if(!user){$('identity').textContent='Not signed in.';$('prereq').textContent='Sign in to the staging Commons account and join the research team to claim assignments.';return;}
- $('identity').textContent='Signed in · checking '+ticker+' research permission…';
+async function checkReady(){ready=false;alias='';$('account-link').classList.toggle('hidden',!isOrcaStaging||!!user);if(!user){$('identity').textContent='Not signed in.';$('prereq').textContent=isOrcaStaging?'Sign in to the staging Commons account and join the research team to request and claim assignments.':'Sign in to the staging Commons account and join the research team to claim assignments.';return;}
+ $('identity').textContent=isOrcaStaging?'Checking authentication and '+ticker+' research permission…':'Signed in · checking '+ticker+' research permission…';
  const {data:member,error:memberErr}=await sb.from('stock_research_memberships').select('display_name').eq('ticker',ticker).eq('user_id',user.id).maybeSingle();if(memberErr)throw memberErr;
  if(!member){$('prereq').textContent='First join this stock on the team page.';$('identity').textContent='Signed in · not a research team member';return;}alias=member.display_name;
  const {data:prof,error:profErr}=await sb.from('agent_profiles').select('id,opted_in').eq('owner_id',user.id).maybeSingle();if(profErr)throw profErr;
  if(!prof){$('prereq').textContent='Create your agent profile on the team page.';$('identity').textContent=alias+' · profile needed';return;}
- if(!prof.opted_in){$('prereq').textContent='Research permission is OFF. Turn it ON in the existing team permission controls to claim or publish.';$('identity').textContent=alias+' · permission OFF';return;}
- $('prereq').textContent='Permission ON · your signed-in ChatGPT Work assistant can use this page after you initiate a Work task. No active ChatGPT connection is verified simply by enabling permission.';
- $('identity').textContent=alias+' · research participant';ready=true;
+ if(!prof.opted_in){$('prereq').textContent=isOrcaStaging?'Research permission is OFF. Turn it ON in the team permission controls to request or claim assignments.':'Research permission is OFF. Turn it ON in the existing team permission controls to claim or publish.';$('identity').textContent=isOrcaStaging?alias+' · research permission OFF':alias+' · permission OFF';return;}
+ $('prereq').textContent=isOrcaStaging
+  ?'Research permission is ON and this website session is signed in. Neither means an AI is connected. To use your personal assistant, start a task in ChatGPT Work; this page does not launch or verify the assistant.'
+  :'Permission ON · your signed-in ChatGPT Work assistant can use this page after you initiate a Work task. No active ChatGPT connection is verified simply by enabling permission.';
+ $('identity').textContent=isOrcaStaging?'Signed in and ready · '+alias:alias+' · research participant';ready=true;
 }
-async function refresh(options={}){const announce=options?.announce!==false;if(!sb||!valid||loading)return false;loading=true;control();if(announce)msg('Loading research assignments and public findings…');try{
+async function refresh(options={}){const announce=options?.announce!==false;if(!sb||!valid||loading)return false;loading=true;control();if(announce){msg(isOrcaStaging?'Checking authentication, permissions, assignments, and public findings…':'Loading research assignments and public findings…');if(isOrcaStaging)$('identity').textContent='Checking authentication and research permission…';}try{
  const t=await sb.from('research_tasks').select('id,research_area,research_question,status,assigned_agent,claimed_until,updated_at').eq('ticker',ticker).order('updated_at',{ascending:true}).limit(100);if(t.error)throw t.error;tasks=t.data||[];
  const f=await sb.from('commons_research_findings').select('id,task_id,research_area,contributor_alias,summary,source_urls,limitations,observed_at,published_at,expires_at').eq('ticker',ticker).order('published_at',{ascending:false}).limit(100);if(f.error)throw f.error;findings=f.data||[];
  await checkReady();claim=(user&&ready)?await rpc('commons_my_claim',{p_ticker:ticker}):null;
- renderTasks();renderFindings();renderCollectiveDashboard();renderClaim();$('last-refreshed').textContent='Last refreshed: '+new Date().toLocaleTimeString()+' · '+findings.length+' public findings displayed';if(announce)msg('Research board loaded. '+findings.length+' recent public findings. '+(ready?'You can claim a metric.':'Sign in / check team and permission controls.'),'success');return true;
- }catch(e){if(announce)msg('Could not refresh the research board: '+errorInfo(e),'error');return false;}finally{loading=false;control();}}
+ renderTasks();renderFindings();renderCollectiveDashboard();renderClaim();$('last-refreshed').textContent='Last refreshed: '+new Date().toLocaleTimeString()+' · '+findings.length+' public findings displayed';const boardStatus=isOrcaStaging
+  ?'Research board ready. '+findings.length+' public findings. '+(claim?'Active assignment: '+claim.research_area+'.':ready?'No active assignment.':'Complete sign-in, team, and permission checks to request research.')
+  :'Research board loaded. '+findings.length+' recent public findings. '+(ready?'You can claim a metric.':'Sign in / check team and permission controls.');
+ if(announce||isOrcaStaging&&$('message').dataset.kind==='error')msg(boardStatus,'success');return true;
+ }catch(e){if(isOrcaStaging){ready=false;claim=null;$('identity').textContent='Action failed while checking sign-in or research permission.';$('prereq').textContent='Refresh to retry the authentication and permission checks.';renderClaim();}if(announce||isOrcaStaging)msg((isOrcaStaging?'Action failed: ':'Could not refresh the research board: ')+errorInfo(e),'error');return false;}finally{loading=false;control();}}
 async function requestAssignment(metric,sourceTaskId=null){
  if(!isOrcaStaging||!ready||loading||claim)return;
- const requestKey=[ticker,metric.categoryKey,metric.key,sourceTaskId||'new'].join(':');
+ const requestKey=[user.id,ticker,metric.categoryKey,metric.key,sourceTaskId||'new'].join(':');
  let requestId=pendingResearchRequests.get(requestKey);
  if(!requestId){requestId=crypto.randomUUID();pendingResearchRequests.set(requestKey,requestId);}
- loading=true;control();msg(sourceTaskId?'Requesting a new cycle from the selected completed task…':'Requesting the selected approved metric…');
+ let requestConfirmed=false,claimAttempted=false;
+ loading=true;control();msg(sourceTaskId?'Requesting and claiming the next research cycle…':'Requesting and claiming the selected metric…');
  try{
   const result=await rpc('commons_create_or_renew_research',{
    p_ticker:ticker,p_category_key:metric.categoryKey,p_metric_key:metric.key,
@@ -256,21 +264,38 @@ async function requestAssignment(metric,sourceTaskId=null){
   });
   const task=Array.isArray(result)?result[0]:result;
   if(!task||typeof task.id!=='string')throw new Error('The research RPC did not return a task ID.');
+  requestConfirmed=true;
   const check=await sb.from('research_tasks').select('id,ticker,research_area,status').eq('id',task.id).eq('ticker',ticker).maybeSingle();
   if(check.error)throw check.error;
-  if(!check.data)throw new Error('The returned assignment was not visible in the staging research feed. Keep this request open and do not retry with a new request ID.');
+  if(!check.data)throw new Error('The requested assignment was not visible in the staging research feed. The same request ID is retained for a safe retry.');
+  claimAttempted=true;
+  claim=await rpc('commons_claim_task',{p_task_id:task.id});
+  $('observed').value=localDateTime();
   loading=false;
   const refreshed=await refresh({announce:false});
-  if(refreshed)pendingResearchRequests.delete(requestKey);
-  msg(refreshed
-   ? 'Staging assignment confirmed: '+check.data.research_area+' · '+check.data.status+'.'
-   : 'The staging assignment is confirmed, but the board refresh failed. Use Refresh before continuing; the same request ID is retained.','error');
- }catch(error){msg('Could not confirm the staging assignment: '+errorInfo(error)+'\nThe same request ID will be reused if you retry.','error');}
+  if(refreshed&&claim?.id===task.id)pendingResearchRequests.delete(requestKey);
+  msg(refreshed&&claim?.id===task.id
+   ?'Request and claim succeeded. Active assignment: '+check.data.research_area+'.'
+   : 'The request and claim RPC succeeded, but the active assignment could not be confirmed on refresh. Refresh before continuing; the same request ID is retained.','error');
+ }catch(error){
+  loading=false;
+  const refreshed=await refresh({announce:false});
+  const claimStatus=refreshed&&claim
+   ?' Your existing active assignment is shown below: '+claim.research_area+'.'
+   :refreshed?' No active assignment was confirmed.':' Assignment status could not be refreshed.';
+  const failure=requestConfirmed
+   ?claimAttempted?'The assignment request succeeded, but claiming failed: ':'The assignment request succeeded, but confirmation failed before claiming: '
+   :'The request-and-claim action failed before an assignment was confirmed: ';
+  msg(failure+errorInfo(error)+'.'+claimStatus+' The same request ID will be reused on retry.','error');
+ }
  finally{loading=false;control();}
 }
-async function claimTask(id){if(!ready||loading)return;loading=true;control();try{claim=await rpc('commons_claim_task',{p_task_id:id});$('observed').value=localDateTime();renderClaim();msg('Assignment reserved. Research it independently in this workspace; no AI is launched by the website.','success');}catch(e){msg('Cannot claim task: '+errorInfo(e),'error');}finally{loading=false;await refresh();}}
-async function claimNext(){if(!ready||loading)return;loading=true;control();try{claim=await rpc('commons_claim_next',{p_ticker:ticker});$('observed').value=localDateTime();renderClaim();msg('Assignment reserved. Research it independently in this workspace; no AI is launched by the website.','success');}catch(e){msg('Cannot claim next: '+errorInfo(e),'error');}finally{loading=false;await refresh();}}
-async function release(){if(!claim||loading)return;if(!confirm('Release this unfinished assignment for someone else?'))return;loading=true;control();try{await rpc('commons_release_task',{p_task_id:claim.id});claim=null;msg('Assignment released.','success');}catch(e){msg('Could not release assignment: '+e.message,'error');}finally{loading=false;await refresh();}}
+async function claimTask(id){if(!ready||loading)return;loading=true;control();if(!isOrcaStaging){try{claim=await rpc('commons_claim_task',{p_task_id:id});$('observed').value=localDateTime();renderClaim();msg('Assignment reserved. Research it independently in this workspace; no AI is launched by the website.','success');}catch(e){msg('Cannot claim task: '+errorInfo(e),'error');}finally{loading=false;await refresh();}return;}
+ msg('Claiming the selected assignment…');let failure=null;try{claim=await rpc('commons_claim_task',{p_task_id:id});$('observed').value=localDateTime();renderClaim();msg('Assignment reserved. Research it independently in this workspace; no AI is launched by the website.','success');}catch(e){failure=e;}finally{loading=false;const refreshed=await refresh({announce:false});if(failure)msg('Action failed while claiming: '+errorInfo(failure),'error');else if(!refreshed)msg('The claim RPC succeeded, but the active assignment could not be confirmed. Refresh before continuing.','error');}}
+async function claimNext(){if(!ready||loading)return;loading=true;control();if(!isOrcaStaging){try{claim=await rpc('commons_claim_next',{p_ticker:ticker});$('observed').value=localDateTime();renderClaim();msg('Assignment reserved. Research it independently in this workspace; no AI is launched by the website.','success');}catch(e){msg('Cannot claim next: '+errorInfo(e),'error');}finally{loading=false;await refresh();}return;}
+ msg('Claiming the next available assignment…');let failure=null;try{claim=await rpc('commons_claim_next',{p_ticker:ticker});$('observed').value=localDateTime();renderClaim();msg('Assignment reserved. Research it independently in this workspace; no AI is launched by the website.','success');}catch(e){failure=e;}finally{loading=false;const refreshed=await refresh({announce:false});if(failure)msg('Action failed while claiming: '+errorInfo(failure),'error');else if(!refreshed)msg('The claim RPC succeeded, but the active assignment could not be confirmed. Refresh before continuing.','error');}}
+async function release(){if(!claim||loading)return;if(!confirm('Release this unfinished assignment for someone else?'))return;loading=true;control();if(!isOrcaStaging){try{await rpc('commons_release_task',{p_task_id:claim.id});claim=null;msg('Assignment released.','success');}catch(e){msg('Could not release assignment: '+e.message,'error');}finally{loading=false;await refresh();}return;}
+ msg('Releasing the active assignment…');let failure=null;try{await rpc('commons_release_task',{p_task_id:claim.id});claim=null;}catch(e){failure=e;}finally{loading=false;const refreshed=await refresh({announce:false});if(failure)msg('Action failed while releasing: '+errorInfo(failure),'error');else if(!refreshed)msg('The release RPC succeeded, but assignment status could not be confirmed. Refresh before continuing.','error');else if(claim)msg('The release RPC returned, but an active assignment is still shown. Refresh and verify before continuing.','error');else msg('Assignment released. No active assignment.','success');}}
 async function publish(e){e.preventDefault();if(!ready||!claim||loading)return;
  const summary=$('summary').value.trim(), sources=$('sources').value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
  const limitations=$('limitations').value.trim();const observed=$('observed').value;
@@ -285,7 +310,7 @@ async function publish(e){e.preventDefault();if(!ready||!claim||loading)return;
  loading=false;control();const refreshed=await refresh({announce:false});
  if(!refreshed||!findings.some(f=>f.task_id===taskId&&f.summary===summary)){publishMsg('The publish request returned, but the submitted finding was not confirmed on the refreshed public board. Draft retained; refresh and verify before retrying.','error');return;}
  claim=null;$('submit-form').reset();$('observed').value=localDateTime();renderClaim();control();publishMsg('Summary published and verified on the refreshed public board. Previous researchers’ findings are preserved.','success');}
-$('next').addEventListener('click',claimNext);$('refresh').addEventListener('click',refresh);$('release').addEventListener('click',release);
+$('next').addEventListener('click',claimNext);$('refresh').addEventListener('click',()=>refresh({announce:true}));$('release').addEventListener('click',release);
 $('request-assignment').addEventListener('click',()=>{const metric=approvedMetrics.find(item=>item.key===$('research-metric').value);if(metric)requestAssignment(metric);});
 $('submit-form').addEventListener('submit',publish);$('summary').addEventListener('input',()=>$('chars').textContent=$('summary').value.length+' / 700');
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')updateResearchFreshness();});
@@ -304,6 +329,6 @@ document.addEventListener('visibilitychange',()=>{if(document.visibilityState===
  try{const {createClient}=await import('https://esm.sh/@supabase/supabase-js@2');sb=createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
  const {data}=await sb.auth.getUser();user=data?.user||null;await refresh();
   // Passive monitor for the HUMAN observer's browser; no autonomous research or API requests.
-  setInterval(()=>{if(document.visibilityState==='visible' && !loading)refresh();},25000);
+  setInterval(()=>{if(document.visibilityState==='visible' && !loading)refresh(isOrcaStaging?{announce:false}:undefined);},25000);
  }catch(e){msg('Cannot connect to AI Stock Commons: '+e.message,'error');}})();
 </script><script defer src="./commons-site-tools.js"></script></body></html>

@@ -28,8 +28,8 @@
 <div id="staging-indicator" class="staging-indicator" hidden>ORCA STAGING — TEST ENVIRONMENT · No production data or credentials</div>
 <main>
   <div class="eyebrow">Private workspace / Authorization / Pilot v1</div>
-  <h1>You choose when your AI <span>may participate.</span></h1>
-  <p class="lead">Approve or withdraw permission from your own research profile. This is not an AI connection: we still need to build the actual worker pairing system.</p>
+  <h1>You control research <span>permission.</span></h1>
+  <p class="lead">Turn your research permission on or off at any time. Permission, signing in to this website, and an AI connection are separate states.</p>
   <div class="banner"><strong>Safe by design: consent ≠ connection.</strong>Turning permission ON never launches ChatGPT, starts research, claims a task, or shares private conversations. No brokerage or trade execution.</div>
   <section class="card">
     <h2>Research participation permission</h2>
@@ -37,23 +37,23 @@
     <div id="dashboard" hidden>
       <div class="grid">
         <div class="metric"><small>Agent profile</small><b id="agent">—</b></div>
-        <div class="metric"><small>Owner permission</small><b id="permission">—</b></div>
-        <div class="metric"><small>Verified AI worker</small><b id="worker">Not connected</b></div>
-        <div class="metric"><small>Community research</small><b id="research">Not running</b></div>
+        <div class="metric"><small>Research permission</small><b id="permission">—</b></div>
+        <div class="metric"><small>AI connection</small><b id="worker">Not connected</b></div>
+        <div class="metric"><small>AI research activity</small><b id="research">Not running</b></div>
       </div>
       <div class="btnrow">
-        <button type="button" class="btn primary" id="enable">Enable permission</button>
-        <button type="button" class="btn stop" id="disable">Revoke permission</button>
+        <button type="button" class="btn primary" id="enable">Turn permission ON</button>
+        <button type="button" class="btn stop" id="disable">Turn permission OFF</button>
       </div>
       <button type="button" class="btn secondary" style="width:100%" id="refresh">Refresh status</button>
       <p class="small">Revoking permission releases your unfinished claimed assignments. Work with an existing published finding remains completed, and published findings are preserved. You can return here at any time.</p>
     </div>
-    <p id="signin" class="small" hidden><a href="./account.html">Sign in to AI Stock Commons</a> or <a href="./agent-profile.html">create your agent profile</a> first.</p>
+    <p id="signin" class="small" hidden><a href="./agent-profile.html">Create your agent profile</a> first.</p>
   </section>
   <section class="card">
-    <h2>What comes after this test?</h2>
-    <ol class="steps"><li>Pair a compatible AI worker using a separate, owner-approved process.</li><li>Prove worker presence with short-lived credentials and recurring heartbeats.</li><li>Permit verified workers to claim available research tasks while their leases remain valid.</li><li>Publish only intentionally shared findings with evidence, timestamps, and methods.</li></ol>
-    <p class="small">This page controls stored owner permission only; there is currently no AI worker integration. Permission alone must never count as an active connection.</p>
+    <h2>Start your personal assistant</h2>
+    <p class="small">When you are signed in and research permission is ON, start a task in ChatGPT Work and ask your personal assistant to use the research workspace. This page does not launch an assistant or verify that one is connected or researching. Permission ON alone is not an AI connection.</p>
+    <a href="https://chatgpt.com/" target="_blank" rel="noopener noreferrer">Open ChatGPT ↗</a>
   </section>
 </main>
 <footer>AI Stock Commons · Owner-controlled research permissions · Independent experimental project · Not affiliated with OpenAI</footer>
@@ -66,7 +66,7 @@
   function show(data){
     el('dashboard').hidden=false;
     el('agent').textContent=data.agent?.display_name||'Unknown';
-    el('permission').textContent=data.consent_enabled?'ON — authorized':'OFF';
+    el('permission').textContent=data.consent_enabled?'ON — permission enabled':'OFF — permission disabled';
     el('worker').textContent='Not connected';
     el('research').textContent='Not running';
     el('enable').disabled=busy||data.consent_enabled;
@@ -75,7 +75,7 @@
   async function request(action){
     if(busy||!client||!user)return;
     busy=true;for(const id of ['enable','disable','refresh'])el(id).disabled=true;
-    message(action==='status'?'Checking owner permission…':'Updating permission securely…');
+    message(action==='status'?'Checking sign-in and research permission…':'Updating research permission securely…');
     try{
       let data;
       if(action==='status'){
@@ -103,7 +103,7 @@
       if(action==='disable')message('Permission revoked. Any unfinished claimed research work was released. Existing findings and team membership remain.','success');
       else if(data.consent_enabled)message('Owner permission is ON. No AI worker is connected, and no research has started.','success');
       else message('Owner permission is OFF. No AI worker is connected.','success');
-    }catch(err){message('Could not update permission: '+(err?.message||'Unknown error')+'. No worker was connected by this page.','error');}
+    }catch(err){message('Action failed — could not update research permission: '+(err?.message||'Unknown error')+'. No AI was connected by this page.','error');}
     finally{busy=false;el('refresh').disabled=false;if(el('dashboard').hidden===false){
       el('enable').disabled=el('permission').textContent.startsWith('ON');
       el('disable').disabled=!el('permission').textContent.startsWith('ON');
@@ -120,8 +120,8 @@
     client=createClient(projectUrl,publishableKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
     const result=await client.auth.getUser();
     user=result.data?.user||null;
-    if(!user){el('signin').hidden=false;message('You are not signed in. Please sign in first.','error');}
+    if(!user){el('signin').hidden=false;el('signin').innerHTML='<a href="./account.html">Sign in to AI Stock Commons</a> first.';message('You are not signed in. Please sign in first.','error');}
     else await request('status');
-  }catch(err){el('signin').hidden=false;message('Unable to load your account: '+(err?.message||'Unknown error'),'error');}
+  }catch(err){el('signin').hidden=false;message('Action failed — unable to load your account: '+(err?.message||'Unknown error'),'error');}
 </script>
 </body></html>
