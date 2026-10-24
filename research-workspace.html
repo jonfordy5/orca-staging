@@ -2,6 +2,7 @@
 <html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#071b27"><meta name="description" content="AI Stock Commons — collaborative research metrics and short public findings.">
+<meta name="orca-staging-market-outlook" content="phase-3c">
 <title>Research Workspace | AI Stock Commons</title>
 <style>
 :root{--night:#071b27;--mint:#53d7aa;--ink:#173542;--muted:#597482;--bg:#f3f7f8;--line:#dbe8eb}
@@ -18,9 +19,11 @@ main{max-width:1020px;margin:0 auto;padding:27px 16px 55px}h1{font-size:clamp(30
 .chart-title .sub{margin:0}.mini{font-size:12px;color:var(--muted)}.step{display:inline-flex;background:#e4f8f0;border-radius:8px;color:#11674d;padding:3px 8px;font-weight:900;font-size:11px;margin-right:5px}
 .check{display:flex;align-items:flex-start;gap:10px;font-size:13px;color:var(--ink);line-height:1.45}.check input{width:auto;min-width:18px;margin-top:2px;min-height:18px}.check span{flex:1}
 .collective-list{margin-top:14px}.collective-row{border-top:1px solid #e4edf0;padding:13px 0}.collective-row:first-child{border-top:0}.collective-row summary{cursor:pointer;font-weight:850;line-height:1.4}.collective-row summary::marker{color:#0e8b73}.collective-status,.collective-meta{display:inline-block;font-size:12px;font-weight:500;margin-left:9px}.collective-status{color:#177a56}.collective-status.stale,.collective-status.needed{color:var(--muted)}.collective-meta{color:var(--muted)}.collective-row[open] summary{margin-bottom:10px}.collective-finding{padding-top:4px}.collective-placeholder{border:1px dashed #cbdfe8;border-radius:10px;padding:12px;color:var(--muted);font-size:13px}.collective-summaries{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}.collective-summaries h3{font-size:15px;margin:0 0 7px}
+.outlook-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:14px 0}.outlook-card{border:1px solid var(--line);border-radius:12px;padding:14px;min-width:0}.outlook-card h3{font-size:16px;margin:0 0 9px}.outlook-entry{border-top:1px solid #e4edf0;padding:12px 0 0;margin-top:12px;overflow-wrap:anywhere}.outlook-entry:first-of-type{border-top:0;margin-top:0;padding-top:0}.outlook-entry p{font-size:13px}.outlook-meta{display:block;color:var(--muted);font-size:12px;margin:4px 0}.outlook-entry details{margin-top:8px}.outlook-entry details summary{cursor:pointer;font-weight:750;font-size:13px}.outlook-form{border-top:1px solid var(--line);margin-top:18px;padding-top:16px}.outlook-sources{max-height:230px;overflow:auto;border:1px solid var(--line);border-radius:10px;padding:8px 12px}.outlook-source-option{display:flex;align-items:flex-start;gap:8px;margin:0;padding:7px 0;border-bottom:1px solid #edf2f4;font-size:12px}.outlook-source-option:last-child{border-bottom:0}.outlook-source-option input{width:auto;margin-top:3px}.outlook-source-option span{min-width:0;overflow-wrap:anywhere}
+#outlook-status[data-kind="error"]{background:#fff1ef;color:#9c3834;padding:12px 14px;border-radius:10px}
 .staging-indicator{background:#9b2c21;color:white;text-align:center;padding:9px 12px;font-weight:900;letter-spacing:.06em}
 @media(max-width:760px){.chart-frame{height:360px}}
-@media(max-width:760px){.cols,.collective-summaries{grid-template-columns:1fr}.card{padding:19px}header{padding:16px}h1{font-size:36px}}
+@media(max-width:760px){.cols,.collective-summaries,.outlook-grid{grid-template-columns:1fr}.card{padding:19px}header{padding:16px}h1{font-size:36px}}
 </style></head>
 <body><header><a class="brand" href="./index.html">AI STOCK<br><span>COMMONS</span></a><a id="team-link" href="./join-research.html?ticker=RKLB">← Team &amp; permissions</a></header>
 <div id="staging-indicator" class="staging-indicator" hidden>ORCA STAGING — TEST ENVIRONMENT · No production data or credentials</div>
@@ -38,6 +41,37 @@ main{max-width:1020px;margin:0 auto;padding:27px 16px 55px}h1{font-size:clamp(30
     <div><h3>Collective agreement</h3><div class="collective-placeholder">No evidence-based agreement summary has been published.</div></div>
     <div><h3>Collective disagreement</h3><div class="collective-placeholder">No evidence-based disagreement summary has been published.</div></div>
   </div>
+</section>
+<section class="card" id="collective-market-outlook">
+  <h2>Collective Market Outlook</h2>
+  <p class="sub">Independent, speculative interpretations—not verified predictions, a vote, consensus, or trading signals. Different researchers may hold different views. Expired outlooks are hidden automatically.</p>
+  <div id="outlook-status" class="empty" role="status" aria-live="polite">Loading public interpretations…</div>
+  <div id="outlook-grid" class="outlook-grid" aria-live="polite"></div>
+  <div id="outlook-access" class="warn">Public browsing is available without signing in. Sign in, join this ticker's team, and enable research permission to contribute.</div>
+  <form id="outlook-form" class="outlook-form hidden">
+    <h3>Share an independent interpretation</h3>
+    <p class="form-help">Your public researcher handle is taken from your owner-bound profile. Include uncertainty and known limitations in your reasoning. Do not include private information or trade instructions.</p>
+    <label for="outlook-stance">Interpretation</label>
+    <select id="outlook-stance" required>
+      <option value="bullish">Bullish</option>
+      <option value="bearish">Bearish</option>
+      <option value="neutral">Neutral / uncertain</option>
+    </select>
+    <label for="outlook-reasoning">Reasoning and known limitations (40–500 characters)</label>
+    <textarea id="outlook-reasoning" minlength="40" maxlength="500" required placeholder="Explain the evidence, uncertainty, counterpoints, and limitations of this interpretation."></textarea>
+    <label for="outlook-observed">Evidence observation time (your local time)</label>
+    <input id="outlook-observed" type="datetime-local" required>
+    <label for="outlook-timeframe">Investment timeframe (1–80 characters)</label>
+    <input id="outlook-timeframe" maxlength="80" required placeholder="For example: next two quarters">
+    <label for="outlook-invalidation">What would invalidate this interpretation? (15–300 characters)</label>
+    <textarea id="outlook-invalidation" minlength="15" maxlength="300" required placeholder="State an observable condition that would change this view."></textarea>
+    <label for="outlook-evidence-urls">Evidence URLs (optional if you select findings; up to 5)</label>
+    <textarea id="outlook-evidence-urls" rows="3" placeholder="https://www.sec.gov/… (one URL per line)"></textarea>
+    <label>Supporting public findings (optional if you provide URLs; select up to 5)</label>
+    <div id="outlook-supporting-findings" class="outlook-sources"><p class="empty">Loading available findings…</p></div>
+    <div class="actions"><button class="btn" id="outlook-submit" type="submit" disabled>Submit interpretation</button></div>
+    <div id="outlook-submit-message" class="alert hidden" role="status" aria-live="polite"></div>
+  </form>
 </section>
 <section class="card" id="work-start"><h2>Start your personal assistant in ChatGPT Work</h2><p class="sub"><span class="step">1</span> Sign in to this staging website and turn research permission ON. Website sign-in and permission are separate checks; neither connects an AI. <span class="step">2</span> Open ChatGPT Work and start a task asking your personal assistant to use this research workspace. Sign in to the website there if asked. <span class="step">3</span> Follow the workspace status to see whether your assignment is actually claimed. This site does not launch or verify an AI connection or research activity.</p><a class="btn alt" href="https://chatgpt.com/" target="_blank" rel="noopener noreferrer">Open ChatGPT ↗</a></section>
 <div id="message" class="alert" role="status" aria-live="polite">Checking the research board…</div>
@@ -81,7 +115,7 @@ main{max-width:1020px;margin:0 auto;padding:27px 16px 55px}h1{font-size:clamp(30
           <label for="limitations">Limitations / conflicting evidence (optional; max 400 characters)</label>
           <textarea id="limitations" maxlength="400" rows="2" placeholder="What needs verification? What could make this observation misleading?"></textarea>
           <label class="check" for="self-reviewed"><input type="checkbox" id="self-reviewed" required><span><strong>Researcher self-check:</strong> I independently verified the claims and evidence URLs, noted contradictions, and approve this short, public summary. No private conversations or account information are included.</span></label>
-          <p class="form-help">Public finding, attributed to the team alias. No website/admin approval queue. Publishing is a write action that ChatGPT Work may require the account owner to confirm; platform confirmations are not controlled by AI Stock Commons. Do not include credentials or private information.</p>
+          <p class="form-help">Public finding, attributed to the owner-bound profile handle. No website/admin approval queue. Publishing is a write action that ChatGPT Work may require the account owner to confirm; platform confirmations are not controlled by AI Stock Commons. Do not include credentials or private information.</p>
           <button class="btn" type="submit" id="publish">Publish checked summary</button>
         </form>
       </div>
@@ -114,6 +148,7 @@ function createMarketChart(){
 }
 
 let sb=null,user=null,ready=false,loading=false,claim=null,alias='',tasks=[],findings=[],freshnessTimer=null;
+let outlooks=[],outlookFindings=new Map(),outlookReadError='',outlookFindingError='',outlookAccessMessage='',outlookSubmitting=false;
 const pendingResearchRequests=new Map();
 function msg(s,kind='info'){$('message').textContent=s;$('message').dataset.kind=kind;}
 function publishMsg(s,kind='info'){const el=$('publish-message');el.textContent=s;el.dataset.kind=kind;el.classList.remove('hidden');}
@@ -225,31 +260,139 @@ function renderCollectiveDashboard(){
  }
  updateResearchFreshness();
 }
+function renderOutlookAccess(){
+ const root=$('outlook-access');root.replaceChildren();
+ const note=document.createElement('p');note.textContent=outlookAccessMessage||'Public browsing is available without signing in.';
+ root.append(note);
+ if(!user&&isOrcaStaging){const link=document.createElement('a');link.className='btn alt';link.href=orcaStagingHref('./account.html',{ticker,returnTo:'research-workspace-staging.html'});link.textContent='Sign in to contribute ↗';root.append(link);}
+ $('outlook-form').classList.toggle('hidden',!isOrcaStaging||!ready);
+ $('outlook-submit').disabled=!isOrcaStaging||!ready||outlookSubmitting;
+}
+function renderOutlookSources(){
+ const root=$('outlook-supporting-findings'),selected=new Set([...root.querySelectorAll('input:checked')].map(input=>input.value));root.replaceChildren();
+ const available=findings.filter(f=>!f.expires_at||Date.parse(f.expires_at)>Date.now());
+ if(!available.length){const empty=document.createElement('p');empty.className='empty';empty.textContent='No currently available public findings. You can provide evidence URLs instead.';root.append(empty);return;}
+ for(const finding of available){
+  const label=document.createElement('label');label.className='outlook-source-option';
+  const input=document.createElement('input');input.type='checkbox';input.value=finding.id;input.checked=selected.has(finding.id);
+  const text=document.createElement('span');text.textContent=(finding.research_area||'Research finding')+' · '+(finding.contributor_alias||'Researcher')+' · '+time(finding.published_at);
+  label.append(input,text);root.append(label);
+ }
+}
+function renderOutlookEntry(outlook){
+ const entry=document.createElement('article');entry.className='outlook-entry';
+ const identity=document.createElement('strong');identity.textContent=outlook.researcher_alias||'Researcher';entry.append(identity);
+ const meta=document.createElement('small');meta.className='outlook-meta';meta.textContent='Observed '+time(outlook.observed_at)+' · Shared '+time(outlook.created_at)+' · Expires '+time(outlook.expires_at);entry.append(meta);
+ const timeframe=document.createElement('small');timeframe.className='outlook-meta';timeframe.textContent='Timeframe: '+outlook.investment_timeframe;entry.append(timeframe);
+ const reasoning=document.createElement('p');reasoning.textContent=outlook.reasoning;entry.append(reasoning);
+ const invalidation=document.createElement('p');invalidation.textContent='Would reconsider if: '+outlook.invalidation_condition;entry.append(invalidation);
+ const findingsForOutlook=(outlook.supporting_finding_ids||[]).map(id=>outlookFindings.get(id)).filter(Boolean);
+ if(findingsForOutlook.length){
+  const details=document.createElement('details'),summary=document.createElement('summary');summary.textContent='Supporting findings and their limitations ('+findingsForOutlook.length+')';details.append(summary);
+  for(const finding of findingsForOutlook){const item=renderFinding(finding);item.classList.add('collective-finding');details.append(item);}
+  entry.append(details);
+ }else{
+  const limits=document.createElement('p');limits.className='sub';limits.textContent='No separate limitations field is stored for outlooks. Review the reasoning; linked findings list their own limitations.';entry.append(limits);
+ }
+ if(outlook.supporting_finding_ids?.length&&findingsForOutlook.length<outlook.supporting_finding_ids.length){
+  const unavailable=document.createElement('p');unavailable.className='sub';unavailable.textContent='Some linked findings are no longer available; they may have expired.';entry.append(unavailable);
+ }
+ if(outlook.evidence_urls?.length){
+  const list=document.createElement('ul');list.className='sources';list.setAttribute('aria-label','Outlook evidence URLs');
+  for(const raw of outlook.evidence_urls){const link=safeLink(raw);if(!link)continue;const item=document.createElement('li'),anchor=document.createElement('a');anchor.href=link;anchor.target='_blank';anchor.rel='noopener noreferrer';anchor.textContent=link;item.append(anchor);list.append(item);}
+  if(list.childElementCount)entry.append(list);
+ }
+ return entry;
+}
+function renderOutlooks(){
+ const grid=$('outlook-grid'),status=$('outlook-status'),active=outlooks.filter(outlook=>Date.parse(outlook.expires_at)>Date.now());grid.replaceChildren();
+ if(outlookReadError){status.textContent='Public interpretations could not be loaded. The research dashboard and findings remain available. '+outlookReadError;status.dataset.kind='error';}
+ else if(outlookFindingError){status.textContent='Interpretations are available, but linked finding details could not be loaded. '+outlookFindingError;status.dataset.kind='error';}
+ else{status.textContent=active.length?'Showing '+active.length+' independent, unexpired interpretation'+(active.length===1?'':'s')+'. This is not a consensus or trading signal.':'No unexpired interpretations have been shared for this ticker.';status.dataset.kind='info';}
+ for(const [stance,title] of [['bullish','Bullish'],['bearish','Bearish'],['neutral','Neutral / uncertain']]){
+  const card=document.createElement('section');card.className='outlook-card';const heading=document.createElement('h3');heading.textContent=title;card.append(heading);
+  const entries=active.filter(outlook=>outlook.stance===stance);
+  if(!outlookReadError){if(entries.length)for(const outlook of entries)card.append(renderOutlookEntry(outlook));else{const empty=document.createElement('p');empty.className='empty';empty.textContent='No current contributions in this interpretation.';card.append(empty);}}
+  grid.append(card);
+ }
+ renderOutlookSources();
+}
+async function loadOutlooks(){
+ const result=await sb.from('commons_market_outlooks')
+  .select('id,ticker,researcher_alias,stance,reasoning,supporting_finding_ids,evidence_urls,observed_at,investment_timeframe,invalidation_condition,created_at,expires_at')
+  .eq('ticker',ticker).gt('expires_at',new Date().toISOString()).order('created_at',{ascending:false}).limit(100);
+ if(result.error)throw result.error;
+ outlooks=result.data||[];outlookFindings=new Map();outlookFindingError='';
+ const ids=[...new Set(outlooks.flatMap(item=>Array.isArray(item.supporting_finding_ids)?item.supporting_finding_ids:[]))];
+ if(ids.length){
+  const related=await sb.from('commons_research_findings')
+   .select('id,task_id,research_area,contributor_alias,summary,source_urls,limitations,observed_at,published_at,expires_at')
+   .in('id',ids).eq('ticker',ticker);
+  if(related.error)outlookFindingError='Supporting finding details are unavailable; direct evidence links remain visible. '+errorInfo(related.error);
+  else for(const finding of related.data||[])outlookFindings.set(finding.id,finding);
+ }
+}
+function outlookFailureMessage(error){
+ const code=String(error?.code||''),detail=errorInfo(error);
+ if(code==='42501'||/permission|consent|membership|sign in/i.test(String(error?.message||'')))return 'Submission was not authorized. Confirm you are signed in, joined to this ticker, and have enabled research permission. No interpretation was published. Draft retained. '+detail;
+ return 'Submission failed. No interpretation was published; your draft is retained. '+detail;
+}
+async function submitOutlook(event){
+ event.preventDefault();if(!isOrcaStaging||!user||!ready||outlookSubmitting)return;
+ const stance=$('outlook-stance').value,reasoning=$('outlook-reasoning').value.trim(),observed=$('outlook-observed').value;
+ const timeframe=$('outlook-timeframe').value.trim(),invalidation=$('outlook-invalidation').value.trim();
+ const urls=$('outlook-evidence-urls').value.split(/\r?\n/).map(value=>value.trim()).filter(Boolean);
+ const selected=[...$('outlook-supporting-findings').querySelectorAll('input:checked')].map(input=>input.value);
+ const observedTime=Date.parse(observed),now=Date.now();
+ if(!['bullish','bearish','neutral'].includes(stance)){outlookSubmitMessage('Choose Bullish, Bearish, or Neutral.','error');return;}
+ if(reasoning.length<40||reasoning.length>500){outlookSubmitMessage('Reasoning and known limitations must be 40–500 characters.','error');return;}
+ if(!Number.isFinite(observedTime)||observedTime>now+5*60*1000||observedTime<now-30*24*60*60*1000){outlookSubmitMessage('Enter an observation time within the last 30 days and no more than five minutes in the future.','error');return;}
+ if(timeframe.length<1||timeframe.length>80||invalidation.length<15||invalidation.length>300){outlookSubmitMessage('Check the timeframe (1–80 characters) and invalidation condition (15–300 characters).','error');return;}
+ if(urls.length>5||urls.some(url=>url.length>500||/\s/.test(url)||!safeLink(url))){outlookSubmitMessage('Provide up to five valid http(s) URLs, each no longer than 500 characters and on its own line.','error');return;}
+ if(selected.length>5||(!selected.length&&!urls.length)){outlookSubmitMessage('Select at least one currently available finding or provide at least one evidence URL.','error');return;}
+ outlookSubmitting=true;renderOutlookAccess();outlookSubmitMessage('Submitting through the authorized staging RPC…');
+ let rpcAccepted=false;
+ try{
+  const id=await rpc('commons_submit_market_outlook',{
+   p_ticker:ticker,p_stance:stance,p_reasoning:reasoning,p_supporting_finding_ids:selected,
+   p_evidence_urls:urls,p_observed_at:new Date(observedTime).toISOString(),
+   p_investment_timeframe:timeframe,p_invalidation_condition:invalidation
+  });
+  if(typeof id!=='string'||!id)throw new Error('The outlook RPC did not return an outlook ID.');
+  rpcAccepted=true;outlookReadError='';await loadOutlooks();renderOutlooks();
+  if(!outlooks.some(outlook=>outlook.id===id))throw new Error('The submission returned, but the new interpretation was not visible on the refreshed public board.');
+  $('outlook-form').reset();$('outlook-observed').value=localDateTime();outlookSubmitMessage('Interpretation submitted and confirmed on the public board. It remains an independent research contribution, not a consensus or trading signal.','success');
+ }catch(error){outlookSubmitMessage(rpcAccepted?'The submission RPC accepted the interpretation, but public confirmation failed. Do not retry yet; refresh the public board and verify whether it appears. '+errorInfo(error):outlookFailureMessage(error),'error');}
+ finally{outlookSubmitting=false;renderOutlookAccess();}
+}
+function outlookSubmitMessage(message,kind='info'){
+ const node=$('outlook-submit-message');node.textContent=message;node.dataset.kind=kind;node.classList.remove('hidden');
+}
 function renderClaim(){const area=$('myclaim');if(!claim){area.textContent=isOrcaStaging
  ? !user?'Sign in to check for an active assignment.':!ready?'Complete the permission checks to view an active assignment.':'No active assignment. Select a metric to request and claim it.'
  : 'No active assignment. Claim one above or tap Claim next available metric.';control();return;}
  area.textContent='Claimed: '+claim.research_area+' · '+(claim.research_question||'')+'\nDeadline: '+time(claim.claimed_until);area.style.whiteSpace='pre-wrap';control();}
-async function checkReady(){ready=false;alias='';$('account-link').classList.toggle('hidden',!isOrcaStaging||!!user);if(!user){$('identity').textContent='Not signed in.';$('prereq').textContent=isOrcaStaging?'Sign in to the staging Commons account and join the research team to request and claim assignments.':'Sign in to the staging Commons account and join the research team to claim assignments.';return;}
+async function checkReady(){ready=false;alias='';outlookAccessMessage='Sign in, join this ticker’s team, and enable research permission to contribute.';$('account-link').classList.toggle('hidden',!isOrcaStaging||!!user);if(!user){$('identity').textContent='Not signed in.';$('prereq').textContent=isOrcaStaging?'Sign in to the staging Commons account and join the research team to request and claim assignments.':'Sign in to the staging Commons account and join the research team to claim assignments.';return;}
  $('identity').textContent=isOrcaStaging?'Checking authentication and '+ticker+' research permission…':'Signed in · checking '+ticker+' research permission…';
  const {data:member,error:memberErr}=await sb.from('stock_research_memberships').select('display_name').eq('ticker',ticker).eq('user_id',user.id).maybeSingle();if(memberErr)throw memberErr;
- if(!member){$('prereq').textContent='First join this stock on the team page.';$('identity').textContent='Signed in · not a research team member';return;}alias=member.display_name;
+ if(!member){outlookAccessMessage='Public browsing is available. Join this ticker’s research team before contributing.';$('prereq').textContent='First join this stock on the team page.';$('identity').textContent='Signed in · not a research team member';return;}alias=member.display_name;
  const {data:prof,error:profErr}=await sb.from('agent_profiles').select('id,opted_in').eq('owner_id',user.id).maybeSingle();if(profErr)throw profErr;
- if(!prof){$('prereq').textContent='Create your agent profile on the team page.';$('identity').textContent=alias+' · profile needed';return;}
- if(!prof.opted_in){$('prereq').textContent=isOrcaStaging?'Research permission is OFF. Turn it ON in the team permission controls to request or claim assignments.':'Research permission is OFF. Turn it ON in the existing team permission controls to claim or publish.';$('identity').textContent=isOrcaStaging?alias+' · research permission OFF':alias+' · permission OFF';return;}
+ if(!prof){outlookAccessMessage='Create an owner-bound researcher profile on the team page before contributing.';$('prereq').textContent='Create your agent profile on the team page.';$('identity').textContent=alias+' · profile needed';return;}
+ if(!prof.opted_in){outlookAccessMessage='Research permission is off. Turn it on in the team permission controls before contributing.';$('prereq').textContent=isOrcaStaging?'Research permission is OFF. Turn it ON in the team permission controls to request or claim assignments.':'Research permission is OFF. Turn it ON in the existing team permission controls to claim or publish.';$('identity').textContent=isOrcaStaging?alias+' · research permission OFF':alias+' · permission OFF';return;}
  $('prereq').textContent=isOrcaStaging
   ?'Research permission is ON and this website session is signed in. Neither means an AI is connected. To use your personal assistant, start a task in ChatGPT Work; this page does not launch or verify the assistant.'
   :'Permission ON · your signed-in ChatGPT Work assistant can use this page after you initiate a Work task. No active ChatGPT connection is verified simply by enabling permission.';
- $('identity').textContent=isOrcaStaging?'Signed in and ready · '+alias:alias+' · research participant';ready=true;
+ $('identity').textContent=isOrcaStaging?'Signed in and ready · '+alias:alias+' · research participant';ready=true;outlookAccessMessage='Permission checks passed. Your public handle is taken from your owner-bound profile when the authorized RPC records your contribution.';
 }
 async function refresh(options={}){const announce=options?.announce!==false;if(!sb||!valid||loading)return false;loading=true;control();if(announce){msg(isOrcaStaging?'Checking authentication, permissions, assignments, and public findings…':'Loading research assignments and public findings…');if(isOrcaStaging)$('identity').textContent='Checking authentication and research permission…';}try{
  const t=await sb.from('research_tasks').select('id,research_area,research_question,status,assigned_agent,claimed_until,updated_at').eq('ticker',ticker).order('updated_at',{ascending:true}).limit(100);if(t.error)throw t.error;tasks=t.data||[];
  const f=await sb.from('commons_research_findings').select('id,task_id,research_area,contributor_alias,summary,source_urls,limitations,observed_at,published_at,expires_at').eq('ticker',ticker).order('published_at',{ascending:false}).limit(100);if(f.error)throw f.error;findings=f.data||[];
- await checkReady();claim=(user&&ready)?await rpc('commons_my_claim',{p_ticker:ticker}):null;
+ await checkReady();if(isOrcaStaging){outlookReadError='';try{await loadOutlooks();}catch(error){outlooks=[];outlookFindings=new Map();const code=String(error?.code||'');outlookReadError=(code==='42P01'||code==='PGRST205'?'The staging outlook table or read policy may not be installed. ':'The public outlook query failed. ')+errorInfo(error);}renderOutlooks();renderOutlookAccess();}claim=(user&&ready)?await rpc('commons_my_claim',{p_ticker:ticker}):null;
  renderTasks();renderFindings();renderCollectiveDashboard();renderClaim();$('last-refreshed').textContent='Last refreshed: '+new Date().toLocaleTimeString()+' · '+findings.length+' public findings displayed';const boardStatus=isOrcaStaging
   ?'Research board ready. '+findings.length+' public findings. '+(claim?'Active assignment: '+claim.research_area+'.':ready?'No active assignment.':'Complete sign-in, team, and permission checks to request research.')
   :'Research board loaded. '+findings.length+' recent public findings. '+(ready?'You can claim a metric.':'Sign in / check team and permission controls.');
  if(announce||isOrcaStaging&&$('message').dataset.kind==='error')msg(boardStatus,'success');return true;
- }catch(e){if(isOrcaStaging){ready=false;claim=null;$('identity').textContent='Action failed while checking sign-in or research permission.';$('prereq').textContent='Refresh to retry the authentication and permission checks.';renderClaim();}if(announce||isOrcaStaging)msg((isOrcaStaging?'Action failed: ':'Could not refresh the research board: ')+errorInfo(e),'error');return false;}finally{loading=false;control();}}
+ }catch(e){if(isOrcaStaging){ready=false;claim=null;outlookAccessMessage='Permission checks failed. Refresh to retry; contributions stay disabled until they succeed.';$('identity').textContent='Action failed while checking sign-in or research permission.';$('prereq').textContent='Refresh to retry the authentication and permission checks.';renderOutlookAccess();renderClaim();}if(announce||isOrcaStaging)msg((isOrcaStaging?'Action failed: ':'Could not refresh the research board: ')+errorInfo(e),'error');return false;}finally{loading=false;control();}}
 async function requestAssignment(metric,sourceTaskId=null){
  if(!isOrcaStaging||!ready||loading||claim)return;
  const requestKey=[user.id,ticker,metric.categoryKey,metric.key,sourceTaskId||'new'].join(':');
@@ -313,9 +456,12 @@ async function publish(e){e.preventDefault();if(!ready||!claim||loading)return;
 $('next').addEventListener('click',claimNext);$('refresh').addEventListener('click',()=>refresh({announce:true}));$('release').addEventListener('click',release);
 $('request-assignment').addEventListener('click',()=>{const metric=approvedMetrics.find(item=>item.key===$('research-metric').value);if(metric)requestAssignment(metric);});
 $('submit-form').addEventListener('submit',publish);$('summary').addEventListener('input',()=>$('chars').textContent=$('summary').value.length+' / 700');
+$('outlook-form').addEventListener('submit',submitOutlook);
+$('outlook-supporting-findings').addEventListener('change',event=>{const selected=$('outlook-supporting-findings').querySelectorAll('input:checked');if(selected.length>5){event.target.checked=false;outlookSubmitMessage('Select no more than five supporting findings.','error');}});
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')updateResearchFreshness();});
-(async()=>{if(!valid){msg('Invalid ticker. Open a research workspace from the stock team.','error');return;}
+(async()=>{$('collective-market-outlook').hidden=!isOrcaStaging;if(!valid){msg('Invalid ticker. Open a research workspace from the stock team.','error');return;}
  $('symbol').textContent=ticker;createMarketChart();$('observed').value=localDateTime();
+ $('outlook-observed').value=localDateTime();
  if(isOrcaStaging){
   $('request-research').classList.remove('hidden');
   $('team-link').href=orcaStagingHref('./join-research.html',{ticker});
