@@ -19,7 +19,7 @@ main{max-width:1020px;margin:0 auto;padding:27px 16px 55px}h1{font-size:clamp(30
 .chart-title .sub{margin:0}.mini{font-size:12px;color:var(--muted)}.step{display:inline-flex;background:#e4f8f0;border-radius:8px;color:#11674d;padding:3px 8px;font-weight:900;font-size:11px;margin-right:5px}
 .check{display:flex;align-items:flex-start;gap:10px;font-size:13px;color:var(--ink);line-height:1.45}.check input{width:auto;min-width:18px;margin-top:2px;min-height:18px}.check span{flex:1}
 .collective-list{margin-top:14px}.collective-row{border-top:1px solid #e4edf0;padding:13px 0}.collective-row:first-child{border-top:0}.collective-row summary{cursor:pointer;font-weight:850;line-height:1.4}.collective-row summary::marker{color:#0e8b73}.collective-status,.collective-meta{display:inline-block;font-size:12px;font-weight:500;margin-left:9px}.collective-status{color:#177a56}.collective-status.stale,.collective-status.needed{color:var(--muted)}.collective-meta{color:var(--muted)}.collective-row[open] summary{margin-bottom:10px}.collective-finding{padding-top:4px}.collective-placeholder{border:1px dashed #cbdfe8;border-radius:10px;padding:12px;color:var(--muted);font-size:13px}.collective-summaries{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}.collective-summaries h3{font-size:15px;margin:0 0 7px}
-.outlook-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:14px 0}.outlook-card{border:1px solid var(--line);border-radius:12px;padding:14px;min-width:0}.outlook-card h3{font-size:16px;margin:0 0 9px}.outlook-entry{border-top:1px solid #e4edf0;padding:12px 0 0;margin-top:12px;overflow-wrap:anywhere}.outlook-entry:first-of-type{border-top:0;margin-top:0;padding-top:0}.outlook-entry p{font-size:13px}.outlook-meta{display:block;color:var(--muted);font-size:12px;margin:4px 0}.outlook-entry details{margin-top:8px}.outlook-entry details summary{cursor:pointer;font-weight:750;font-size:13px}.outlook-form{border-top:1px solid var(--line);margin-top:18px;padding-top:16px}.outlook-sources{max-height:230px;overflow:auto;border:1px solid var(--line);border-radius:10px;padding:8px 12px}.outlook-source-option{display:flex;align-items:flex-start;gap:8px;margin:0;padding:7px 0;border-bottom:1px solid #edf2f4;font-size:12px}.outlook-source-option:last-child{border-bottom:0}.outlook-source-option input{width:auto;margin-top:3px}.outlook-source-option span{min-width:0;overflow-wrap:anywhere}
+.source-fold,.history-fold{border:1px solid var(--line);border-radius:9px;padding:9px 11px;margin:10px 0;background:#f7fafb;min-width:0}.source-fold summary,.history-fold summary{cursor:pointer;font-weight:800;color:#087b6a;font-size:13px}.history-fold .finding,.history-fold .outlook-entry{border-top:1px solid var(--line);margin-top:10px;padding-top:10px}.outlook-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:14px 0}.outlook-card{border:1px solid var(--line);border-radius:12px;padding:14px;min-width:0}.outlook-card h3{font-size:16px;margin:0 0 9px}.outlook-entry{border-top:1px solid #e4edf0;padding:12px 0 0;margin-top:12px;overflow-wrap:anywhere}.outlook-entry:first-of-type{border-top:0;margin-top:0;padding-top:0}.outlook-entry p{font-size:13px}.outlook-meta{display:block;color:var(--muted);font-size:12px;margin:4px 0}.outlook-entry details{margin-top:8px}.outlook-entry details summary{cursor:pointer;font-weight:750;font-size:13px}.outlook-form{border-top:1px solid var(--line);margin-top:18px;padding-top:16px}.outlook-sources{max-height:230px;overflow:auto;border:1px solid var(--line);border-radius:10px;padding:8px 12px}.outlook-source-option{display:flex;align-items:flex-start;gap:8px;margin:0;padding:7px 0;border-bottom:1px solid #edf2f4;font-size:12px}.outlook-source-option:last-child{border-bottom:0}.outlook-source-option input{width:auto;margin-top:3px}.outlook-source-option span{min-width:0;overflow-wrap:anywhere}
 #outlook-status[data-kind="error"]{background:#fff1ef;color:#9c3834;padding:12px 14px;border-radius:10px}
 .staging-indicator{background:#9b2c21;color:white;text-align:center;padding:9px 12px;font-weight:900;letter-spacing:.06em}
 @media(max-width:760px){.chart-frame{height:360px}}
@@ -92,7 +92,7 @@ main{max-width:1020px;margin:0 auto;padding:27px 16px 55px}h1{font-size:clamp(30
       <div id="tasks" class="empty">Loading assignments…</div>
     </section>
     <section class="card"><h2>Public research findings</h2>
-      <p class="sub">Updates automatically about every 25 seconds while this tab is open. New independent findings appear alongside earlier ones (Option B); visible for up to 30 days. Historical claims may need rechecking.</p><p id="last-refreshed" class="mini">Waiting for first refresh…</p>
+      <p class="sub">Updates automatically about every 25 seconds while this tab is open. Newest findings appear first; older entries are under Previous findings; visible for up to 30 days. Historical claims may need rechecking.</p><p id="last-refreshed" class="mini">Waiting for first refresh…</p>
       <div id="findings" class="empty">Loading source-backed summaries…</div>
     </section>
   </div>
@@ -227,39 +227,18 @@ function renderTasks(){const root=$('tasks');root.replaceChildren();if(!tasks.le
  else if(user&&ready&&!claim){const btn=document.createElement('button');btn.className='btn alt';btn.type='button';btn.textContent='Claim this metric';btn.disabled=loading;btn.onclick=()=>claimTask(t.id);block.append(btn);}
  root.append(block);}
 }
+function recentFirst(items,field){return [...items].sort((a,b)=>(Date.parse(b[field]||'')||0)-(Date.parse(a[field]||'')||0));}
+function keepOpen(root){return new Set([...root.querySelectorAll('details[data-fold-key][open]')].map(e=>e.dataset.foldKey));}
+function restoreOpen(root,keys){for(const e of root.querySelectorAll('details[data-fold-key]'))e.open=keys.has(e.dataset.foldKey);}
+function folded(title,items,key,css='history-fold'){const d=document.createElement('details'),h=document.createElement('summary');d.className=css;d.dataset.foldKey=key;h.textContent=title+' ('+items.length+')';d.append(h,...items);return d;}
+function sourceFold(root,urls,key){const urlsOk=(Array.isArray(urls)?urls:[]).map(safeLink).filter(Boolean);const d=document.createElement('details'),h=document.createElement('summary'),list=document.createElement('ul');d.className='source-fold';d.dataset.foldKey=key;h.textContent='Source websites ('+urlsOk.length+')';list.className='sources';for(const url of urlsOk){const li=document.createElement('li'),a=document.createElement('a');a.href=url;a.target='_blank';a.rel='noopener noreferrer';a.textContent=url;li.append(a);list.append(li);}if(!urlsOk.length){const li=document.createElement('li');li.textContent='No valid source links.';list.append(li);}d.append(h,list);root.append(d);}
 function renderFinding(f){const block=document.createElement('article');block.className='finding';const title=document.createElement('strong');title.textContent=f.research_area+' · '+f.contributor_alias;block.append(title);
  const when=document.createElement('small');when.textContent='Evidence as of '+time(f.observed_at)+' · Published '+time(f.published_at);block.append(when);
  const summary=document.createElement('p');summary.textContent=f.summary;block.append(summary);
  const lim=document.createElement('p');lim.className='sub';lim.textContent='Limitations: '+(f.limitations||'Not provided.');block.append(lim);
- const sourceUrls=Array.isArray(f.source_urls)?f.source_urls:[],list=document.createElement('ul');list.className='sources';list.setAttribute('aria-label','Source attribution');
- for(const raw of sourceUrls){const link=safeLink(raw);if(!link)continue;const li=document.createElement('li'),a=document.createElement('a');a.href=link;a.rel='noopener noreferrer';a.target='_blank';a.textContent=link;li.append(a);list.append(li);}
- if(!list.childElementCount){const li=document.createElement('li');li.textContent='No valid source URL provided.';list.append(li);}
- block.append(list);return block;}
-function renderFindings(){const root=$('findings');root.replaceChildren();if(!findings.length){root.textContent='No published research yet. A source-backed summary can be the first contribution.';return;}
- for(const f of findings)root.append(renderFinding(f));}
-function renderCollectiveDashboard(){
- const root=$('collective-findings');root.replaceChildren();
- const grouped=new Map(researchCategories.map(category=>[category.id,new Map()]));
- for(const f of findings){
-  const categoryId=researchCategory(f.research_area),metrics=grouped.get(categoryId);
-  if(!metrics)continue;
-  const label=researchMetric(f),key=label.toLocaleLowerCase();
-  if(!metrics.has(key))metrics.set(key,{label,finding:f});
- }
- for(const category of researchCategories){
-  const row=document.createElement('details');row.className='collective-row';
-  const metrics=grouped.get(category.id),heading=document.createElement('summary'),status=document.createElement('span'),meta=document.createElement('span');
-  heading.append(document.createTextNode(category.title));
-  const latest=[...metrics.values()].reduce((current,item)=>!current||Date.parse(item.finding.published_at)>Date.parse(current.finding.published_at)?item:current,null);
-  status.className='collective-status';status.dataset.publishedAt=latest?.finding.published_at||'';
-  meta.className='collective-meta';meta.textContent=metrics.size+' researched metric'+(metrics.size===1?'':'s');
-  heading.append(status,meta);row.append(heading);
-  if(metrics.size){for(const {finding} of metrics.values()){const item=renderFinding(finding);item.classList.add('collective-finding');row.append(item);}}
-  else{const placeholder=document.createElement('p');placeholder.className='collective-placeholder';placeholder.textContent='Research needed.';row.append(placeholder);}
-  root.append(row);
- }
- updateResearchFreshness();
-}
+ sourceFold(block,f.source_urls,'finding:'+f.id);return block;}
+function renderFindings(){const root=$('findings'),opened=keepOpen(root),ordered=recentFirst(findings,'published_at');root.replaceChildren();if(!ordered.length){root.textContent='No public research yet.';return;}root.append(renderFinding(ordered[0]));if(ordered.length>1)root.append(folded('Previous findings',ordered.slice(1).map(renderFinding),'all-history'));restoreOpen(root,opened);}
+function renderCollectiveDashboard(){const root=$('collective-findings'),opened=keepOpen(root);root.replaceChildren();for(const category of researchCategories){const row=document.createElement('details'),heading=document.createElement('summary'),status=document.createElement('span'),meta=document.createElement('span');row.className='collective-row';row.dataset.foldKey='category:'+category.id;const group=recentFirst(findings.filter(f=>researchCategory(f.research_area)===category.id),'published_at');heading.append(document.createTextNode(category.title));status.className='collective-status';status.dataset.publishedAt=group[0]?.published_at||'';meta.className='collective-meta';meta.textContent=group.length+' finding'+(group.length===1?'':'s');heading.append(status,meta);row.append(heading);if(group.length){row.append(renderFinding(group[0]));if(group.length>1)row.append(folded('Previous findings',group.slice(1).map(renderFinding),'category-history:'+category.id));}else{const p=document.createElement('p');p.className='collective-placeholder';p.textContent='Research needed.';row.append(p);}root.append(row);}restoreOpen(root,opened);updateResearchFreshness();}
 function renderOutlookAccess(){
  const root=$('outlook-access');root.replaceChildren();
  const note=document.createElement('p');note.textContent=outlookAccessMessage||'Public browsing is available without signing in.';
@@ -297,25 +276,21 @@ function renderOutlookEntry(outlook){
  if(outlook.supporting_finding_ids?.length&&findingsForOutlook.length<outlook.supporting_finding_ids.length){
   const unavailable=document.createElement('p');unavailable.className='sub';unavailable.textContent='Some linked findings are no longer available; they may have expired.';entry.append(unavailable);
  }
- if(outlook.evidence_urls?.length){
-  const list=document.createElement('ul');list.className='sources';list.setAttribute('aria-label','Outlook evidence URLs');
-  for(const raw of outlook.evidence_urls){const link=safeLink(raw);if(!link)continue;const item=document.createElement('li'),anchor=document.createElement('a');anchor.href=link;anchor.target='_blank';anchor.rel='noopener noreferrer';anchor.textContent=link;item.append(anchor);list.append(item);}
-  if(list.childElementCount)entry.append(list);
- }
+ if(outlook.evidence_urls?.length)sourceFold(entry,outlook.evidence_urls,'outlook:'+outlook.id);
  return entry;
 }
 function renderOutlooks(){
- const grid=$('outlook-grid'),status=$('outlook-status'),active=outlooks.filter(outlook=>Date.parse(outlook.expires_at)>Date.now());grid.replaceChildren();
+ const grid=$('outlook-grid'),opened=keepOpen(grid),status=$('outlook-status'),active=outlooks.filter(outlook=>Date.parse(outlook.expires_at)>Date.now());grid.replaceChildren();
  if(outlookReadError){status.textContent='Public interpretations could not be loaded. The research dashboard and findings remain available. '+outlookReadError;status.dataset.kind='error';}
  else if(outlookFindingError){status.textContent='Interpretations are available, but linked finding details could not be loaded. '+outlookFindingError;status.dataset.kind='error';}
  else{status.textContent=active.length?'Showing '+active.length+' independent, unexpired interpretation'+(active.length===1?'':'s')+'. This is not a consensus or trading signal.':'No unexpired interpretations have been shared for this ticker.';status.dataset.kind='info';}
  for(const [stance,title] of [['bullish','Bullish'],['bearish','Bearish'],['neutral','Neutral / uncertain']]){
   const card=document.createElement('section');card.className='outlook-card';const heading=document.createElement('h3');heading.textContent=title;card.append(heading);
-  const entries=active.filter(outlook=>outlook.stance===stance);
-  if(!outlookReadError){if(entries.length)for(const outlook of entries)card.append(renderOutlookEntry(outlook));else{const empty=document.createElement('p');empty.className='empty';empty.textContent='No current contributions in this interpretation.';card.append(empty);}}
+  const entries=recentFirst(active.filter(outlook=>outlook.stance===stance),'created_at');
+  if(!outlookReadError){if(entries.length){card.append(renderOutlookEntry(entries[0]));if(entries.length>1)card.append(folded('Previous outlooks',entries.slice(1).map(renderOutlookEntry),'older:'+stance));}else{const empty=document.createElement('p');empty.className='empty';empty.textContent='No current contributions in this interpretation.';card.append(empty);}}
   grid.append(card);
  }
- renderOutlookSources();
+ restoreOpen(grid,opened);renderOutlookSources();
 }
 async function loadOutlooks(){
  const result=await sb.from('commons_market_outlooks')
