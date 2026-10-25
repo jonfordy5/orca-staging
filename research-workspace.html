@@ -18,7 +18,7 @@ main{max-width:1020px;margin:0 auto;padding:27px 16px 55px}h1{font-size:clamp(30
 .chart-title{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap}
 .chart-title .sub{margin:0}.mini{font-size:12px;color:var(--muted)}.step{display:inline-flex;background:#e4f8f0;border-radius:8px;color:#11674d;padding:3px 8px;font-weight:900;font-size:11px;margin-right:5px}
 .check{display:flex;align-items:flex-start;gap:10px;font-size:13px;color:var(--ink);line-height:1.45}.check input{width:auto;min-width:18px;margin-top:2px;min-height:18px}.check span{flex:1}
-.collective-list{margin-top:14px}.collective-row{border-top:1px solid #e4edf0;padding:13px 0}.collective-row:first-child{border-top:0}.collective-row summary{cursor:pointer;font-weight:850;line-height:1.4}.collective-row summary::marker{color:#0e8b73}.collective-status,.collective-meta{display:inline-block;font-size:12px;font-weight:500;margin-left:9px}.collective-status{color:#177a56}.collective-status.stale,.collective-status.needed{color:var(--muted)}.collective-meta{color:var(--muted)}.collective-row[open] summary{margin-bottom:10px}.collective-finding{padding-top:4px}.collective-placeholder{border:1px dashed #cbdfe8;border-radius:10px;padding:12px;color:var(--muted);font-size:13px}.collective-summaries{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:16px}.collective-summaries>div{min-width:0}.collective-summaries h3{font-size:15px;margin:0 0 7px}
+.collective-list{margin-top:14px}.collective-row{border-top:1px solid #e4edf0;padding:13px 0}.collective-row:first-child{border-top:0}.collective-row summary{cursor:pointer;font-weight:850;line-height:1.4}.collective-row summary::marker{color:#0e8b73}.collective-status,.collective-meta{display:inline-block;font-size:12px;font-weight:500;margin-left:9px}.collective-status{color:#177a56}.collective-status.stale,.collective-status.needed{color:var(--muted)}.collective-meta{color:var(--muted)}.collective-row[open] summary{margin-bottom:10px}.collective-finding{padding-top:4px}.collective-placeholder{border:1px dashed #cbdfe8;border-radius:10px;padding:12px;color:var(--muted);font-size:13px}.collective-summaries{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:16px}.collective-summaries>div{min-width:0}.collective-summaries h3{font-size:16px;margin:0 0 7px}.investor-question{border:1px solid var(--line);border-radius:12px;padding:14px;background:#fafcfc;min-width:0}.investor-question .finding{margin-top:9px;padding-top:10px;border-top:1px solid var(--line)}.investor-question .finding strong{font-size:13px}.investor-question .finding p{font-size:13px}.investor-question>.sub{min-height:35px}.investor-answer.empty{font-size:13px}.investor-question small{overflow-wrap:anywhere}
 .source-fold,.history-fold{border:1px solid var(--line);border-radius:9px;padding:9px 11px;margin:10px 0;background:#f7fafb;min-width:0}.source-fold summary,.history-fold summary{cursor:pointer;font-weight:800;color:#087b6a;font-size:13px}.history-fold .finding,.history-fold .outlook-entry{border-top:1px solid var(--line);margin-top:10px;padding-top:10px}.outlook-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:14px 0}.outlook-card{border:1px solid var(--line);border-radius:12px;padding:14px;min-width:0}.outlook-card h3{font-size:16px;margin:0 0 9px}.outlook-entry{border-top:1px solid #e4edf0;padding:12px 0 0;margin-top:12px;overflow-wrap:anywhere}.outlook-entry:first-of-type{border-top:0;margin-top:0;padding-top:0}.outlook-entry p{font-size:13px}.outlook-meta{display:block;color:var(--muted);font-size:12px;margin:4px 0}.outlook-entry details{margin-top:8px}.outlook-entry details summary{cursor:pointer;font-weight:750;font-size:13px}.outlook-form{border-top:1px solid var(--line);margin-top:18px;padding-top:16px}.outlook-sources{max-height:230px;overflow:auto;border:1px solid var(--line);border-radius:10px;padding:8px 12px}.outlook-source-option{display:flex;align-items:flex-start;gap:8px;margin:0;padding:7px 0;border-bottom:1px solid #edf2f4;font-size:12px}.outlook-source-option:last-child{border-bottom:0}.outlook-source-option input{width:auto;margin-top:3px}.outlook-source-option span{min-width:0;overflow-wrap:anywhere}
 #outlook-status[data-kind="error"]{background:#fff1ef;color:#9c3834;padding:12px 14px;border-radius:10px}
 .staging-indicator{background:#9b2c21;color:white;text-align:center;padding:9px 12px;font-weight:900;letter-spacing:.06em}
@@ -35,13 +35,14 @@ main{max-width:1020px;margin:0 auto;padding:27px 16px 55px}h1{font-size:clamp(30
 <section class="card" id="chart-section"><div class="chart-title"><h2>Interactive stock chart · <span id="chart-ticker">RKLB</span></h2><span class="mini">Market quotes may be delayed · Chart by TradingView</span></div><div class="chart-frame" id="chart-frame" aria-label="Interactive historical stock chart powered by TradingView"><div class="empty">Loading interactive market chart…</div></div><p class="mini">Historical prices are displayed by an external chart provider, not saved to our research database. Interactive chart data is separate from community research findings.</p></section>
 <section class="card" id="collective-research-dashboard">
   <h2>Collective Research Dashboard</h2>
-  <p class="sub">The latest published public finding in each area is shown here for convenient review. Findings remain independent research, not collective conclusions.</p>
-  <div id="collective-findings" class="collective-list" aria-live="polite"><p class="empty">Loading source-backed summaries…</p></div>
-  <div class="collective-summaries">
-    <div><h3>Collective Agreement</h3><div class="collective-placeholder">Evidence-backed findings that researchers independently support can be highlighted here.</div></div>
-    <div><h3>Collective Disagreement</h3><div class="collective-placeholder">Different perspectives are welcome. Important differences can be reviewed when helpful—no debates or votes required.</div></div>
-    <div><h3>Unique Discoveries</h3><div class="collective-placeholder">New or noteworthy findings from individual researchers can be featured here as the research grows.</div></div>
+  <p class="sub">Three questions investors care about. Each box shows the latest published research that addresses that question, with sources and limitations. Older metric findings remain accessible below.</p>
+  <div class="collective-summaries" id="investor-question-board">
+    <section class="investor-question"><h3>Can it survive a downturn?</h3><p class="sub">Cash, debt, risks and financial resilience.</p><div id="investor-answer-downturn" class="investor-answer">Checking recent research…</div></section>
+    <section class="investor-question"><h3>Is this a well-run business?</h3><p class="sub">Leadership, execution and business performance.</p><div id="investor-answer-business" class="investor-answer">Checking recent research…</div></section>
+    <section class="investor-question"><h3>Is the price fair relative to the value?</h3><p class="sub">Valuation, business quality and expectations.</p><div id="investor-answer-value" class="investor-answer">Checking recent research…</div></section>
   </div>
+  <h3 style="margin:18px 0 0;font-size:17px">Latest research by stock metric</h3>
+  <div id="collective-findings" class="collective-list" aria-live="polite"><p class="empty">Loading source-backed summaries…</p></div>
 </section>
 <section class="card" id="collective-market-outlook">
   <h2>Collective Market Outlook</h2>
@@ -106,6 +107,14 @@ main{max-width:1020px;margin:0 auto;padding:27px 16px 55px}h1{font-size:clamp(30
       <div id="claimed-controls" class="hidden">
         <div class="actions"><button id="release" class="btn warn" type="button">Release my assignment</button></div>
         <form id="submit-form">
+          <label for="research-question">Which investor question does this research help answer?</label>
+          <select id="research-question">
+            <option value="">None selected — continue an existing assignment as before</option>
+            <option value="downturn">Can it survive a downturn?</option>
+            <option value="business">Is this a well-run business?</option>
+            <option value="value">Is the price fair relative to the value?</option>
+          </select>
+          <p class="form-help">For new research, choose one relevant question and answer it in your summary. Say when evidence is insufficient. Optional during this transition so existing research assignments can finish without interruption.</p>
           <label for="summary">Assistant's checked public summary (40–700 characters)</label>
           <textarea id="summary" maxlength="700" minlength="40" required placeholder="Briefly state the key numbers, as-of date, source basis, and what remains uncertain. No buy/sell recommendations or private chat details."></textarea>
           <div id="chars" class="count">0 / 700</div>
@@ -233,9 +242,28 @@ function keepOpen(root){return new Set([...root.querySelectorAll('details[data-f
 function restoreOpen(root,keys){for(const e of root.querySelectorAll('details[data-fold-key]'))e.open=keys.has(e.dataset.foldKey);}
 function folded(title,items,key,css='history-fold'){const d=document.createElement('details'),h=document.createElement('summary');d.className=css;d.dataset.foldKey=key;h.textContent=title+' ('+items.length+')';d.append(h,...items);return d;}
 function sourceFold(root,urls,key){const urlsOk=(Array.isArray(urls)?urls:[]).map(safeLink).filter(Boolean);const d=document.createElement('details'),h=document.createElement('summary'),list=document.createElement('ul');d.className='source-fold';d.dataset.foldKey=key;h.textContent='Source websites ('+urlsOk.length+')';list.className='sources';for(const url of urlsOk){const li=document.createElement('li'),a=document.createElement('a');a.href=url;a.target='_blank';a.rel='noopener noreferrer';a.textContent=url;li.append(a);list.append(li);}if(!urlsOk.length){const li=document.createElement('li');li.textContent='No valid source links.';list.append(li);}d.append(h,list);root.append(d);}
+const investorQuestions={downturn:'Can it survive a downturn?',business:'Is this a well-run business?',value:'Is the price fair relative to the value?'};
+function questionForFinding(f){
+ const original=String(f?.summary||'');
+ const tagged=/^\[ORCA-Q:(downturn|business|value)\]\s*/.exec(original);
+ return tagged?{key:tagged[1],plain:original.slice(tagged[0].length)}:{key:null,plain:original};
+}
+function renderInvestorQuestions(){
+ const ordered=recentFirst(findings,'published_at');
+ for(const [key] of Object.entries(investorQuestions)){
+  const box=$('investor-answer-'+key),opened=keepOpen(box);
+  box.replaceChildren();
+  const latest=ordered.find(f=>questionForFinding(f).key===key);
+  if(latest)box.append(renderFinding(latest));
+  else{const hint=document.createElement('p');hint.className='empty';hint.textContent='No answer published for this question yet. Research can help fill it in.';box.append(hint);}
+  restoreOpen(box,opened);
+ }
+}
 function renderFinding(f){const block=document.createElement('article');block.className='finding';const title=document.createElement('strong');title.textContent=f.research_area+' · '+f.contributor_alias;block.append(title);
  const when=document.createElement('small');when.textContent='Evidence as of '+time(f.observed_at)+' · Published '+time(f.published_at);block.append(when);
- const summary=document.createElement('p');summary.textContent=f.summary;block.append(summary);
+ const tagged=questionForFinding(f);
+ if(tagged.key){const context=document.createElement('small');context.textContent='Answers: '+investorQuestions[tagged.key];block.append(context);}
+ const summary=document.createElement('p');summary.textContent=tagged.plain;block.append(summary);
  const lim=document.createElement('p');lim.className='sub';lim.textContent='Limitations: '+(f.limitations||'Not provided.');block.append(lim);
  sourceFold(block,f.source_urls,'finding:'+f.id);return block;}
 function renderFindings(){const root=$('findings'),opened=keepOpen(root),ordered=recentFirst(findings,'published_at');root.replaceChildren();if(!ordered.length){root.textContent='No public research yet.';return;}root.append(renderFinding(ordered[0]));if(ordered.length>1)root.append(folded('Previous findings',ordered.slice(1).map(renderFinding),'all-history'));restoreOpen(root,opened);}
@@ -364,7 +392,7 @@ async function refresh(options={}){const announce=options?.announce!==false;if(!
  const t=await sb.from('research_tasks').select('id,research_area,research_question,status,assigned_agent,claimed_until,updated_at').eq('ticker',ticker).order('updated_at',{ascending:true}).limit(100);if(t.error)throw t.error;tasks=t.data||[];
  const f=await sb.from('commons_research_findings').select('id,task_id,research_area,contributor_alias,summary,source_urls,limitations,observed_at,published_at,expires_at').eq('ticker',ticker).order('published_at',{ascending:false}).limit(100);if(f.error)throw f.error;findings=f.data||[];
  await checkReady();if(isOrcaStaging){outlookReadError='';try{await loadOutlooks();}catch(error){outlooks=[];outlookFindings=new Map();const code=String(error?.code||'');outlookReadError=(code==='42P01'||code==='PGRST205'?'The staging outlook table or read policy may not be installed. ':'The public outlook query failed. ')+errorInfo(error);}renderOutlooks();renderOutlookAccess();}claim=(user&&ready)?await rpc('commons_my_claim',{p_ticker:ticker}):null;
- renderTasks();renderFindings();renderCollectiveDashboard();renderClaim();$('last-refreshed').textContent='Last refreshed: '+new Date().toLocaleTimeString()+' · '+findings.length+' public findings displayed';const boardStatus=isOrcaStaging
+ renderTasks();renderFindings();renderCollectiveDashboard();renderInvestorQuestions();renderClaim();$('last-refreshed').textContent='Last refreshed: '+new Date().toLocaleTimeString()+' · '+findings.length+' public findings displayed';const boardStatus=isOrcaStaging
   ?'Research board ready. '+findings.length+' public findings. '+(claim?'Active assignment: '+claim.research_area+'.':ready?'No active assignment.':'Complete sign-in, team, and permission checks to request research.')
   :'Research board loaded. '+findings.length+' recent public findings. '+(ready?'You can claim a metric.':'Sign in / check team and permission controls.');
  if(announce||isOrcaStaging&&$('message').dataset.kind==='error')msg(boardStatus,'success');return true;
@@ -416,18 +444,20 @@ async function claimNext(){if(!ready||loading)return;loading=true;control();if(!
 async function release(){if(!claim||loading)return;if(!confirm('Release this unfinished assignment for someone else?'))return;loading=true;control();if(!isOrcaStaging){try{await rpc('commons_release_task',{p_task_id:claim.id});claim=null;msg('Assignment released.','success');}catch(e){msg('Could not release assignment: '+e.message,'error');}finally{loading=false;await refresh();}return;}
  msg('Releasing the active assignment…');let failure=null;try{await rpc('commons_release_task',{p_task_id:claim.id});claim=null;}catch(e){failure=e;}finally{loading=false;const refreshed=await refresh({announce:false});if(failure)msg('Action failed while releasing: '+errorInfo(failure),'error');else if(!refreshed)msg('The release RPC succeeded, but assignment status could not be confirmed. Refresh before continuing.','error');else if(claim)msg('The release RPC returned, but an active assignment is still shown. Refresh and verify before continuing.','error');else msg('Assignment released. No active assignment.','success');}}
 async function publish(e){e.preventDefault();if(!ready||!claim||loading)return;
- const summary=$('summary').value.trim(), sources=$('sources').value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
+ const summary=$('summary').value.trim(),question=$('research-question').value;
+ const publicSummary=question&&investorQuestions[question]?'[ORCA-Q:'+question+'] '+summary:summary;
+ const sources=$('sources').value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
  const limitations=$('limitations').value.trim();const observed=$('observed').value;
- if(summary.length<40||summary.length>700){msg('Summary must be 40–700 characters.','error');return;}
+ if(summary.length<40||publicSummary.length>700){msg('Summary must have at least 40 characters and fit within 700 including the question label.','error');return;}
  if(sources.length<1||sources.length>5||sources.some(x=>!safeLink(x)||x.length>500)){msg('Provide 1–5 valid http(s) source URLs on separate lines.','error');return;}
  if(!observed||!Number.isFinite(Date.parse(observed))){msg('Enter the observation date and time.','error');return;}
  if(!$('self-reviewed').checked){msg('Researcher must verify the evidence and approve the short public summary before publishing.','error');return;}
  const taskId=claim.id;publishMsg('Publishing checked summary…');loading=true;control();let result;
- try{result=await rpc('commons_publish_finding',{p_task_id:taskId,p_summary:summary,p_source_urls:sources,p_observed_at:new Date(observed).toISOString(),p_limitations:limitations});
+ try{result=await rpc('commons_publish_finding',{p_task_id:taskId,p_summary:publicSummary,p_source_urls:sources,p_observed_at:new Date(observed).toISOString(),p_limitations:limitations});
   const response=Array.isArray(result)?result[0]:result;if(response&&typeof response==='object'&&response.success===false)throw {code:response.code,message:response.message||response.error,details:response.details,hint:response.hint};
  }catch(err){loading=false;control();publishMsg('Publish failed. Draft retained.\n'+errorInfo(err),'error');return;}
  loading=false;control();const refreshed=await refresh({announce:false});
- if(!refreshed||!findings.some(f=>f.task_id===taskId&&f.summary===summary)){publishMsg('The publish request returned, but the submitted finding was not confirmed on the refreshed public board. Draft retained; refresh and verify before retrying.','error');return;}
+ if(!refreshed||!findings.some(f=>f.task_id===taskId&&f.summary===publicSummary)){publishMsg('The publish request returned, but the submitted finding was not confirmed on the refreshed public board. Draft retained; refresh and verify before retrying.','error');return;}
  claim=null;$('submit-form').reset();$('observed').value=localDateTime();renderClaim();control();publishMsg('Summary published and verified on the refreshed public board. Previous researchers’ findings are preserved.','success');}
 $('next').addEventListener('click',claimNext);$('refresh').addEventListener('click',()=>refresh({announce:true}));$('release').addEventListener('click',release);
 $('request-assignment').addEventListener('click',()=>{const metric=approvedMetrics.find(item=>item.key===$('research-metric').value);if(metric)requestAssignment(metric);});
