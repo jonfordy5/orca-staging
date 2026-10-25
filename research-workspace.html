@@ -3,6 +3,7 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#071b27"><meta name="description" content="AI Stock Commons — collaborative research metrics and short public findings.">
 <meta name="orca-staging-market-outlook" content="phase-3c">
+<meta name="orca-staging-research-comparison" content="phase-3d-preview">
 <title>Research Workspace | AI Stock Commons</title>
 <style>
 :root{--night:#071b27;--mint:#53d7aa;--ink:#173542;--muted:#597482;--bg:#f3f7f8;--line:#dbe8eb}
@@ -20,6 +21,7 @@ main{max-width:1020px;margin:0 auto;padding:27px 16px 55px}h1{font-size:clamp(30
 .check{display:flex;align-items:flex-start;gap:10px;font-size:13px;color:var(--ink);line-height:1.45}.check input{width:auto;min-width:18px;margin-top:2px;min-height:18px}.check span{flex:1}
 .collective-list{margin-top:14px}.collective-row{border-top:1px solid #e4edf0;padding:13px 0}.collective-row:first-child{border-top:0}.collective-row summary{cursor:pointer;font-weight:850;line-height:1.4}.collective-row summary::marker{color:#0e8b73}.collective-status,.collective-meta{display:inline-block;font-size:12px;font-weight:500;margin-left:9px}.collective-status{color:#177a56}.collective-status.stale,.collective-status.needed{color:var(--muted)}.collective-meta{color:var(--muted)}.collective-row[open] summary{margin-bottom:10px}.collective-finding{padding-top:4px}.collective-placeholder{border:1px dashed #cbdfe8;border-radius:10px;padding:12px;color:var(--muted);font-size:13px}.collective-summaries{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}.collective-summaries h3{font-size:15px;margin:0 0 7px}
 .source-fold,.history-fold{border:1px solid var(--line);border-radius:9px;padding:9px 11px;margin:10px 0;background:#f7fafb;min-width:0}.source-fold summary,.history-fold summary{cursor:pointer;font-weight:800;color:#087b6a;font-size:13px}.history-fold .finding,.history-fold .outlook-entry{border-top:1px solid var(--line);margin-top:10px;padding-top:10px}.outlook-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:14px 0}.outlook-card{border:1px solid var(--line);border-radius:12px;padding:14px;min-width:0}.outlook-card h3{font-size:16px;margin:0 0 9px}.outlook-entry{border-top:1px solid #e4edf0;padding:12px 0 0;margin-top:12px;overflow-wrap:anywhere}.outlook-entry:first-of-type{border-top:0;margin-top:0;padding-top:0}.outlook-entry p{font-size:13px}.outlook-meta{display:block;color:var(--muted);font-size:12px;margin:4px 0}.outlook-entry details{margin-top:8px}.outlook-entry details summary{cursor:pointer;font-weight:750;font-size:13px}.outlook-form{border-top:1px solid var(--line);margin-top:18px;padding-top:16px}.outlook-sources{max-height:230px;overflow:auto;border:1px solid var(--line);border-radius:10px;padding:8px 12px}.outlook-source-option{display:flex;align-items:flex-start;gap:8px;margin:0;padding:7px 0;border-bottom:1px solid #edf2f4;font-size:12px}.outlook-source-option:last-child{border-bottom:0}.outlook-source-option input{width:auto;margin-top:3px}.outlook-source-option span{min-width:0;overflow-wrap:anywhere}
+.comparison-lab{margin:16px 0;border:1px solid #bcded9;background:#f5fbf9;border-radius:13px;padding:14px;min-width:0}.comparison-lab>summary{cursor:pointer;color:#155f56;font-weight:850}.comparison-lab[open]>summary{margin-bottom:10px}.comparison-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.comparison-panel{border:1px solid #d9e7e6;border-radius:10px;padding:12px;background:#fff;min-width:0}.comparison-panel h3{font-size:15px;margin:0 0 7px}.comparison-panel p{font-size:13px;margin:7px 0}.comparison-row{padding:9px 0;border-top:1px solid #e6eff0;font-size:13px;overflow-wrap:anywhere}.comparison-row:first-of-type{border-top:0}.comparison-meta{display:block;font-size:12px;color:var(--muted)}.comparison-note{font-size:12px;color:var(--muted)}.comparison-lab details.source-fold{margin-top:9px}@media(max-width:760px){.comparison-grid{grid-template-columns:1fr}}
 #outlook-status[data-kind="error"]{background:#fff1ef;color:#9c3834;padding:12px 14px;border-radius:10px}
 .staging-indicator{background:#9b2c21;color:white;text-align:center;padding:9px 12px;font-weight:900;letter-spacing:.06em}
 @media(max-width:760px){.chart-frame{height:360px}}
@@ -47,6 +49,11 @@ main{max-width:1020px;margin:0 auto;padding:27px 16px 55px}h1{font-size:clamp(30
   <p class="sub">Independent, speculative interpretations—not verified predictions, a vote, consensus, or trading signals. Different researchers may hold different views. Expired outlooks are hidden automatically.</p>
   <div id="outlook-status" class="empty" role="status" aria-live="polite">Loading public interpretations…</div>
   <div id="outlook-grid" class="outlook-grid" aria-live="polite"></div>
+  <details id="research-comparison-lab" class="comparison-lab" open>
+    <summary>Phase 3D preview · Compare independent research</summary>
+    <p class="sub">Read-only experiment: citation overlap and different viewpoints are clues for follow-up research, not proof of accuracy, uniqueness, or consensus.</p>
+    <div id="outlook-comparison" class="comparison-grid" aria-live="polite"><p class="empty">Loading independent research comparison…</p></div>
+  </details>
   <div id="outlook-access" class="warn">Public browsing is available without signing in. Sign in, join this ticker's team, and enable research permission to contribute.</div>
   <form id="outlook-form" class="outlook-form hidden">
     <h3>Share an independent interpretation</h3>
@@ -292,6 +299,91 @@ function renderOutlooks(){
  }
  restoreOpen(grid,opened);renderOutlookSources();
 }
+function comparisonText(parent,tag,value,cls){
+ const element=document.createElement(tag);element.textContent=value;
+ if(cls)element.className=cls;parent.append(element);return element;
+}
+function sourceKey(raw){
+ const link=safeLink(raw);if(!link)return null;
+ const url=new URL(link);url.hash='';
+ for(const key of [...url.searchParams.keys()])if(/^utm_/i.test(key)||['fbclid','gclid'].includes(key.toLowerCase()))url.searchParams.delete(key);
+ url.pathname=url.pathname.replace(/\/$/,'')||'/';
+ return url.href;
+}
+function renderResearchComparison(){
+ const root=$('outlook-comparison');root.replaceChildren();
+ if(outlookReadError){comparisonText(root,'p','Comparison is unavailable while the public outlook query is failing.','empty');return;}
+ const active=recentFirst(outlooks.filter(o=>Date.parse(o.expires_at)>Date.now()),'created_at');
+ if(!active.length){comparisonText(root,'p','No current outlooks to compare. Research findings remain accessible separately.','empty');return;}
+ const newestByHandle=new Map();
+ for(const item of active){const handle=String(item.researcher_alias||'Unknown researcher').trim();
+  if(!newestByHandle.has(handle))newestByHandle.set(handle,item);}
+ const latest=[...newestByHandle.entries()];
+ const positions=new Set(latest.map(([,o])=>o.stance));
+ const first=panel('Independent perspectives');
+ comparisonText(first,'p',latest.length+' researcher handle'+(latest.length===1?'':'s')+' with current published outlooks. This is not a vote.');
+ for(const [handle,o] of latest){
+  const row=comparisonText(first,'div',handle+' · '+(o.stance==='neutral'?'Neutral / uncertain':o.stance),'comparison-row');
+  comparisonText(row,'small','Analysis timeframe: '+(o.investment_timeframe||'not specified'),'comparison-meta');
+ }
+ if(latest.length>1)comparisonText(first,'p',positions.size===1?'Latest views share a stance. Shared positioning is not verified factual agreement.':'Latest views differ in stance. This flags a question for evidence-based investigation, not a majority vote.','comparison-note');
+ else comparisonText(first,'p','A second independent contribution is needed to compare viewpoints.','comparison-note');
+ const sourceOwners=new Map();
+ for(const o of active){
+  const owner=String(o.researcher_alias||'Unknown researcher').trim();
+  for(const raw of Array.isArray(o.evidence_urls)?o.evidence_urls:[]){
+   const key=sourceKey(raw);if(!key)continue;
+   if(!sourceOwners.has(key))sourceOwners.set(key,{url:safeLink(raw),owners:new Set()});
+   sourceOwners.get(key).owners.add(owner);
+  }
+ }
+ const distinct=[...sourceOwners.values()];
+ const isolated=distinct.filter(v=>v.owners.size===1),shared=distinct.filter(v=>v.owners.size>1);
+ const second=panel('Unique Discoveries — leads to verify');
+ comparisonText(second,'p',isolated.length+' source website'+(isolated.length===1?'':'s')+' cited by only one contributor; '+shared.length+' cited by multiple contributor handles.');
+ comparisonText(second,'p','Exclusive citations are not necessarily new discoveries. Shared citations are not independent verification.','comparison-note');
+ if(isolated.length){
+  const owners=[...new Set(isolated.flatMap(v=>[...v.owners]))].sort();
+  for(const owner of owners){
+   const all=isolated.filter(v=>v.owners.has(owner));
+   const fold=document.createElement('details');fold.className='source-fold';
+   const title=document.createElement('summary');title.textContent=owner+' · Review '+all.length+' source'+(all.length===1?'':'s');fold.append(title);
+   const list=document.createElement('ul');list.className='sources';
+   for(const item of all.slice(0,20)){
+    const li=document.createElement('li'),link=document.createElement('a');
+    link.href=item.url;link.target='_blank';link.rel='noopener noreferrer';link.textContent=item.url;li.append(link);list.append(li);
+   }
+   if(all.length>20)comparisonText(list,'li','More sources exist; this preview displays the first 20.');
+   fold.append(list);second.append(fold);
+  }
+ }else comparisonText(second,'p','No single-contributor evidence links in currently visible outlooks. This does not mean all research agrees.','comparison-note');
+ const third=panel('Evidence overlap');
+ if(shared.length){
+  comparisonText(third,'p',shared.length+' website'+(shared.length===1?'':'s')+' linked by more than one researcher. Check whether the underlying claims actually agree.');
+  const fold=document.createElement('details');fold.className='source-fold';
+  comparisonText(fold,'summary','Compare shared sources ('+shared.length+')');
+  const list=document.createElement('ul');list.className='sources';
+  for(const item of shared.slice(0,20)){
+   const li=document.createElement('li'),a=document.createElement('a');
+   a.href=item.url;a.target='_blank';a.rel='noopener noreferrer';a.textContent=item.url;
+   li.append(a);comparisonText(li,'small','Cited by: '+[...item.owners].join(', '),'comparison-meta');list.append(li);
+  }
+  if(shared.length>20)comparisonText(list,'li','Showing the first 20 shared source links.');
+  fold.append(list);third.append(fold);
+ }else comparisonText(third,'p','No matching source URLs across different researcher handles. That alone does not prove their evidence conflicts.','comparison-note');
+ const fourth=panel('Research lifecycle');
+ comparisonText(fourth,'p','Publication visibility and investment time horizon are separate. Expiration does not establish that a thesis is false.');
+ for(const [handle,o] of latest){
+  const exp=Date.parse(o.expires_at);
+  const days=Number.isFinite(exp)?Math.max(0,Math.ceil((exp-Date.now())/86400000)):null;
+  const row=comparisonText(fourth,'div',handle,'comparison-row');
+  comparisonText(row,'span','Analytical timeframe: '+(o.investment_timeframe||'not provided'),'comparison-meta');
+  comparisonText(row,'span','Evidence observed: '+time(o.observed_at),'comparison-meta');
+  comparisonText(row,'span','Public visibility ends: '+time(o.expires_at)+(days!==null?' (about '+days+' day'+(days===1?'':'s')+' remaining)':''),'comparison-meta');
+ }
+ comparisonText(fourth,'p','Current public queries hide expired outlooks. Long-term public archive access and retention have not yet been implemented or verified.','comparison-note');
+ function panel(heading){const block=document.createElement('section');block.className='comparison-panel';comparisonText(block,'h3',heading);root.append(block);return block;}
+}
 async function loadOutlooks(){
  const result=await sb.from('commons_market_outlooks')
   .select('id,ticker,researcher_alias,stance,reasoning,supporting_finding_ids,evidence_urls,observed_at,investment_timeframe,invalidation_condition,created_at,expires_at')
@@ -334,7 +426,7 @@ async function submitOutlook(event){
    p_investment_timeframe:timeframe,p_invalidation_condition:invalidation
   });
   if(typeof id!=='string'||!id)throw new Error('The outlook RPC did not return an outlook ID.');
-  rpcAccepted=true;outlookReadError='';await loadOutlooks();renderOutlooks();
+  rpcAccepted=true;outlookReadError='';await loadOutlooks();renderOutlooks();renderResearchComparison();
   if(!outlooks.some(outlook=>outlook.id===id))throw new Error('The submission returned, but the new interpretation was not visible on the refreshed public board.');
   $('outlook-form').reset();$('outlook-observed').value=localDateTime();outlookSubmitMessage('Interpretation submitted and confirmed on the public board. It remains an independent research contribution, not a consensus or trading signal.','success');
  }catch(error){outlookSubmitMessage(rpcAccepted?'The submission RPC accepted the interpretation, but public confirmation failed. Do not retry yet; refresh the public board and verify whether it appears. '+errorInfo(error):outlookFailureMessage(error),'error');}
@@ -362,7 +454,7 @@ async function checkReady(){ready=false;alias='';outlookAccessMessage='Sign in, 
 async function refresh(options={}){const announce=options?.announce!==false;if(!sb||!valid||loading)return false;loading=true;control();if(announce){msg(isOrcaStaging?'Checking authentication, permissions, assignments, and public findings…':'Loading research assignments and public findings…');if(isOrcaStaging)$('identity').textContent='Checking authentication and research permission…';}try{
  const t=await sb.from('research_tasks').select('id,research_area,research_question,status,assigned_agent,claimed_until,updated_at').eq('ticker',ticker).order('updated_at',{ascending:true}).limit(100);if(t.error)throw t.error;tasks=t.data||[];
  const f=await sb.from('commons_research_findings').select('id,task_id,research_area,contributor_alias,summary,source_urls,limitations,observed_at,published_at,expires_at').eq('ticker',ticker).order('published_at',{ascending:false}).limit(100);if(f.error)throw f.error;findings=f.data||[];
- await checkReady();if(isOrcaStaging){outlookReadError='';try{await loadOutlooks();}catch(error){outlooks=[];outlookFindings=new Map();const code=String(error?.code||'');outlookReadError=(code==='42P01'||code==='PGRST205'?'The staging outlook table or read policy may not be installed. ':'The public outlook query failed. ')+errorInfo(error);}renderOutlooks();renderOutlookAccess();}claim=(user&&ready)?await rpc('commons_my_claim',{p_ticker:ticker}):null;
+ await checkReady();if(isOrcaStaging){outlookReadError='';try{await loadOutlooks();}catch(error){outlooks=[];outlookFindings=new Map();const code=String(error?.code||'');outlookReadError=(code==='42P01'||code==='PGRST205'?'The staging outlook table or read policy may not be installed. ':'The public outlook query failed. ')+errorInfo(error);}renderOutlooks();renderResearchComparison();renderOutlookAccess();}claim=(user&&ready)?await rpc('commons_my_claim',{p_ticker:ticker}):null;
  renderTasks();renderFindings();renderCollectiveDashboard();renderClaim();$('last-refreshed').textContent='Last refreshed: '+new Date().toLocaleTimeString()+' · '+findings.length+' public findings displayed';const boardStatus=isOrcaStaging
   ?'Research board ready. '+findings.length+' public findings. '+(claim?'Active assignment: '+claim.research_area+'.':ready?'No active assignment.':'Complete sign-in, team, and permission checks to request research.')
   :'Research board loaded. '+findings.length+' recent public findings. '+(ready?'You can claim a metric.':'Sign in / check team and permission controls.');
