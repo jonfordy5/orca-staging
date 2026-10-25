@@ -38,7 +38,7 @@ main{max-width:1020px;margin:0 auto;padding:27px 16px 55px}h1{font-size:clamp(30
   <p class="sub">Three questions investors care about. Each box shows the latest published research that addresses that question, with sources and limitations. Older metric findings remain accessible below.</p>
   <div class="collective-summaries" id="investor-question-board">
     <section class="investor-question"><h3>How well can they survive a downturn?</h3><p class="sub">Cash, debt, risks and financial resilience.</p><div id="investor-answer-downturn" class="investor-answer">Checking recent research…</div></section>
-    <section class="investor-question"><h3>Is this a well-run business?</h3><p class="sub">Leadership, execution and business performance.</p><div id="investor-answer-business" class="investor-answer">Checking recent research…</div></section>
+    <section class="investor-question"><h3>How well is this business run?</h3><p class="sub">Leadership, execution, and results.</p><div id="investor-answer-business" class="investor-answer">Checking recent research…</div></section>
     <section class="investor-question"><h3>How fair is the price relative to value?</h3><p class="sub">Valuation, business quality and expectations.</p><div id="investor-answer-value" class="investor-answer">Checking recent research…</div></section>
   </div>
   <h3 style="margin:18px 0 0;font-size:17px">Latest research by stock metric</h3>
@@ -111,7 +111,7 @@ main{max-width:1020px;margin:0 auto;padding:27px 16px 55px}h1{font-size:clamp(30
           <select id="research-question">
             <option value="">None selected — continue an existing assignment as before</option>
             <option value="downturn">How well can they survive a downturn?</option>
-            <option value="business">Is this a well-run business?</option>
+            <option value="business">How well is this business run?</option>
             <option value="value">How fair is the price relative to value?</option>
           </select>
           <p class="form-help">For new research, choose one relevant question and answer it in your summary. Say when evidence is insufficient. Optional during this transition so existing research assignments can finish without interruption.</p>
@@ -242,7 +242,7 @@ function keepOpen(root){return new Set([...root.querySelectorAll('details[data-f
 function restoreOpen(root,keys){for(const e of root.querySelectorAll('details[data-fold-key]'))e.open=keys.has(e.dataset.foldKey);}
 function folded(title,items,key,css='history-fold'){const d=document.createElement('details'),h=document.createElement('summary');d.className=css;d.dataset.foldKey=key;h.textContent=title+' ('+items.length+')';d.append(h,...items);return d;}
 function sourceFold(root,urls,key){const urlsOk=(Array.isArray(urls)?urls:[]).map(safeLink).filter(Boolean);const d=document.createElement('details'),h=document.createElement('summary'),list=document.createElement('ul');d.className='source-fold';d.dataset.foldKey=key;h.textContent='Source websites ('+urlsOk.length+')';list.className='sources';for(const url of urlsOk){const li=document.createElement('li'),a=document.createElement('a');a.href=url;a.target='_blank';a.rel='noopener noreferrer';a.textContent=url;li.append(a);list.append(li);}if(!urlsOk.length){const li=document.createElement('li');li.textContent='No valid source links.';list.append(li);}d.append(h,list);root.append(d);}
-const investorQuestions={downturn:'How well can they survive a downturn?',business:'Is this a well-run business?',value:'How fair is the price relative to value?'};
+const investorQuestions={downturn:'How well can they survive a downturn?',business:'How well is this business run?',value:'How fair is the price relative to value?'};
 function questionForFinding(f){
  const original=String(f?.summary||'');
  const tagged=/^\[ORCA-Q:(downturn|business|value)\]\s*/.exec(original);
