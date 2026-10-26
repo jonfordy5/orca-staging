@@ -164,6 +164,21 @@ main{max-width:1020px;margin:0 auto;padding:27px 16px 55px}h1{font-size:clamp(30
           <label for="research-answer">Agent research opinion (required)</label>
           <select id="research-answer" disabled required><option value="">First choose an investor question</option></select>
           <p class="form-help">Choose <strong>Strong Buy, Buy, Hold, Sell, or Strong Sell</strong> with dated evidence, sources, and limitations. Hold is a valid research rating and does not automatically imply a Bullish or Bearish price prediction.</p>
+          <div id="hold-plan-fields" hidden>
+            <p class="form-help"><strong>HOLD requires a plan.</strong> Explain why, select a Bullish/Bearish lean and timeframe, state a conditional exit, what would upgrade to Buy, and a reassessment date. This does not create a formal price prediction.</p>
+            <label for="hold-lean">HOLD directional lean (required)</label>
+            <select id="hold-lean"><option value="">Choose Bullish or Bearish</option><option value="BULLISH">BULLISH</option><option value="BEARISH">BEARISH</option></select>
+            <label for="hold-horizon">HOLD timeframe (required)</label>
+            <input id="hold-horizon" maxlength="40" minlength="3" placeholder="e.g., next 2–4 weeks">
+            <label for="hold-why">Why HOLD rather than Buy or Sell? (required)</label>
+            <input id="hold-why" maxlength="110" minlength="15" placeholder="Specific evidence justifying a HOLD">
+            <label for="hold-exit">Conditional exit or risk-reduction trigger (required)</label>
+            <input id="hold-exit" maxlength="110" minlength="15" placeholder="Verifiable condition to reconsider holding">
+            <label for="hold-upgrade">What would upgrade HOLD to Buy? (required)</label>
+            <input id="hold-upgrade" maxlength="110" minlength="15" placeholder="Verifiable evidence justifying a Buy">
+            <label for="hold-review">Reassessment date (required)</label>
+            <input id="hold-review" type="date">
+          </div>
           <label for="summary">Assistant's checked public summary (40–700 characters)</label>
           <textarea id="summary" maxlength="700" minlength="40" required placeholder="Briefly state the key numbers, as-of date, source basis, and what remains uncertain. No buy/sell recommendations or private chat details."></textarea>
           <div id="chars" class="count">0 / 700</div>
@@ -340,6 +355,30 @@ function updateResearchAnswers(){
  const first=document.createElement('option');first.value='';first.textContent=options.length?'Choose an answer':'First choose an investor question';select.append(first);
  for(const value of options){const opt=document.createElement('option');opt.value=value;opt.textContent=value.replace(/_/g,' ');select.append(opt);}
  select.disabled=!options.length;
+ updateHoldRequirements();
+}
+function updateHoldRequirements(){
+ const active=$('research-answer').value==='HOLD';
+ $('hold-plan-fields').hidden=!active;
+ for(const id of ['hold-lean','hold-horizon','hold-why','hold-exit','hold-upgrade','hold-review'])$(id).required=active;
+}
+function holdPlanSuffix(){
+ const lean=$('hold-lean').value;
+ const horizon=$('hold-horizon').value.trim();
+ const why=$('hold-why').value.trim();
+ const exit=$('hold-exit').value.trim();
+ const upgrade=$('hold-upgrade').value.trim();
+ const review=$('hold-review').value;
+ const today=new Date().toISOString().slice(0,10);
+ const yearAhead=new Date(Date.now()+365*86400000).toISOString().slice(0,10);
+ if(!['BULLISH','BEARISH'].includes(lean)||horizon.length<3||horizon.length>40
+  ||[why,exit,upgrade].some(s=>s.length<15||s.length>110)
+  ||!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(review)
+  ||review<today||review>yearAhead||new Date(review+'T12:00:00Z').toISOString().slice(0,10)!==review)
+    throw new Error('HOLD requires Bullish/Bearish lean, timeframe, explanation, exit trigger, Buy upgrade condition, and a date within 365 days.');
+ return '\nHOLD LEAN: '+lean+'\nHOLD HORIZON: '+horizon
+  +'\nHOLD WHY: '+why+'\nHOLD EXIT: '+exit
+  +'\nHOLD UPGRADE: '+upgrade+'\nHOLD REVIEW: '+review;
 }
 function questionForFinding(f){
  const original=String(f?.summary||'');
@@ -363,7 +402,7 @@ function renderFinding(f){const block=document.createElement('article');block.cl
  const tagged=questionForFinding(f);
  if(tagged.key){const context=document.createElement('small');context.textContent='Answers: '+(investorQuestions[tagged.key]||previousQuestions[tagged.key]||'Earlier research question');block.append(context);}
  if(tagged.answer){const answer=document.createElement('span');answer.className='agent-answer';answer.dataset.result=tagged.answer;answer.textContent=(originalRatingIsV2(f)?'Agent rating: ':'Earlier answer: ')+tagged.answer.replace(/_/g,' ');block.append(answer);}
- const summary=document.createElement('p');summary.textContent=tagged.plain;block.append(summary);
+ const summary=document.createElement('p');summary.textContent=tagged.plain;if(tagged.answer==='HOLD')summary.style.whiteSpace='pre-line';block.append(summary);
  const lim=document.createElement('p');lim.className='sub';lim.textContent='Limitations: '+(f.limitations||'Not provided.');block.append(lim);
  sourceFold(block,f.source_urls,'finding:'+f.id);return block;}
 function renderFindings(){const root=$('findings'),opened=keepOpen(root),ordered=recentFirst(findings,'published_at');root.replaceChildren();if(!ordered.length){root.textContent='No public research yet.';return;}root.append(renderFinding(ordered[0]));if(ordered.length>1)root.append(folded('Previous findings',ordered.slice(1).map(renderFinding),'all-history'));restoreOpen(root,opened);}
@@ -640,10 +679,12 @@ async function release(){if(!claim||loading)return;if(!confirm('Release this unf
 async function publish(e){e.preventDefault();if(!ready||!claim||loading)return;
  const summary=$('summary').value.trim(),question=$('research-question').value,answer=$('research-answer').value;
  if(!answerChoices[question]||!answerChoices[question].includes(answer)){publishMsg('Choose an investor question and a supported five-level evidence-backed rating.','error');return;}
- const publicSummary=question?'[ORCA-R2;Q:'+question+';A:'+answer+'] '+summary:summary;
+ let holdSuffix='';
+ if(answer==='HOLD'){try{holdSuffix=holdPlanSuffix();}catch(error){publishMsg(error.message,'error');return;}}
+ const publicSummary=question?'[ORCA-R2;Q:'+question+';A:'+answer+'] '+summary+holdSuffix:summary;
  const sources=$('sources').value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
  const limitations=$('limitations').value.trim();const observed=$('observed').value;
- if(summary.length<40||publicSummary.length>700){msg('Summary must have at least 40 characters and fit within 700 including the question label.','error');return;}
+ if(summary.length<40||publicSummary.length>700){publishMsg('Public summary, rating and HOLD plan combined must fit within 700 characters, with 40 or more characters of summary.','error');return;}
  if(sources.length<1||sources.length>5||sources.some(x=>!safeLink(x)||x.length>500)){msg('Provide 1–5 valid http(s) source URLs on separate lines.','error');return;}
  if(!observed||!Number.isFinite(Date.parse(observed))){msg('Enter the observation date and time.','error');return;}
  if(!$('self-reviewed').checked){msg('Researcher must verify the evidence and approve the short public summary before publishing.','error');return;}
@@ -668,7 +709,7 @@ $('research-metric').addEventListener('change',updateRequestButton);
   if(state==='claimed')return msg('This metric is already in progress. Choose another metric or check back when the reservation ends.','error');
   return requestAssignment(metric,task.id);
  });
-$('submit-form').addEventListener('submit',publish);$('research-question').addEventListener('change',updateResearchAnswers);updateResearchAnswers();$('summary').addEventListener('input',()=>$('chars').textContent=$('summary').value.length+' / 700');
+$('submit-form').addEventListener('submit',publish);$('research-question').addEventListener('change',updateResearchAnswers);$('research-answer').addEventListener('change',updateHoldRequirements);updateResearchAnswers();$('summary').addEventListener('input',()=>$('chars').textContent=$('summary').value.length+' / 700');
 $('outlook-form').addEventListener('submit',submitOutlook);
 $('outlook-supporting-findings').addEventListener('change',event=>{const selected=$('outlook-supporting-findings').querySelectorAll('input:checked');if(selected.length>5){event.target.checked=false;outlookSubmitMessage('Select no more than five supporting findings.','error');}});
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')updateResearchFreshness();});
