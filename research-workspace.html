@@ -79,6 +79,7 @@ main{max-width:1020px;margin:0 auto;padding:27px 16px 55px}h1{font-size:clamp(30
     <div id="outlook-submit-message" class="alert hidden" role="status" aria-live="polite"></div>
   </form>
 </section>
+<section class="card" id="prediction-history"><h2>Prediction Track Record</h2><p class="sub">Permanent original forecasts with their outcomes when verified. A prediction counts as correct only when its declared direction matches the verified closing price at its deadline. No results are invented.</p><div id="ledger-status" class="empty" role="status">Checking whether prediction history is available…</div><div id="ledger-list" class="collective-list" aria-live="polite"></div></section>
 <section class="card" id="work-start"><h2>Start your personal assistant in ChatGPT Work</h2><p class="sub"><span class="step">1</span> Sign in to this staging website and turn research permission ON. Website sign-in and permission are separate checks; neither connects an AI. <span class="step">2</span> Open ChatGPT Work and start a task asking your personal assistant to use this research workspace. Sign in to the website there if asked. <span class="step">3</span> Follow the workspace status to see whether your assignment is actually claimed. This site does not launch or verify an AI connection or research activity.</p><a class="btn alt" href="https://chatgpt.com/" target="_blank" rel="noopener noreferrer">Open ChatGPT ↗</a></section>
 <div id="message" class="alert" role="status" aria-live="polite">Checking the research board…</div>
 <div id="publish-message" class="alert hidden" role="status" aria-live="polite"></div>
@@ -166,6 +167,7 @@ function createMarketChart(){
 
 let sb=null,user=null,ready=false,loading=false,claim=null,alias='',tasks=[],findings=[],freshnessTimer=null;
 let outlooks=[],outlookFindings=new Map(),outlookReadError='',outlookFindingError='',outlookAccessMessage='',outlookSubmitting=false;
+let predictionLedger=[];
 const pendingResearchRequests=new Map();
 function msg(s,kind='info'){$('message').textContent=s;$('message').dataset.kind=kind;}
 function claimActionNote(s,kind='info'){const el=$('claim-action-status');el.textContent=s;el.dataset.kind=kind;msg(s,kind);}
@@ -375,6 +377,27 @@ function renderOutlooks(){
  if(legacy.length){const old=document.createElement('details');old.className='history-fold';old.dataset.foldKey='historical-neutral';const title=document.createElement('summary');title.textContent='Earlier neutral outlooks ('+legacy.length+') · previous format';old.append(title,...legacy.map(renderOutlookEntry));grid.append(old);}
  restoreOpen(grid,opened);renderOutlookSources();
 }
+async function loadPredictionLedger(){
+ const status=$('ledger-status'),root=$('ledger-list');root.replaceChildren();
+ try{
+  const {data,error}=await sb.from('commons_prediction_ledger').select('outlook_id,ticker,researcher_alias,stance,observed_at,published_at,reasoning,investment_timeframe,invalidation_condition,baseline_session_date,declared_baseline_close,target_session_date,verified_baseline_close,settlement_session_date,settlement_close,price_return_pct,direction_correct,settled_at,score_state,baseline_source_url,verified_baseline_source_url,settlement_source_url').eq('ticker',ticker).order('published_at',{ascending:false}).limit(100);
+  if(error){predictionLedger=[];status.textContent='Permanent prediction history is not active yet. Existing public outlooks above remain available. This requires the reviewed staging database migration.';return;}
+  predictionLedger=data||[];
+  status.textContent=predictionLedger.length?'Showing '+predictionLedger.length+' preserved prediction'+(predictionLedger.length===1?'':'s')+' (latest 100). Verified results only.':'No permanent directional predictions are recorded yet.';
+  for(const p of predictionLedger){
+   const item=document.createElement('article');item.className='finding';
+   const head=document.createElement('strong');head.textContent=(p.stance||'').toUpperCase()+' · '+(p.researcher_alias||'Researcher');item.append(head);
+   const date=document.createElement('small');date.textContent='Published '+time(p.published_at)+' · Forecast: '+p.investment_timeframe;item.append(date);
+   const st=document.createElement('p');const label=p.score_state==='correct'?'CORRECT':p.score_state==='incorrect'?'INCORRECT':p.score_state==='awaiting_close'?'Awaiting target close':p.score_state==='pending_baseline'?'Baseline awaiting verification':'Awaiting verified forecast terms';st.textContent='Status: '+label;item.append(st);
+   if(p.target_session_date){const target=document.createElement('small');target.textContent='Target session: '+p.target_session_date+' · Declared baseline: '+(p.declared_baseline_close??'not supplied');item.append(target);}
+   if(p.settled_at){const result=document.createElement('p');result.textContent='Verified close: '+p.settlement_close+' on '+p.settlement_session_date+' · Price change: '+p.price_return_pct+'%';item.append(result);}
+   const note=document.createElement('p');note.textContent=p.reasoning;note.style.whiteSpace='pre-wrap';item.append(note);
+   const inv=document.createElement('small');inv.textContent='Would reconsider if: '+p.invalidation_condition;item.append(inv);
+   const links=[p.baseline_source_url,p.verified_baseline_source_url,p.settlement_source_url].filter(Boolean);if(links.length)sourceFold(item,links,'ledger:'+p.outlook_id);
+   root.append(item);
+  }
+ }catch(err){predictionLedger=[];status.textContent='Prediction-history read unavailable. Existing research is unaffected.';}
+}
 async function loadOutlooks(){
  const result=await sb.from('commons_market_outlooks')
   .select('id,ticker,researcher_alias,stance,reasoning,supporting_finding_ids,evidence_urls,observed_at,investment_timeframe,invalidation_condition,created_at,expires_at')
@@ -451,7 +474,7 @@ async function refresh(options={}){const announce=options?.announce!==false;if(!
  renderTasks();renderFindings();renderCollectiveDashboard();renderInvestorQuestions();renderClaim();$('last-refreshed').textContent='Last refreshed: '+new Date().toLocaleTimeString()+' · '+findings.length+' public findings displayed';const boardStatus=isOrcaStaging
   ?'Research board ready. '+findings.length+' public findings. '+(claim?'Active assignment: '+claim.research_area+'.':ready?'No active assignment.':'Complete sign-in, team, and permission checks to request research.')
   :'Research board loaded. '+findings.length+' recent public findings. '+(ready?'You can claim a metric.':'Sign in / check team and permission controls.');
- if(announce)msg(boardStatus,'success');return true;
+ if(isOrcaStaging)await loadPredictionLedger();if(announce)msg(boardStatus,'success');return true;
  }catch(e){if(isOrcaStaging){ready=false;claim=null;outlookAccessMessage='Permission checks failed. Refresh to retry; contributions stay disabled until they succeed.';$('identity').textContent='Action failed while checking sign-in or research permission.';$('prereq').textContent='Refresh to retry the authentication and permission checks.';renderOutlookAccess();renderClaim();}if(announce||isOrcaStaging)msg((isOrcaStaging?'Action failed: ':'Could not refresh the research board: ')+errorInfo(e),'error');return false;}finally{loading=false;control();}}
 async function requestAssignment(metric,sourceTaskId=null){
  if(!isOrcaStaging||!ready||loading||claim){
