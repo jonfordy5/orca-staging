@@ -1,0 +1,18 @@
+
+.orca-lookup{width:100%;position:relative;margin:14px 0 19px}
+.orca-lookup form{display:flex;gap:10px;align-items:end;flex-wrap:wrap}
+.orca-lookup-field{flex:1;min-width:min(100%,230px)}
+.orca-lookup label{display:block;font-size:13px;font-weight:800;color:#365866;margin:0 0 7px}
+.orca-lookup input{width:100%;background:white;border:1px solid #aec8cd;color:#173542;font:inherit;font-size:15px;padding:12px 13px;border-radius:10px;box-sizing:border-box}
+.orca-lookup button{background:#53d7aa;border:0;border-radius:10px;color:#063b2e;cursor:pointer;font:inherit;font-size:14px;font-weight:850;padding:13px 17px}
+.orca-lookup button:disabled{opacity:.55;cursor:not-allowed}
+.orca-lookup :is(input,button,a):focus-visible{outline:3px solid #53d7aa;outline-offset:3px}
+.orca-lookup-status{color:#597482;font-size:12px;line-height:1.5;margin:7px 0}
+.orca-lookup-results{background:white;border:1px solid #dbe8eb;border-radius:11px;box-shadow:0 9px 20px #143b4b10;overflow:hidden;margin:5px 0 0;padding:0;list-style:none;max-height:270px;overflow-y:auto}
+.orca-lookup-results[hidden]{display:none}
+.orca-lookup-results li+li{border-top:1px solid #e7eff0}
+.orca-lookup-results a{display:flex;gap:9px;justify-content:space-between;align-items:center;padding:10px 13px;color:#173542;text-decoration:none}
+.orca-lookup-results a:hover,.orca-lookup-results a:focus-visible{background:#edf8f3}
+.orca-lookup-symbol{color:#11664c;font-weight:900;min-width:60px;letter-spacing:.03em}
+.orca-lookup-name{flex:1;font-size:13px;color:#426472}
+@media(max-width:520px){.orca-lookup button{width:100%}}
