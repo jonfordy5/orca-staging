@@ -90,6 +90,7 @@ main{max-width:1020px;margin:0 auto;padding:27px 16px 55px}h1{font-size:clamp(30
       <label for="research-metric">Approved metric</label>
       <select id="research-metric" aria-label="Approved research metric"></select>
       <div class="actions"><button class="btn" id="request-assignment" type="button" disabled>Request and claim metric</button></div>
+       <div id="claim-action-status" class="alert" role="status" aria-live="polite" data-kind="info">No assignment action attempted in this session. After claiming, verify “Claimed” appears under My assignment.</div>
     </section>
     <section class="card">
       <h2>Research assignments</h2>
@@ -167,6 +168,7 @@ let sb=null,user=null,ready=false,loading=false,claim=null,alias='',tasks=[],fin
 let outlooks=[],outlookFindings=new Map(),outlookReadError='',outlookFindingError='',outlookAccessMessage='',outlookSubmitting=false;
 const pendingResearchRequests=new Map();
 function msg(s,kind='info'){$('message').textContent=s;$('message').dataset.kind=kind;}
+function claimActionNote(s,kind='info'){const el=$('claim-action-status');el.textContent=s;el.dataset.kind=kind;msg(s,kind);}
 function publishMsg(s,kind='info'){const el=$('publish-message');el.textContent=s;el.dataset.kind=kind;el.classList.remove('hidden');}
 function errorInfo(err){const fields=['code','message','details','hint'].filter(key=>typeof err?.[key]==='string'&&err[key].trim()).map(key=>key+': '+err[key].trim());const text=fields.join('\n')||'Unknown error';return text.replace(/\bBearer\s+[A-Za-z0-9._~+\/-]+=*/gi,'Bearer [redacted]').replace(/\b(password|passwd|secret|token|api[_-]?key|authorization|service[_-]?role[_-]?key|(?:access|refresh|worker|pairing)[_-](?:token|secret))\b(\s*[:=]\s*|\s+)[^\s,;]+/gi,'$1$2[redacted]').replace(/\b(?:sb_(?:publishable|secret)_[A-Za-z0-9_-]+|sk-(?:proj-)?[A-Za-z0-9_-]{12,}|eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+)\b/g,'[redacted]');}
 function time(t){if(!t)return 'not provided';const d=new Date(t);return isNaN(d.getTime())?'unknown':d.toLocaleString();}
@@ -452,45 +454,75 @@ async function refresh(options={}){const announce=options?.announce!==false;if(!
  if(announce)msg(boardStatus,'success');return true;
  }catch(e){if(isOrcaStaging){ready=false;claim=null;outlookAccessMessage='Permission checks failed. Refresh to retry; contributions stay disabled until they succeed.';$('identity').textContent='Action failed while checking sign-in or research permission.';$('prereq').textContent='Refresh to retry the authentication and permission checks.';renderOutlookAccess();renderClaim();}if(announce||isOrcaStaging)msg((isOrcaStaging?'Action failed: ':'Could not refresh the research board: ')+errorInfo(e),'error');return false;}finally{loading=false;control();}}
 async function requestAssignment(metric,sourceTaskId=null){
- if(!isOrcaStaging||!ready||loading||claim)return;
- const requestKey=[user.id,ticker,metric.categoryKey,metric.key,sourceTaskId||'new'].join(':');
- let requestId=pendingResearchRequests.get(requestKey);
- if(!requestId){requestId=crypto.randomUUID();pendingResearchRequests.set(requestKey,requestId);}
- let requestConfirmed=false,claimAttempted=false;
- loading=true;control();msg(sourceTaskId?'Requesting and claiming the next research cycle…':'Requesting and claiming the selected metric…');
+ if(!isOrcaStaging||!ready||loading||claim){
+  claimActionNote('Cannot begin: confirm staging sign-in, permission, and that no other request or claim is active.','error');return;
+ }
+ let phase='preflight',requestConfirmed=false,claimAttempted=false,requestKey=null,requestedTaskId=null;
+ loading=true;control();
+ claimActionNote('Checking the current '+metric.label+' research cycle against the server…');
  try{
+  // Re-read this metric directly from the server: the public board refreshes every 25 seconds,
+  // so an assignment ID embedded in an older rendered button may no longer be current.
+  if(sourceTaskId){
+   const latest=await sb.from('research_tasks').select('id,ticker,research_area,status,claimed_until,updated_at')
+    .eq('ticker',ticker).eq('research_area',metric.area).order('updated_at',{ascending:false}).limit(1);
+   if(latest.error)throw latest.error;
+   const current=latest.data?.[0];
+   if(!current)throw new Error('Could not verify the latest research cycle. No write attempted.');
+   sourceTaskId=current.id;
+   const status=badge(current);
+   if(status==='claimed')throw new Error('Latest '+metric.label+' cycle is currently claimed. No new cycle requested.');
+   if(status==='open'){
+    phase='claim existing open cycle';claimAttempted=true;requestedTaskId=current.id;
+    claimActionNote('Latest '+metric.label+' cycle is open. Claiming existing assignment instead of creating a duplicate…');
+    claim=await rpc('commons_claim_task',{p_task_id:current.id});
+    phase='verify claim';loading=false;
+    const checked=await refresh({announce:false});
+    if(checked&&claim?.id===current.id){
+     claimActionNote('SUCCESS: '+metric.label+' claimed and independently verified. Assignment ID '+current.id.slice(0,8)+'…; see My assignment below.','success');
+    }else{
+     claimActionNote('UNCONFIRMED: claim returned, but My assignment did not confirm the task. Refresh and inspect this status before taking another action.','error');
+    }
+    return;
+   }
+  }
+  requestKey=[user.id,ticker,metric.categoryKey,metric.key,sourceTaskId||'new'].join(':');
+  let requestId=pendingResearchRequests.get(requestKey);
+  if(!requestId){requestId=crypto.randomUUID();pendingResearchRequests.set(requestKey,requestId);}
+  phase='create or renew cycle';
+  claimActionNote('Verified latest '+metric.label+' cycle. Requesting its next cycle from ORCA…');
   const result=await rpc('commons_create_or_renew_research',{
    p_ticker:ticker,p_category_key:metric.categoryKey,p_metric_key:metric.key,
    p_request_id:requestId,p_source_task_id:sourceTaskId
   });
   const task=Array.isArray(result)?result[0]:result;
-  if(!task||typeof task.id!=='string')throw new Error('The research RPC did not return a task ID.');
-  requestConfirmed=true;
+  if(!task||typeof task.id!=='string')throw new Error('Research RPC returned no task ID.');
+  requestConfirmed=true;requestedTaskId=task.id;
+  phase='verify new task in public feed';
+  claimActionNote('Research cycle returned task '+task.id.slice(0,8)+'…. Confirming it is visible before claiming…');
   const check=await sb.from('research_tasks').select('id,ticker,research_area,status').eq('id',task.id).eq('ticker',ticker).maybeSingle();
   if(check.error)throw check.error;
-  if(!check.data)throw new Error('The requested assignment was not visible in the staging research feed. The same request ID is retained for a safe retry.');
-  claimAttempted=true;
+  if(!check.data)throw new Error('New research cycle is not visible in the staging task feed.');
+  phase='claim new task';claimAttempted=true;
+  claimActionNote('New '+check.data.research_area+' cycle confirmed. Claiming assignment '+task.id.slice(0,8)+'…');
   claim=await rpc('commons_claim_task',{p_task_id:task.id});
   $('observed').value=localDateTime();
+  phase='verify own active claim';
   loading=false;
   const refreshed=await refresh({announce:false});
-  if(refreshed&&claim?.id===task.id)pendingResearchRequests.delete(requestKey);
-  msg(refreshed&&claim?.id===task.id
-   ?'Request and claim succeeded. Active assignment: '+check.data.research_area+'.'
-   : 'The request and claim RPC succeeded, but the active assignment could not be confirmed on refresh. Refresh before continuing; the same request ID is retained.','error');
+  if(refreshed&&claim?.id===task.id){
+   pendingResearchRequests.delete(requestKey);
+   claimActionNote('SUCCESS: '+check.data.research_area+' assigned and independently verified. Task '+task.id.slice(0,8)+'…; see My assignment below.','success');
+  }else{
+   claimActionNote('UNCONFIRMED: renewal and claim RPCs returned, but the active assignment was not verified after refresh. Do not assume a claim. Task '+task.id.slice(0,8)+'….','error');
+  }
  }catch(error){
   loading=false;
   const refreshed=await refresh({announce:false});
-  const claimStatus=refreshed&&claim
-   ?' Your existing active assignment is shown below: '+claim.research_area+'.'
-   :refreshed?' No active assignment was confirmed.':' Assignment status could not be refreshed.';
-  const failure=requestConfirmed
-   ?claimAttempted?'The assignment request succeeded, but claiming failed: ':'The assignment request succeeded, but confirmation failed before claiming: '
-   :'The request-and-claim action failed before an assignment was confirmed: ';
-  const cycleMismatch=String(error?.code||'')==='22023'&&/Expected current assignment id/i.test(String(error?.message||''));
-   msg(cycleMismatch?'The research server could not match the current cycle (code 22023). No new assignment was confirmed. Report the issue rather than retrying repeatedly.':failure+errorInfo(error)+'.'+claimStatus+' The same request ID will be reused on retry.','error');
- }
- finally{loading=false;control();}
+  const claimText=refreshed&&claim?' Active task: '+claim.research_area+'.':' No active assignment confirmed.';
+  const details=errorInfo(error);
+  claimActionNote('FAILED during '+phase+' for '+metric.label+': '+details+'.'+claimText+(requestKey?' Request ID retained for safe investigation.':' No renewal request confirmed.'),'error');
+ }finally{loading=false;control();}
 }
 async function claimTask(id){if(!ready||loading)return;loading=true;control();if(!isOrcaStaging){try{claim=await rpc('commons_claim_task',{p_task_id:id});$('observed').value=localDateTime();renderClaim();msg('Assignment reserved. Research it independently in this workspace; no AI is launched by the website.','success');}catch(e){msg('Cannot claim task: '+errorInfo(e),'error');}finally{loading=false;await refresh();}return;}
  msg('Claiming the selected assignment…');let failure=null;try{claim=await rpc('commons_claim_task',{p_task_id:id});$('observed').value=localDateTime();renderClaim();msg('Assignment reserved. Research it independently in this workspace; no AI is launched by the website.','success');}catch(e){failure=e;}finally{loading=false;const refreshed=await refresh({announce:false});if(failure)msg('Action failed while claiming: '+errorInfo(failure),'error');else if(!refreshed)msg('The claim RPC succeeded, but the active assignment could not be confirmed. Refresh before continuing.','error');}}
