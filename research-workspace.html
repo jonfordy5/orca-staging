@@ -76,8 +76,16 @@ main{max-width:1020px;margin:0 auto;padding:27px 16px 55px}h1{font-size:clamp(30
     <input id="outlook-reason-3" minlength="10" maxlength="140" required placeholder="Dated, verifiable fact">
     <label for="outlook-observed">Evidence observation time (your local time)</label>
     <input id="outlook-observed" type="datetime-local" required>
-    <label for="outlook-timeframe">Forecast timeframe (1–80 characters)</label>
-    <input id="outlook-timeframe" maxlength="80" required placeholder="For example: 30 days, 6 months, or by March 31, 2027">
+    <p class="form-help"><strong>Measurable prediction:</strong> Record a completed market day's closing price, a public source, and a future trading-day deadline. ORCA preserves these terms at publication.</p>
+    <label for="outlook-baseline-date">Starting market close date</label>
+    <input id="outlook-baseline-date" type="date" required>
+    <label for="outlook-baseline-close">Starting closing price (USD)</label>
+    <input id="outlook-baseline-close" type="number" min="0.000001" max="10000000" step="any" placeholder="52.60" required>
+    <label for="outlook-baseline-source">Public source confirming the closing price</label>
+    <input id="outlook-baseline-source" type="url" maxlength="500" placeholder="https://stockanalysis.com/stocks/rklb/history/" required>
+    <label for="outlook-target-date">Prediction deadline (future trading date)</label>
+    <input id="outlook-target-date" type="date" required>
+    <p class="form-help">Choose a future trading session. The starting close is checked separately before ORCA scores the prediction.</p>
     <label for="outlook-invalidation">What would invalidate this interpretation? (15–300 characters)</label>
     <textarea id="outlook-invalidation" minlength="15" maxlength="300" required placeholder="State an observable condition that would change this view."></textarea>
     <label for="outlook-evidence-urls">Evidence URLs (optional if you select findings; up to 5)</label>
@@ -452,29 +460,50 @@ async function submitOutlook(event){
  const stance=$('outlook-stance').value,observed=$('outlook-observed').value;
  const reasons=[1,2,3].map(i=>$('outlook-reason-'+i).value.trim());
  const reasoning=reasons.map((value,i)=>(i+1)+'. '+value).join('\n');
- const timeframe=$('outlook-timeframe').value.trim(),invalidation=$('outlook-invalidation').value.trim();
+ const baselineDate=$('outlook-baseline-date').value;
+ const baselineClose=Number($('outlook-baseline-close').value);
+ const baselineSource=$('outlook-baseline-source').value.trim();
+ const targetDate=$('outlook-target-date').value;
+ const timeframe='By '+targetDate+' regular close vs $'+baselineClose+' ('+baselineDate+' close).';
+ const invalidation=$('outlook-invalidation').value.trim();
  const urls=$('outlook-evidence-urls').value.split(/\r?\n/).map(value=>value.trim()).filter(Boolean);
  const selected=[...$('outlook-supporting-findings').querySelectorAll('input:checked')].map(input=>input.value);
  const observedTime=Date.parse(observed),now=Date.now();
  if(!['bullish','bearish'].includes(stance)){outlookSubmitMessage('Pick Bullish or Bearish.','error');return;}
  if(reasons.some(x=>x.length<10||x.length>140)||reasoning.length<40||reasoning.length>500){outlookSubmitMessage('Provide three concise evidence-backed reasons.','error');return;}
  if(!Number.isFinite(observedTime)||observedTime>now+5*60*1000||observedTime<now-30*24*60*60*1000){outlookSubmitMessage('Enter an observation time within the last 30 days and no more than five minutes in the future.','error');return;}
- if(timeframe.length<1||timeframe.length>80||invalidation.length<15||invalidation.length>300){outlookSubmitMessage('Check the timeframe (1–80 characters) and invalidation condition (15–300 characters).','error');return;}
+ if(!/^\d{4}-\d{2}-\d{2}$/.test(baselineDate)||!/^\d{4}-\d{2}-\d{2}$/.test(targetDate)||!Number.isFinite(baselineClose)||baselineClose<=0||baselineClose>10000000){outlookSubmitMessage('Enter a completed market date, positive starting close, and future deadline.','error');return;}
+ if(!safeLink(baselineSource)||baselineSource.length>500||/\s/.test(baselineSource)){outlookSubmitMessage('Link to a public source that confirms the starting close.','error');return;}
+ const parts=new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());
+ const datePart=type=>parts.find(part=>part.type===type)?.value||'';
+ const todayET=datePart('year')+'-'+datePart('month')+'-'+datePart('day');
+ if(baselineDate>=todayET||targetDate<=todayET||targetDate<=baselineDate){outlookSubmitMessage('The starting close must be before today and the deadline in the future.','error');return;}
+ const weekday=new Date(targetDate+'T12:00:00Z').getUTCDay();
+ if(weekday===0||weekday===6){outlookSubmitMessage('Choose a weekday when the stock exchange is open.','error');return;}
+ if(timeframe.length>80||invalidation.length<15||invalidation.length>300){outlookSubmitMessage('Check prediction terms and the reconsideration condition (15–300 characters).','error');return;}
  if(urls.length>5||urls.some(url=>url.length>500||/\s/.test(url)||!safeLink(url))){outlookSubmitMessage('Provide up to five valid http(s) URLs, each no longer than 500 characters and on its own line.','error');return;}
  if(selected.length<1||selected.length>5){outlookSubmitMessage('Select 1–5 published metric findings supporting your call.','error');return;}
- outlookSubmitting=true;renderOutlookAccess();outlookSubmitMessage('Submitting through the authorized staging RPC…');
+ outlookSubmitting=true;renderOutlookAccess();outlookSubmitMessage('Preserving your verified prediction terms in staging…');
  let rpcAccepted=false;
  try{
-  const id=await rpc('commons_submit_market_outlook',{
+  const id=await rpc('commons_submit_accountable_outlook',{
    p_ticker:ticker,p_stance:stance,p_reasoning:reasoning,p_supporting_finding_ids:selected,
    p_evidence_urls:urls,p_observed_at:new Date(observedTime).toISOString(),
-   p_investment_timeframe:timeframe,p_invalidation_condition:invalidation
+   p_investment_timeframe:timeframe,p_invalidation_condition:invalidation,
+   p_baseline_session_date:baselineDate,p_declared_baseline_close:baselineClose,
+   p_baseline_source_url:baselineSource,p_target_session_date:targetDate
   });
-  if(typeof id!=='string'||!id)throw new Error('The outlook RPC did not return an outlook ID.');
+  if(typeof id!=='string'||!id)throw new Error('The submission did not return an outlook ID.');
   rpcAccepted=true;outlookReadError='';await loadOutlooks();renderOutlooks();
-  if(!outlooks.some(outlook=>outlook.id===id))throw new Error('The submission returned, but the new interpretation was not visible on the refreshed public board.');
-  $('outlook-form').reset();$('outlook-observed').value=localDateTime();outlookSubmitMessage('Directional outlook published and confirmed publicly. Automatic price-outcome scoring is not yet implemented.','success');
- }catch(error){outlookSubmitMessage(rpcAccepted?'The submission RPC accepted the interpretation, but public confirmation failed. Do not retry yet; refresh the public board and verify whether it appears. '+errorInfo(error):outlookFailureMessage(error),'error');}
+  if(!outlooks.some(outlook=>outlook.id===id))throw new Error('The new interpretation did not appear on the refreshed public board.');
+  await loadPredictionLedger();
+  const locked=predictionLedger.find(entry=>entry.outlook_id===id);
+  if(!locked||locked.score_state!=='pending_baseline'||locked.baseline_session_date!==baselineDate||Number(locked.declared_baseline_close)!==baselineClose||locked.target_session_date!==targetDate){
+   throw new Error('The public forecast is visible, but its frozen starting price and deadline could not be confirmed.');
+  }
+  $('outlook-form').reset();$('outlook-observed').value=localDateTime();
+  outlookSubmitMessage('Prediction published and starting price/deadline preserved. Independent close verification and future result scoring are separate checks.','success');
+ }catch(error){outlookSubmitMessage(rpcAccepted?'The submission may have been accepted, but public confirmation failed. Do not retry until you check the board. '+errorInfo(error):outlookFailureMessage(error),'error');}
  finally{outlookSubmitting=false;renderOutlookAccess();}
 }
 function outlookSubmitMessage(message,kind='info'){
@@ -600,7 +629,7 @@ async function publish(e){e.preventDefault();if(!ready||!claim||loading)return;
  if(!refreshed||!findings.some(f=>f.task_id===taskId&&f.summary===publicSummary)){publishMsg('The publish request returned, but the submitted finding was not confirmed on the refreshed public board. Draft retained; refresh and verify before retrying.','error');return;}
  const newlyPublished=findings.find(f=>f.task_id===taskId&&f.summary===publicSummary);
  if(newlyPublished){const item=[...$('outlook-supporting-findings').querySelectorAll('input[type="checkbox"]')].find(input=>input.value===newlyPublished.id);if(item)item.checked=true;}
- claim=null;$('submit-form').reset();updateResearchAnswers();$('observed').value=localDateTime();renderClaim();control();publishMsg('Metric research published and verified. Next: pick Bullish or Bearish, choose a timeframe, and add three supporting facts. The new finding is selected under Supporting published metric findings.','success');}
+ claim=null;$('submit-form').reset();updateResearchAnswers();$('observed').value=localDateTime();renderClaim();control();publishMsg('Metric research published and verified. Next: choose a direction, verify a completed market closing price and source, set a deadline, and add three supporting facts. The new finding is selected under Supporting published metric findings.','success');}
 $('next').addEventListener('click',claimNext);$('refresh').addEventListener('click',()=>refresh({announce:true}));$('release').addEventListener('click',release);
 $('research-metric').addEventListener('change',updateRequestButton);
  $('request-assignment').addEventListener('click',()=>{
