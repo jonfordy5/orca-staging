@@ -27,6 +27,7 @@ export async function mountLivingTimeline({sb,ticker,getUser,canContribute}){
  const chart=lib.createChart(plot,{autoSize:true,layout:{background:{type:lib.ColorType.Solid,color:'#132029'},textColor:'#afc1c7',fontFamily:'system-ui'},grid:{vertLines:{color:'#253540'},horzLines:{color:'#253540'}},rightPriceScale:{borderColor:'#34505d'},timeScale:{borderColor:'#34505d',timeVisible:false}});
  const series=chart.addSeries(lib.LineSeries,{color:'#93b7c7',lineWidth:2,priceLineVisible:false,lastValueVisible:true,crosshairMarkerVisible:true});
  series.setData(prices);chart.timeScale().fitContent();
+ const nativeMarkers=lib.createSeriesMarkers(series,[]);
  let records=[],selected=null,active='living';
  function closest(date){const t=Date.parse(date+'T00:00:00Z');let best=prices[0],distance=Infinity;
   for(const p of prices){const d=Math.abs(Date.parse(p.time+'T00:00:00Z')-t);if(d<distance){best=p;distance=d;}}return {point:best,distance};}
@@ -36,7 +37,14 @@ export async function mountLivingTimeline({sb,ticker,getUser,canContribute}){
  async function load(){
   const {data,error}=await sb.from('orca_timeline_annotations').select('id,event_at,category,title,ai_summary,source_url').eq('ticker',ticker).order('event_at',{ascending:true}).limit(500);
   if(error){status.textContent='Annotations unavailable; prices remain visible.';return;}
-  records=(data||[]).map(parseRow);draw();status.textContent=prices.length+' daily closing prices · '+records.length+' sourced timeline notes · historical snapshot (not live)';
+  records=(data||[]).map(parseRow);
+  const dots=records.map(record=>{
+   const date=eventDate(record);if(!date)return null;
+   const mapping=closest(date);if(mapping.distance>3*86400000)return null;
+   return {id:record.id,time:mapping.point.time,position:'aboveBar',color:colors[record.category]||colors.custom_note,shape:'circle',size:1.5};
+  }).filter(Boolean).sort((x,y)=>x.time.localeCompare(y.time));
+  nativeMarkers.setMarkers(dots);
+  draw();status.textContent=prices.length+' daily closing prices · '+records.length+' sourced timeline notes · historical snapshot (not live)';
  }
  const colors={earnings:'#328c73',product:'#638dc1',macro:'#ad6066',legal:'#ac5964',custom_note:'#a78bcb'};
  function closePopup(){popup.hidden=true;selected=null;}
