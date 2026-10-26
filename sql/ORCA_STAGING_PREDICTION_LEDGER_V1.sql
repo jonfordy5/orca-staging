@@ -62,7 +62,7 @@ create table public.commons_prediction_ledger (
   score_state text not null default 'needs_terms'
     check (score_state in (
       'needs_terms','pending_baseline','awaiting_close',
-      'correct','incorrect','flat','unscorable'
+      'correct','incorrect','unscorable'
     )),
   constraint prediction_terms_consistent check (
     (baseline_session_date is null and declared_baseline_close is null
@@ -181,7 +181,7 @@ begin
       or p_declared_baseline_close is null
       or p_declared_baseline_close <= 0
       or p_declared_baseline_close > 10000000
-      or p_baseline_session_date > v_today
+      or p_baseline_session_date >= v_today
       or p_baseline_session_date < v_today - 21 then
     raise exception 'Provide a recent, completed market session and positive reference close'
       using errcode='22023';
@@ -236,10 +236,10 @@ grant execute on function public.commons_submit_accountable_outlook(
 
 -- Server-admin-only curation of legacy predictions.
 -- Never infer or invent terms from free-text investment timeframes.
-create schema if not exists private;
-revoke all on schema private from public,anon,authenticated;
+create schema if not exists orca_prediction_private;
+revoke all on schema orca_prediction_private from public,anon,authenticated;
 
-create function private.commons_set_legacy_prediction_terms (
+create function orca_prediction_private.commons_set_legacy_prediction_terms (
   p_outlook_id uuid,
   p_baseline_session_date date,
   p_declared_baseline_close numeric,
@@ -265,15 +265,15 @@ begin
   if not found then raise exception 'Legacy record missing or terms already locked'; end if;
 end;
 $$;
-revoke all on function private.commons_set_legacy_prediction_terms(uuid,date,numeric,text,date)
+revoke all on function orca_prediction_private.commons_set_legacy_prediction_terms(uuid,date,numeric,text,date)
   from public,anon,authenticated;
-grant usage on schema private to service_role;
-grant execute on function private.commons_set_legacy_prediction_terms(uuid,date,numeric,text,date)
+grant usage on schema orca_prediction_private to service_role;
+grant execute on function orca_prediction_private.commons_set_legacy_prediction_terms(uuid,date,numeric,text,date)
   to service_role;
 
 -- Admin verifies the exact reference close independently, without rewriting
 -- the original claimed price. Difference >1 cent blocks scoring for review.
-create function private.commons_verify_prediction_baseline (
+create function orca_prediction_private.commons_verify_prediction_baseline (
   p_outlook_id uuid,
   p_verified_close numeric,
   p_verified_source_url text
@@ -299,15 +299,15 @@ begin
     where outlook_id=p_outlook_id;
 end;
 $$;
-revoke all on function private.commons_verify_prediction_baseline(uuid,numeric,text)
+revoke all on function orca_prediction_private.commons_verify_prediction_baseline(uuid,numeric,text)
   from public,anon,authenticated;
-grant execute on function private.commons_verify_prediction_baseline(uuid,numeric,text)
+grant execute on function orca_prediction_private.commons_verify_prediction_baseline(uuid,numeric,text)
   to service_role;
 
 -- Restricted settlement after the target's actual regular-session close.
 -- For nontrading target dates, the first exchange close within 7 calendar days
 -- after the stated date is eligible; a verified market data operator must check.
-create function private.commons_settle_prediction (
+create function orca_prediction_private.commons_settle_prediction (
   p_outlook_id uuid,
   p_actual_close_date date,
   p_actual_close numeric,
@@ -327,18 +327,13 @@ begin
      or p_actual_close_date < v.target_session_date
      or p_actual_close_date > v.target_session_date + 7
      or p_actual_close_date > (pg_catalog.now() at time zone 'America/New_York')::date
+     or (p_actual_close_date = (pg_catalog.now() at time zone 'America/New_York')::date and (pg_catalog.now() at time zone 'America/New_York')::time < time '16:15')
      or p_actual_close is null or p_actual_close <= 0
      or p_close_source_url !~* '^https?://[^[:space:]]+$' then
     raise exception 'Provide independently verified close on/after forecast deadline';
   end if;
-  v_correct := case
-      when p_actual_close=v.verified_baseline_close then null
-      when v.stance='bullish' then p_actual_close>v.verified_baseline_close
-      else p_actual_close<v.verified_baseline_close end;
-  v_result := case
-      when v_correct is null then 'flat'
-      when v_correct then 'correct'
-      else 'incorrect' end;
+  v_correct := case when v.stance='bullish' then p_actual_close>v.verified_baseline_close else p_actual_close<v.verified_baseline_close end;
+  v_result := case when v_correct then 'correct' else 'incorrect' end;
   update public.commons_prediction_ledger set
     settlement_session_date=p_actual_close_date,
     settlement_close=p_actual_close,
@@ -351,9 +346,9 @@ begin
   where outlook_id=p_outlook_id;
 end;
 $$;
-revoke all on function private.commons_settle_prediction(uuid,date,numeric,text)
+revoke all on function orca_prediction_private.commons_settle_prediction(uuid,date,numeric,text)
   from public,anon,authenticated;
-grant execute on function private.commons_settle_prediction(uuid,date,numeric,text)
+grant execute on function orca_prediction_private.commons_settle_prediction(uuid,date,numeric,text)
   to service_role;
 
 -- Historical write protection: no client mutations.
