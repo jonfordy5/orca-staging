@@ -12,6 +12,10 @@ const profiles=Object.freeze({
   founderCEO:'Sir Peter Beck',
   operations:'Electron small-satellite launches • Spacecraft and satellite systems • Neutron medium-lift rocket (in development)',
   logo:'https://rocketlabcorp.com/_resources/themes/base/production/images/admin_logo.png?m=1747131331',
+  activityPhoto:'https://rocketlabcorp.com/assets/Uploads/IMG_8591_2.jpg',
+  activityPhotoAlt:'Rocket Lab Electron rocket lifting off with a bright engine plume against the sky',
+  activityPhotoCaption:'Electron launches an Earth-observation satellite · January 2026',
+  activityPhotoSource:'https://rocketlabcorp.com/updates/mission-success-rocket-lab-launches-korean-earth-imaging-satellite-completes-2nd-launch-in-8-days/',
   officialSite:'https://rocketlabcorp.com/',
   sources:[
    {label:'Rocket Lab — About Us',url:'https://rocketlabcorp.com/about/about-us/'},
@@ -70,4 +74,20 @@ export function renderCompanyProfile(ticker){
   const a=add(links,'a',null,item.label);a.href=item.url;a.target='_blank';a.rel='noopener noreferrer';
  }
  add(visual,'p','company-asof','Company facts sourced from Rocket Lab and its investor relations materials.');
+ if(data.activityPhoto&&data.activityPhotoSource){
+  const missionPhoto=add(visual,'figure','company-activity-photo');
+  const imageLink=document.createElement('a');imageLink.href=data.activityPhotoSource;
+  imageLink.target='_blank';imageLink.rel='noopener noreferrer';
+  const photo=document.createElement('img');
+  photo.src=data.activityPhoto;photo.alt=data.activityPhotoAlt||data.name+' at work';
+  photo.loading='lazy';photo.decoding='async';photo.referrerPolicy='no-referrer';
+  const unavailable=add(imageLink,'span','company-photo-unavailable','View a Rocket Lab launch photo on its official website');
+  unavailable.hidden=true;
+  photo.addEventListener('error',()=>{photo.hidden=true;unavailable.hidden=false;});
+  imageLink.prepend(photo);missionPhoto.append(imageLink);
+  const credit=add(missionPhoto,'figcaption',null);
+  credit.textContent=(data.activityPhotoCaption||'Company operations')+' · Photo © '+data.name+'. ';
+  const source=add(credit,'a',null,'Photo source');source.href=data.activityPhotoSource;
+  source.target='_blank';source.rel='noopener noreferrer';
+ }
 }
