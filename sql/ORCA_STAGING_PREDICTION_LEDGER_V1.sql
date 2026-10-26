@@ -50,6 +50,7 @@ create table public.commons_prediction_ledger (
   target_session_date date,
   verified_baseline_close numeric(18,6),
   baseline_verified_at timestamptz,
+  verified_baseline_source_url text,
 
   settlement_session_date date,
   settlement_close numeric(18,6),
@@ -100,7 +101,7 @@ grant select (
   reasoning,investment_timeframe,invalidation_condition,
   supporting_finding_ids,evidence_urls,baseline_session_date,
   declared_baseline_close,baseline_source_url,target_session_date,
-  verified_baseline_close,baseline_verified_at,settlement_session_date,
+  verified_baseline_close,baseline_verified_at,verified_baseline_source_url,settlement_session_date,
   settlement_close,settlement_source_url,price_return_pct,
   direction_correct,settled_at,score_state
 ) on public.commons_prediction_ledger to anon, authenticated;
@@ -292,6 +293,7 @@ begin
   end if;
   update public.commons_prediction_ledger
     set verified_baseline_close=p_verified_close,
+      verified_baseline_source_url=p_verified_source_url,
       baseline_verified_at=pg_catalog.now(),
       score_state='awaiting_close'
     where outlook_id=p_outlook_id;
