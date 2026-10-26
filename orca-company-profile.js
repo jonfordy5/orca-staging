@@ -10,7 +10,14 @@ const profiles=Object.freeze({
   headquartersAddress:'3881 McGowen Street, Long Beach, CA 90808',
   founded:'2006',
   founderCEO:'Sir Peter Beck',
-  operations:'Electron small-satellite launches • Spacecraft and satellite systems • Neutron medium-lift rocket (in development)',
+  operations:'Rocket Lab operates two main businesses: Launch Services and Space Systems. Together they let customers purchase a launch, a spacecraft, specialized components, or a combination of these services.',
+  businessLines:[
+   {name:'Launch Services',detail:'Rocket Lab launches satellites for commercial, civil and government customers, primarily using its Electron rocket. Customers can book dedicated missions or share a launch, with flexibility over timing and orbital destination. HASTE also provides suborbital test launches.'},
+   {name:'Space Systems',detail:'This business builds complete spacecraft and supplies the hardware that makes satellites work—solar power systems, flight computers and software, radios, sensors, and other components. Those products can be sold even when the satellite launches on another company’s rocket.'},
+   {name:'Where it is expanding',detail:'Neutron is a larger rocket still in development, designed for heavier spacecraft and satellite constellations. Its progress could open new opportunities, but testing, schedules, development costs, and customer demand remain important uncertainties.'}
+  ],
+  investorFocus:'Watch Electron launch cadence and reliability, Space Systems contract delivery and margins, and Neutron development milestones. These affect execution and long-term economics more than a single headline or launch photo.',
+  businessSource:'https://investors.rocketlabcorp.com/static-files/57a8d0da-27ff-499c-8d85-18907743b7a8',
   logo:'https://rocketlabcorp.com/_resources/themes/base/production/images/admin_logo.png?m=1747131331',
   activityPhoto:'https://rocketlabcorp.com/assets/Uploads/IMG_8591_2.jpg',
   activityPhotoAlt:'Rocket Lab Electron rocket lifting off with a bright engine plume against the sky',
@@ -56,6 +63,26 @@ export function renderCompanyProfile(ticker){
  const work=add(content,'div','company-business');
  add(work,'strong',null,'What they do');
  add(work,'p',null,data.operations);
+ if(Array.isArray(data.businessLines)&&data.businessLines.length){
+  const breakdown=add(content,'section','company-business-breakdown');
+  const heading=add(breakdown,'div','company-business-heading');
+  add(heading,'h3',null,'How the business makes money');
+  if(data.businessSource){
+   const source=add(heading,'a',null,'Company filings');
+   source.href=data.businessSource;source.target='_blank';source.rel='noopener noreferrer';
+  }
+  for(const item of data.businessLines){
+   if(!item.name||!item.detail)continue;
+   const part=add(breakdown,'div','company-business-line');
+   add(part,'h4',null,item.name);
+   add(part,'p',null,item.detail);
+  }
+ }
+ if(data.investorFocus){
+  const focus=add(content,'section','company-investor-focus');
+  add(focus,'h3',null,'What investors watch');
+  add(focus,'p',null,data.investorFocus);
+ }
  const visual=add(head,'aside','company-visual');
  const frame=add(visual,'div','company-logo-frame');
  const fallback=add(frame,'span','company-logo-fallback',ticker);
