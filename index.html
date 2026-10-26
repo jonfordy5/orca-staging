@@ -46,21 +46,23 @@
  import {mountStockSearch} from './orca-stock-search.js';
  const params=new URLSearchParams(location.search);
  const direct=(params.get('ticker')||'').trim().toUpperCase();
- if(direct){
-  if(/^[A-Z][A-Z0-9.]{0,9}$/.test(direct)){
-   window.location.replace(orcaStagingHref('./research-workspace-staging.html',{ticker:direct}));
-  } else {
-   document.querySelector('#stock-search').textContent='Invalid ticker in URL. Search below with a valid symbol.';
+ const root=document.getElementById('stock-search');
+ try {
+  const {projectUrl,publishableKey}=await selectSupabaseConfig();
+  const {createClient}=await import('https://esm.sh/@supabase/supabase-js@2');
+  const sb=createClient(projectUrl,publishableKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+  const {supported,error}=await mountStockSearch({sb,root});
+  if(direct&&!error){
+   if(supported.some(row=>row.ticker===direct)){
+    window.location.replace(orcaStagingHref('./research-workspace-staging.html',{ticker:direct}));
+   } else {
+    const alert=document.createElement('p');alert.className='small';
+    alert.setAttribute('role','status');
+    alert.textContent='The ticker '+direct+' is not a registered ORCA staging workspace yet. Choose a listed stock.';
+    root.prepend(alert);
+   }
   }
- }
- if(!direct){
-  try{
-   const {projectUrl,publishableKey}=await selectSupabaseConfig();
-   const {createClient}=await import('https://esm.sh/@supabase/supabase-js@2');
-   const sb=createClient(projectUrl,publishableKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
-   await mountStockSearch({sb,root:document.getElementById('stock-search')});
-  }catch(e){document.querySelector('#stock-search').textContent='Stock search cannot connect at the moment. Please refresh.';}
- }
+ }catch(e){root.textContent='Stock search cannot connect at the moment. Please refresh.';}
 </script>
 </body>
 </html>
