@@ -1,6 +1,6 @@
 // ORCA Living Timeline — staging-only, immutable sourced data.
 // Minimal public interface: chart markers + sourced micro-popups, double-click to add a team note.
-export async function mountLivingTimeline({sb,ticker,getUser,canContribute}){
+export async function mountLivingTimeline({sb,ticker,getUser,canContribute,getFindings=()=>[]}){
  const host=document.getElementById('chart-frame');
  const status=document.getElementById('living-status');
  if(!host||!status||!sb)return;
@@ -28,7 +28,32 @@ export async function mountLivingTimeline({sb,ticker,getUser,canContribute}){
  const series=chart.addSeries(lib.LineSeries,{color:'#93b7c7',lineWidth:2,priceLineVisible:false,lastValueVisible:true,crosshairMarkerVisible:true});
  series.setData(prices);chart.timeScale().fitContent();
  const nativeMarkers=lib.createSeriesMarkers(series,[]);
- let records=[],selected=null,active='living';
+ let records=[],findingGroups=[],selected=null,active='living';
+ // Published research is reused from the board's existing query, not fetched again.
+ // A finding is never placed on a price date preceding its publication.
+ function validPublicFindings(){
+  return (getFindings()||[]).filter(f=>f&&f.id&&f.published_at&&(!f.expires_at||Date.parse(f.expires_at)>Date.now()));
+ }
+ function ratingOf(f){
+  const tag=/^\[(?:ORCA-R2;Q:[a-z]+;A:|ORCA-Q:[a-z]+;A:)([A-Z_]+)\] /.exec(String(f.summary||''));
+  return tag?tag[1].replace(/_/g,' '):'Earlier research';
+ }
+ function publicationSession(timestamp){
+  const date=validDate(timestamp);if(!date)return null;
+  const next=prices.find(p=>p.time>=date);
+  if(!next||Date.parse(next.time+'T00:00:00Z')-Date.parse(date+'T00:00:00Z')>3*86400000)return null;
+  return next;
+ }
+ function groupPublishedFindings(){
+  const groups=new Map();
+  for(const finding of validPublicFindings()){
+   const point=publicationSession(finding.published_at);
+   if(!point)continue; // Feed retains findings until a corresponding daily close is available.
+   if(!groups.has(point.time))groups.set(point.time,{id:'research:'+point.time,time:point.time,point,findings:[]});
+   groups.get(point.time).findings.push(finding);
+  }
+  return [...groups.values()].sort((a,b)=>a.time.localeCompare(b.time));
+ }
  function closest(date){const t=Date.parse(date+'T00:00:00Z');let best=prices[0],distance=Infinity;
   for(const p of prices){const d=Math.abs(Date.parse(p.time+'T00:00:00Z')-t);if(d<distance){best=p;distance=d;}}return {point:best,distance};}
  function validDate(s){const t=Date.parse(s);return Number.isFinite(t)?new Date(t).toISOString().slice(0,10):null;}
@@ -38,13 +63,17 @@ export async function mountLivingTimeline({sb,ticker,getUser,canContribute}){
   const {data,error}=await sb.from('orca_timeline_annotations').select('id,event_at,category,title,ai_summary,source_url').eq('ticker',ticker).order('event_at',{ascending:true}).limit(500);
   if(error){status.textContent='Annotations unavailable; prices remain visible.';return;}
   records=(data||[]).map(parseRow);
+  findingGroups=groupPublishedFindings();
   const dots=records.map(record=>{
    const date=eventDate(record);if(!date)return null;
    const mapping=closest(date);if(mapping.distance>3*86400000)return null;
    return {id:record.id,time:mapping.point.time,position:'aboveBar',color:colors[record.category]||colors.custom_note,shape:'circle',size:1.5};
   }).filter(Boolean).sort((x,y)=>x.time.localeCompare(y.time));
-  nativeMarkers.setMarkers(dots);
-  draw();status.textContent=prices.length+' daily closing prices · '+records.length+' sourced timeline notes · historical snapshot (not live)';
+  const researchDots=findingGroups.map(group=>({time:group.time,position:'belowBar',color:'#edb54c',shape:'square',size:1.5}));
+  nativeMarkers.setMarkers([...dots,...researchDots].sort((a,b)=>a.time.localeCompare(b.time)));
+  draw();const all=validPublicFindings().length;
+  const pinned=findingGroups.reduce((n,g)=>n+g.findings.length,0);
+  status.textContent=prices.length+' daily closes · '+records.length+' dated notes · '+pinned+'/'+all+' public agent findings pinned ('+(all-pinned)+' awaiting matching historical price) · not live';
  }
  const colors={earnings:'#328c73',product:'#638dc1',macro:'#ad6066',legal:'#ac5964',custom_note:'#a78bcb'};
  function closePopup(){popup.hidden=true;selected=null;}
@@ -60,6 +89,33 @@ export async function mountLivingTimeline({sb,ticker,getUser,canContribute}){
   popup.style.width=width+'px';popup.style.left=Math.max(8,Math.min(parent.width-width-8,r.left-parent.left-100))+'px';
   popup.style.top=Math.max(8,Math.min(parent.height-145,r.top-parent.top-145))+'px';
  }
+ function showFindingPopup(group,button){
+  popup.replaceChildren();
+  const title=document.createElement('strong');title.textContent=group.findings.length+' published AI finding'+(group.findings.length===1?'':'s');
+  const date=document.createElement('small');date.textContent='Placed at '+group.time+' closing session; research is shown no earlier than publication.';
+  popup.append(title,date);
+  for(const finding of [...group.findings].sort((a,b)=>String(b.published_at).localeCompare(String(a.published_at)))){
+   const detail=document.createElement('details');
+   const heading=document.createElement('summary');
+   heading.textContent=ratingOf(finding)+' · '+finding.contributor_alias+' · '+finding.research_area;
+   const when=document.createElement('small');when.textContent='Published '+new Date(finding.published_at).toLocaleString()+' · evidence observed '+new Date(finding.observed_at).toLocaleString();
+   const body=document.createElement('p');body.textContent=String(finding.summary||'').replace(/^\[[^\]]+\]\s*/,'');
+   const limits=document.createElement('p');limits.textContent='Limitations: '+(finding.limitations||'Not specified');
+   detail.append(heading,when,body,limits);
+   for(const url of (Array.isArray(finding.source_urls)?finding.source_urls:[]).slice(0,5)){
+    try{const u=new URL(url);if(!['https:','http:'].includes(u.protocol))continue;
+     const a=document.createElement('a');a.href=u.href;a.target='_blank';a.rel='noopener noreferrer';a.textContent='Evidence source';detail.append(a,document.createTextNode('  '));
+    }catch{}
+   }
+   popup.append(detail);
+  }
+  selected=group.id;popup.hidden=false;
+  popup.style.maxHeight=Math.max(130,chartArea.clientHeight-16)+'px';popup.style.overflow='auto';
+  const r=button.getBoundingClientRect(),parent=chartArea.getBoundingClientRect();
+  const width=Math.min(300,parent.width-16);
+  popup.style.width=width+'px';popup.style.left=Math.max(8,Math.min(parent.width-width-8,r.left-parent.left-110))+'px';
+  popup.style.top='8px';
+ }
  function draw(){
   layer.replaceChildren();if(active!=='living')return;
   const width=plot.clientWidth,height=plot.clientHeight;
@@ -73,12 +129,27 @@ export async function mountLivingTimeline({sb,ticker,getUser,canContribute}){
    if(x===null||y===null||x<8||x>width-8||y<8||y>height-8)continue;
    const b=document.createElement('button');b.type='button';b.className='living-event-marker';
    b.style.left=x+'px';b.style.top=Math.max(12,y-17)+'px';b.style.background=colors[item.category]||colors.custom_note;
-   b.textContent='•';b.title=item.title;b.setAttribute('aria-label',item.title+' on '+d);
+   b.textContent='•';b.title=item.title;b.dataset.markerId=item.id;b.setAttribute('aria-label',item.title+' on '+d);
    b.addEventListener('click',e=>{e.stopPropagation();showPopup(item,b);});
    b.addEventListener('mouseenter',()=>showPopup(item,b));
    layer.append(b);
   }
-  if(selected){const item=records.find(r=>r.id===selected);const button=[...layer.children].find(b=>b.title===item?.title);if(item&&button)showPopup(item,button);else closePopup();}
+  for(const group of findingGroups){
+   const x=chart.timeScale().timeToCoordinate(group.time),y=series.priceToCoordinate(group.point.value);
+   if(x===null||y===null||x<8||x>width-8||y<8||y>height-8)continue;
+   const button=document.createElement('button');button.type='button';button.className='living-event-marker';
+   button.dataset.markerId=group.id;button.style.left=x+'px';button.style.top=Math.max(12,Math.min(height-12,y+23))+'px';
+   button.style.background='#c28720';button.style.width='24px';button.style.height='24px';button.style.fontSize='11px';
+   button.textContent=String(group.findings.length);button.title=group.findings.length+' published AI findings';
+   button.setAttribute('aria-label',group.findings.length+' agent research findings plotted at '+group.time);
+   button.addEventListener('click',event=>{event.stopPropagation();showFindingPopup(group,button);});
+   layer.append(button);
+  }
+  if(selected){
+   const note=records.find(r=>r.id===selected),group=findingGroups.find(g=>g.id===selected);
+   const button=[...layer.children].find(b=>b.dataset.markerId===selected);
+   if(note&&button)showPopup(note,button);else if(group&&button)showFindingPopup(group,button);else closePopup();
+  }
  }
  chart.timeScale().subscribeVisibleLogicalRangeChange(draw);
  const obs=new ResizeObserver(draw);obs.observe(plot);
