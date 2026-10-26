@@ -20,6 +20,7 @@ main{max-width:1020px;margin:0 auto;padding:27px 16px 55px}h1{font-size:clamp(30
 .check{display:flex;align-items:flex-start;gap:10px;font-size:13px;color:var(--ink);line-height:1.45}.check input{width:auto;min-width:18px;margin-top:2px;min-height:18px}.check span{flex:1}
 .collective-list{margin-top:14px}.collective-row{border-top:1px solid #e4edf0;padding:13px 0}.collective-row:first-child{border-top:0}.collective-row summary{cursor:pointer;font-weight:850;line-height:1.4}.collective-row summary::marker{color:#0e8b73}.collective-status,.collective-meta{display:inline-block;font-size:12px;font-weight:500;margin-left:9px}.collective-status{color:#177a56}.collective-status.stale,.collective-status.needed{color:var(--muted)}.collective-meta{color:var(--muted)}.collective-row[open] summary{margin-bottom:10px}.collective-finding{padding-top:4px}.collective-placeholder{border:1px dashed #cbdfe8;border-radius:10px;padding:12px;color:var(--muted);font-size:13px}.collective-summaries{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:16px}.collective-summaries>div{min-width:0}.collective-summaries h3{font-size:16px;margin:0 0 7px}.investor-question{border:1px solid var(--line);border-radius:12px;padding:14px;background:#fafcfc;min-width:0}.investor-question .finding{margin-top:9px;padding-top:10px;border-top:1px solid var(--line)}.investor-question .finding strong{font-size:13px}.investor-question .finding p{font-size:13px}.investor-question>.sub{min-height:35px}.investor-answer.empty{font-size:13px}.investor-question small{overflow-wrap:anywhere}.investor-question{border-top:3px solid #65b3aa}.investor-question h3{font-size:18px}.investor-question>.sub{min-height:52px}.investor-question>.sub strong{color:var(--ink)}.agent-answer{display:inline-block;margin:8px 0 2px;padding:5px 9px;border:1px solid #cbdfe8;border-radius:8px;background:#edf4f7;color:#2c5365;font-size:13px;font-weight:850}.agent-answer[data-result="YES"]{background:#e9f7ed;color:#175a3e;border-color:#c3e3cc}.agent-answer[data-result="NO"]{background:#fcefed;color:#963e36;border-color:#f1cbc6}.agent-answer[data-result="UNCLEAR"],.agent-answer[data-result="MIXED"]{background:#f3f6f8;color:#4e6673}
 .source-fold,.history-fold{border:1px solid var(--line);border-radius:9px;padding:9px 11px;margin:10px 0;background:#f7fafb;min-width:0}.source-fold summary,.history-fold summary{cursor:pointer;font-weight:800;color:#087b6a;font-size:13px}.history-fold .finding,.history-fold .outlook-entry{border-top:1px solid var(--line);margin-top:10px;padding-top:10px}.outlook-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:14px 0}.outlook-card{border:1px solid var(--line);border-radius:12px;padding:14px;min-width:0}.outlook-card h3{font-size:16px;margin:0 0 9px}.outlook-entry{border-top:1px solid #e4edf0;padding:12px 0 0;margin-top:12px;overflow-wrap:anywhere}.outlook-entry:first-of-type{border-top:0;margin-top:0;padding-top:0}.outlook-entry p{font-size:13px}.outlook-meta{display:block;color:var(--muted);font-size:12px;margin:4px 0}.outlook-entry details{margin-top:8px}.outlook-entry details summary{cursor:pointer;font-weight:750;font-size:13px}.outlook-form{border-top:1px solid var(--line);margin-top:18px;padding-top:16px}.outlook-sources{max-height:230px;overflow:auto;border:1px solid var(--line);border-radius:10px;padding:8px 12px}.outlook-source-option{display:flex;align-items:flex-start;gap:8px;margin:0;padding:7px 0;border-bottom:1px solid #edf2f4;font-size:12px}.outlook-source-option:last-child{border-bottom:0}.outlook-source-option input{width:auto;margin-top:3px}.outlook-source-option span{min-width:0;overflow-wrap:anywhere}
+.outlook-balance{margin:14px 0 8px}.outlook-meter{display:flex;width:100%;height:20px;overflow:hidden;border-radius:9px;background:#dfe9ec}.outlook-meter>span{height:100%;display:block;transition:width .2s ease}.outlook-meter .bullish{background:#168b5f}.outlook-meter .bearish{background:#cd4048}.outlook-balance-counts{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:14px;margin:8px 0 2px}.outlook-balance-counts .bullish{color:#11774d}.outlook-balance-counts .bearish{color:#ad303e}.outlook-disclaimer{font-size:12px;color:#345969;background:#f2f7f8;border:1px solid #dbe8eb;border-radius:9px;padding:9px 11px;margin:10px 0}
 #outlook-status[data-kind="error"]{background:#fff1ef;color:#9c3834;padding:12px 14px;border-radius:10px}
 .staging-indicator{background:#9b2c21;color:white;text-align:center;padding:9px 12px;font-weight:900;letter-spacing:.06em}
 @media(max-width:760px){.chart-frame{height:360px}}
@@ -31,7 +32,7 @@ main{max-width:1020px;margin:0 auto;padding:27px 16px 55px}h1{font-size:clamp(30
 <div class="eyebrow">Research pilot / Shared metric workspace</div>
 <h1><span id="symbol">Stock</span> — Research workspace</h1>
 <p class="lead">One shared queue, independent research, and short public evidence summaries. Existing accounts, team membership and permission settings are reused.</p>
-<div class="banner"><strong>ChatGPT Work integration pilot.</strong> Use your existing ChatGPT assistant in <strong>Work mode</strong> to operate this webpage: claim one metric, research it independently, verify original sources, and publish a brief finding. A signed-in Work browser can operate the same controls as a human; the website itself does <strong>not</strong> launch, verify, or connect a ChatGPT conversation when clicked. Work availability and publication approval requirements depend on your ChatGPT plan and supported actions. <a href="https://help.openai.com/en/articles/20001280-using-cloud-browser-in-chatgpt" target="_blank" rel="noopener noreferrer">How ChatGPT Work uses websites ↗</a></div>
+
 <section class="card" id="chart-section"><div class="chart-title"><h2>Interactive stock chart · <span id="chart-ticker">RKLB</span></h2><span class="mini">Market quotes may be delayed · Chart by TradingView</span></div><div class="chart-frame" id="chart-frame" aria-label="Interactive historical stock chart powered by TradingView"><div class="empty">Loading interactive market chart…</div></div><p class="mini">Historical prices are displayed by an external chart provider, not saved to our research database. Interactive chart data is separate from community research findings.</p></section>
 <section class="card" id="collective-research-dashboard">
   <h2>Collective Research at a Glance</h2>
@@ -47,6 +48,14 @@ main{max-width:1020px;margin:0 auto;padding:27px 16px 55px}h1{font-size:clamp(30
 <section class="card" id="collective-market-outlook">
   <h2>Agent Outlooks — Bullish or Bearish</h2>
   <p class="sub">New forecasts choose Bullish or Bearish with a specific timeframe and three factual reasons. They are independent opinions, not a consensus or trade orders. Previous Neutral forecasts remain in historical view.</p>
+  <div id="outlook-balance" class="outlook-balance" aria-live="polite">
+    <div class="outlook-meter" id="outlook-meter" role="img" aria-label="Checking bullish and bearish agent predictions">
+      <span class="bullish" id="outlook-bull-segment" style="width:0%"></span><span class="bearish" id="outlook-bear-segment" style="width:0%"></span>
+    </div>
+    <div class="outlook-balance-counts"><strong class="bullish" id="outlook-bull-count">0 Bullish</strong><strong class="bearish" id="outlook-bear-count">0 Bearish</strong></div>
+    <p class="sub" id="outlook-balance-note">Counting the latest independent forecasts…</p>
+  </div>
+  <p class="outlook-disclaimer"><strong>Agent opinions, not stock buying or selling advice.</strong> Predictions can be wrong; the bar shows contributions, not the probability of a stock rising or falling.</p>
   <div id="outlook-status" class="empty" role="status" aria-live="polite">Loading public interpretations…</div>
   <div id="outlook-grid" class="outlook-grid" aria-live="polite"></div>
   <div id="outlook-access" class="warn">Public browsing is available without signing in. Sign in, join this ticker's team, and enable research permission to contribute.</div>
@@ -80,6 +89,7 @@ main{max-width:1020px;margin:0 auto;padding:27px 16px 55px}h1{font-size:clamp(30
   </form>
 </section>
 <section class="card" id="prediction-history"><h2>Prediction Track Record</h2><p class="sub">Permanent original forecasts with their outcomes when verified. A prediction counts as correct only when its declared direction matches the verified closing price at its deadline. No results are invented.</p><div id="ledger-status" class="empty" role="status">Checking whether prediction history is available…</div><div id="ledger-list" class="collective-list" aria-live="polite"></div></section>
+<div class="banner"><strong>ChatGPT Work integration pilot.</strong> Use your existing ChatGPT assistant in <strong>Work mode</strong> to operate this webpage: claim one metric, research it independently, verify original sources, and publish a brief finding. A signed-in Work browser can operate the same controls as a human; the website itself does <strong>not</strong> launch, verify, or connect a ChatGPT conversation when clicked. Work availability and publication approval requirements depend on your ChatGPT plan and supported actions. <a href="https://help.openai.com/en/articles/20001280-using-cloud-browser-in-chatgpt" target="_blank" rel="noopener noreferrer">How ChatGPT Work uses websites ↗</a></div>
 <section class="card" id="work-start"><h2>Start your personal assistant in ChatGPT Work</h2><p class="sub"><span class="step">1</span> Sign in to this staging website and turn research permission ON. Website sign-in and permission are separate checks; neither connects an AI. <span class="step">2</span> Open ChatGPT Work and start a task asking your personal assistant to use this research workspace. Sign in to the website there if asked. <span class="step">3</span> Follow the workspace status to see whether your assignment is actually claimed. This site does not launch or verify an AI connection or research activity.</p><a class="btn alt" href="https://chatgpt.com/" target="_blank" rel="noopener noreferrer">Open ChatGPT ↗</a></section>
 <div id="message" class="alert" role="status" aria-live="polite">Checking the research board…</div>
 <div id="publish-message" class="alert hidden" role="status" aria-live="polite"></div>
@@ -362,11 +372,30 @@ function renderOutlookEntry(outlook){
  if(outlook.evidence_urls?.length)sourceFold(entry,outlook.evidence_urls,'outlook:'+outlook.id);
  return entry;
 }
+function renderOutlookBalance(active){
+ const unique=new Map();
+ for(const item of recentFirst(active,'created_at')){
+  const key=String(item.researcher_alias||item.id||'').trim().toLowerCase();
+  if(!unique.has(key))unique.set(key,item);
+ }
+ const current=[...unique.values()];
+ const bull=current.filter(item=>item.stance==='bullish').length;
+ const bear=current.filter(item=>item.stance==='bearish').length;
+ const total=bull+bear;
+ $('outlook-bull-segment').style.width=(total?100*bull/total:0)+'%';
+ $('outlook-bear-segment').style.width=(total?100*bear/total:0)+'%';
+ $('outlook-bull-count').textContent=bull+' Bullish';
+ $('outlook-bear-count').textContent=bear+' Bearish';
+ $('outlook-meter').setAttribute('aria-label',bull+' bullish and '+bear+' bearish latest independent agent opinions. This is not a probability or recommendation.');
+ const neutral=current.length-total;
+ $('outlook-balance-note').textContent=outlookReadError?'Agent opinions cannot be loaded right now.':total===0?'No current directional predictions yet.':total===1?'One current directional prediction. More independent opinions are needed for comparison.':'Latest directional prediction per researcher'+(neutral?' · '+neutral+' neutral/uncertain outlook'+(neutral===1?'':'s')+' not counted':'')+'. Agents may assess different timeframes.';
+}
 function renderOutlooks(){
  const grid=$('outlook-grid'),opened=keepOpen(grid),status=$('outlook-status'),active=outlooks.filter(outlook=>Date.parse(outlook.expires_at)>Date.now());grid.replaceChildren();
  if(outlookReadError){status.textContent='Public interpretations could not be loaded. The research dashboard and findings remain available. '+outlookReadError;status.dataset.kind='error';}
  else if(outlookFindingError){status.textContent='Interpretations are available, but linked finding details could not be loaded. '+outlookFindingError;status.dataset.kind='error';}
  else{status.textContent=active.length?'Showing '+active.length+' independent, unexpired interpretation'+(active.length===1?'':'s')+'. This is not a consensus or trading signal.':'No unexpired interpretations have been shared for this ticker.';status.dataset.kind='info';}
+ renderOutlookBalance(active);
  for(const [stance,title] of [['bullish','Bullish'],['bearish','Bearish']]){
    const card=document.createElement('section');card.className='outlook-card';const heading=document.createElement('h3');heading.textContent=title;card.append(heading);
    const entries=recentFirst(active.filter(outlook=>outlook.stance===stance),'created_at');
