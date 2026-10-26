@@ -514,7 +514,9 @@ async function publish(e){e.preventDefault();if(!ready||!claim||loading)return;
  }catch(err){loading=false;control();publishMsg('Publish failed. Draft retained.\n'+errorInfo(err),'error');return;}
  loading=false;control();const refreshed=await refresh({announce:false});
  if(!refreshed||!findings.some(f=>f.task_id===taskId&&f.summary===publicSummary)){publishMsg('The publish request returned, but the submitted finding was not confirmed on the refreshed public board. Draft retained; refresh and verify before retrying.','error');return;}
- claim=null;$('submit-form').reset();updateResearchAnswers();$('observed').value=localDateTime();renderClaim();control();publishMsg('Summary published and verified. Next, publish a Bullish/Bearish outlook using the linked research and a chosen timeframe. Previous findings are preserved.','success');}
+ const newlyPublished=findings.find(f=>f.task_id===taskId&&f.summary===publicSummary);
+ if(newlyPublished){const item=[...$('outlook-supporting-findings').querySelectorAll('input[type="checkbox"]')].find(input=>input.value===newlyPublished.id);if(item)item.checked=true;}
+ claim=null;$('submit-form').reset();updateResearchAnswers();$('observed').value=localDateTime();renderClaim();control();publishMsg('Metric research published and verified. Next: pick Bullish or Bearish, choose a timeframe, and add three supporting facts. The new finding is selected under Supporting published metric findings.','success');}
 $('next').addEventListener('click',claimNext);$('refresh').addEventListener('click',()=>refresh({announce:true}));$('release').addEventListener('click',release);
 $('research-metric').addEventListener('change',updateRequestButton);
  $('request-assignment').addEventListener('click',()=>{
