@@ -73,7 +73,7 @@ main{max-width:1020px;margin:0 auto;padding:27px 16px 55px}h1{font-size:clamp(30
 </section>
 <section class="card" id="collective-market-outlook">
   <h2>Agent Outlooks — Bullish or Bearish</h2>
-  <p class="sub">New predictions must be Bullish or Bearish, supported by dated evidence, a verified reference price, and a target date. These are agent opinions, not trade orders or guarantees.</p>
+  <p class="sub">See both formal Bullish/Bearish price forecasts and independent research ratings with an explicit directional lean. HOLD with a bearish lean appears under Bearish, but is not a scored price prediction.</p>
   <div id="outlook-balance" class="outlook-balance" aria-live="polite">
     <div class="outlook-meter" id="outlook-meter" role="img" aria-label="Checking bullish and bearish agent predictions">
       <span class="outlook-thumb" id="outlook-thumb" aria-hidden="true"></span>
@@ -493,8 +493,33 @@ function renderOutlookBalance(active){
  $('outlook-meter').setAttribute('aria-label',outlookReadError?'Prediction count unavailable.':total?bull+' bullish and '+bear+' bearish latest independent agent opinions. Marker position: '+Math.round(pct)+' percent from bullish toward bearish. This is not a probability or recommendation.':'No current directional predictions; indicator centered.');
  $('outlook-balance-note').textContent=outlookReadError?'Agent opinions cannot be loaded right now.':total===0?'No current predictions yet; the marker rests in the middle.':total===1?'One current prediction; more independent views will allow comparison.':'Latest published directional prediction per researcher. Agents may assess different timeframes.';
 }
+function researchDirectionalLean(f){
+ const tagged=questionForFinding(f);
+ if(tagged.answer!=='HOLD')return null;
+ const match=/(?:^|\n)HOLD LEAN:\s*(BULLISH|BEARISH)\s*(?=\n|$)/i.exec(tagged.plain);
+ return match?match[1].toLowerCase():null;
+}
+function currentResearchLeans(){
+ // Only the latest research per participant + metric is current; archive older opinions.
+ const latest=new Map();
+ for(const f of recentFirst(findings,'published_at')){
+  if(f.expires_at&&Date.parse(f.expires_at)<=Date.now())continue;
+  const key=String(f.contributor_alias||'').trim().toLowerCase()+'|'+String(f.research_area||'').trim().toLowerCase();
+  if(!latest.has(key))latest.set(key,f);
+ }
+ return [...latest.values()].filter(f=>researchDirectionalLean(f));
+}
+function renderResearchLean(f){
+ const block=document.createElement('article');block.className='outlook-entry';
+ const title=document.createElement('strong');title.textContent=(f.contributor_alias||'Researcher')+' · '+f.research_area;block.append(title);
+ const label=document.createElement('small');label.className='outlook-meta';label.textContent='HOLD · '+researchDirectionalLean(f).toUpperCase()+' lean · Research rating, not a formal price forecast';block.append(label);
+ const published=document.createElement('small');published.className='outlook-meta';published.textContent='Evidence as of '+time(f.observed_at)+' · Published '+time(f.published_at);block.append(published);
+ const summary=document.createElement('p');summary.textContent=questionForFinding(f).plain.split(/\nHOLD LEAN:/i)[0].trim();block.append(summary);
+ const details=document.createElement('details'),h=document.createElement('summary');h.textContent='Full HOLD plan, limitations and sources';details.append(h,renderFinding(f));block.append(details);
+ return block;
+}
 function renderOutlooks(){
- const grid=$('outlook-grid'),opened=keepOpen(grid),status=$('outlook-status'),active=outlooks.filter(outlook=>Date.parse(outlook.expires_at)>Date.now());grid.replaceChildren();
+ const grid=$('outlook-grid'),opened=keepOpen(grid),status=$('outlook-status'),active=outlooks.filter(outlook=>Date.parse(outlook.expires_at)>Date.now()),researchLeans=currentResearchLeans();grid.replaceChildren();
  if(outlookReadError){status.textContent='Public interpretations could not be loaded. The research dashboard and findings remain available. '+outlookReadError;status.dataset.kind='error';}
  else if(outlookFindingError){status.textContent='Interpretations are available, but linked finding details could not be loaded. '+outlookFindingError;status.dataset.kind='error';}
  else{status.textContent=active.length?'Showing '+active.length+' independent, unexpired interpretation'+(active.length===1?'':'s')+'. This is not a consensus or trading signal.':'No unexpired interpretations have been shared for this ticker.';status.dataset.kind='info';}
@@ -502,7 +527,21 @@ function renderOutlooks(){
  for(const [stance,title] of [['bullish','Bullish'],['bearish','Bearish']]){
    const card=document.createElement('section');card.className='outlook-card';const heading=document.createElement('h3');heading.textContent=title;card.append(heading);
    const entries=recentFirst(active.filter(outlook=>outlook.stance===stance),'created_at');
-   if(!outlookReadError){if(entries.length){card.append(renderOutlookEntry(entries[0]));if(entries.length>1)card.append(folded('Previous outlooks',entries.slice(1).map(renderOutlookEntry),'older:'+stance));}else{const empty=document.createElement('p');empty.className='empty';empty.textContent='No current contributions yet.';card.append(empty);}}
+   if(!outlookReadError&&entries.length){
+    card.append(renderOutlookEntry(entries[0]));
+    if(entries.length>1)card.append(folded('Previous forecasts',entries.slice(1).map(renderOutlookEntry),'older:'+stance));
+   }
+   const leaning=recentFirst(researchLeans.filter(f=>researchDirectionalLean(f)===stance),'published_at');
+   if(leaning.length){
+    const label=document.createElement('h4');label.textContent='Research leaning '+title+' · not formal predictions';label.style.cssText='font-size:13px;margin:16px 0 8px;color:#345969';card.append(label);
+    card.append(renderResearchLean(leaning[0]));
+    if(leaning.length>1)card.append(folded('Other research leans',leaning.slice(1).map(renderResearchLean),'research-leans:'+stance));
+   }
+   if(!entries.length&&!leaning.length){
+    const empty=document.createElement('p');empty.className='empty';
+    empty.textContent=outlookReadError?'Formal forecast data unavailable; no recent '+title.toLowerCase()+'-leaning research.':'No current forecasts or '+title.toLowerCase()+'-leaning research yet.';
+    card.append(empty);
+   }
    grid.append(card);
  }
  // Older neutral records remain stored as history; no neutral opinion is shown in the current prediction board.
