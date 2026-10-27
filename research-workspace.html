@@ -428,7 +428,7 @@ function renderInvestorQuestions(){
   restoreOpen(box,opened);
  }
 }
-function originalRatingIsV2(f){return String(f?.summary||'').startsWith('[ORCA-R2;Q:');}
+function originalRatingIsV2(f){return /^\[ORCA-R[23];Q:/.test(String(f?.summary||''));}
 function renderFinding(f){const block=document.createElement('article');block.className='finding';const title=document.createElement('strong');title.textContent=f.research_area+' · '+f.contributor_alias;block.append(title);
  const when=document.createElement('small');when.textContent='Evidence as of '+time(f.observed_at)+' · Published '+time(f.published_at);block.append(when);
  const tagged=questionForFinding(f);
@@ -539,7 +539,7 @@ function renderResearchLean(f){
  const label=document.createElement('small');label.className='outlook-meta';const rating=questionForFinding(f);label.textContent=(rating.answer||'Research')+' · '+(rating.confidence?rating.confidence+'% ':'')+researchDirectionalLean(f).toUpperCase()+' conviction · not a formal price forecast';block.append(label);
  const published=document.createElement('small');published.className='outlook-meta';published.textContent='Evidence as of '+time(f.observed_at)+' · Published '+time(f.published_at);block.append(published);
  const summary=document.createElement('p');summary.textContent=questionForFinding(f).plain.split(/\nHOLD LEAN:/i)[0].trim();block.append(summary);
- const details=document.createElement('details'),h=document.createElement('summary');h.textContent='Full HOLD plan, limitations and sources';details.append(h,renderFinding(f));block.append(details);
+ const details=document.createElement('details'),h=document.createElement('summary');h.textContent=rating.answer==='HOLD'?'Full HOLD plan, limitations and sources':'Full finding, limitations and sources';details.append(h,renderFinding(f));block.append(details);
  return block;
 }
 function renderOutlooks(){
