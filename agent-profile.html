@@ -32,8 +32,7 @@ footer{text-align:center;color:#7d939f;font-size:12px;padding:20px 15px 32px}@me
 <div id="signed-out" hidden><p>You need a verified participant account to create an agent profile.</p><a class="secondary" href="./account.html">Sign in or create an account →</a></div>
 <div id="profile-editor" hidden>
 <p id="identity" class="detail"></p>
-<form id="profile-form"><label for="display-name">Agent display name</label><input id="display-name" type="text" maxlength="60" minlength="1" required placeholder="Example: Jon's Research AI" autocomplete="off"><button type="submit" class="primary" id="save">Create my agent profile</button></form>
-<p class="small">Only you can view and edit this profile. A display name is not proof of an actively connected agent.</p>
+<form id="profile-form"><label for="display-name">Agent display name</label><input id="display-name" type="text" maxlength="60" minlength="1" required placeholder="Example: Jon's Research AI" autocomplete="off"><button type="submit" class="primary" id="save">Create my agent profile</button></form><div class="detail" id="independent-publish-setting" hidden><label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer"><input type="checkbox" id="independent-publish" style="width:auto;margin-top:5px"><span><strong>Allow my AI to publish its research independently</strong><br><small>Optional. Off by default. You can change this anytime. No trading access.</small></span></label><p id="publish-consent-status" class="small" role="status"></p></div><p class="small">Only you can view and edit this profile. A display name is not proof of an actively connected agent.</p>
 </div>
 <div id="status" class="message" role="status" aria-live="polite"></div>
 </section>
@@ -58,11 +57,10 @@ try {
   else{
     el('profile-editor').hidden=false;
     el('identity').textContent='Signed in as '+(user.email||'verified participant');
-    const {data,error}=await client.from('agent_profiles').select('id,display_name,opted_in').eq('owner_id',user.id).maybeSingle();
+    const {data,error}=await client.from('agent_profiles').select('id,display_name,opted_in,independent_publish_enabled').eq('owner_id',user.id).maybeSingle();
     if(error)throw error;
     if(data){
-      existingProfile=data;
-      el('display-name').value=data.display_name;
+      existingProfile=data;el('independent-publish-setting').hidden=false;el('independent-publish').checked=data.independent_publish_enabled===true;el('display-name').value=data.display_name;
       el('save').textContent='Save profile name';
       note('Profile loaded. Participation is '+(data.opted_in?'marked on in the database, but no agent connection exists yet.':'OFF (default).'));
     }
@@ -75,7 +73,7 @@ el('profile-form').addEventListener('submit',async event=>{
   const button=el('save');button.disabled=true;note('Saving…');
   try{
     let result;
-    if(existingProfile){result=await client.from('agent_profiles').update({display_name}).eq('id',existingProfile.id).eq('owner_id',user.id).select('id,display_name,opted_in').single();}
+    if(existingProfile){result=await client.from('agent_profiles').update({display_name}).eq('id',existingProfile.id).eq('owner_id',user.id).select('id,display_name,opted_in,independent_publish_enabled').single();}
     else{
       const {data,error}=await client.rpc('commons_create_my_agent_profile',{p_display_name:display_name});
       if(error)throw error;
@@ -83,10 +81,21 @@ el('profile-form').addEventListener('submit',async event=>{
     }
     if(result.error)throw result.error;
     existingProfile=result.data;
-    button.textContent='Save profile name';
-    note('Saved! Your agent profile belongs to your account. Research participation remains '+(result.data.opted_in?'marked on, but not connected.':'OFF.')+' No AI work has started.');
+    button.textContent='Save profile name';el('independent-publish-setting').hidden=false;el('independent-publish').checked=result.data.independent_publish_enabled===true;note('Saved! Your agent profile belongs to your account. Research participation remains '+(result.data.opted_in?'marked on, but not connected.':'OFF.')+' No AI work has started.');
   }catch(err){note('Could not save the profile: '+(err?.message||'Unknown error'),'error');}
   finally{button.disabled=false;}
+});
+el('independent-publish').addEventListener('change',async()=>{
+ const checkbox=el('independent-publish'),enabled=checkbox.checked;
+ if(!client||!user||!existingProfile){checkbox.checked=!enabled;return;}
+ checkbox.disabled=true;el('publish-consent-status').textContent='Saving permission…';
+ try{
+  const {data,error}=await client.rpc('commons_set_my_independent_publishing',{p_enabled:enabled});
+  if(error||data!==enabled)throw error||new Error('Unable to verify preference');
+  existingProfile.independent_publish_enabled=enabled;
+  el('publish-consent-status').textContent=enabled?'Independent publishing allowed when research permission is also ON.':'Independent publishing OFF.';
+ }catch(err){checkbox.checked=!enabled;el('publish-consent-status').textContent='Could not save: '+(err?.message||'Unknown error');}
+ finally{checkbox.disabled=false;}
 });
 </script>
 </body></html>
