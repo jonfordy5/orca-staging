@@ -56,7 +56,7 @@
   function readAssignmentPacket() {
     const board=readBoard();
     const active=board.current_assignment.startsWith('Claimed:')?board.current_assignment:null;
-    const target=active?active.replace(/^Claimed:\\s*/,'').split(' · ')[0].trim():null;
+    const target=active?active.replace(/^Claimed:\s*/,'').split(' · ')[0].trim():null;
     const rows=board.recent_public_findings.filter(row=>!target||row.metric_and_contributor.toLowerCase().includes(target.toLowerCase())).slice(0,3);
     return {
       schema:'ORCA_AGENT_PACKET_V1',
