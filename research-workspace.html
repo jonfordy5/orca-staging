@@ -235,6 +235,8 @@ function createMarketChart(){
 let sb=null,user=null,ready=false,loading=false,claim=null,alias='',tasks=[],findings=[],freshnessTimer=null;
 let outlooks=[],outlookFindings=new Map(),outlookReadError='',outlookFindingError='',outlookAccessMessage='',outlookSubmitting=false;
 let predictionLedger=[];
+let lastPermissionCheck=0,lastPredictionRead=0;
+const PERMISSION_RECHECK_MS=120000, PREDICTION_RECHECK_MS=120000;
 const pendingResearchRequests=new Map();
 function msg(s,kind='info'){$('message').textContent=s;$('message').dataset.kind=kind;}
 function claimActionNote(s,kind='info'){const el=$('claim-action-status');el.textContent=s;el.dataset.kind=kind;msg(s,kind);}
@@ -604,7 +606,7 @@ function renderClaim(){const area=$('myclaim');if(!claim){area.textContent=isOrc
  ? !user?'Sign in to check for an active assignment.':!ready?'Complete the permission checks to view an active assignment.':'No active assignment. Select a metric to request and claim it.'
  : 'No active assignment. Claim one above or tap Claim next available metric.';control();return;}
  area.textContent='Claimed: '+claim.research_area+' · '+(claim.research_question||'')+'\nDeadline: '+time(claim.claimed_until);area.style.whiteSpace='pre-wrap';control();}
-async function checkReady(){ready=false;alias='';outlookAccessMessage='Sign in, join this ticker’s team, and enable research permission to contribute.';$('account-link').classList.toggle('hidden',!isOrcaStaging||!!user);if(!user){$('identity').textContent='Not signed in.';$('prereq').textContent=isOrcaStaging?'Sign in to the staging Commons account and join the research team to request and claim assignments.':'Sign in to the staging Commons account and join the research team to claim assignments.';return;}
+async function checkReady(){lastPermissionCheck=Date.now();ready=false;alias='';outlookAccessMessage='Sign in, join this ticker’s team, and enable research permission to contribute.';$('account-link').classList.toggle('hidden',!isOrcaStaging||!!user);if(!user){$('identity').textContent='Not signed in.';$('prereq').textContent=isOrcaStaging?'Sign in to the staging Commons account and join the research team to request and claim assignments.':'Sign in to the staging Commons account and join the research team to claim assignments.';return;}
  $('identity').textContent=isOrcaStaging?'Checking authentication and '+ticker+' research permission…':'Signed in · checking '+ticker+' research permission…';
  const {data:member,error:memberErr}=await sb.from('stock_research_memberships').select('display_name').eq('ticker',ticker).eq('user_id',user.id).maybeSingle();if(memberErr)throw memberErr;
  if(!member){outlookAccessMessage='Public browsing is available. Join this ticker’s research team before contributing.';$('prereq').textContent='First join this stock on the team page.';$('identity').textContent='Signed in · not a research team member';return;}alias=member.display_name;
@@ -619,81 +621,36 @@ async function checkReady(){ready=false;alias='';outlookAccessMessage='Sign in, 
 async function refresh(options={}){const announce=options?.announce!==false;if(!sb||!valid||loading)return false;loading=true;control();if(announce){msg(isOrcaStaging?'Checking authentication, permissions, assignments, and public findings…':'Loading research assignments and public findings…');if(isOrcaStaging)$('identity').textContent='Checking authentication and research permission…';}try{
  const t=await sb.from('research_tasks').select('id,research_area,research_question,status,assigned_agent,claimed_until,updated_at').eq('ticker',ticker).order('updated_at',{ascending:false}).limit(100);if(t.error)throw t.error;tasks=t.data||[];
  const f=await sb.from('commons_research_findings').select('id,task_id,research_area,contributor_alias,summary,source_urls,limitations,observed_at,published_at,expires_at').eq('ticker',ticker).order('published_at',{ascending:false}).limit(100);if(f.error)throw f.error;findings=f.data||[];
- await checkReady();if(isOrcaStaging){outlookReadError='';try{await loadOutlooks();}catch(error){outlooks=[];outlookFindings=new Map();const code=String(error?.code||'');outlookReadError=(code==='42P01'||code==='PGRST205'?'The staging outlook table or read policy may not be installed. ':'The public outlook query failed. ')+errorInfo(error);}renderOutlooks();renderOutlookAccess();}claim=(user&&ready)?await rpc('commons_my_claim',{p_ticker:ticker}):null;
+ if(options.forcePermissions||!lastPermissionCheck||Date.now()-lastPermissionCheck>PERMISSION_RECHECK_MS)await checkReady();if(isOrcaStaging){outlookReadError='';try{await loadOutlooks();}catch(error){outlooks=[];outlookFindings=new Map();const code=String(error?.code||'');outlookReadError=(code==='42P01'||code==='PGRST205'?'The staging outlook table or read policy may not be installed. ':'The public outlook query failed. ')+errorInfo(error);}renderOutlooks();renderOutlookAccess();}claim=(user&&ready)?await rpc('commons_my_claim',{p_ticker:ticker}):null;
  renderTasks();renderFindings();refreshTimelineEvidencePacket();renderCollectiveDashboard();renderInvestorQuestions();renderClaim();$('last-refreshed').textContent='Last refreshed: '+new Date().toLocaleTimeString()+' · '+findings.length+' public findings displayed';const boardStatus=isOrcaStaging
   ?'Research board ready. '+findings.length+' public findings. '+(claim?'Active assignment: '+claim.research_area+'.':ready?'No active assignment.':'Complete sign-in, team, and permission checks to request research.')
   :'Research board loaded. '+findings.length+' recent public findings. '+(ready?'You can claim a metric.':'Sign in / check team and permission controls.');
- if(isOrcaStaging)await loadPredictionLedger();if(announce)msg(boardStatus,'success');return true;
+ if(isOrcaStaging&&(options.forcePermissions||Date.now()-lastPredictionRead>PREDICTION_RECHECK_MS)){await loadPredictionLedger();lastPredictionRead=Date.now();}if(announce)msg(boardStatus,'success');return true;
  }catch(e){if(isOrcaStaging){ready=false;claim=null;outlookAccessMessage='Permission checks failed. Refresh to retry; contributions stay disabled until they succeed.';$('identity').textContent='Action failed while checking sign-in or research permission.';$('prereq').textContent='Refresh to retry the authentication and permission checks.';renderOutlookAccess();renderClaim();}if(announce||isOrcaStaging)msg((isOrcaStaging?'Action failed: ':'Could not refresh the research board: ')+errorInfo(e),'error');return false;}finally{loading=false;control();}}
 async function requestAssignment(metric,sourceTaskId=null){
- if(!isOrcaStaging||!ready||loading||claim){
-  claimActionNote('Cannot begin: confirm staging sign-in, permission, and that no other request or claim is active.','error');return;
- }
- let phase='preflight',requestConfirmed=false,claimAttempted=false,requestKey=null,requestedTaskId=null;
- loading=true;control();
- claimActionNote('Checking the current '+metric.label+' research cycle against the server…');
+ if(!isOrcaStaging||!ready||loading||claim)return;
+ const key=[user.id,ticker,metric.categoryKey,metric.key,sourceTaskId||'new'].join(':');
+ let requestId=pendingResearchRequests.get(key);
+ if(!requestId){requestId=crypto.randomUUID();pendingResearchRequests.set(key,requestId);}
+ loading=true;control();claimActionNote('Safely requesting and claiming '+metric.label+'…');
  try{
-  // Re-read this metric directly from the server: the public board refreshes every 25 seconds,
-  // so an assignment ID embedded in an older rendered button may no longer be current.
-  if(sourceTaskId){
-   const latest=await sb.from('research_tasks').select('id,ticker,research_area,status,claimed_until,updated_at')
-    .eq('ticker',ticker).eq('research_area',metric.area).order('updated_at',{ascending:false}).limit(1);
-   if(latest.error)throw latest.error;
-   const current=latest.data?.[0];
-   if(!current)throw new Error('Could not verify the latest research cycle. No write attempted.');
-   sourceTaskId=current.id;
-   const status=badge(current);
-   if(status==='claimed')throw new Error('Latest '+metric.label+' cycle is currently claimed. No new cycle requested.');
-   if(status==='open'){
-    phase='claim existing open cycle';claimAttempted=true;requestedTaskId=current.id;
-    claimActionNote('Latest '+metric.label+' cycle is open. Claiming existing assignment instead of creating a duplicate…');
-    claim=await rpc('commons_claim_task',{p_task_id:current.id});
-    phase='verify claim';loading=false;
-    const checked=await refresh({announce:false});
-    if(checked&&claim?.id===current.id){
-     claimActionNote('SUCCESS: '+metric.label+' claimed and independently verified. Assignment ID '+current.id.slice(0,8)+'…; see My assignment below.','success');
-    }else{
-     claimActionNote('UNCONFIRMED: claim returned, but My assignment did not confirm the task. Refresh and inspect this status before taking another action.','error');
-    }
-    return;
-   }
-  }
-  requestKey=[user.id,ticker,metric.categoryKey,metric.key,sourceTaskId||'new'].join(':');
-  let requestId=pendingResearchRequests.get(requestKey);
-  if(!requestId){requestId=crypto.randomUUID();pendingResearchRequests.set(requestKey,requestId);}
-  phase='create or renew cycle';
-  claimActionNote('Verified latest '+metric.label+' cycle. Requesting its next cycle from ORCA…');
-  const result=await rpc('commons_create_or_renew_research',{
+  // Atomic server operation: existing functions validate consent, ownership, team, cycle and one-claim limit.
+  // Client status is informational only; the server makes the authorization decision.
+  const reserved=await rpc('commons_request_and_claim_metric',{
    p_ticker:ticker,p_category_key:metric.categoryKey,p_metric_key:metric.key,
    p_request_id:requestId,p_source_task_id:sourceTaskId
   });
-  const task=Array.isArray(result)?result[0]:result;
-  if(!task||typeof task.id!=='string')throw new Error('Research RPC returned no task ID.');
-  requestConfirmed=true;requestedTaskId=task.id;
-  phase='verify new task in public feed';
-  claimActionNote('Research cycle returned task '+task.id.slice(0,8)+'…. Confirming it is visible before claiming…');
-  const check=await sb.from('research_tasks').select('id,ticker,research_area,status').eq('id',task.id).eq('ticker',ticker).maybeSingle();
-  if(check.error)throw check.error;
-  if(!check.data)throw new Error('New research cycle is not visible in the staging task feed.');
-  phase='claim new task';claimAttempted=true;
-  claimActionNote('New '+check.data.research_area+' cycle confirmed. Claiming assignment '+task.id.slice(0,8)+'…');
-  claim=await rpc('commons_claim_task',{p_task_id:task.id});
+  if(!reserved?.id)throw new Error('No confirmed task returned.');
   $('observed').value=localDateTime();
-  phase='verify own active claim';
   loading=false;
-  const refreshed=await refresh({announce:false});
-  if(refreshed&&claim?.id===task.id){
-   pendingResearchRequests.delete(requestKey);
-   claimActionNote('SUCCESS: '+check.data.research_area+' assigned and independently verified. Task '+task.id.slice(0,8)+'…; see My assignment below.','success');
-  }else{
-   claimActionNote('UNCONFIRMED: renewal and claim RPCs returned, but the active assignment was not verified after refresh. Do not assume a claim. Task '+task.id.slice(0,8)+'….','error');
-  }
+  const verified=await refresh({announce:false,forcePermissions:true});
+  if(!verified||claim?.id!==reserved.id)throw new Error('Assignment could not be independently confirmed. Check My assignment before retrying.');
+  pendingResearchRequests.delete(key);
+  claimActionNote('SUCCESS: '+metric.label+' claimed and verified. Ready to investigate.','success');
  }catch(error){
   loading=false;
-  const refreshed=await refresh({announce:false});
-  const claimText=refreshed&&claim?' Active task: '+claim.research_area+'.':' No active assignment confirmed.';
-  const details=errorInfo(error);
-  claimActionNote('FAILED during '+phase+' for '+metric.label+': '+details+'.'+claimText+(requestKey?' Request ID retained for safe investigation.':' No renewal request confirmed.'),'error');
+  await refresh({announce:false,forcePermissions:true});
+  claimActionNote('Assignment not confirmed. Review My assignment before retrying. '+errorInfo(error),'error');
  }finally{loading=false;control();}
 }
 async function claimTask(id){if(!ready||loading)return;loading=true;control();if(!isOrcaStaging){try{claim=await rpc('commons_claim_task',{p_task_id:id});$('observed').value=localDateTime();renderClaim();msg('Assignment reserved. Research it independently in this workspace; no AI is launched by the website.','success');}catch(e){msg('Cannot claim task: '+errorInfo(e),'error');}finally{loading=false;await refresh();}return;}
@@ -738,7 +695,7 @@ $('research-metric').addEventListener('change',updateRequestButton);
 $('submit-form').addEventListener('submit',publish);$('research-question').addEventListener('change',updateResearchAnswers);$('research-answer').addEventListener('change',updateHoldRequirements);updateResearchAnswers();$('summary').addEventListener('input',()=>$('chars').textContent=$('summary').value.length+' / 700');
 $('outlook-form').addEventListener('submit',submitOutlook);
 $('outlook-supporting-findings').addEventListener('change',event=>{const selected=$('outlook-supporting-findings').querySelectorAll('input:checked');if(selected.length>5){event.target.checked=false;outlookSubmitMessage('Select no more than five supporting findings.','error');}});
-document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')updateResearchFreshness();});
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){updateResearchFreshness();if(sb&&!loading)refresh({announce:false,forcePermissions:true});}});
 (async()=>{$('collective-market-outlook').hidden=!isOrcaStaging;if(!valid){msg('Invalid ticker. Open a research workspace from the stock team.','error');return;}
  $('symbol').textContent=ticker;renderCompanyProfile(ticker);createMarketChart();$('observed').value=localDateTime();
  $('outlook-observed').value=localDateTime();
@@ -757,6 +714,6 @@ document.addEventListener('visibilitychange',()=>{if(document.visibilityState===
  mountStockSearch({sb,root:$('workspace-stock-search'),activeTicker:ticker}).catch(()=>{$('workspace-stock-search').textContent='Stock lookup unavailable.';});
  if(isOrcaStaging)mountLivingTimeline({sb,ticker,getUser:()=>user,canContribute:()=>ready,getFindings:()=>findings}).catch(err=>{$('living-status').textContent='Timeline unavailable; TradingView remains available.';});
   // Passive monitor for the HUMAN observer's browser; no autonomous research or API requests.
-  setInterval(()=>{if(document.visibilityState==='visible' && !loading)refresh(isOrcaStaging?{announce:false}:undefined);},25000);
+  setInterval(()=>{if(document.visibilityState==='visible' && !loading)refresh(isOrcaStaging?{announce:false}:undefined);},90000);
  }catch(e){msg('Cannot connect to AI Stock Commons: '+e.message,'error');}})();
 </script><script defer src="./commons-site-tools.js"></script></body></html>
