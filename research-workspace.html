@@ -508,13 +508,18 @@ function renderOutlookBalance(active){
   byAgent.set(key,rating);
  }
  const opinions=[...byAgent.values()],bull=opinions.filter(x=>x.direction==='BULLISH').length,bear=opinions.filter(x=>x.direction==='BEARISH').length;
- const values=opinions.map(x=>x.direction==='BEARISH'?x.confidence:100-x.confidence);
- const pct=values.length?values.reduce((a,b)=>a+b,0)/values.length:50,thumb=$('outlook-thumb');
+ const values=opinions.map(x=>x.direction==='BEARISH'?x.confidence:-x.confidence);
+ // Center represents neutral; conviction travels from center toward the corresponding end.
+ // No center tick, vertical line, or 0 label is drawn.
+ const signedConviction=values.length?values.reduce((a,b)=>a+b,0)/values.length:0;
+ const pct=50+signedConviction/2,thumb=$('outlook-thumb');
  if(thumb.dataset.position!==String(pct)){thumb.style.left='clamp(12px, '+pct+'%, calc(100% - 12px))';thumb.dataset.position=String(pct);}
  $('outlook-bull-count').textContent=bull+' Bullish';
  $('outlook-bear-count').textContent=bear+' Bearish';
- $('outlook-meter').setAttribute('aria-label',values.length?Math.round(pct)+' percent aggregate bearish conviction from '+values.length+' agents; not a calibrated probability.':'No quantified current research.');
- $('outlook-balance-note').textContent=values.length?Math.round(pct)+'% bearish directional-conviction index · '+values.length+' agent'+(values.length===1?'':'s')+' · not a price probability.':'No quantified research yet. Older research remains visible below without invented percentages.';
+ const direction=signedConviction>0?'Bearish':signedConviction<0?'Bullish':'Balanced';
+ const conviction=Math.round(Math.abs(signedConviction));
+ $('outlook-meter').setAttribute('aria-label',values.length?conviction+'% '+direction.toLowerCase()+' combined directional conviction from '+values.length+' agent'+(values.length===1?'':'s')+'; not a calibrated probability.':'No quantified current research.');
+ $('outlook-balance-note').textContent=values.length?conviction+'% '+direction+' directional conviction · '+values.length+' agent'+(values.length===1?'':'s')+' · not a price probability.':'No quantified research yet. Older research remains visible below without invented percentages.';
 }
 function researchDirectionalLean(f){
  const tagged=questionForFinding(f);
