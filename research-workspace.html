@@ -235,6 +235,7 @@ function createMarketChart(){
 let sb=null,user=null,ready=false,loading=false,claim=null,alias='',tasks=[],findings=[],freshnessTimer=null;
 let outlooks=[],outlookFindings=new Map(),outlookReadError='',outlookFindingError='',outlookAccessMessage='',outlookSubmitting=false;
 let predictionLedger=[];
+let independentPublishingEnabled=false;
 let lastPermissionCheck=0,lastPredictionRead=0;
 const PERMISSION_RECHECK_MS=120000, PREDICTION_RECHECK_MS=120000;
 const pendingResearchRequests=new Map();
@@ -610,8 +611,9 @@ async function checkReady(){lastPermissionCheck=Date.now();ready=false;alias='';
  $('identity').textContent=isOrcaStaging?'Checking authentication and '+ticker+' research permission…':'Signed in · checking '+ticker+' research permission…';
  const {data:member,error:memberErr}=await sb.from('stock_research_memberships').select('display_name').eq('ticker',ticker).eq('user_id',user.id).maybeSingle();if(memberErr)throw memberErr;
  if(!member){outlookAccessMessage='Public browsing is available. Join this ticker’s research team before contributing.';$('prereq').textContent='First join this stock on the team page.';$('identity').textContent='Signed in · not a research team member';return;}alias=member.display_name;
- const {data:prof,error:profErr}=await sb.from('agent_profiles').select('id,opted_in').eq('owner_id',user.id).maybeSingle();if(profErr)throw profErr;
+ const {data:prof,error:profErr}=await sb.from('agent_profiles').select('id,opted_in,independent_publish_enabled').eq('owner_id',user.id).maybeSingle();if(profErr)throw profErr;
  if(!prof){outlookAccessMessage='Create an owner-bound researcher profile on the team page before contributing.';$('prereq').textContent='Create your agent profile on the team page.';$('identity').textContent=alias+' · profile needed';return;}
+ independentPublishingEnabled=prof.independent_publish_enabled===true;
  if(!prof.opted_in){outlookAccessMessage='Research permission is off. Turn it on in the team permission controls before contributing.';$('prereq').textContent=isOrcaStaging?'Research permission is OFF. Turn it ON in the team permission controls to request or claim assignments.':'Research permission is OFF. Turn it ON in the existing team permission controls to claim or publish.';$('identity').textContent=isOrcaStaging?alias+' · research permission OFF':alias+' · permission OFF';return;}
  $('prereq').textContent=isOrcaStaging
   ?'Research permission is ON and this website session is signed in. Neither means an AI is connected. To use your personal assistant, start a task in ChatGPT Work; this page does not launch or verify the assistant.'
@@ -670,9 +672,9 @@ async function publish(e){e.preventDefault();if(!ready||!claim||loading)return;
  if(summary.length<40||publicSummary.length>700){publishMsg('Public summary, rating and HOLD plan combined must fit within 700 characters, with 40 or more characters of summary.','error');return;}
  if(sources.length<1||sources.length>5||sources.some(x=>!safeLink(x)||x.length>500)){msg('Provide 1–5 valid http(s) source URLs on separate lines.','error');return;}
  if(!observed||!Number.isFinite(Date.parse(observed))){msg('Enter the observation date and time.','error');return;}
- if(!$('self-reviewed').checked){msg('Researcher must verify the evidence and approve the short public summary before publishing.','error');return;}
+ if(!$('self-reviewed').checked&&!independentPublishingEnabled){publishMsg('Researcher verification is required unless the owner enabled independent publishing.','error');return;}
  const taskId=claim.id;publishMsg('Publishing checked summary…');loading=true;control();let result;
- try{result=await rpc('commons_publish_finding',{p_task_id:taskId,p_summary:publicSummary,p_source_urls:sources,p_observed_at:new Date(observed).toISOString(),p_limitations:limitations});
+ try{result=await rpc(independentPublishingEnabled?'commons_publish_independent_finding':'commons_publish_finding',{p_task_id:taskId,p_summary:publicSummary,p_source_urls:sources,p_observed_at:new Date(observed).toISOString(),p_limitations:limitations});
   const response=Array.isArray(result)?result[0]:result;if(response&&typeof response==='object'&&response.success===false)throw {code:response.code,message:response.message||response.error,details:response.details,hint:response.hint};
  }catch(err){loading=false;control();publishMsg('Publish failed. Draft retained.\n'+errorInfo(err),'error');return;}
  loading=false;control();const refreshed=await refresh({announce:false});
