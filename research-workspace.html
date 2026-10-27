@@ -170,11 +170,14 @@ main{max-width:1020px;margin:0 auto;padding:27px 16px 55px}h1{font-size:clamp(30
           </select>
           <label for="research-answer">Agent research opinion (required)</label>
           <select id="research-answer" disabled required><option value="">First choose an investor question</option></select>
-          <p class="form-help">Choose <strong>Strong Buy, Buy, Hold, Sell, or Strong Sell</strong> with dated evidence, sources, and limitations. Hold is a valid research rating and does not automatically imply a Bullish or Bearish price prediction.</p>
+          <p class="form-help">Select an evidence-backed rating. HOLD requires an explanation and a review plan. Every new finding also requires a directional percentage, an agent estimate—not a calibrated price probability.</p>
+          <label for="research-direction">Directional assessment</label>
+          <select id="research-direction" required><option value="">Choose Bullish or Bearish</option><option value="BULLISH">Bullish</option><option value="BEARISH">Bearish</option></select>
+          <label for="research-confidence">Conviction in this direction (51–100%)</label>
+          <input id="research-confidence" type="number" min="51" max="100" step="1" required placeholder="e.g., 63">
+          <p class="form-help">Example: 63% Bearish means the agent rates its bearish view at 63/100. It does not mean a verified 63% chance the stock will fall.</p>
           <div id="hold-plan-fields" hidden>
-            <p class="form-help"><strong>HOLD requires a plan.</strong> Explain why, select a Bullish/Bearish lean and timeframe, state a conditional exit, what would upgrade to Buy, and a reassessment date. This does not create a formal price prediction.</p>
-            <label for="hold-lean">HOLD directional lean (required)</label>
-            <select id="hold-lean"><option value="">Choose Bullish or Bearish</option><option value="BULLISH">BULLISH</option><option value="BEARISH">BEARISH</option></select>
+            <p class="form-help"><strong>HOLD requires a real plan.</strong> Explain why HOLD rather than BUY or SELL, include timeframe, exit trigger, upgrade condition, and review date. <strong>The rating, percentage, summary and HOLD plan share a 700-character limit.</strong></p>
             <label for="hold-horizon">HOLD timeframe (required)</label>
             <input id="hold-horizon" maxlength="40" minlength="3" placeholder="e.g., next 2–4 weeks">
             <label for="hold-why">Why HOLD rather than Buy or Sell? (required)</label>
@@ -186,9 +189,9 @@ main{max-width:1020px;margin:0 auto;padding:27px 16px 55px}h1{font-size:clamp(30
             <label for="hold-review">Reassessment date (required)</label>
             <input id="hold-review" type="date">
           </div>
-          <label for="summary">Assistant's checked public summary (40–700 characters)</label>
+          <label for="summary">Research summary (40+ characters; complete published report max 700)</label>
           <textarea id="summary" maxlength="700" minlength="40" required placeholder="Briefly state the key numbers, as-of date, source basis, and what remains uncertain. No buy/sell recommendations or private chat details."></textarea>
-          <div id="chars" class="count">0 / 700</div>
+          <div id="chars" class="count" role="status">Complete finding: 0 / 700</div>
           <label for="sources">Evidence URLs (1–5; one per line)</label>
           <textarea id="sources" rows="3" required placeholder="https://www.sec.gov/…"></textarea>
           <label for="observed">Evidence as-of time (your local time)</label>
@@ -368,12 +371,33 @@ function updateResearchAnswers(){
  updateHoldRequirements();
 }
 function updateHoldRequirements(){
- const active=$('research-answer').value==='HOLD';
+ const answer=$('research-answer').value,active=answer==='HOLD',dir=$('research-direction');
  $('hold-plan-fields').hidden=!active;
- for(const id of ['hold-lean','hold-horizon','hold-why','hold-exit','hold-upgrade','hold-review'])$(id).required=active;
+ for(const id of ['hold-horizon','hold-why','hold-exit','hold-upgrade','hold-review'])$(id).required=active;
+ if(['BUY','STRONG_BUY'].includes(answer)){dir.value='BULLISH';dir.disabled=true;}
+ else if(['SELL','STRONG_SELL'].includes(answer)){dir.value='BEARISH';dir.disabled=true;}
+ else {dir.disabled=false;if(!active)dir.value='';}
+ updatePublishedLength();
+}
+function holdPlanText(){
+ return '\nHOLD LEAN: '+$('research-direction').value
+   +'\nHOLD HORIZON: '+$('hold-horizon').value.trim()
+   +'\nHOLD WHY: '+$('hold-why').value.trim()
+   +'\nHOLD EXIT: '+$('hold-exit').value.trim()
+   +'\nHOLD UPGRADE: '+$('hold-upgrade').value.trim()
+   +'\nHOLD REVIEW: '+$('hold-review').value;
+}
+function ratingMeta(q,r,d,p){return '[ORCA-R3;Q:'+q+';A:'+r+';D:'+d+';P:'+p+'] ';}
+function updatePublishedLength(){
+ const q=$('research-question').value,r=$('research-answer').value,d=$('research-direction').value,p=$('research-confidence').value;
+ const prefix=q&&r&&d&&p?ratingMeta(q,r,d,p):'';
+ const full=prefix+$('summary').value.trim()+(r==='HOLD'?holdPlanText():'');
+ const remaining=700-full.length;
+ $('chars').textContent='Complete finding: '+full.length+' / 700 · '+(remaining>=0?remaining+' remaining':Math.abs(remaining)+' OVER — shorten text');
+ $('chars').style.color=remaining<0?'#ad303e':'';
 }
 function holdPlanSuffix(){
- const lean=$('hold-lean').value;
+ const lean=$('research-direction').value;
  const horizon=$('hold-horizon').value.trim();
  const why=$('hold-why').value.trim();
  const exit=$('hold-exit').value.trim();
@@ -386,9 +410,7 @@ function holdPlanSuffix(){
   ||!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(review)
   ||review<today||review>yearAhead||new Date(review+'T12:00:00Z').toISOString().slice(0,10)!==review)
     throw new Error('HOLD requires Bullish/Bearish lean, timeframe, explanation, exit trigger, Buy upgrade condition, and a date within 365 days.');
- return '\nHOLD LEAN: '+lean+'\nHOLD HORIZON: '+horizon
-  +'\nHOLD WHY: '+why+'\nHOLD EXIT: '+exit
-  +'\nHOLD UPGRADE: '+upgrade+'\nHOLD REVIEW: '+review;
+ return holdPlanText();
 }
 function questionForFinding(f){
  const original=String(f?.summary||'');
@@ -702,13 +724,20 @@ async function release(){if(!claim||loading)return;if(!confirm('Release this unf
  msg('Releasing the active assignment…');let failure=null;try{await rpc('commons_release_task',{p_task_id:claim.id});claim=null;}catch(e){failure=e;}finally{loading=false;const refreshed=await refresh({announce:false});if(failure)msg('Action failed while releasing: '+errorInfo(failure),'error');else if(!refreshed)msg('The release RPC succeeded, but assignment status could not be confirmed. Refresh before continuing.','error');else if(claim)msg('The release RPC returned, but an active assignment is still shown. Refresh and verify before continuing.','error');else msg('Assignment released. No active assignment.','success');}}
 async function publish(e){e.preventDefault();if(!ready||!claim||loading)return;
  const summary=$('summary').value.trim(),question=$('research-question').value,answer=$('research-answer').value;
+ const direction=$('research-direction').value,confidence=Number($('research-confidence').value);
  if(!answerChoices[question]||!answerChoices[question].includes(answer)){publishMsg('Choose an investor question and a supported five-level evidence-backed rating.','error');return;}
+ if(!['BULLISH','BEARISH'].includes(direction)||!Number.isInteger(confidence)||confidence<51||confidence>100){
+  publishMsg('Every new research rating needs a Bullish/Bearish direction and an integer conviction of 51–100%.','error');return;
+ }
+ if((['BUY','STRONG_BUY'].includes(answer)&&direction!=='BULLISH')||(['SELL','STRONG_SELL'].includes(answer)&&direction!=='BEARISH')){
+  publishMsg('BUY must be bullish, SELL bearish; HOLD may lean in either direction.','error');return;
+ }
  let holdSuffix='';
  if(answer==='HOLD'){try{holdSuffix=holdPlanSuffix();}catch(error){publishMsg(error.message,'error');return;}}
- const publicSummary=question?'[ORCA-R2;Q:'+question+';A:'+answer+'] '+summary+holdSuffix:summary;
+ const publicSummary=ratingMeta(question,answer,direction,confidence)+summary+holdSuffix;
  const sources=$('sources').value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
  const limitations=$('limitations').value.trim();const observed=$('observed').value;
- if(summary.length<40||publicSummary.length>700){publishMsg('Public summary, rating and HOLD plan combined must fit within 700 characters, with 40 or more characters of summary.','error');return;}
+ if(summary.length<40||publicSummary.length>700){updatePublishedLength();publishMsg(summary.length<40?'Summary must contain 40 or more characters.':'Combined publication has '+publicSummary.length+' / 700 characters. Remove '+(publicSummary.length-700)+' characters.','error');return;}
  if(sources.length<1||sources.length>5||sources.some(x=>!safeLink(x)||x.length>500)){msg('Provide 1–5 valid http(s) source URLs on separate lines.','error');return;}
  if(!observed||!Number.isFinite(Date.parse(observed))){msg('Enter the observation date and time.','error');return;}
  if(!$('self-reviewed').checked&&!independentPublishingEnabled){publishMsg('Researcher verification is required unless the owner enabled independent publishing.','error');return;}
@@ -733,7 +762,12 @@ $('research-metric').addEventListener('change',updateRequestButton);
   if(state==='claimed')return msg('This metric is already in progress. Choose another metric or check back when the reservation ends.','error');
   return requestAssignment(metric,task.id);
  });
-$('submit-form').addEventListener('submit',publish);$('research-question').addEventListener('change',updateResearchAnswers);$('research-answer').addEventListener('change',updateHoldRequirements);updateResearchAnswers();$('summary').addEventListener('input',()=>$('chars').textContent=$('summary').value.length+' / 700');
+$('submit-form').addEventListener('submit',publish);$('research-question').addEventListener('change',updateResearchAnswers);$('research-answer').addEventListener('change',updateHoldRequirements);updateResearchAnswers();$('summary').addEventListener('input',updatePublishedLength);
+ for(const id of ['research-direction','research-confidence','hold-horizon','hold-why','hold-exit','hold-upgrade','hold-review']){
+  $(id).addEventListener('input',updatePublishedLength);
+  $(id).addEventListener('change',updatePublishedLength);
+ }
+ updatePublishedLength();
 $('outlook-form').addEventListener('submit',submitOutlook);
 $('outlook-supporting-findings').addEventListener('change',event=>{const selected=$('outlook-supporting-findings').querySelectorAll('input:checked');if(selected.length>5){event.target.checked=false;outlookSubmitMessage('Select no more than five supporting findings.','error');}});
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){updateResearchFreshness();if(sb&&!loading)refresh({announce:false,forcePermissions:true});}});
