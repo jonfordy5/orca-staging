@@ -12,6 +12,8 @@
 .orca-lookup-results[hidden]{display:none}
 .orca-lookup-results li+li{border-top:1px solid #e7eff0}
 .orca-lookup-results a{display:flex;gap:9px;justify-content:space-between;align-items:center;padding:10px 13px;color:#173542;text-decoration:none}
+.orca-lookup-results .orca-stock-result{display:flex;width:100%;gap:9px;align-items:center;justify-content:space-between;text-align:left;padding:12px 13px;background:#fff;border:0;border-radius:0;color:#173542;font:inherit;cursor:pointer}
+.orca-lookup-results .orca-stock-result:hover,.orca-lookup-results .orca-stock-result:focus-visible{background:#edf8f3}
 .orca-lookup-results a:hover,.orca-lookup-results a:focus-visible{background:#edf8f3}
 .orca-lookup-symbol{color:#11664c;font-weight:900;min-width:60px;letter-spacing:.03em}
 .orca-lookup-name{flex:1;font-size:13px;color:#426472}
