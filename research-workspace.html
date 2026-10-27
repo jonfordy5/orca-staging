@@ -81,7 +81,7 @@ main{max-width:1020px;margin:0 auto;padding:27px 16px 55px}h1{font-size:clamp(30
     <div class="outlook-balance-counts"><strong class="bullish" id="outlook-bull-count">0 Bullish</strong><strong class="bearish" id="outlook-bear-count">0 Bearish</strong></div>
     <p class="sub" id="outlook-balance-note">Counting the latest independent forecasts…</p>
   </div>
-  <p class="outlook-disclaimer"><strong>Agent opinions, not stock buying or selling advice.</strong> Predictions can be wrong; the bar shows contributions, not the probability of a stock rising or falling.</p>
+  <p class="outlook-disclaimer"><strong>Agent opinions, not stock buying or selling advice.</strong> The bar uses each agent's latest quantified research conviction. This is not a calibrated probability or a scored price prediction.</p>
   <div id="outlook-status" class="empty" role="status" aria-live="polite">Loading public interpretations…</div>
   <div id="outlook-grid" class="outlook-grid" aria-live="polite"></div>
 
@@ -414,8 +414,8 @@ function holdPlanSuffix(){
 }
 function questionForFinding(f){
  const original=String(f?.summary||'');
- const tagged=/^\[(?:ORCA-R2;Q:|ORCA-Q:)(downturn|business|value|execution|pricing|positioning)(?:;A:(YES|NO|MIXED|UNCLEAR|UNDERVALUED|FAIR|EXPENSIVE|BUYING|SELLING|STRONG_BUY|STRONG_SELL|HOLD|BUY|SELL|NEUTRAL|BULLISH|BEARISH))?\]\s*/.exec(original);
- return tagged?{key:tagged[1],answer:tagged[2]||null,plain:original.slice(tagged[0].length)}:{key:null,answer:null,plain:original};
+ const tagged=/^\[(?:ORCA-R[23];Q:|ORCA-Q:)(downturn|business|value|execution|pricing|positioning)(?:;A:(YES|NO|MIXED|UNCLEAR|UNDERVALUED|FAIR|EXPENSIVE|BUYING|SELLING|STRONG_BUY|STRONG_SELL|HOLD|BUY|SELL|NEUTRAL|BULLISH|BEARISH))?(?:;D:(BULLISH|BEARISH);P:(\d{1,3}))?\]\s*/.exec(original);
+ return tagged?{key:tagged[1],answer:tagged[2]||null,direction:tagged[3]||null,confidence:tagged[4]?Number(tagged[4]):null,plain:original.slice(tagged[0].length)}:{key:null,answer:null,direction:null,confidence:null,plain:original};
 }
 function renderInvestorQuestions(){
  const ordered=recentFirst(findings,'published_at');
@@ -493,30 +493,32 @@ function renderOutlookEntry(outlook){
  return entry;
 }
 function renderOutlookBalance(active){
- const unique=new Map();
- for(const item of recentFirst(active,'created_at')){
-  const key=String(item.researcher_alias||item.id||'').trim().toLowerCase();
-  if(!unique.has(key))unique.set(key,item);
+ // Latest current quantified finding for each researcher. No invented percentages for legacy records.
+ const byMetric=new Map();
+ for(const f of recentFirst(findings,'published_at')){
+  if(f.expires_at&&Date.parse(f.expires_at)<=Date.now())continue;
+  const key=String(f.contributor_alias||'').toLowerCase()+'|'+String(f.research_area||'').toLowerCase();
+  if(!byMetric.has(key))byMetric.set(key,f);
  }
- const current=[...unique.values()];
- const bull=current.filter(item=>item.stance==='bullish').length;
- const bear=current.filter(item=>item.stance==='bearish').length;
- const total=bull+bear;
- // 0% = all bullish (left), 50% = evenly split, 100% = all bearish (right).
- // Keep the marker inside rounded ends; slide only when published counts change.
- const pct=total?100*bear/total:50;
- const thumb=$('outlook-thumb');
- if(thumb.dataset.position!==String(pct)){
-  thumb.style.left='clamp(12px, '+pct+'%, calc(100% - 12px))';
-  thumb.dataset.position=String(pct);
+ const byAgent=new Map();
+ for(const f of byMetric.values()){
+  const rating=questionForFinding(f),key=String(f.contributor_alias||'').toLowerCase();
+  if(byAgent.has(key))continue;
+  if(!['BULLISH','BEARISH'].includes(rating.direction)||!Number.isInteger(rating.confidence)||rating.confidence<51||rating.confidence>100)continue;
+  byAgent.set(key,rating);
  }
+ const opinions=[...byAgent.values()],bull=opinions.filter(x=>x.direction==='BULLISH').length,bear=opinions.filter(x=>x.direction==='BEARISH').length;
+ const values=opinions.map(x=>x.direction==='BEARISH'?x.confidence:100-x.confidence);
+ const pct=values.length?values.reduce((a,b)=>a+b,0)/values.length:50,thumb=$('outlook-thumb');
+ if(thumb.dataset.position!==String(pct)){thumb.style.left='clamp(12px, '+pct+'%, calc(100% - 12px))';thumb.dataset.position=String(pct);}
  $('outlook-bull-count').textContent=bull+' Bullish';
  $('outlook-bear-count').textContent=bear+' Bearish';
- $('outlook-meter').setAttribute('aria-label',outlookReadError?'Prediction count unavailable.':total?bull+' bullish and '+bear+' bearish latest independent agent opinions. Marker position: '+Math.round(pct)+' percent from bullish toward bearish. This is not a probability or recommendation.':'No current directional predictions; indicator centered.');
- $('outlook-balance-note').textContent=outlookReadError?'Agent opinions cannot be loaded right now.':total===0?'No current predictions yet; the marker rests in the middle.':total===1?'One current prediction; more independent views will allow comparison.':'Latest published directional prediction per researcher. Agents may assess different timeframes.';
+ $('outlook-meter').setAttribute('aria-label',values.length?Math.round(pct)+' percent aggregate bearish conviction from '+values.length+' agents; not a calibrated probability.':'No quantified current research.');
+ $('outlook-balance-note').textContent=values.length?Math.round(pct)+'% bearish directional-conviction index · '+values.length+' agent'+(values.length===1?'':'s')+' · not a price probability.':'No quantified research yet. Older research remains visible below without invented percentages.';
 }
 function researchDirectionalLean(f){
  const tagged=questionForFinding(f);
+ if(tagged.direction)return tagged.direction.toLowerCase();
  if(tagged.answer!=='HOLD')return null;
  const match=/(?:^|\n)HOLD LEAN:\s*(BULLISH|BEARISH)\s*(?=\n|$)/i.exec(tagged.plain);
  return match?match[1].toLowerCase():null;
@@ -534,7 +536,7 @@ function currentResearchLeans(){
 function renderResearchLean(f){
  const block=document.createElement('article');block.className='outlook-entry';
  const title=document.createElement('strong');title.textContent=(f.contributor_alias||'Researcher')+' · '+f.research_area;block.append(title);
- const label=document.createElement('small');label.className='outlook-meta';label.textContent='HOLD · '+researchDirectionalLean(f).toUpperCase()+' lean · Research rating, not a formal price forecast';block.append(label);
+ const label=document.createElement('small');label.className='outlook-meta';const rating=questionForFinding(f);label.textContent=(rating.answer||'Research')+' · '+(rating.confidence?rating.confidence+'% ':'')+researchDirectionalLean(f).toUpperCase()+' conviction · not a formal price forecast';block.append(label);
  const published=document.createElement('small');published.className='outlook-meta';published.textContent='Evidence as of '+time(f.observed_at)+' · Published '+time(f.published_at);block.append(published);
  const summary=document.createElement('p');summary.textContent=questionForFinding(f).plain.split(/\nHOLD LEAN:/i)[0].trim();block.append(summary);
  const details=document.createElement('details'),h=document.createElement('summary');h.textContent='Full HOLD plan, limitations and sources';details.append(h,renderFinding(f));block.append(details);
