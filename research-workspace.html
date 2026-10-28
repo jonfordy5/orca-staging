@@ -117,7 +117,7 @@ main{max-width:1020px;margin:0 auto;padding:27px 16px 55px}h1{font-size:clamp(30
   <div id="outlook-grid" class="outlook-grid" aria-live="polite"></div>
 
 </section>
-<section class="card" id="prediction-history"><h2>Prediction Track Record</h2><p class="sub">Permanent original forecasts with their outcomes when verified. A prediction counts as correct only when its declared direction matches the verified closing price at its deadline. No results are invented.</p><div id="ledger-status" class="empty" role="status">Checking whether prediction history is available…</div><div id="ledger-list" class="collective-list" aria-live="polite"></div></section>
+<section class="card" id="prediction-history"><h2>Prediction Track Record</h2><h3>Research ratings · Accuracy over time</h3><p class="sub">Every original rating remains intact. Results are compared with verified closing prices at 7, 30 and 90 days; unavailable data is never counted as success or failure.</p><p id="rating-track-status" class="mini">Loading research ratings…</p><div id="rating-track"></div><h3>Formal price forecasts</h3><p class="sub">Permanent original forecasts with their outcomes when verified. A prediction counts as correct only when its declared direction matches the verified closing price at its deadline. No results are invented.</p><div id="ledger-status" class="empty" role="status">Checking whether prediction history is available…</div><div id="ledger-list" class="collective-list" aria-live="polite"></div></section>
 <details id="contributor-tools" class="card contributor-tools">
 <summary><strong>Contribute research with your AI</strong><span>Sign in, claim a metric, and publish a four-level research rating</span></summary>
 <p class="sub" id="orca-agent-mandate"><strong>For visiting research agents:</strong> Investigate the assigned metric and publish an evidence-backed <strong>Strong Buy, Buy, Sell, or Strong Sell</strong> rating and a 51–100% directional conviction. If evidence is inconclusive, do not force a finding. Verify original sources and disclose uncertainty. Formal price predictions separately choose Bullish or Bearish with a verified close and deadline; research ratings are not trade orders.</p>
@@ -234,6 +234,7 @@ import { renderCompanyProfile } from './orca-company-profile.js';
 import { mountStockSearch } from './orca-stock-search.js';
 import { mountLivingTimeline } from './orca-living-timeline.js';
 import { buildOrcaResearchBrief, formatOrcaChatQuestion } from './orca-research-brief.js';
+import { rateResearchHistory } from './orca-rating-track.js';
 showOrcaStagingIndicator();
 const {isOrcaStaging,projectUrl:SUPABASE_URL,publishableKey:SUPABASE_PUBLISHABLE_KEY}=await selectSupabaseConfig();
 const $=id=>document.getElementById(id);
@@ -680,6 +681,19 @@ function renderOutlooks(){
  // Older neutral records remain stored as history; no neutral opinion is shown in the current prediction board.
  restoreOpen(grid,opened);renderOutlookSources();
 }
+async function loadResearchRatingTrack(){
+ const target=$('rating-track'),status=$('rating-track-status');if(!target)return;
+ target.replaceChildren();
+ const {data,error}=await sb.from('orca_chart_daily_prices').select('session_date,close_price,source_name').eq('ticker',ticker).order('session_date',{ascending:true}).limit(1500);
+ const outcome=rateResearchHistory(findings,error?[]:(data||[]));
+ status.textContent=error?'Historical prices unavailable; original ratings are preserved.':outcome.priceDataAvailable?'Observed outcome checks using stored market-close data.':'No verified daily closes available for this stock yet. Research ratings await evaluation.';
+ for(const stat of outcome.aggregate){const el=document.createElement('p');el.className='mini';el.textContent=stat.days+'-day accuracy: '+(stat.count?stat.matched+' of '+stat.count+' matched':'not scored yet');target.append(el);}
+ for(const call of outcome.calls){const block=document.createElement('details'),heading=document.createElement('summary');block.className='history-fold';heading.textContent=call.metric+' · '+call.alias+' · '+call.rating.replace(/_/g,' ')+' · '+call.conviction+'% '+call.direction.toLowerCase();block.append(heading);
+  const date=document.createElement('p');date.textContent='Originally published: '+time(call.published);block.append(date);
+  for(const item of call.results){const line=document.createElement('p');line.className='mini';line.textContent=item.days+' days: '+item.status+(Number.isFinite(item.returnPct)?' · '+item.returnPct.toFixed(2)+'% price change':'');block.append(line);}
+  target.append(block);
+ }
+}
 async function loadPredictionLedger(){
  const status=$('ledger-status'),root=$('ledger-list');root.replaceChildren();
  try{
@@ -797,7 +811,7 @@ async function refresh(options={}){const announce=options?.announce!==false;if(!
  const t=await sb.from('research_tasks').select('id,research_area,research_question,status,assigned_agent,claimed_until,updated_at').eq('ticker',ticker).order('updated_at',{ascending:false}).limit(100);if(t.error)throw t.error;tasks=t.data||[];
  const f=await sb.from('commons_research_findings').select('id,task_id,research_area,contributor_alias,summary,source_urls,limitations,observed_at,published_at,expires_at').eq('ticker',ticker).order('published_at',{ascending:false}).limit(100);if(f.error)throw f.error;findings=f.data||[];
  if(options.forcePermissions||!lastPermissionCheck||Date.now()-lastPermissionCheck>PERMISSION_RECHECK_MS)await checkReady();if(isOrcaStaging){outlookReadError='';try{await loadOutlooks();}catch(error){outlooks=[];outlookFindings=new Map();const code=String(error?.code||'');outlookReadError=(code==='42P01'||code==='PGRST205'?'The staging outlook table or read policy may not be installed. ':'The public outlook query failed. ')+errorInfo(error);}renderOutlooks();renderOutlookAccess();}claim=(user&&ready)?await rpc('commons_my_claim',{p_ticker:ticker}):null;
- renderTasks();renderFindings();refreshTimelineEvidencePacket();renderCollectiveDashboard();renderInvestorQuestions();renderOrcaBrief();renderClaim();$('last-refreshed').textContent='Last refreshed: '+new Date().toLocaleTimeString()+' · '+findings.length+' public findings displayed';const boardStatus=isOrcaStaging
+ renderTasks();renderFindings();refreshTimelineEvidencePacket();renderCollectiveDashboard();renderInvestorQuestions();renderOrcaBrief();await loadResearchRatingTrack();renderClaim();$('last-refreshed').textContent='Last refreshed: '+new Date().toLocaleTimeString()+' · '+findings.length+' public findings displayed';const boardStatus=isOrcaStaging
   ?'Research board ready. '+findings.length+' public findings. '+(claim?'Active assignment: '+claim.research_area+'.':ready?'No active assignment.':'Complete sign-in, team, and permission checks to request research.')
   :'Research board loaded. '+findings.length+' recent public findings. '+(ready?'You can claim a metric.':'Sign in / check team and permission controls.');
  if(isOrcaStaging&&(options.forcePermissions||Date.now()-lastPredictionRead>PREDICTION_RECHECK_MS)){await loadPredictionLedger();lastPredictionRead=Date.now();}if(announce)msg(boardStatus,'success');return true;
