@@ -351,7 +351,7 @@ function render(root,company,ticker){
   name:company.title,description:intro,
   eyebrow:'ABOUT THE COMPANY · SOURCED OVERVIEW',
   missionHeading:'Business focus',mission:focus||'Company operating focus has not yet been independently documented.',
-  missionNote:editorial?'Business summary extracted from the attributed reference data; not an official mission statement.':company.referenceUsed?'From public company-reference data; not an official mission statement.':'Publicly sourced business overview; not an official mission statement.',
+  missionNote:editorial?.aiGenerated?'AI-organized company description based on cited official sources; may require updating.':editorial?'Business summary extracted from the attributed reference data; not an official mission statement.':company.referenceUsed?'From public company-reference data; not an official mission statement.':'Publicly sourced business overview; not an official mission statement.',
   headquarters:editorial?.headquarters||company.headquarters,founded:company.founded,industry:editorial?.industry||company.industry,
   listing:ticker,operations:what||'Additional product and service details are not yet verified.',
   how:how||'Sales channels and operating methods are not yet verified from source material.',
@@ -372,6 +372,31 @@ function render(root,company,ticker){
   sourceNote:company.referenceUsed?'Business description and industry: FinanceDatabase (MIT); supporting context: Wikipedia (CC BY-SA), Wikidata (CC0).':'Wikipedia (CC BY-SA) and Wikidata (CC0). Free company reference data was not loaded.',
   sourceUpdated:company.revision
  });
+}
+async function loadOrcaAiDescription(root,ticker,sb,base){
+ const endpoint='https://vbziibatnejoswsdggga.supabase.co/functions/v1/orca-auto-ai-profile?ticker='+encodeURIComponent(ticker);
+ const usable=d=>d?.state==='ready'&&d?.content&&['overview','business_focus','what_they_do','how_they_do_it'].every(k=>typeof d.content[k]==='string'&&d.content[k].length>20);
+ const apply=d=>{
+  if(!usable(d)||!root.isConnected)return false;
+  const c=d.content;
+  const updated={...base,structured:{
+   ...(base.structured||{}),
+   intro:c.overview,focus:c.business_focus,business:c.what_they_do,how:c.how_they_do_it,
+   businessSource:Array.isArray(d.source_urls)&&d.source_urls[0]||base.source,
+   aiGenerated:true
+  }};
+  render(root,updated,ticker);return true;
+ };
+ let entry=null;
+ try{const r=await fetch(endpoint,{cache:'no-store'});if(r.ok)entry=await r.json();}catch{}
+ if(apply(entry))return;
+ if(entry&&entry.state!=='missing')return;
+ try{
+  const {data:{session}}=await sb.auth.getSession();
+  if(!session?.access_token)return;
+  const response=await fetch(endpoint,{method:'POST',headers:{'apikey':(await import('./orca-staging-config.js')).selectSupabaseConfig? (await (await import('./orca-staging-config.js')).selectSupabaseConfig()).publishableKey : '', 'Authorization':'Bearer '+session.access_token,'Content-Type':'application/json'},body:'{}'});
+  if(response.ok)apply(await response.json());
+ }catch{ /* Never block workspace or retry a billable call */ }
 }
 export async function renderAutomaticCompanyProfile(root,ticker,sb){
  fallback(root,ticker,ticker,'Loading the verified company listing…');
@@ -421,7 +446,10 @@ export async function renderAutomaticCompanyProfile(root,ticker,sb){
    }
    if(info)cache.set(ticker,info);
   }
-  if(info)render(root,info,ticker);
-  else fallback(root,ticker,name,'A matching source-backed company overview is not yet available.');
+  if(info){render(root,info,ticker);void loadOrcaAiDescription(root,ticker,sb,info);}
+  else {
+   fallback(root,ticker,name,'Company overview is being prepared from available sources.');
+   void loadOrcaAiDescription(root,ticker,sb,{title:name,intro:'Company overview is being prepared.',source:null,structured:null});
+  }
  }catch{fallback(root,ticker,name,'Public company data could not be loaded; source-backed details will appear when available.');}
 }
