@@ -6,7 +6,7 @@ export async function mountLivingTimeline({sb,ticker,getUser,canContribute,getFi
  if(!host||!status||!sb)return;
  const {data:bars,error:barsError}=await sb.from('orca_chart_daily_prices')
    .select('session_date,close_price,source_name').eq('ticker',ticker).order('session_date',{ascending:true}).limit(800);
- if(barsError||!bars||bars.length<2){status.textContent='Timeline price data unavailable. TradingView chart remains accessible.';return;}
+ if(barsError||!bars||bars.length<2){status.textContent='Living Timeline is unavailable for '+ticker+' because ORCA has fewer than two verified historical daily closes for this ticker. The TradingView market chart remains available above. No prices or dates are estimated.';return;}
  const prices=bars.map(b=>({time:b.session_date,value:Number(b.close_price)})).filter(b=>Number.isFinite(b.value)&&b.value>0);
  if(prices.length<2){status.textContent='No usable verified price candles.';return;}
  let lib;
