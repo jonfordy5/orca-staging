@@ -1,3 +1,4 @@
+import { ORCA_LOGO_DEV_PUBLISHABLE_KEY } from './orca-staging-config.js';
 // Auto-generated, source-attributed company profile for newly registered stocks.
 // This is informational only; never infer a company's mission, ownership, or finances.
 const cache=new Map();
@@ -240,7 +241,9 @@ export function renderUnifiedCompanyProfile(root,ticker,profile={}){
  const side=$(layout,'aside','company-visual');
  const frame=$(side,'div','company-logo-frame');
  const fallback=$(frame,'span','company-logo-fallback',ticker);
- const logo=profile.logo;
+ const fallbackLogo=profile.logo||null;
+ const logoDevUrl=ticker==='RKLB'?null:logoDevImage(ticker);
+ const logo=logoDevUrl?{url:logoDevUrl,alt:name+' company logo',caption:'Company logo provided by Logo.dev'}:fallbackLogo;
  if(logo?.url){
   let mediaHost=frame;
   if(logo.source){
@@ -257,9 +260,19 @@ export function renderUnifiedCompanyProfile(root,ticker,profile={}){
   img.alt=logo.alt||name+' company logo';
   img.loading='lazy';img.decoding='async';img.referrerPolicy='no-referrer';
   img.addEventListener('load',()=>{fallback.hidden=true;});
-  img.addEventListener('error',()=>{img.hidden=true;fallback.hidden=false;});
+  img.addEventListener('error',()=>{
+   if(logoDevUrl&&fallbackLogo?.url){
+    img.src=fallbackLogo.url;
+    img.alt=fallbackLogo.alt||name+' sourced company logo';
+    img.onerror=()=>{img.hidden=true;fallback.hidden=false;};
+   }else{img.hidden=true;fallback.hidden=false;}
+  });
   $(side,'p','company-visual-caption',logo.caption||'Company logo · linked to source when verified');
  }else $(side,'p','company-visual-caption','Company logo not verified · ticker shown instead');
+ if(logoDevUrl){
+  const attribution=$(side,'div','company-source-links');
+  urlLink(attribution,'Logos provided by Logo.dev','https://logo.dev');
+ }
  if(profile.headquartersAddress||profile.headquarters){
   const hq=$(side,'p','company-address');
   $(hq,'strong',null,'HQ: ');
@@ -291,6 +304,11 @@ export function renderUnifiedCompanyProfile(root,ticker,profile={}){
   const date=new Date(profile.sourceUpdated);
   if(!Number.isNaN(date.getTime()))$(side,'p','company-asof','Source updated '+date.toLocaleDateString());
  }
+}
+function logoDevImage(ticker){
+ const key=String(ORCA_LOGO_DEV_PUBLISHABLE_KEY||'').trim();
+ if(!/^pk_[A-Za-z0-9_-]{8,}$/.test(key)||!/^[A-Z0-9][A-Z0-9.\-]{0,11}$/.test(ticker))return null;
+ return 'https://img.logo.dev/ticker/'+encodeURIComponent(ticker)+'?token='+encodeURIComponent(key)+'&size=256&format=png&fallback=404';
 }
 function safeURL(url){
  try{
