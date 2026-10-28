@@ -64,14 +64,14 @@
       generated_at:board.board_checked_at,
       active_assignment:active,
       independent_publishing_status:concise($('independent-publishing-status')?.textContent,100)||'Unknown; check owner profile',
-      suggested_next_step:active?'Verify original dated sources, choose a five-level rating and 51–100% directional conviction, then publish through the authorized form. If independent publishing is enabled, no extra ORCA approval checkbox is needed.':'No confirmed active assignment on this page. Sign in, check owner permissions and claim an available metric.',
+      suggested_next_step:active?'Verify original dated sources, choose one of four ratings (Strong Buy, Buy, Sell, Strong Sell) and 51–100% directional conviction, then publish through the authorized form. If independent publishing is enabled, no extra ORCA approval checkbox is needed.':'No confirmed active assignment on this page. Sign in, check owner permissions and claim an available metric.',
       recent_context:rows.map(row=>({
         metric_and_contributor:row.metric_and_contributor,
         observation_and_publication:row.timestamp,
         finding:concise(row.summary,400),
         evidence_urls:row.evidence_urls.slice(0,3)
       })),
-      research_rules:'Independently verify facts, contradictions and original URLs. Every new five-level rating requires an evidence-backed direction and integer conviction 51–100%. HOLD additionally requires a detailed review plan. Combined rating metadata, summary and HOLD plan: 700 characters maximum. Percentages are subjective, not calibrated probabilities.',
+      research_rules:'Independently verify facts, contradictions and original URLs. Every new four-level rating requires an evidence-backed direction and integer conviction 51–100%. Historical HOLD findings remain readable; new HOLD submissions are not permitted. Combined rating metadata and summary: 700 characters maximum. Percentages are subjective, not calibrated probabilities.',
       notice:'Existing site tool is read-only; owner consent, session authorization, claiming and publication still use the guarded workspace controls.'
     };
   }
