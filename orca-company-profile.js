@@ -31,6 +31,17 @@ const profiles=Object.freeze({
   ]
  })
 });
+async function findPublicProfile(name){
+ const title=name.replace(/\\s+(Common Stock|Class [A-Z] Common Stock).*$/i,'').trim();
+ const endpoint='https://en.wikipedia.org/api/rest_v1/page/summary/'+encodeURIComponent(title);
+ const response=await fetch(endpoint,{headers:{'Accept':'application/json'}});
+ if(!response.ok)return null;
+ const data=await response.json();
+ const a=title.toLowerCase().replace(/[^a-z0-9]/g,''),b=String(data.title||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+ if(!a||!b||!(a===b||a.includes(b)||b.includes(a)))return null;
+ if(!data.extract||String(data.extract).length<50)return null;
+ return {description:String(data.extract).slice(0,900),source:data.content_urls?.desktop?.page||null};
+}
 const add=(parent,tag,className,text)=>{const e=document.createElement(tag);if(className)e.className=className;if(text!==undefined)e.textContent=text;parent.append(e);return e;};
 export async function renderCompanyProfile(ticker,sb=null){
  const root=document.getElementById('company-profile');
@@ -51,7 +62,21 @@ export async function renderCompanyProfile(ticker,sb=null){
    if(error)throw error;
    if(stock){
     displayName.textContent=String(stock.company_name||ticker);
-    note.textContent='Registered public stock listing · detailed company profile pending independent source review. Chart and research are ready to explore.';
+    note.textContent='Registered stock · checking verified public company information…';
+    try{
+     const overview=await findPublicProfile(stock.company_name||ticker);
+     if(overview){
+      const mission=add(root,'div','company-mission');
+      add(mission,'strong',null,'Mission / company focus');
+      add(mission,'p',null,overview.description.split(/(?<=[.!?])\\s/)[0]);
+      add(root,'h3','company-auto-operations','What they do');
+      add(root,'p','company-description',overview.description);
+      add(root,'h3','company-auto-operations','How they do it');
+      add(root,'p','company-description','For verified business segments, see original corporate filings and research findings.');
+      if(overview.source){const source=add(root,'a',null,'Company profile source');source.href=overview.source;source.target='_blank';source.rel='noopener noreferrer';}
+      note.textContent='Automatically sourced company profile; company focus is not a verified official mission statement.';
+     }else note.textContent='No matching source-backed company overview was confirmed. Chart and research remain available.';
+    }catch{note.textContent='Company source temporarily unavailable; no unverified profile will be shown.';}
    }else{
     displayName.textContent='Ticker not registered in ORCA';
     next.textContent='Search for a verified stock above to open its research workspace.';
