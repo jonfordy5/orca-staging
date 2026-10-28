@@ -335,11 +335,11 @@ export async function renderAutomaticCompanyProfile(root,ticker,sb){
  try{
   let info=cache.get(ticker);
   if(!info){
-   const [article,facts]=await Promise.all([wikiProfile(name),referenceFacts(ticker)]);
+   const [facts,article]=await Promise.all([referenceFacts(ticker),wikiProfile(name)]);
    info=article?mergeReference(article,facts):(facts&&facts.name?{
-    title:facts.name,intro:'Publicly listed company profile. Detailed description awaits independent verification.',
+    title:facts.name,intro:facts.summary||'Publicly listed company profile. Detailed description awaits independent verification.',
     focus:[facts.sector,facts.industry].filter(Boolean).join(' · ')||'Publicly listed company',
-    business:null,industry:facts.industry||facts.sector||null,
+    business:facts.summary||null,industry:facts.industry||facts.sector||null,
     headquarters:[facts.city,facts.state,facts.country].filter(Boolean).join(', ')||null,
     listing:facts.exchange||ticker,website:siteURL(facts.website),referenceUsed:true,
     source:'https://github.com/JerBouma/FinanceDatabase',revision:null
