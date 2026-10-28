@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ORCA AI Company Profile Pilot</title>
+<style>
+:root{font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:#193a43;background:#f2f7f8}
+*{box-sizing:border-box}body{margin:0}.wrap{max-width:840px;margin:32px auto;padding:0 18px}
+header{background:#092733;color:#fff;padding:22px;border-radius:15px}header small{letter-spacing:.12em;color:#66ddbb;font-weight:800}
+h1{font-size:30px;margin:8px 0}h2{font-size:19px;margin:0 0 11px}a{color:#0b7564}
+.card{padding:20px;border:1px solid #d8e6e9;border-radius:14px;background:#fff;margin-top:15px}
+button{font:inherit;background:#0e7163;color:#fff;border:0;border-radius:9px;padding:12px 16px;font-weight:700;cursor:pointer}
+button:disabled{opacity:.5;cursor:not-allowed}
+label{display:flex;gap:9px;align-items:start;margin:13px 0}input{width:18px;height:18px;flex-shrink:0}
+.muted{color:#576e78;font-size:14px}.error{color:#a12e30}.ok{color:#1c6448}
+section.detail{margin:15px 0;padding:14px;border:1px solid #d9e8e9;border-radius:9px}
+section.detail p{white-space:pre-wrap;line-height:1.55}section.detail ul{font-size:13px;overflow-wrap:anywhere}
+@media(max-width:550px){h1{font-size:24px}}
+</style></head><body><main class="wrap">
+<header><small>ORCA STAGING · PRIVATE REVIEW</small><h1>AI Company Profile Builder</h1><p>Intel pilot · official-source web research · no automatic publishing</p></header>
+<div class="card"><h2>Step 1 · Confirm your connection</h2><p id="auth">Checking your ORCA session…</p><p class="muted">Sign into the existing <strong>ORCA Test Researcher 1</strong> account on the staging website. No second account is needed.</p><a id="signin" href="./account.html?environment=orca-staging&returnTo=orca-ai-profile-pilot.html">Sign in to ORCA staging</a></div>
+<div class="card"><h2>Step 2 · Check API configuration</h2><p id="configured">Checking secure API configuration…</p><p class="muted">The OpenAI API key must be stored in Supabase Edge Function Secrets as <code>OPENAI_API_KEY</code>. Never paste it into this website or chat.</p></div>
+<div class="card"><h2>Step 3 · Generate one Intel draft</h2><p class="muted">One authorized, billable request. Maximum two web searches. One attempt per ticker; no automatic retry. Even failures may incur provider charges. Drafts are for manual review only.</p>
+<label><input id="confirm" type="checkbox"><span>I approve spending API credits for this one Intel company-profile test.</span></label>
+<button id="run" disabled>Generate Intel draft (one paid test)</button>
+<p id="status" aria-live="polite"></p></div>
+<div class="card" id="results" hidden><h2>Research draft — not published</h2><div id="draft"></div></div>
+<p class="muted"><a href="./research-workspace.html?environment=orca-staging&ticker=INTC">Return to ORCA staging</a> · This page never updates the public company profile.</p>
+</main>
+<script type="module">
+import {selectSupabaseConfig} from './orca-staging-config.js';
+const el=id=>document.getElementById(id);
+let sb=null,ready=false,hasKey=false,hasRun=false;
+const fields=[['overview','Company overview'],['business_focus','Business focus'],['what_they_do','What they do'],['how_they_do_it','How they do it']];
+function node(parent,tag,value){const d=document.createElement(tag);if(value!=null)d.textContent=String(value);parent.appendChild(d);return d}
+function update(){el('run').disabled=!(ready&&hasKey&&!hasRun&&el('confirm').checked)}
+async function status(){
+ if(!sb)return;
+ const {data:{user}}=await sb.auth.getUser();
+ if(!user){el('auth').textContent='Not signed in. Open staging sign-in above.';el('configured').textContent='Sign in first to check configuration.';return}
+ const {data,error}=await sb.functions.invoke('orca-ai-profile-pilot',{method:'GET'});
+ if(error||!data){el('auth').textContent='Signed into Supabase, but not authorized as ORCA Test Researcher 1. Use the correct account.';el('configured').textContent='Configuration not available.';return}
+ ready=true;hasKey=data.configured===true;
+ el('auth').textContent='Connected as authorized ORCA Test Researcher 1.';
+ el('configured').textContent=hasKey?'OpenAI API key is securely configured.':'OpenAI API key is NOT configured yet. Add it to Supabase Edge Function Secrets.';
+ const run=(data.runs||[]).find(x=>x.ticker==='INTC');
+ hasRun=Boolean(run);
+ if(run){el('status').textContent='Intel has an existing '+run.status+' pilot record. No additional charge will be requested.';if(run.output?.draft)render(run.output.draft,run.output.flags||[],run.usage)}
+ update()
+}
+function render(draft,flags,usage){
+ el('results').hidden=false;
+ const root=el('draft');root.replaceChildren();
+ for(const [key,label] of fields){
+ const section=node(root,'section');section.className='detail';node(section,'h3',label);
+ const field=draft?.[key]||{};
+ node(section,'p',field.text||'No sourced fact was established.');
+ const links=node(section,'ul');
+ for(const url of field.source_urls||[]){const li=node(links,'li'),a=node(li,'a','View official source');try{const dest=new URL(url);if(dest.protocol==='https:'){a.href=dest.href;a.rel='noopener noreferrer';a.target='_blank'}}catch{}}
+ node(section,'small','Source date: '+(field.source_date||'Not available'));
+ }
+ const end=node(root,'section');end.className='detail';node(end,'h3','Quality checks (human review required)');
+ for(const flag of flags)node(end,'p','• '+flag);
+ if(usage)node(end,'p','API estimated usage cost: $'+String(usage.estimated_usd??'unknown')+'; actual billing may differ.');
+}
+async function run(){
+ if(el('run').disabled)return;
+ hasRun=true;update();
+ el('status').textContent='One authorized generation request submitted. No automatic retries.';
+ try{const {data,error}=await sb.functions.invoke('orca-ai-profile-pilot',{body:{ticker:'INTC'}});
+ if(error||!data){el('status').textContent='Request failed or was rejected. Refresh to check the saved pilot status. Do not trigger another run.';return}
+ el('status').textContent=data.status==='needs_review'?'Intel draft saved for review. No company page changed.':(data.error||data.error_code||'Result unavailable. No automatic retry.');
+ if(data.draft)render(data.draft,data.review_flags||[],data.usage);
+ }catch{el('status').textContent='Request error. Refresh to check status; no automatic retry.'}
+}
+el('confirm').addEventListener('change',update);
+el('run').addEventListener('click',run);
+try{
+ const config=await selectSupabaseConfig();
+ const mod=await import('https://esm.sh/@supabase/supabase-js@2');
+ sb=mod.createClient(config.projectUrl,config.publishableKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+ await status();
+}catch{el('auth').textContent='Could not initialize ORCA session. Reload the page.'}
+</script></body></html>
