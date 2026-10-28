@@ -530,13 +530,16 @@ function renderOrcaBrief(){
  copy.onclick=()=>{
   const address=new URL(location.href);address.hash='collective-research-dashboard';
   const prompt=formatOrcaChatQuestion(brief,address.href);
-  navigator.clipboard?.writeText(prompt).then(()=>{
+  if(navigator.clipboard&&typeof navigator.clipboard.writeText==='function')navigator.clipboard.writeText(prompt).then(()=>{
    const previous=copy.textContent;copy.textContent='Copied research question';setTimeout(()=>copy.textContent=previous,2200);
-  }).catch(()=>{
+  }).catch(showCopyFallback);
+  else showCopyFallback();
+  function showCopyFallback(){
+   const previous=root.querySelector('.orca-brief-copy-fallback');if(previous)previous.remove();
    const fallback=document.createElement('textarea');fallback.className='orca-brief-copy-fallback';
    fallback.readOnly=true;fallback.value=prompt;root.append(fallback);fallback.focus();fallback.select();
-   status.textContent='Copy access was blocked. Select the displayed research question and copy it manually.';
-  });
+   status.textContent='Automatic copying is unavailable. Select the displayed research question and copy it manually.';
+  }
  };
 }
 function renderFindings(){const root=$('findings'),opened=keepOpen(root),ordered=recentFirst(findings,'published_at');root.replaceChildren();if(!ordered.length){root.textContent='No public research yet.';return;}root.append(renderFinding(ordered[0]));if(ordered.length>1)root.append(folded('Previous findings',ordered.slice(1).map(renderFinding),'all-history'));restoreOpen(root,opened);}
