@@ -143,73 +143,152 @@ async function wikiProfile(registeredName){
   intro, business:business||null,source:article.content_urls.desktop.page,
   revision:article.timestamp||null,image,...details};
 }
-function fallback(root,ticker,name,reason){
+// The ONE layout for every ORCA stock. All profile inputs are company-specific data.
+// Layout, section headings, typography classes and photo placement live only here.
+export function renderUnifiedCompanyProfile(root,ticker,profile={}){
  root.replaceChildren();
- $(root,'p','company-eyebrow','ABOUT THE COMPANY');
- $(root,'h2','company-name',name||ticker);
- $(root,'p','company-description',reason);
- $(root,'p','company-auto-notice','Company facts and photographs are shown only when their sources can be verified. The chart and research workspace remain usable.');
- urlLink(root,'Join the research team','https://jonfordy5.github.io/orca-staging/join-research.html?environment=orca-staging&ticker='+encodeURIComponent(ticker));
-}
-function render(root,company,ticker){
- root.replaceChildren();
+ const name=String(profile.name||ticker);
+ const description=String(profile.description||'A verified company overview is not available yet.');
+ const missionText=String(profile.mission||'Official company mission or focus has not yet been verified.');
+ const operations=String(profile.operations||'An independently sourced description of this company’s activities is not yet available.');
+ const lines=Array.isArray(profile.businessLines)?profile.businessLines:[];
  const layout=$(root,'div','company-profile-grid');
  const body=$(layout,'div','company-profile-copy');
- $(body,'p','company-eyebrow','ABOUT THE COMPANY · SOURCED OVERVIEW');
- $(body,'h2','company-name',company.title);
- $(body,'p','company-description',company.intro);
+ $(body,'p','company-eyebrow',profile.eyebrow||'ABOUT THE COMPANY');
+ $(body,'h2','company-name',name);
+ $(body,'p','company-description',description);
  const mission=$(body,'div','company-mission');
- $(mission,'strong',null,'Company focus');
- $(mission,'p',null,company.focus);
- $(mission,'small','company-auto-notice','Source description — not an official company mission statement.');
+ $(mission,'strong',null,profile.missionHeading||'Mission');
+ $(mission,'p',null,missionText);
+ if(profile.missionNote)$(mission,'small','company-auto-notice',profile.missionNote);
  const facts=$(body,'dl','company-facts');
- for(const [label,value] of [['Headquarters',company.headquarters],['Founded',company.founded],['Industry',company.industry],['Listing',ticker]]){
+ for(const [title,value] of [
+  ['Headquarters',profile.headquarters],
+  ['Founded',profile.founded],
+  ['Founder & CEO',profile.founderCEO],
+  ['Industry',profile.industry],
+  ['Listing',profile.listing||ticker]
+ ]){
   if(!value)continue;
   const entry=$(facts,'div','company-fact');
-  $(entry,'dt',null,label);$(entry,'dd',null,value);
+  $(entry,'dt',null,title);$(entry,'dd',null,String(value));
  }
- const about=$(body,'div','company-business');
- $(about,'strong',null,'What they do');
- $(about,'p',null,company.business||company.intro);
+ const what=$(body,'div','company-business');
+ $(what,'strong',null,'What they do');
+ $(what,'p',null,operations);
  const breakdown=$(body,'section','company-business-breakdown');
- const head=$(breakdown,'div','company-business-heading');
- $(head,'h3',null,'How they do it');
- $(breakdown,'p','company-description',company.business||'Detailed operations and revenue segments still need verification in primary company filings.');
- const disclaimer=$(body,'p','company-auto-notice','This is an attributed encyclopedia overview, not an audited breakdown of products, segments or revenue. Independent agent research is shown below.');
+ const heading=$(breakdown,'div','company-business-heading');
+ $(heading,'h3',null,'How they do it');
+ if(profile.businessSource)urlLink(heading,profile.businessSourceLabel||'Company filings',profile.businessSource);
+ if(lines.length){
+  for(const item of lines){
+   if(!item?.name||!item?.detail)continue;
+   const block=$(breakdown,'div','company-business-line');
+   $(block,'h4',null,String(item.name));
+   $(block,'p',null,String(item.detail));
+  }
+ }else $(breakdown,'p','company-description',profile.how||'Detailed operating segments have not yet been verified.');
+ if(profile.investorFocus){
+  const focus=$(body,'section','company-investor-focus');
+  $(focus,'h3',null,profile.investorFocusHeading||'What investors watch');
+  $(focus,'p',null,String(profile.investorFocus));
+ }
+ if(profile.notice)$(body,'p','company-auto-notice',profile.notice);
  const side=$(layout,'aside','company-visual');
- const logoFrame=$(side,'div','company-logo-frame');
- const logoFallback=$(logoFrame,'span','company-logo-fallback',ticker);
- if(company.logo){
-  const logoLink=$(logoFrame,'a');logoLink.href=company.logo.source;logoLink.target='_blank';logoLink.rel='noopener noreferrer';logoLink.setAttribute('aria-label','Company logo source and license');
-  const img=$(logoLink,'img');img.src=company.logo.url;img.alt=company.title+' verified Wikimedia Commons logo';img.loading='lazy';img.decoding='async';img.referrerPolicy='no-referrer';
-  img.addEventListener('load',()=>{logoFallback.hidden=true;});
-  img.addEventListener('error',()=>{img.hidden=true;logoFallback.hidden=false;});
-  $(side,'p','company-visual-caption','Company logo · '+company.logo.license+' · linked to source');
- }else $(side,'p','company-visual-caption','Ticker mark · verified logo unavailable');
- if(company.headquarters){
+ const frame=$(side,'div','company-logo-frame');
+ const fallback=$(frame,'span','company-logo-fallback',ticker);
+ const logo=profile.logo;
+ if(logo?.url){
+  let mediaHost=frame;
+  if(logo.source){
+   const link=$(frame,'a');
+   const sourceURL=safeURL(logo.source);
+   if(sourceURL){
+    link.href=sourceURL;link.target='_blank';link.rel='noopener noreferrer';
+    link.setAttribute('aria-label','Company logo source and credit');
+    mediaHost=link;
+   }
+  }
+  const img=$(mediaHost,'img');
+  img.src=logo.url;
+  img.alt=logo.alt||name+' company logo';
+  img.loading='lazy';img.decoding='async';img.referrerPolicy='no-referrer';
+  img.addEventListener('load',()=>{fallback.hidden=true;});
+  img.addEventListener('error',()=>{img.hidden=true;fallback.hidden=false;});
+  $(side,'p','company-visual-caption',logo.caption||'Company logo · linked to source when verified');
+ }else $(side,'p','company-visual-caption','Company logo not verified · ticker shown instead');
+ if(profile.headquartersAddress||profile.headquarters){
   const hq=$(side,'p','company-address');
-  $(hq,'strong',null,'HQ: ');hq.append(document.createTextNode(company.headquarters));
+  $(hq,'strong',null,'HQ: ');
+  hq.append(document.createTextNode(String(profile.headquartersAddress||profile.headquarters)));
  }
  const links=$(side,'div','company-source-links');
- urlLink(links,'Official website',company.website);
- urlLink(links,'Company overview',company.source);
- urlLink(links,'Company facts',company.wikidataURL);
- if(company.secCIK)urlLink(links,'SEC filings','https://www.sec.gov/edgar/browse/?CIK='+encodeURIComponent(company.secCIK));
- $(side,'p','company-asof','External company links are included only when independently identified. Investor-relations and leadership links are omitted unless verified.');
- if(company.image){
-  const picture=$(side,'figure','company-activity-photo');
-  const a=$(picture,'a');a.href=company.image.source;a.target='_blank';a.rel='noopener noreferrer';
-  const img=$(a,'img');img.src=company.image.url;img.loading='lazy';img.referrerPolicy='no-referrer';
-  img.alt='Public Wikimedia Commons photograph related to '+company.title+': '+company.image.caption;
-  const caption=$(picture,'figcaption');
-  caption.append(document.createTextNode(company.image.caption+' · '+company.image.credit+' · '+company.image.license+' · '));
-  urlLink(caption,'Photo source',company.image.source);
- }else{
-  $(side,'p','company-asof','No clearly licensed company photograph was confirmed automatically. ORCA has not substituted an unrelated picture.');
+ for(const link of profile.links||[]){
+  if(link?.label&&link.url)urlLink(links,String(link.label),link.url);
  }
- $(side,'p','company-asof','Company overview: Wikipedia contributors (CC BY-SA). Company facts: Wikidata contributors (CC0).');
- urlLink(side,'Source article',company.source);
- if(company.revision)$(side,'p','company-asof','Source updated '+new Date(company.revision).toLocaleDateString());
+ if(!links.childElementCount)$(side,'p','company-asof','Verified company links are not yet available.');
+ if(profile.sourceNote)$(side,'p','company-asof',profile.sourceNote);
+ const photo=profile.photo;
+ if(photo?.url&&photo?.source){
+  const picture=$(side,'figure','company-activity-photo');
+  const link=$(picture,'a');
+  const origin=safeURL(photo.source);
+  if(origin){link.href=origin;link.target='_blank';link.rel='noopener noreferrer';}
+  const img=$(link,'img');
+  img.src=photo.url;img.alt=photo.alt||('Company-related image: '+(photo.caption||name));
+  img.loading='lazy';img.decoding='async';img.referrerPolicy='no-referrer';
+  const missing=$(link,'span','company-photo-unavailable','Open the original company photograph at its source');
+  missing.hidden=true;
+  img.addEventListener('error',()=>{img.hidden=true;missing.hidden=false;});
+  const credit=$(picture,'figcaption');
+  credit.append(document.createTextNode([photo.caption,photo.credit,photo.license].filter(Boolean).join(' · ')+' · '));
+  urlLink(credit,'Photo source',photo.source);
+ }else $(side,'p','company-asof','No verified source-linked company photograph is currently available.');
+ if(profile.sourceUpdated){
+  const date=new Date(profile.sourceUpdated);
+  if(!Number.isNaN(date.getTime()))$(side,'p','company-asof','Source updated '+date.toLocaleDateString());
+ }
+}
+function safeURL(url){
+ try{
+  const parsed=new URL(url);
+  return parsed.protocol==='https:'?parsed.href:null;
+ }catch{return null;}
+}
+function fallback(root,ticker,name,reason){
+ renderUnifiedCompanyProfile(root,ticker,{
+  name:name||ticker,description:reason,missionHeading:'Company focus',
+  missionNote:'Not an official mission statement until independently verified.',
+  operations:'Company operations pending independent verification.',
+  how:'The research board can still be used while verified operating details are collected.',
+  links:[{label:'Join the research team',url:'https://jonfordy5.github.io/orca-staging/join-research.html?environment=orca-staging&ticker='+encodeURIComponent(ticker)}],
+  notice:'No company facts or images have been invented to fill missing fields.'
+ });
+}
+function render(root,company,ticker){
+ renderUnifiedCompanyProfile(root,ticker,{
+  name:company.title,description:company.intro,
+  eyebrow:'ABOUT THE COMPANY · SOURCED OVERVIEW',
+  missionHeading:'Company focus',mission:company.focus,
+  missionNote:'Publicly sourced company description; not a verified official mission statement.',
+  headquarters:company.headquarters,founded:company.founded,industry:company.industry,
+  listing:ticker,operations:company.business||company.intro,
+  how:company.business||'Detailed operating segments still need verification in primary company filings.',
+  businessSource:company.source,businessSourceLabel:'Company overview source',
+  investorFocus:'Company-specific investment catalysts and financial results require independent research using filings and dated sources.',
+  investorFocusHeading:'What investors watch',
+  notice:'Source-backed encyclopedia profile, not an audited financial or business segment breakdown.',
+  logo:company.logo?{...company.logo,alt:company.title+' sourced company logo',caption:'Company logo · '+company.logo.license+' · linked to source'}:null,
+  photo:company.image?{...company.image,alt:'Company-related Commons photo: '+company.image.caption}:null,
+  links:[
+   {label:'Official website',url:company.website},
+   {label:'Company overview',url:company.source},
+   {label:'Company facts',url:company.wikidataURL},
+   {label:'SEC filings',url:company.secCIK?'https://www.sec.gov/edgar/browse/?CIK='+encodeURIComponent(company.secCIK):null}
+  ],
+  sourceNote:'Company overview: Wikipedia contributors (CC BY-SA). Company facts: Wikidata contributors (CC0).',
+  sourceUpdated:company.revision
+ });
 }
 export async function renderAutomaticCompanyProfile(root,ticker,sb){
  fallback(root,ticker,ticker,'Loading the verified company listing…');
