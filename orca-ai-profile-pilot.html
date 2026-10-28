@@ -36,7 +36,7 @@ async function status(){
  const {data:{user}}=await sb.auth.getUser();
  if(!user){el('auth').textContent='Not signed in. Open staging sign-in above.';el('configured').textContent='Sign in first to check configuration.';return}
  const {data,error}=await sb.functions.invoke('orca-ai-profile-pilot',{method:'GET'});
- if(error||!data){el('auth').textContent='Signed into Supabase, but not authorized as ORCA Test Researcher 1. Use the correct account.';el('configured').textContent='Configuration not available.';return}
+ if(error||!data){el('auth').textContent='Signed in, but the profile API check failed. This does not prove your account is wrong.';el('configured').textContent='Connection or authorization check failed. No paid request was made.';return}
  ready=true;hasKey=data.configured===true;
  el('auth').textContent='Connected as authorized ORCA Test Researcher 1.';
  el('configured').textContent=hasKey?'OpenAI API key is securely configured.':'OpenAI API key is NOT configured yet. Add it to Supabase Edge Function Secrets.';
