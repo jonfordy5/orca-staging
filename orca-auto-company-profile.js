@@ -389,7 +389,19 @@ async function loadOrcaAiDescription(root,ticker,sb,base){
  };
  let data=null;
  try{const r=await fetch(endpoint,{cache:'no-store'});if(r.ok)data=await r.json();}catch{}
- if(usable(data)||data?.state==='building'||data?.state==='failed'||data?.limit_reached){display(data);return;}
+ if(usable(data)){
+  display(data);
+  if(!data.refresh_due)return;
+  try{
+   const {data:{session}}=await sb.auth.getSession();
+   if(!session?.access_token)return;
+   const config=await (await import('./orca-staging-config.js')).selectSupabaseConfig();
+   const response=await fetch(endpoint,{method:'POST',headers:{apikey:config.publishableKey,Authorization:'Bearer '+session.access_token,'Content-Type':'application/json'},body:'{}'});
+   if(response.ok){const fresh=await response.json();if(usable(fresh))display(fresh);}
+  }catch{/* Keep the last good company description; never automatically retry. */}
+  return;
+ }
+ if(data?.state==='building'||data?.state==='failed'||data?.limit_reached){display(data);return;}
  if(data?.state!=='missing'){display(data);return;}
  try{
   const {data:{session}}=await sb.auth.getSession();
