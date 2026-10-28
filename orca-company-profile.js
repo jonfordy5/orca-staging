@@ -42,6 +42,23 @@ async function findPublicProfile(name){
  if(!data.extract||String(data.extract).length<50)return null;
  return {description:String(data.extract).slice(0,900),source:data.content_urls?.desktop?.page||null};
 }
+async function sourcedCompanyPhoto(pageUrl){
+ if(!pageUrl)return null;
+ try{
+  const title=decodeURIComponent(new URL(pageUrl).pathname.split('/').pop()).replace(/_/g,' ');
+  const endpoint=new URL('https://en.wikipedia.org/w/api.php');
+  for(const [key,value] of Object.entries({action:'query',format:'json',origin:'*',prop:'pageimages',piprop:'name',titles:title}))endpoint.searchParams.set(key,value);
+  const result=await (await fetch(endpoint)).json();
+  const imageName=Object.values(result.query?.pages||{})[0]?.pageimage;
+  if(!imageName||/logo|icon|symbol|wordmark/i.test(imageName))return null;
+  const api=new URL('https://commons.wikimedia.org/w/api.php');
+  for(const [key,value] of Object.entries({action:'query',format:'json',origin:'*',prop:'imageinfo',iiprop:'url|extmetadata',iiurlwidth:'600',titles:'File:'+imageName}))api.searchParams.set(key,value);
+  const info=Object.values((await (await fetch(api)).json()).query?.pages||{})[0]?.imageinfo?.[0];
+  const license=String(info?.extmetadata?.LicenseShortName?.value||'');
+  if(!/CC BY|CC0|Public domain|PD-/i.test(license)||!info?.descriptionurl)return null;
+  return {url:info.thumburl||info.url,source:info.descriptionurl,caption:imageName.replace(/_/g,' '),license};
+ }catch{return null;}
+}
 const add=(parent,tag,className,text)=>{const e=document.createElement(tag);if(className)e.className=className;if(text!==undefined)e.textContent=text;parent.append(e);return e;};
 export async function renderCompanyProfile(ticker,sb=null){
  const root=document.getElementById('company-profile');
@@ -74,6 +91,14 @@ export async function renderCompanyProfile(ticker,sb=null){
       add(root,'h3','company-auto-operations','How they do it');
       add(root,'p','company-description','For verified business segments, see original corporate filings and research findings.');
       if(overview.source){const source=add(root,'a',null,'Company profile source');source.href=overview.source;source.target='_blank';source.rel='noopener noreferrer';}
+      const photo=await sourcedCompanyPhoto(overview.source);
+      if(photo){
+       const figure=add(root,'figure','company-activity-photo');
+       const link=add(figure,'a');link.href=photo.source;link.target='_blank';link.rel='noopener noreferrer';
+       const img=add(link,'img');img.src=photo.url;img.alt=photo.caption;img.loading='lazy';
+       const credit=add(figure,'figcaption',null);credit.textContent=photo.caption+' · '+photo.license+' · ';
+       const source=add(credit,'a',null,'Photo source');source.href=photo.source;source.target='_blank';source.rel='noopener noreferrer';
+      }else add(root,'p','company-asof','A properly sourced company photograph was not available. No substitute image is shown.');
       note.textContent='Automatically sourced company profile; company focus is not a verified official mission statement.';
      }else note.textContent='No matching source-backed company overview was confirmed. Chart and research remain available.';
     }catch{note.textContent='Company source temporarily unavailable; no unverified profile will be shown.';}
