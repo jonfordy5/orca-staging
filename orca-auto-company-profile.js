@@ -54,31 +54,81 @@ function artistText(html){
  const node=document.createElement('div');node.textContent=String(html||'').replace(/<[^>]*>/g,' ').replace(/&nbsp;/g,' ').replace(/&amp;/g,'&');
  return node.textContent.replace(/\s+/g,' ').trim().slice(0,100);
 }
+// Commons licensing and descriptive credit are checked before displaying any media.
+async function commonsFile(file,{logo=false}={}){
+ if(typeof file!=='string'||!/^[^<>]{1,250}\.(?:svg|png|jpe?g|webp)$/i.test(file))return null;
+ if(!logo&&/(logo|icon|seal|flag|wordmark|symbol|emblem)/i.test(file))return null;
+ const api=new URL('https://commons.wikimedia.org/w/api.php');
+ for(const [k,v] of Object.entries({action:'query',format:'json',origin:'*',prop:'imageinfo',iiprop:'url|extmetadata',iiurlwidth:720,titles:'File:'+file}))api.searchParams.set(k,v);
+ try{
+  const d=await requestJson(api.href),p=Object.values(d.query?.pages||{})[0],i=p?.imageinfo?.[0];
+  const license=String(i?.extmetadata?.LicenseShortName?.value||''),url=i?.thumburl||i?.url,source=i?.descriptionurl;
+  if(!licenseAllowed(license)||!url||!source)return null;
+  const imageURL=new URL(url),sourceURL=new URL(source);
+  if(imageURL.protocol!=='https:'||!/(^|\.)wikimedia\.org$/.test(imageURL.hostname)
+     ||sourceURL.protocol!=='https:'||sourceURL.hostname!=='commons.wikimedia.org')return null;
+  return {url:imageURL.href,source:sourceURL.href,license,credit:artistText(i.extmetadata?.Artist?.value)||'Wikimedia Commons contributor',
+    caption:file.replace(/_/g,' ').replace(/\.[^.]+$/,'')};
+ }catch{return null;}
+}
 async function sourcedPhoto(article){
- // Resolve article lead-image filename, then independently verify Commons license/source.
  const api=new URL('https://en.wikipedia.org/w/api.php');
- for(const [k,v] of Object.entries({action:'query',format:'json',origin:'*',prop:'pageimages',piprop:'name',titles:article.title}))
-  api.searchParams.set(k,v);
- let imageName=null;
+ for(const [k,v] of Object.entries({action:'query',format:'json',origin:'*',prop:'pageimages',piprop:'name',titles:article.title}))api.searchParams.set(k,v);
  try{
   const d=await requestJson(api.href);
-  imageName=Object.values(d.query?.pages||{})[0]?.pageimage||null;
+  const file=Object.values(d.query?.pages||{})[0]?.pageimage;
+  return await commonsFile(file);
  }catch{return null;}
- if(!imageName||!/\.(?:png|jpe?g|webp)$/i.test(imageName)||/(logo|icon|seal|flag|wordmark|symbol|emblem)/i.test(imageName))return null;
- const commons=new URL('https://commons.wikimedia.org/w/api.php');
- for(const [k,v] of Object.entries({action:'query',format:'json',origin:'*',prop:'imageinfo',iiprop:'url|extmetadata',iiurlwidth:720,titles:'File:'+imageName}))
-  commons.searchParams.set(k,v);
+}
+function valueOf(entity,property){
+ const claims=entity?.claims?.[property];
+ if(!Array.isArray(claims))return null;
+ const row=claims.find(x=>x.rank==='preferred'&&x.mainsnak?.datavalue)
+   ||claims.find(x=>x.rank!=='deprecated'&&x.mainsnak?.datavalue);
+ return row?.mainsnak?.datavalue?.value??null;
+}
+function namedItem(value){return typeof value?.id==='string'&&/^Q\d+$/.test(value.id)?value.id:null;}
+async function wikidataEntities(ids,props='labels|descriptions|claims'){
+ const valid=[...new Set(ids.filter(id=>/^Q\d+$/.test(id||'')))].slice(0,8);
+ if(!valid.length)return {};
+ const u=new URL('https://www.wikidata.org/w/api.php');
+ for(const [k,v] of Object.entries({action:'wbgetentities',format:'json',origin:'*',languages:'en',props,ids:valid.join('|')}))u.searchParams.set(k,v);
+ const r=await requestJson(u.href);return r.entities||{};
+}
+function siteURL(s){
+ if(typeof s!=='string')return null;
+ try{const u=new URL(s);return u.protocol==='https:'&&u.hostname.includes('.')?u.href:null;}catch{return null;}
+}
+function foundedYear(v){
+ const match=typeof v?.time==='string'&&/^\+?(-?\d{4})/.exec(v.time);
+ return match?match[1]:null;
+}
+function firstHqFromArticle(intro){
+ const phrase=/(?:headquartered|headquarters (?:are|is) (?:based|located))\s+in\s+([A-Z][A-Za-z .'-]{2,65},\s*[A-Z][A-Za-z .'-]{2,60})(?:,|\s|\.|$)/.exec(intro);
+ return phrase?phrase[1].trim():null;
+}
+async function wikidataCompany(article,intro){
+ const id=article?.wikibase_item;
+ if(!/^Q\d+$/.test(id||''))return {};
  try{
-  const d=await requestJson(commons.href);
-  const page=Object.values(d.query?.pages||{})[0],i=page?.imageinfo?.[0];
-  const license=i?.extmetadata?.LicenseShortName?.value;
-  const url=i?.thumburl||i?.url,source=i?.descriptionurl;
-  if(!licenseAllowed(license)||!url||!source)return null;
-  if(!/^https:\/\/(?:upload\.wikimedia\.org|thumb\.wikimedia\.org)\//i.test(url))return null;
-  if(!/^https:\/\/commons\.wikimedia\.org\//i.test(source))return null;
-  return {url,source,license,credit:artistText(i.extmetadata?.Artist?.value)||'Wikimedia Commons contributor',
-    caption:imageName.replace(/_/g,' ').replace(/\.[^.]+$/,'')};
- }catch{return null;}
+  const entities=await wikidataEntities([id]);
+  const entity=entities[id];
+  if(!entity)return {};
+  const hqId=namedItem(valueOf(entity,'P159'));
+  const industryId=namedItem(valueOf(entity,'P452'));
+  const links=await wikidataEntities([hqId,industryId],'labels');
+  const label=q=>links[q]?.labels?.en?.value||null;
+  const homepage=siteURL(valueOf(entity,'P856'));
+  const logoName=valueOf(entity,'P154');
+  const logo=await commonsFile(logoName,{logo:true});
+  const cik=String(valueOf(entity,'P1278')||'').trim();
+  return {
+   website:homepage,logo,headquarters:label(hqId)||firstHqFromArticle(intro),
+   founded:foundedYear(valueOf(entity,'P571')),industry:label(industryId),
+   secCIK:/^\d{1,10}$/.test(cik)?cik:null,
+   wikidataURL:'https://www.wikidata.org/wiki/'+id
+  };
+ }catch{return {headquarters:firstHqFromArticle(intro)};}
 }
 function sentences(text){return String(text||'').replace(/\s+/g,' ').trim().match(/[^.!?]+[.!?]+(?:\s|$)|[^.!?]+$/g)?.map(s=>s.trim()).filter(Boolean)||[];}
 async function wikiProfile(registeredName){
@@ -88,10 +138,10 @@ async function wikiProfile(registeredName){
  const intro=parts.slice(0,2).join(' ').slice(0,420)||article.extract.slice(0,420);
  const actionable=parts.filter(s=>/\b(?:designs?|builds?|manufactures?|develops?|operates?|provides?|supplies?|sells?|markets?|offers?|produces?|serves?)\b/i.test(s));
  const business=actionable.slice(0,2).join(' ').slice(0,420);
- const image=await sourcedPhoto(article);
- return {title:registeredName,focus:article.description||'Publicly listed company',
+ const [image,details]=await Promise.all([sourcedPhoto(article),wikidataCompany(article,article.extract||'')]);
+ return {title:listingBase(registeredName),focus:article.description||'Publicly listed company',
   intro, business:business||null,source:article.content_urls.desktop.page,
-  revision:article.timestamp||null,image};
+  revision:article.timestamp||null,image,...details};
 }
 function fallback(root,ticker,name,reason){
  root.replaceChildren();
@@ -112,8 +162,12 @@ function render(root,company,ticker){
  $(mission,'strong',null,'Company focus');
  $(mission,'p',null,company.focus);
  $(mission,'small','company-auto-notice','Source description — not an official company mission statement.');
- const facts=$(body,'dl','company-facts'),entry=$(facts,'div','company-fact');
- $(entry,'dt',null,'LISTING');$(entry,'dd',null,ticker);
+ const facts=$(body,'dl','company-facts');
+ for(const [label,value] of [['Headquarters',company.headquarters],['Founded',company.founded],['Industry',company.industry],['Listing',ticker]]){
+  if(!value)continue;
+  const entry=$(facts,'div','company-fact');
+  $(entry,'dt',null,label);$(entry,'dd',null,value);
+ }
  const about=$(body,'div','company-business');
  $(about,'strong',null,'What they do');
  $(about,'p',null,company.business||company.intro);
@@ -123,6 +177,25 @@ function render(root,company,ticker){
  $(breakdown,'p','company-description',company.business||'Detailed operations and revenue segments still need verification in primary company filings.');
  const disclaimer=$(body,'p','company-auto-notice','This is an attributed encyclopedia overview, not an audited breakdown of products, segments or revenue. Independent agent research is shown below.');
  const side=$(layout,'aside','company-visual');
+ const logoFrame=$(side,'div','company-logo-frame');
+ const logoFallback=$(logoFrame,'span','company-logo-fallback',ticker);
+ if(company.logo){
+  const logoLink=$(logoFrame,'a');logoLink.href=company.logo.source;logoLink.target='_blank';logoLink.rel='noopener noreferrer';logoLink.setAttribute('aria-label','Company logo source and license');
+  const img=$(logoLink,'img');img.src=company.logo.url;img.alt=company.title+' verified Wikimedia Commons logo';img.loading='lazy';img.decoding='async';img.referrerPolicy='no-referrer';
+  img.addEventListener('load',()=>{logoFallback.hidden=true;});
+  img.addEventListener('error',()=>{img.hidden=true;logoFallback.hidden=false;});
+  $(side,'p','company-visual-caption','Company logo · '+company.logo.license+' · linked to source');
+ }else $(side,'p','company-visual-caption','Ticker mark · verified logo unavailable');
+ if(company.headquarters){
+  const hq=$(side,'p','company-address');
+  $(hq,'strong',null,'HQ: ');hq.append(document.createTextNode(company.headquarters));
+ }
+ const links=$(side,'div','company-source-links');
+ urlLink(links,'Official website',company.website);
+ urlLink(links,'Company overview',company.source);
+ urlLink(links,'Company facts',company.wikidataURL);
+ if(company.secCIK)urlLink(links,'SEC filings','https://www.sec.gov/edgar/browse/?CIK='+encodeURIComponent(company.secCIK));
+ $(side,'p','company-asof','External company links are included only when independently identified. Investor-relations and leadership links are omitted unless verified.');
  if(company.image){
   const picture=$(side,'figure','company-activity-photo');
   const a=$(picture,'a');a.href=company.image.source;a.target='_blank';a.rel='noopener noreferrer';
@@ -134,7 +207,7 @@ function render(root,company,ticker){
  }else{
   $(side,'p','company-asof','No clearly licensed company photograph was confirmed automatically. ORCA has not substituted an unrelated picture.');
  }
- $(side,'p','company-asof','Company overview from Wikipedia contributors (CC BY-SA); check the dated source for accuracy.');
+ $(side,'p','company-asof','Company overview: Wikipedia contributors (CC BY-SA). Company facts: Wikidata contributors (CC0).');
  urlLink(side,'Source article',company.source);
  if(company.revision)$(side,'p','company-asof','Source updated '+new Date(company.revision).toLocaleDateString());
 }
