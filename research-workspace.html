@@ -757,7 +757,9 @@ function outlookFailureMessage(error){
  return 'Submission failed. No interpretation was published; your draft is retained. '+detail;
 }
 async function submitOutlook(event){
- event.preventDefault();return; // Formal prediction submissions disabled in quick-reference staging.if(!isOrcaStaging||!user||!ready||outlookSubmitting)return;
+ event.preventDefault();
+ return; // Formal prediction submissions disabled in quick-reference staging.
+ if(!isOrcaStaging||!user||!ready||outlookSubmitting)return;
  const stance=$('outlook-stance').value,observed=$('outlook-observed').value;
  const reasons=[1,2,3].map(i=>$('outlook-reason-'+i).value.trim());
  const reasoning=reasons.map((value,i)=>(i+1)+'. '+value).join('\n');
