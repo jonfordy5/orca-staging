@@ -232,11 +232,6 @@ export function renderUnifiedCompanyProfile(root,ticker,profile={}){
    $(block,'p',null,String(item.detail));
   }
  }else $(breakdown,'p','company-description',profile.how||'Detailed operating segments have not yet been verified.');
- if(profile.investorFocus){
-  const focus=$(body,'section','company-investor-focus');
-  $(focus,'h3',null,profile.investorFocusHeading||'What investors watch');
-  $(focus,'p',null,String(profile.investorFocus));
- }
  if(profile.notice)$(body,'p','company-auto-notice',profile.notice);
  const side=$(layout,'aside','company-visual');
  const frame=$(side,'div','company-logo-frame');
