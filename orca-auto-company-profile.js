@@ -131,6 +131,38 @@ async function wikidataCompany(article,intro){
  }catch{return {headquarters:firstHqFromArticle(intro)};}
 }
 function sentences(text){return String(text||'').replace(/\s+/g,' ').trim().match(/[^.!?]+[.!?]+(?:\s|$)|[^.!?]+$/g)?.map(s=>s.trim()).filter(Boolean)||[];}
+// Optional free reference facts are generated into tiny static shard files by GitHub Actions.
+// Missing shard = quietly continue using public Wikipedia/Wikidata references.
+const referenceCache=new Map();
+async function referenceFacts(ticker){
+ const letter=/^[A-Z]/.test(ticker)?ticker[0]:'0';
+ if(!referenceCache.has(letter)){
+  referenceCache.set(letter,(async()=>{
+   try{
+    const path='./data/company-profile-index/'+letter+'.json';
+    const r=await fetch(path,{cache:'force-cache'});
+    if(!r.ok)return {};
+    const json=await r.json();
+    return json&&typeof json==='object'&&!Array.isArray(json)?json:{};
+   }catch{return {};}
+  })());
+ }
+ const all=await referenceCache.get(letter);
+ return all[ticker]||null;
+}
+function mergeReference(company,facts){
+ if(!facts)return company;
+ const location=[facts.city,facts.state,facts.country].filter(Boolean).join(', ');
+ // Public encyclopedia links remain source-attributed; optional MIT source facts
+ // complement only missing fields; never override the verified company identity.
+ return {...company,
+  headquarters:company.headquarters||location||null,
+  industry:company.industry||facts.industry||facts.sector||null,
+  website:company.website||siteURL(facts.website)||null,
+  listing:company.listing||facts.exchange||null,
+  referenceUsed:true
+ };
+}
 async function wikiProfile(registeredName){
  const article=await loadArticle(registeredName);
  if(!article)return null;
@@ -286,7 +318,7 @@ function render(root,company,ticker){
    {label:'Company facts',url:company.wikidataURL},
    {label:'SEC filings',url:company.secCIK?'https://www.sec.gov/edgar/browse/?CIK='+encodeURIComponent(company.secCIK):null}
   ],
-  sourceNote:'Company overview: Wikipedia contributors (CC BY-SA). Company facts: Wikidata contributors (CC0).',
+  sourceNote:company.referenceUsed?'Company overview: Wikipedia contributors (CC BY-SA). Company facts: Wikidata contributors (CC0); FinanceDatabase contributors (MIT).':'Company overview: Wikipedia contributors (CC BY-SA). Company facts: Wikidata contributors (CC0).',
   sourceUpdated:company.revision
  });
 }
@@ -302,7 +334,11 @@ export async function renderAutomaticCompanyProfile(root,ticker,sb){
  }catch{fallback(root,ticker,name,'Company listing is temporarily unavailable.');return;}
  try{
   let info=cache.get(ticker);
-  if(!info){info=await wikiProfile(name);if(info)cache.set(ticker,info);}
+  if(!info){
+   const [article,facts]=await Promise.all([wikiProfile(name),referenceFacts(ticker)]);
+   info=article?mergeReference(article,facts):null;
+   if(info)cache.set(ticker,info);
+  }
   if(info)render(root,info,ticker);
   else fallback(root,ticker,name,'A matching source-backed company overview is not yet available.');
  }catch{fallback(root,ticker,name,'Public company data could not be loaded; source-backed details will appear when available.');}
