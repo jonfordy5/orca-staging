@@ -254,7 +254,7 @@ async function loadWorkspaceCompanyName(){
  try{
   const {data,error}=await sb.from('stocks').select('company_name').eq('ticker',ticker).maybeSingle();
   if(error)throw error;
-  const name=typeof data?.company_name==='string'?data.company_name.trim():'';
+  const name=typeof data?.company_name==='string'?data.company_name.replace(/\s+(?:Class\s+[A-Z0-9]+\s+)?Common Stock\s*$/i,'').trim():'';
   if(!name)return;
   $('workspace-company-name').textContent=name;
   $('workspace-heading-separator').hidden=false;
