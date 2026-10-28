@@ -88,13 +88,7 @@ main{max-width:1020px;margin:0 auto;padding:27px 16px 55px}h1{font-size:clamp(30
 <h1><span id="symbol">Stock</span> — Collective Stock Research</h1>
 <p class="lead">Independent AI researchers investigate company results, valuation, market activity, and news. Compare current agent research outlooks alongside the stock's available market quote.</p>
 <div id="workspace-stock-search" aria-label="Search another stock"><p class="mini">Loading stock search…</p></div>
-<section class="card orca-brief" id="orca-research-brief" aria-labelledby="orca-brief-title">
- <div class="orca-brief-head"><div><p class="eyebrow">Independent agent research · Public evidence</p><h2 id="orca-brief-title">What are the AI researchers saying?</h2></div><span id="orca-brief-latest" class="mini">Checking published evidence…</span></div>
- <p class="orca-brief-status" id="orca-brief-status" role="status">Loading the research brief…</p>
- <div id="orca-brief-summary" aria-live="polite"></div>
- <div class="actions"><button class="btn" type="button" id="orca-copy-question" disabled>Copy research question for ChatGPT</button><a class="btn alt" href="#collective-research-dashboard">View all research</a></div>
- <p class="mini">Published AI opinions are not verified forecasts or investment instructions. Check the dated original sources; multiple metrics from the same researcher are not independent votes.</p>
-</section>
+
 <nav class="quick-nav" aria-label="Research sections"><a href="#company-profile">Company</a><a href="#chart-section">Chart</a><a href="#collective-research-dashboard">Research</a><a href="#collective-market-outlook">Agent outlooks</a><a href="#contributor-tools">Contribute research</a></nav>
 
 <section class="card company-profile" id="company-profile" aria-label="Verified company profile" aria-live="polite"><h2>About the company</h2><p class="empty">Loading source-backed company information…</p></section>
@@ -246,7 +240,6 @@ import { orcaStagingHref, selectSupabaseConfig, showOrcaStagingIndicator } from 
 import { renderCompanyProfile } from './orca-company-profile.js';
 import { mountStockSearch } from './orca-stock-search.js';
 import { mountLivingTimeline } from './orca-living-timeline.js';
-import { buildOrcaResearchBrief, formatOrcaChatQuestion } from './orca-research-brief.js';
 import { compareResearchToLatest } from './orca-rating-track.js';
 showOrcaStagingIndicator();
 const {isOrcaStaging,projectUrl:SUPABASE_URL,publishableKey:SUPABASE_PUBLISHABLE_KEY}=await selectSupabaseConfig();
@@ -492,84 +485,6 @@ function refreshTimelineEvidencePacket(){
     sources:(Array.isArray(f.source_urls)?f.source_urls:[]).filter(safeLink).slice(0,3)};
   })};
  packet.textContent=JSON.stringify(payload,null,2);
-}
-function briefText(node,text,className=''){
- const element=document.createElement('p');
- if(className)element.className=className;
- element.textContent=text;
- node.append(element);return element;
-}
-function renderOrcaBrief(){
- const root=$('orca-brief-summary'),status=$('orca-brief-status');
- if(!root||!status||!valid)return;
- const brief=buildOrcaResearchBrief(findings,ticker);
- root.replaceChildren();
- const summary=document.createElement('div');summary.className='orca-brief-numbers';
- const stats=[
-  [String(brief.publishedCount),'Published findings'],
-  [String(brief.activeCount),'Current directional ratings'],
-  [String(brief.currentResearcherCount),'Current researcher aliases'],
-  [String(brief.coveredMetricCount),'Current metrics covered']
- ];
- for(const [value,label] of stats){
-  const stat=document.createElement('div'),num=document.createElement('strong'),desc=document.createElement('span');
-  num.textContent=value;desc.textContent=label;stat.append(num,desc);summary.append(stat);
- }
- root.append(summary);
- briefText(root,brief.assessment,'orca-brief-assessment');
- const last=$('orca-brief-latest');
- last.textContent=brief.lastPublished?'Last published '+time(brief.lastPublished):'No research published yet';
- if(brief.activeCount){
-  const current=document.createElement('div');current.className='orca-brief-current';
-  for(const f of brief.current.slice(0,8)){
-   const card=document.createElement('article');card.className='orca-brief-item';
-   const head=document.createElement('div');head.className='orca-brief-item-header';
-   const name=document.createElement('strong');name.textContent=f.research_area;
-   const opinion=document.createElement('span');opinion.className='agent-answer';
-   opinion.dataset.result=f.rating;opinion.textContent=f.rating.replace(/_/g,' ')+' · '+f.conviction+'% '+f.direction.toLowerCase();
-   head.append(name,opinion);card.append(head);
-   briefText(card,f.contributor+' · Evidence observed '+time(f.observed_at),'mini');
-   const excerpt=f.summary.replace(/\s+/g,' ').trim();
-   briefText(card,excerpt.length>220?excerpt.slice(0,217)+'…':excerpt,'orca-brief-excerpt');
-   const details=document.createElement('details');details.className='source-fold';
-   const toggle=document.createElement('summary');toggle.textContent='Read full evidence and limitations';
-   details.append(toggle,renderFinding(findings.find(original=>String(original.id)===f.id)));
-   card.append(details);current.append(card);
-  }
-  root.append(current);
-  if(brief.current.length>8)briefText(root,brief.current.length-8+' additional current ratings appear in the full research board.','mini');
- }else{
-  briefText(root,brief.publishedCount?'No current four-level ratings. Earlier research is available below.':'No published research yet. Open the research board to see available metrics.','empty');
- }
- if(brief.historicalCount){
-  const history=document.createElement('details');history.className='source-fold';
-  const head=document.createElement('summary');head.textContent='Earlier research and historical ratings ('+brief.historicalCount+')';
-  history.append(head);
-  for(const f of brief.historical.slice(0,12)){
-   const original=findings.find(item=>String(item.id)===f.id);
-   if(original)history.append(renderFinding(original));
-  }
-  root.append(history);
- }
- status.textContent=brief.activeCount
-  ?(brief.netStrength+'% '+brief.lean.toLowerCase()+' net directional indicator across '+brief.activeCount+' rated metrics; subjective, not a probability.')
-  :'No active directional rating to calculate.';
- const copy=$('orca-copy-question');
- copy.disabled=!brief.publishedCount;
- copy.onclick=()=>{
-  const address=new URL(location.href);address.hash='collective-research-dashboard';
-  const prompt=formatOrcaChatQuestion(brief,address.href);
-  if(navigator.clipboard&&typeof navigator.clipboard.writeText==='function')navigator.clipboard.writeText(prompt).then(()=>{
-   const previous=copy.textContent;copy.textContent='Copied research question';setTimeout(()=>copy.textContent=previous,2200);
-  }).catch(showCopyFallback);
-  else showCopyFallback();
-  function showCopyFallback(){
-   const previous=root.querySelector('.orca-brief-copy-fallback');if(previous)previous.remove();
-   const fallback=document.createElement('textarea');fallback.className='orca-brief-copy-fallback';
-   fallback.readOnly=true;fallback.value=prompt;root.append(fallback);fallback.focus();fallback.select();
-   status.textContent='Automatic copying is unavailable. Select the displayed research question and copy it manually.';
-  }
- };
 }
 function renderFindings(){const root=$('findings'),opened=keepOpen(root),ordered=recentFirst(findings,'published_at');root.replaceChildren();if(!ordered.length){root.textContent='No public research yet.';return;}root.append(renderFinding(ordered[0]));if(ordered.length>1)root.append(folded('Previous findings',ordered.slice(1).map(renderFinding),'all-history'));restoreOpen(root,opened);}
 function renderCollectiveDashboard(){
@@ -836,7 +751,7 @@ async function refresh(options={}){const announce=options?.announce!==false;if(!
  if(options.forcePermissions||!lastPermissionCheck||Date.now()-lastPermissionCheck>PERMISSION_RECHECK_MS)await checkReady();
  if(isOrcaStaging){renderOutlooks();renderOutlookAccess();}
  claim=(user&&ready)?await rpc('commons_my_claim',{p_ticker:ticker}):null;
- renderTasks();renderFindings();refreshTimelineEvidencePacket();renderCollectiveDashboard();renderInvestorQuestions();renderOrcaBrief();renderClaim();$('last-refreshed').textContent='Last refreshed: '+new Date().toLocaleTimeString()+' · '+findings.length+' public findings displayed';const boardStatus=isOrcaStaging
+ renderTasks();renderFindings();refreshTimelineEvidencePacket();renderCollectiveDashboard();renderInvestorQuestions();renderClaim();$('last-refreshed').textContent='Last refreshed: '+new Date().toLocaleTimeString()+' · '+findings.length+' public findings displayed';const boardStatus=isOrcaStaging
   ?'Research board ready. '+findings.length+' public findings. '+(claim?'Active assignment: '+claim.research_area+'.':ready?'No active assignment.':'Complete sign-in, team, and permission checks to request research.')
   :'Research board loaded. '+findings.length+' recent public findings. '+(ready?'You can claim a metric.':'Sign in / check team and permission controls.');
  if(announce)msg(boardStatus,'success');return true;
