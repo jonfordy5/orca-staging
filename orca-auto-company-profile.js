@@ -333,22 +333,61 @@ function shortCompanyCopy(value,max=260){
  const cut=part.lastIndexOf(' ');
  return part.slice(0,cut>100?cut:max-1).replace(/[\s,;:]+$/,'')+'…';
 }
+const verifiedCompanyEditorial={
+ AAPL:{
+  intro:"Apple designs and sells consumer technology, including iPhone, Mac, iPad, Apple Watch, and related digital services.",
+  focus:"Consumer devices, software, and digital services that work together across Apple's ecosystem.",
+  business:"Its products include iPhone, Mac, iPad, Apple Watch, and AirPods. Services include the App Store, AppleCare, cloud services, and subscriptions.",
+  how:"Apple combines hardware development, operating systems, and digital services. It sells through Apple retail and online stores, direct sales, and third-party carriers and resellers.",
+  industry:"Consumer electronics, computer hardware and software",
+  headquarters:"Cupertino, California, United States",
+  businessSource:"https://www.sec.gov/Archives/edgar/data/320193/000032019325000079/aapl-20250927.htm",
+  photo:{
+   url:"https://upload.wikimedia.org/wikipedia/commons/thumb/a/a8/Apple_Park_dusk_aerial.jpg/1200px-Apple_Park_dusk_aerial.jpg",
+   source:"https://commons.wikimedia.org/wiki/File:Apple_Park_dusk_aerial.jpg",
+   caption:"Apple Park headquarters, Cupertino · 2023",
+   credit:"Dicklyon",license:"CC BY-SA 4.0"
+  }
+ },
+ DG:{
+  intro:"Dollar General is a discount retailer selling everyday household essentials, food, and general merchandise across the United States.",
+  focus:"Affordable everyday necessities and convenient neighborhood retail.",
+  business:"Dollar General offers groceries, cleaning supplies, health and beauty products, household goods, apparel, and seasonal merchandise.",
+  how:"It sells these products through its retail stores, with a focus on consumable items and frequently purchased essentials.",
+  industry:"Discount retail",
+  headquarters:"Goodlettsville, Tennessee, United States",
+  businessSource:"https://github.com/JerBouma/FinanceDatabase"
+ }
+};
+function distinctCompanyDetail(value,other,max=290){
+ const v=shortCompanyCopy(value,max).trim();
+ if(!v)return null;
+ const norm=t=>String(t||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+ if(norm(v)===norm(other))return null;
+ return v;
+}
 function render(root,company,ticker){
+ const editorial=verifiedCompanyEditorial[ticker]||null;
+ const intro=editorial?.intro||shortCompanyCopy(company.intro,290);
+ const focus=editorial?.focus||distinctCompanyDetail(company.focus,intro,210);
+ const what=editorial?.business||distinctCompanyDetail(company.business,intro,280);
+ const how=editorial?.how||distinctCompanyDetail(company.how,what||intro,290);
+ const photo=editorial?.photo||company.image||null;
  renderUnifiedCompanyProfile(root,ticker,{
-  name:company.title,description:shortCompanyCopy(company.intro,290),
+  name:company.title,description:intro,
   eyebrow:'ABOUT THE COMPANY · SOURCED OVERVIEW',
-  missionHeading:'Business focus',mission:[company.industry,company.headquarters].filter(Boolean).length ? ('Industry: '+(company.industry||'Not specified')+'. Headquarters: '+(company.headquarters||'Not specified')+'.') : 'Company focus details are available in the cited overview.',
-  missionNote:company.referenceUsed?'From the free FinanceDatabase company description; not an official mission statement.':'Publicly sourced company description; not a verified official mission statement.',
-  headquarters:company.headquarters,founded:company.founded,industry:company.industry,
-  listing:ticker,operations:shortCompanyCopy(company.business||company.intro,270),
-  how:company.how ? shortCompanyCopy(company.how,290) : 'Detailed operating segments have not yet been independently verified.',
-  businessSource:company.referenceUsed?'https://github.com/JerBouma/FinanceDatabase':company.source,
+  missionHeading:'Business focus',mission:focus||'Company operating focus has not yet been independently documented.',
+  missionNote:editorial?'Business summary based on the linked company reference.':company.referenceUsed?'From public company-reference data; not an official mission statement.':'Publicly sourced business overview; not an official mission statement.',
+  headquarters:editorial?.headquarters||company.headquarters,founded:company.founded,industry:editorial?.industry||company.industry,
+  listing:ticker,operations:what||'Additional product and service details are not yet verified.',
+  how:how||'Sales channels and operating methods are not yet verified from source material.',
+  businessSource:editorial?.businessSource||(company.referenceUsed?'https://github.com/JerBouma/FinanceDatabase':company.source),
   businessSourceLabel:company.referenceUsed?'Business description data':'Company overview source',
   investorFocus:'Company-specific investment catalysts and financial results require independent research using filings and dated sources.',
   investorFocusHeading:'What investors watch',
   notice:company.referenceUsed?'Free reference descriptions can be historical. Verify current products, segments and finances against the latest company filings.':'Encyclopedia overview only; the new free reference record was not available for this company.',
   logo:company.logo?{...company.logo,alt:company.title+' sourced company logo',caption:'Company logo · '+company.logo.license+' · linked to source'}:null,
-  photo:company.image?{...company.image,alt:'Company-related Commons photo: '+company.image.caption}:null,
+  photo:photo?{...photo,alt:'Company-related photo: '+photo.caption}:null,
   links:[
    {label:'Official website',url:company.website},
    {label:'Company overview',url:company.source},
@@ -389,8 +428,8 @@ export async function renderAutomaticCompanyProfile(root,ticker,sb){
    }:null);
    if(info&&apiProfile&&apiProfile.ticker===ticker&&normalize(apiProfile.company_name)===normalize(name)){
     info={...info,
-     industry:info.industry||apiProfile.industry||null,
-     headquarters:info.headquarters||apiProfile.headquarters||null,
+     industry:apiProfile.industry||info.industry||null,
+     headquarters:apiProfile.headquarters||info.headquarters||null,
      website:info.website||siteURL(apiProfile.website)||null
     };
    }
