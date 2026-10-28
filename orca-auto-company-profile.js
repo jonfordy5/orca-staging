@@ -374,6 +374,7 @@ function render(root,company,ticker){
  });
 }
 async function loadOrcaAiDescription(root,ticker,sb,base){
+ if(ticker==="RKLB")return;
  const endpoint='https://vbziibatnejoswsdggga.supabase.co/functions/v1/orca-auto-ai-profile?ticker='+encodeURIComponent(ticker);
  const usable=d=>d?.state==='ready'&&d?.content&&['overview','business_focus','what_they_do','how_they_do_it'].every(k=>typeof d.content[k]==='string'&&d.content[k].length>20);
  const apply=d=>{
@@ -394,7 +395,7 @@ async function loadOrcaAiDescription(root,ticker,sb,base){
  try{
   const {data:{session}}=await sb.auth.getSession();
   if(!session?.access_token)return;
-  const response=await fetch(endpoint,{method:'POST',headers:{'apikey':(await import('./orca-staging-config.js')).selectSupabaseConfig? (await (await import('./orca-staging-config.js')).selectSupabaseConfig()).publishableKey : '', 'Authorization':'Bearer '+session.access_token,'Content-Type':'application/json'},body:'{}'});
+  const response=await fetch(endpoint,{method:'POST',headers:{'apikey':(await (await import('./orca-staging-config.js')).selectSupabaseConfig()).publishableKey, 'Authorization':'Bearer '+session.access_token,'Content-Type':'application/json'},body:'{}'});
   if(response.ok)apply(await response.json());
  }catch{ /* Never block workspace or retry a billable call */ }
 }
