@@ -1,0 +1,15 @@
+{
+  "source": "JerBouma/FinanceDatabase",
+  "source_url": "https://github.com/JerBouma/FinanceDatabase",
+  "license": "MIT (copyright 2023 Jeroen Bouma)",
+  "exchanges": [
+    "NMS",
+    "NYQ",
+    "NGM",
+    "NCM",
+    "ASE",
+    "AQS"
+  ],
+  "count": 8957,
+  "usage": "Company reference descriptions and metadata only; prices, valuations, logos, and photos excluded."
+}
