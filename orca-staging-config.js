@@ -5,7 +5,7 @@ const ORCA_STAGING_PUBLISHABLE_KEY = 'sb_publishable_vUOZ5qC2FQVsh7MUyEmHQA_j211
 
 // Optional Logo.dev browser-safe publishable key (pk_...), never an sk_ secret.
 // Leave empty until ORCA owner enables the free Logo.dev account.
-export const ORCA_LOGO_DEV_PUBLISHABLE_KEY = '';
+export const ORCA_LOGO_DEV_PUBLISHABLE_KEY = 'pk_aZczTnfrSF6UewWF32lrFw';
 
 export function isOrcaStagingEnvironment() {
   return true;
