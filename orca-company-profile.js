@@ -87,7 +87,7 @@ export async function renderCompanyProfile(ticker,sb=null){
  if(Array.isArray(data.businessLines)&&data.businessLines.length){
   const breakdown=add(content,'section','company-business-breakdown');
   const heading=add(breakdown,'div','company-business-heading');
-  add(heading,'h3',null,'How the business makes money');
+  add(heading,'h3',null,'How they do it');
   if(data.businessSource){
    const source=add(heading,'a',null,'Company filings');
    source.href=data.businessSource;source.target='_blank';source.rel='noopener noreferrer';
