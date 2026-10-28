@@ -388,7 +388,7 @@ export async function renderAutomaticCompanyProfile(root,ticker,sb){
   if(!info){
    const [facts,article,apiProfile]=await Promise.all([
     referenceFacts(ticker),wikiProfile(name),
-    requestJson('https://vbziibatnejoswsdggga.supabase.co/functions/v1/orca-company-profile?ticker='+encodeURIComponent(ticker)).catch(()=>null)
+    requestJson('https://vbziibatnejoswsdggga.supabase.co/functions/v1/orca-company-profile?schema=2&ticker='+encodeURIComponent(ticker)).catch(()=>null)
    ]);
    info=article?mergeReference(article,facts):(facts&&facts.name?{
     title:facts.name,intro:sentences(facts.summary).slice(0,2).join(' ')||'Publicly listed company profile. Detailed description awaits verification.',
