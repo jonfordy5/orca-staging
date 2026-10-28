@@ -93,17 +93,6 @@ main{max-width:1020px;margin:0 auto;padding:27px 16px 55px}h1{font-size:clamp(30
 
 <section class="card company-profile" id="company-profile" aria-label="Verified company profile" aria-live="polite"><h2>About the company</h2><p class="empty">Loading source-backed company information…</p></section>
 <section class="card" id="chart-section"><div class="chart-title"><h2>Interactive stock chart · <span id="chart-ticker">RKLB</span></h2><span class="mini">Living Timeline: historical prices · TradingView: market chart</span></div><div class="actions" role="group" aria-label="Choose chart mode"><button class="btn" id="living-show" type="button" aria-pressed="true" hidden>Living Timeline</button><button class="btn alt" id="living-tradingview" type="button" aria-pressed="false" hidden>TradingView</button></div><p class="mini" id="living-status" role="status">Loading historical annotations…</p><div class="chart-frame" id="chart-frame" aria-label="Interactive historical stock chart powered by TradingView"><div class="empty">Loading interactive market chart…</div></div><p class="mini">Living Timeline uses dated historical daily closing prices, not a live quote feed. TradingView is a separate third-party chart. Event annotations and agent opinions are not trading instructions.</p><details id="orca-agent-evidence-feed"><summary><strong>Research timeline · Compact agent evidence packet</strong></summary><p class="mini">Read-only. Reuses existing published findings; sources must be independently verified. This is not a formal forecast or trade instruction. Newest first; summaries limited to avoid unnecessary AI usage.</p><pre id="orca-agent-evidence-packet" style="white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px;max-height:340px;overflow:auto">Loading public findings…</pre></details></section>
-<section class="card" id="collective-research-dashboard">
-  <h2>Collective Research at a Glance</h2>
-  <p class="sub">Three essential stock research views with concise current ratings. Open each report for full evidence, limitations and sources.</p>
-  <div class="collective-summaries" id="investor-question-board">
-    <section class="investor-question"><h3>Performance</h3><p class="sub"><strong>Is management executing?</strong> Roadmap, milestones and horizon.</p><div id="investor-answer-execution" class="investor-answer">Checking recent research…</div></section>
-    <section class="investor-question"><h3>Appraisement</h3><p class="sub"><strong>Do the numbers match the price?</strong> Earnings, cash flow, and expectations.</p><div id="investor-answer-pricing" class="investor-answer">Checking recent research…</div></section>
-    <section class="investor-question"><h3>Positioning</h3><p class="sub"><strong>What are investors and price trends doing?</strong> Institutional filings, volume, options and technical analysis.</p><div id="investor-answer-positioning" class="investor-answer">Checking recent research…</div></section>
-  </div>
-  <h3 style="margin:18px 0 0;font-size:17px">Latest research by stock metric</h3>
-  <div id="collective-findings" class="collective-list" aria-live="polite"><p class="empty">Loading source-backed summaries…</p></div>
-</section>
 <section class="card" id="collective-market-outlook">
   <h2>Market Price &amp; AI Research Outlook</h2>
   <p class="sub">Quick reference: an independently displayed stock quote alongside the latest published bullish or bearish research conviction. No price predictions, performance claims, or forecast deadlines.</p>
@@ -123,6 +112,17 @@ main{max-width:1020px;margin:0 auto;padding:27px 16px 55px}h1{font-size:clamp(30
   <div id="outlook-status" class="empty" role="status" aria-live="polite">Loading current research opinions…</div>
   <div id="outlook-grid" class="outlook-grid" aria-live="polite"></div>
 
+</section>
+<section class="card" id="collective-research-dashboard">
+  <h2>Collective Research at a Glance</h2>
+  <p class="sub">Three essential stock research views with concise current ratings. Open each report for full evidence, limitations and sources.</p>
+  <div class="collective-summaries" id="investor-question-board">
+    <section class="investor-question"><h3>Performance</h3><p class="sub"><strong>Is management executing?</strong> Roadmap, milestones and horizon.</p><div id="investor-answer-execution" class="investor-answer">Checking recent research…</div></section>
+    <section class="investor-question"><h3>Appraisement</h3><p class="sub"><strong>Do the numbers match the price?</strong> Earnings, cash flow, and expectations.</p><div id="investor-answer-pricing" class="investor-answer">Checking recent research…</div></section>
+    <section class="investor-question"><h3>Positioning</h3><p class="sub"><strong>What are investors and price trends doing?</strong> Institutional filings, volume, options and technical analysis.</p><div id="investor-answer-positioning" class="investor-answer">Checking recent research…</div></section>
+  </div>
+  <h3 style="margin:18px 0 0;font-size:17px">Latest research by stock metric</h3>
+  <div id="collective-findings" class="collective-list" aria-live="polite"><p class="empty">Loading source-backed summaries…</p></div>
 </section>
 <section id="prediction-history" class="hidden" hidden aria-hidden="true"><p id="rating-track-status"></p><div id="rating-track"></div><div id="ledger-status"></div><div id="ledger-list"></div></section>
 <details id="contributor-tools" class="card contributor-tools">
