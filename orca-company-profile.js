@@ -1,4 +1,4 @@
-import { renderAutomaticCompanyProfile } from './orca-auto-company-profile.js';
+import { renderAutomaticCompanyProfile, renderUnifiedCompanyProfile } from './orca-auto-company-profile.js';
 // Curated, source-backed company overviews for AI Stock Commons staging.
 // Never infer a company identity from a ticker alone. Add other tickers only after checking sources.
 const profiles=Object.freeze({
@@ -42,79 +42,17 @@ export async function renderCompanyProfile(ticker,sb=null){
   await renderAutomaticCompanyProfile(root,ticker,sb);
   return;
  }
- const head=add(root,'div','company-profile-grid');
- const content=add(head,'div','company-profile-copy');
- add(content,'p','company-eyebrow','ABOUT THE COMPANY');
- add(content,'h2','company-name',data.name);
- add(content,'p','company-description',data.summary);
- const mission=add(content,'div','company-mission');
- add(mission,'strong',null,'Mission');
- add(mission,'p',null,data.mission);
- const facts=add(content,'dl','company-facts');
- for(const [label,value] of [
-  ['Headquarters',data.headquarters],
-  ['Founded',data.founded],
-  ['Founder & CEO',data.founderCEO],
-  ['Listing',data.exchange+' · '+ticker]
- ]){
-  const item=add(facts,'div','company-fact');
-  add(item,'dt',null,label);add(item,'dd',null,value);
- }
- const work=add(content,'div','company-business');
- add(work,'strong',null,'What they do');
- add(work,'p',null,data.operations);
- if(Array.isArray(data.businessLines)&&data.businessLines.length){
-  const breakdown=add(content,'section','company-business-breakdown');
-  const heading=add(breakdown,'div','company-business-heading');
-  add(heading,'h3',null,'How they do it');
-  if(data.businessSource){
-   const source=add(heading,'a',null,'Company filings');
-   source.href=data.businessSource;source.target='_blank';source.rel='noopener noreferrer';
-  }
-  for(const item of data.businessLines){
-   if(!item.name||!item.detail)continue;
-   const part=add(breakdown,'div','company-business-line');
-   add(part,'h4',null,item.name);
-   add(part,'p',null,item.detail);
-  }
- }
- if(data.investorFocus){
-  const focus=add(content,'section','company-investor-focus');
-  add(focus,'h3',null,'What investors watch');
-  add(focus,'p',null,data.investorFocus);
- }
- const visual=add(head,'aside','company-visual');
- const frame=add(visual,'div','company-logo-frame');
- const fallback=add(frame,'span','company-logo-fallback',ticker);
- const logo=document.createElement('img');
- logo.src=data.logo;logo.alt=data.name+' official logo';logo.loading='lazy';logo.decoding='async';
- logo.referrerPolicy='no-referrer';
- logo.addEventListener('load',()=>{fallback.hidden=true;});
- logo.addEventListener('error',()=>{logo.hidden=true;fallback.hidden=false;});
- frame.append(logo);
- add(visual,'p','company-visual-caption','Official company logo');
- const hq=add(visual,'p','company-address');
- add(hq,'strong',null,'HQ: ');
- hq.append(document.createTextNode(data.headquartersAddress));
- const links=add(visual,'div','company-source-links');
- for(const item of [{label:'Official website',url:data.officialSite},...data.sources]){
-  const a=add(links,'a',null,item.label);a.href=item.url;a.target='_blank';a.rel='noopener noreferrer';
- }
- add(visual,'p','company-asof','Company facts sourced from Rocket Lab and its investor relations materials.');
- if(data.activityPhoto&&data.activityPhotoSource){
-  const missionPhoto=add(visual,'figure','company-activity-photo');
-  const imageLink=document.createElement('a');imageLink.href=data.activityPhotoSource;
-  imageLink.target='_blank';imageLink.rel='noopener noreferrer';
-  const photo=document.createElement('img');
-  photo.src=data.activityPhoto;photo.alt=data.activityPhotoAlt||data.name+' at work';
-  photo.loading='lazy';photo.decoding='async';photo.referrerPolicy='no-referrer';
-  const unavailable=add(imageLink,'span','company-photo-unavailable','View a Rocket Lab launch photo on its official website');
-  unavailable.hidden=true;
-  photo.addEventListener('error',()=>{photo.hidden=true;unavailable.hidden=false;});
-  imageLink.prepend(photo);missionPhoto.append(imageLink);
-  const credit=add(missionPhoto,'figcaption',null);
-  credit.textContent=(data.activityPhotoCaption||'Company operations')+' · Photo © '+data.name+'. ';
-  const source=add(credit,'a',null,'Photo source');source.href=data.activityPhotoSource;
-  source.target='_blank';source.rel='noopener noreferrer';
- }
+ renderUnifiedCompanyProfile(root,ticker,{
+  name:data.name,description:data.summary,mission:data.mission,missionHeading:'Mission',
+  headquarters:data.headquarters,headquartersAddress:data.headquartersAddress,
+  founded:data.founded,founderCEO:data.founderCEO,listing:data.exchange+' · '+ticker,
+  operations:data.operations,businessLines:data.businessLines,
+  businessSource:data.businessSource,businessSourceLabel:'Company filings',
+  investorFocus:data.investorFocus,
+  logo:{url:data.logo,alt:data.name+' official company logo',caption:'Official company logo'},
+  photo:{url:data.activityPhoto,source:data.activityPhotoSource,alt:data.activityPhotoAlt,
+    caption:data.activityPhotoCaption,credit:'Photo © '+data.name},
+  links:[{label:'Official website',url:data.officialSite},...data.sources.map(s=>({label:s.label,url:s.url}))],
+  sourceNote:'Company facts sourced from Rocket Lab and its investor relations materials.'
+ });
 }
