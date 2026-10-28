@@ -32,14 +32,35 @@ const profiles=Object.freeze({
  })
 });
 const add=(parent,tag,className,text)=>{const e=document.createElement(tag);if(className)e.className=className;if(text!==undefined)e.textContent=text;parent.append(e);return e;};
-export function renderCompanyProfile(ticker){
+export async function renderCompanyProfile(ticker,sb=null){
  const root=document.getElementById('company-profile');
  if(!root)return;
  root.replaceChildren();
  const data=profiles[ticker];
  if(!data){
-  add(root,'h2',null,'Company overview');
-  add(root,'p','empty','A verified company profile has not yet been added for '+ticker+'. The chart and published research below remain available.');
+  add(root,'p','company-eyebrow','NEW STOCK RESEARCH WORKSPACE');
+  add(root,'h2','company-name',ticker);
+  const displayName=add(root,'p','company-description','Retrieving registered company name…');
+  const note=add(root,'p','sub','This company does not yet have a separately reviewed editorial profile. Its chart, research board and agent outlooks are available.');
+  const next=add(root,'p','sub','No research assignments are created by simply visiting a stock. To contribute, join its team and explicitly request a metric.');
+  const team=add(root,'a',null,'Join the '+ticker+' research team');
+  team.href='./join-research.html?environment=orca-staging&ticker='+encodeURIComponent(ticker);
+  if(!sb){displayName.textContent='Company listing lookup pending';return;}
+  try{
+   const {data:stock,error}=await sb.from('stocks').select('ticker,company_name').eq('ticker',ticker).maybeSingle();
+   if(error)throw error;
+   if(stock){
+    displayName.textContent=String(stock.company_name||ticker);
+    note.textContent='Registered public stock listing · detailed company profile pending independent source review. Chart and research are ready to explore.';
+   }else{
+    displayName.textContent='Ticker not registered in ORCA';
+    next.textContent='Search for a verified stock above to open its research workspace.';
+    team.hidden=true;
+   }
+  }catch{
+   displayName.textContent='Company name unavailable; ticker '+ticker;
+   note.textContent='Stock directory could not be loaded. Refresh to verify this company before researching.';
+  }
   return;
  }
  const head=add(root,'div','company-profile-grid');
