@@ -321,15 +321,27 @@ function fallback(root,ticker,name,reason){
   notice:'No company facts or images have been invented to fill missing fields.'
  });
 }
+function shortCompanyCopy(value,max=260){
+ const source=String(value||'').replace(/\s+/g,' ').trim();
+ if(!source)return '';
+ const sentences=source.match(/[^.!?]+[.!?]+(?:\s|$)|[^.!?]+$/g)||[];
+ let text=sentences.slice(0,2).join(' ').trim();
+ if(text.length<=max)return text;
+ const first=sentences[0]?.trim()||text;
+ if(first.length<=max)return first;
+ const part=first.slice(0,max-1);
+ const cut=part.lastIndexOf(' ');
+ return part.slice(0,cut>100?cut:max-1).replace(/[\s,;:]+$/,'')+'…';
+}
 function render(root,company,ticker){
  renderUnifiedCompanyProfile(root,ticker,{
-  name:company.title,description:company.intro,
+  name:company.title,description:shortCompanyCopy(company.intro,290),
   eyebrow:'ABOUT THE COMPANY · SOURCED OVERVIEW',
-  missionHeading:'Business focus',mission:company.focus,
+  missionHeading:'Business focus',mission:[company.industry,company.headquarters].filter(Boolean).length ? ('Industry: '+(company.industry||'Not specified')+'. Headquarters: '+(company.headquarters||'Not specified')+'.') : 'Company focus details are available in the cited overview.',
   missionNote:company.referenceUsed?'From the free FinanceDatabase company description; not an official mission statement.':'Publicly sourced company description; not a verified official mission statement.',
   headquarters:company.headquarters,founded:company.founded,industry:company.industry,
-  listing:ticker,operations:company.business||company.intro,
-  how:company.how||company.business||'Detailed operating segments still need verification in primary company filings.',
+  listing:ticker,operations:shortCompanyCopy(company.business||company.intro,270),
+  how:company.how ? shortCompanyCopy(company.how,290) : 'Detailed operating segments have not yet been independently verified.',
   businessSource:company.referenceUsed?'https://github.com/JerBouma/FinanceDatabase':company.source,
   businessSourceLabel:company.referenceUsed?'Business description data':'Company overview source',
   investorFocus:'Company-specific investment catalysts and financial results require independent research using filings and dated sources.',
@@ -361,7 +373,10 @@ export async function renderAutomaticCompanyProfile(root,ticker,sb){
  try{
   let info=cache.get(ticker);
   if(!info){
-   const [facts,article]=await Promise.all([referenceFacts(ticker),wikiProfile(name)]);
+   const [facts,article,apiProfile]=await Promise.all([
+    referenceFacts(ticker),wikiProfile(name),
+    requestJson('https://vbziibatnejoswsdggga.supabase.co/functions/v1/orca-company-profile?ticker='+encodeURIComponent(ticker)).catch(()=>null)
+   ]);
    info=article?mergeReference(article,facts):(facts&&facts.name?{
     title:facts.name,intro:sentences(facts.summary).slice(0,2).join(' ')||'Publicly listed company profile. Detailed description awaits verification.',
     focus:sentences(facts.summary).slice(0,2).join(' ')||[facts.sector,facts.industry].filter(Boolean).join(' · ')||'Publicly listed company',
@@ -372,6 +387,13 @@ export async function renderAutomaticCompanyProfile(root,ticker,sb){
     listing:facts.exchange||ticker,website:siteURL(facts.website),referenceUsed:true,
     source:'https://github.com/JerBouma/FinanceDatabase',revision:null
    }:null);
+   if(info&&apiProfile&&apiProfile.ticker===ticker&&normalize(apiProfile.company_name)===normalize(name)){
+    info={...info,
+     industry:info.industry||apiProfile.industry||null,
+     headquarters:info.headquarters||apiProfile.headquarters||null,
+     website:info.website||siteURL(apiProfile.website)||null
+    };
+   }
    if(info)cache.set(ticker,info);
   }
   if(info)render(root,info,ticker);
