@@ -32,7 +32,7 @@ const profiles=Object.freeze({
  })
 });
 async function findPublicProfile(name){
- const title=name.replace(/\\s+(Common Stock|Class [A-Z] Common Stock).*$/i,'').trim();
+ const title=name.replace(/\s+(Common Stock|Class [A-Z] Common Stock).*$/i,'').trim();
  const endpoint='https://en.wikipedia.org/api/rest_v1/page/summary/'+encodeURIComponent(title);
  const response=await fetch(endpoint,{headers:{'Accept':'application/json'}});
  if(!response.ok)return null;
@@ -68,7 +68,7 @@ export async function renderCompanyProfile(ticker,sb=null){
      if(overview){
       const mission=add(root,'div','company-mission');
       add(mission,'strong',null,'Mission / company focus');
-      add(mission,'p',null,overview.description.split(/(?<=[.!?])\\s/)[0]);
+      add(mission,'p',null,overview.description.split(/(?<=[.!?])\s/)[0]);
       add(root,'h3','company-auto-operations','What they do');
       add(root,'p','company-description',overview.description);
       add(root,'h3','company-auto-operations','How they do it');
