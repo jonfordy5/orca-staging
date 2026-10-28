@@ -402,7 +402,7 @@ export async function renderAutomaticCompanyProfile(root,ticker,sb){
    }:null);
    if(apiProfile&&apiProfile.ticker===ticker&&normalize(apiProfile.company_name)===normalize(name)){
     if(!info)info={title:apiProfile.company_name,intro:apiProfile.description||'Source-backed overview unavailable.',source:apiProfile.source_url,referenceUsed:true};
-    const c=apiProfile.profile_content?.version===1?apiProfile.profile_content:null;
+    const c=apiProfile.profile_content?.version>=1?apiProfile.profile_content:null;
     const p=c?.photo;
     const photo=p&&typeof p.url==='string'&&typeof p.source==='string'&&/^https:\/\/(?:upload|thumb)\.wikimedia\.org\/wikipedia\/commons\//.test(p.url)&&p.source.startsWith('https://commons.wikimedia.org/')?p:null;
     info={...info,
@@ -410,7 +410,7 @@ export async function renderAutomaticCompanyProfile(root,ticker,sb){
       headquarters:apiProfile.headquarters||info.headquarters||null,
       website:info.website||siteURL(apiProfile.website)||null,
       structured:c?{
-       intro:shortCompanyCopy(apiProfile.description||info.intro,290),
+       intro:shortCompanyCopy(c.overview||apiProfile.description||info.intro,370),
        focus:c.focus&&c.focus!==c.what?shortCompanyCopy(c.focus,230):null,
        business:c.what?shortCompanyCopy(c.what,290):null,
        how:c.how?shortCompanyCopy(c.how,330):null,
