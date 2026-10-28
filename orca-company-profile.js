@@ -89,7 +89,8 @@ export async function renderCompanyProfile(ticker,sb=null){
       add(root,'h3','company-auto-operations','What they do');
       add(root,'p','company-description',overview.description);
       add(root,'h3','company-auto-operations','How they do it');
-      add(root,'p','company-description','For verified business segments, see original corporate filings and research findings.');
+      const sentences=overview.description.split(/(?<=[.!?])\s+/);
+      add(root,'p','company-description',sentences.length>1?sentences.slice(1).join(' '):'For a detailed operational breakdown, review corporate filings and independently published research.');
       if(overview.source){const source=add(root,'a',null,'Company profile source');source.href=overview.source;source.target='_blank';source.rel='noopener noreferrer';}
       const photo=await sourcedCompanyPhoto(overview.source);
       if(photo){
