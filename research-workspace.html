@@ -779,7 +779,7 @@ $('outlook-form').addEventListener('submit',submitOutlook);
 $('outlook-supporting-findings').addEventListener('change',event=>{const selected=$('outlook-supporting-findings').querySelectorAll('input:checked');if(selected.length>5){event.target.checked=false;outlookSubmitMessage('Select no more than five supporting findings.','error');}});
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){updateResearchFreshness();if(sb&&!loading)refresh({announce:false,forcePermissions:true});}});
 (async()=>{$('collective-market-outlook').hidden=!isOrcaStaging;if(!valid){msg('Invalid ticker. Open a research workspace from the stock team.','error');return;}
- $('symbol').textContent=ticker;renderCompanyProfile(ticker);createMarketChart();$('observed').value=localDateTime();
+ $('symbol').textContent=ticker;createMarketChart();$('observed').value=localDateTime();
  $('outlook-observed').value=localDateTime();
  if(isOrcaStaging){
   $('request-research').classList.remove('hidden');
@@ -792,7 +792,7 @@ document.addEventListener('visibilitychange',()=>{if(document.visibilityState===
   $('join-link').href=$('team-link').href;
  }
  try{const {createClient}=await import('https://esm.sh/@supabase/supabase-js@2');sb=createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
- const {data}=await sb.auth.getUser();user=data?.user||null;await refresh();
+ const {data}=await sb.auth.getUser();user=data?.user||null;await renderCompanyProfile(ticker,sb);await refresh();
  mountStockSearch({sb,root:$('workspace-stock-search'),activeTicker:ticker}).catch(()=>{$('workspace-stock-search').textContent='Stock lookup unavailable.';});
  if(isOrcaStaging)mountLivingTimeline({sb,ticker,getUser:()=>user,canContribute:()=>ready,getFindings:()=>findings}).catch(err=>{$('living-status').textContent='Timeline unavailable; TradingView remains available.';});
   // Passive monitor for the HUMAN observer's browser; no autonomous research or API requests.
