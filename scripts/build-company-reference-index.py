@@ -36,6 +36,7 @@ def normalized_row(row: dict[str, str], market: str) -> tuple[str, dict] | None:
     if clean(row.get("country")) not in VALID_COUNTRY:
         return None
     result = {"name": clean(row.get("name"), 160),
+              "summary": clean(row.get("summary"), 1500),
               "sector": clean(row.get("sector")),
               "industry": clean(row.get("industry")),
               "city": clean(row.get("city")),
@@ -45,7 +46,7 @@ def normalized_row(row: dict[str, str], market: str) -> tuple[str, dict] | None:
     address = clean(row.get("website"), 300)
     if address.startswith("https://") and "." in address.split("/")[2]:
         result["website"] = address
-    # Filter unavailable source fields, but retain the symbol/name.
+    # Keep only free text reference fields, never third-party images or live prices.
     result = {k: v for k, v in result.items() if v}
     if not result.get("name"):
         return None
@@ -94,7 +95,7 @@ def build():
         "source_url": "https://github.com/JerBouma/FinanceDatabase",
         "license": "MIT (copyright 2023 Jeroen Bouma)",
         "exchanges": sources, "count": len(records),
-        "usage": "Company reference metadata only; prices, valuations, logos, and photos excluded."
+        "usage": "Company reference descriptions and metadata only; prices, valuations, logos, and photos excluded."
     }, indent=2) + "\n", encoding="utf-8")
     print(f"Wrote {len(records)} ticker profiles across {len(shards)} small shards", flush=True)
 
