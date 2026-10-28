@@ -333,32 +333,6 @@ function shortCompanyCopy(value,max=260){
  const cut=part.lastIndexOf(' ');
  return part.slice(0,cut>100?cut:max-1).replace(/[\s,;:]+$/,'')+'…';
 }
-const verifiedCompanyEditorial={
- AAPL:{
-  intro:"Apple designs and sells consumer technology, including iPhone, Mac, iPad, Apple Watch, and related digital services.",
-  focus:"Consumer devices, software, and digital services that work together across Apple's ecosystem.",
-  business:"Its products include iPhone, Mac, iPad, Apple Watch, and AirPods. Services include the App Store, AppleCare, cloud services, and subscriptions.",
-  how:"Apple combines hardware development, operating systems, and digital services. It sells through Apple retail and online stores, direct sales, and third-party carriers and resellers.",
-  industry:"Consumer electronics, computer hardware and software",
-  headquarters:"Cupertino, California, United States",
-  businessSource:"https://www.sec.gov/Archives/edgar/data/320193/000032019325000079/aapl-20250927.htm",
-  photo:{
-   url:"https://upload.wikimedia.org/wikipedia/commons/thumb/a/a8/Apple_Park_dusk_aerial.jpg/1200px-Apple_Park_dusk_aerial.jpg",
-   source:"https://commons.wikimedia.org/wiki/File:Apple_Park_dusk_aerial.jpg",
-   caption:"Apple Park headquarters, Cupertino · 2023",
-   credit:"Dicklyon",license:"CC BY-SA 4.0"
-  }
- },
- DG:{
-  intro:"Dollar General is a discount retailer selling everyday household essentials, food, and general merchandise across the United States.",
-  focus:"Affordable everyday necessities and convenient neighborhood retail.",
-  business:"Dollar General offers groceries, cleaning supplies, health and beauty products, household goods, apparel, and seasonal merchandise.",
-  how:"It sells these products through its retail stores, with a focus on consumable items and frequently purchased essentials.",
-  industry:"Discount retail",
-  headquarters:"Goodlettsville, Tennessee, United States",
-  businessSource:"https://github.com/JerBouma/FinanceDatabase"
- }
-};
 function distinctCompanyDetail(value,other,max=290){
  const v=shortCompanyCopy(value,max).trim();
  if(!v)return null;
@@ -367,7 +341,7 @@ function distinctCompanyDetail(value,other,max=290){
  return v;
 }
 function render(root,company,ticker){
- const editorial=verifiedCompanyEditorial[ticker]||null;
+ const editorial=company.structured||null;
  const intro=editorial?.intro||shortCompanyCopy(company.intro,290);
  const focus=editorial?.focus||distinctCompanyDetail(company.focus,intro,210);
  const what=editorial?.business||distinctCompanyDetail(company.business,intro,280);
@@ -377,7 +351,7 @@ function render(root,company,ticker){
   name:company.title,description:intro,
   eyebrow:'ABOUT THE COMPANY · SOURCED OVERVIEW',
   missionHeading:'Business focus',mission:focus||'Company operating focus has not yet been independently documented.',
-  missionNote:editorial?'Business summary based on the linked company reference.':company.referenceUsed?'From public company-reference data; not an official mission statement.':'Publicly sourced business overview; not an official mission statement.',
+  missionNote:editorial?'Business summary extracted from the attributed reference data; not an official mission statement.':company.referenceUsed?'From public company-reference data; not an official mission statement.':'Publicly sourced business overview; not an official mission statement.',
   headquarters:editorial?.headquarters||company.headquarters,founded:company.founded,industry:editorial?.industry||company.industry,
   listing:ticker,operations:what||'Additional product and service details are not yet verified.',
   how:how||'Sales channels and operating methods are not yet verified from source material.',
@@ -426,11 +400,23 @@ export async function renderAutomaticCompanyProfile(root,ticker,sb){
     listing:facts.exchange||ticker,website:siteURL(facts.website),referenceUsed:true,
     source:'https://github.com/JerBouma/FinanceDatabase',revision:null
    }:null);
-   if(info&&apiProfile&&apiProfile.ticker===ticker&&normalize(apiProfile.company_name)===normalize(name)){
+   if(apiProfile&&apiProfile.ticker===ticker&&normalize(apiProfile.company_name)===normalize(name)){
+    if(!info)info={title:apiProfile.company_name,intro:apiProfile.description||'Source-backed overview unavailable.',source:apiProfile.source_url,referenceUsed:true};
+    const c=apiProfile.profile_content?.version===1?apiProfile.profile_content:null;
+    const p=c?.photo;
+    const photo=p&&typeof p.url==='string'&&typeof p.source==='string'&&p.url.startsWith('https://upload.wikimedia.org/')&&p.source.startsWith('https://commons.wikimedia.org/')?p:null;
     info={...info,
-     industry:apiProfile.industry||info.industry||null,
-     headquarters:apiProfile.headquarters||info.headquarters||null,
-     website:info.website||siteURL(apiProfile.website)||null
+      industry:apiProfile.industry||info.industry||null,
+      headquarters:apiProfile.headquarters||info.headquarters||null,
+      website:info.website||siteURL(apiProfile.website)||null,
+      structured:c?{
+       intro:shortCompanyCopy(apiProfile.description||info.intro,290),
+       focus:c.focus&&c.focus!==c.what?shortCompanyCopy(c.focus,230):null,
+       business:c.what?shortCompanyCopy(c.what,290):null,
+       how:c.how?shortCompanyCopy(c.how,330):null,
+       photo,industry:apiProfile.industry,headquarters:apiProfile.headquarters,
+       businessSource:apiProfile.source_url
+      }:null
     };
    }
    if(info)cache.set(ticker,info);
