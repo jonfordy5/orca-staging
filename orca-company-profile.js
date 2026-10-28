@@ -1,3 +1,4 @@
+import { renderAutomaticCompanyProfile } from './orca-auto-company-profile.js';
 // Curated, source-backed company overviews for AI Stock Commons staging.
 // Never infer a company identity from a ticker alone. Add other tickers only after checking sources.
 const profiles=Object.freeze({
@@ -31,34 +32,6 @@ const profiles=Object.freeze({
   ]
  })
 });
-async function findPublicProfile(name){
- const title=name.replace(/\s+(Common Stock|Class [A-Z] Common Stock).*$/i,'').trim();
- const endpoint='https://en.wikipedia.org/api/rest_v1/page/summary/'+encodeURIComponent(title);
- const response=await fetch(endpoint,{headers:{'Accept':'application/json'}});
- if(!response.ok)return null;
- const data=await response.json();
- const a=title.toLowerCase().replace(/[^a-z0-9]/g,''),b=String(data.title||'').toLowerCase().replace(/[^a-z0-9]/g,'');
- if(!a||!b||!(a===b||a.includes(b)||b.includes(a)))return null;
- if(!data.extract||String(data.extract).length<50)return null;
- return {description:String(data.extract).slice(0,900),source:data.content_urls?.desktop?.page||null};
-}
-async function sourcedCompanyPhoto(pageUrl){
- if(!pageUrl)return null;
- try{
-  const title=decodeURIComponent(new URL(pageUrl).pathname.split('/').pop()).replace(/_/g,' ');
-  const endpoint=new URL('https://en.wikipedia.org/w/api.php');
-  for(const [key,value] of Object.entries({action:'query',format:'json',origin:'*',prop:'pageimages',piprop:'name',titles:title}))endpoint.searchParams.set(key,value);
-  const result=await (await fetch(endpoint)).json();
-  const imageName=Object.values(result.query?.pages||{})[0]?.pageimage;
-  if(!imageName||/logo|icon|symbol|wordmark/i.test(imageName))return null;
-  const api=new URL('https://commons.wikimedia.org/w/api.php');
-  for(const [key,value] of Object.entries({action:'query',format:'json',origin:'*',prop:'imageinfo',iiprop:'url|extmetadata',iiurlwidth:'600',titles:'File:'+imageName}))api.searchParams.set(key,value);
-  const info=Object.values((await (await fetch(api)).json()).query?.pages||{})[0]?.imageinfo?.[0];
-  const license=String(info?.extmetadata?.LicenseShortName?.value||'');
-  if(!/CC BY|CC0|Public domain|PD-/i.test(license)||!info?.descriptionurl)return null;
-  return {url:info.thumburl||info.url,source:info.descriptionurl,caption:imageName.replace(/_/g,' '),license};
- }catch{return null;}
-}
 const add=(parent,tag,className,text)=>{const e=document.createElement(tag);if(className)e.className=className;if(text!==undefined)e.textContent=text;parent.append(e);return e;};
 export async function renderCompanyProfile(ticker,sb=null){
  const root=document.getElementById('company-profile');
@@ -66,52 +39,7 @@ export async function renderCompanyProfile(ticker,sb=null){
  root.replaceChildren();
  const data=profiles[ticker];
  if(!data){
-  add(root,'p','company-eyebrow','NEW STOCK RESEARCH WORKSPACE');
-  add(root,'h2','company-name',ticker);
-  const displayName=add(root,'p','company-description','Retrieving registered company name…');
-  const note=add(root,'p','sub','This company does not yet have a separately reviewed editorial profile. Its chart, research board and agent outlooks are available.');
-  const next=add(root,'p','sub','No research assignments are created by simply visiting a stock. To contribute, join its team and explicitly request a metric.');
-  const team=add(root,'a',null,'Join the '+ticker+' research team');
-  team.href='./join-research.html?environment=orca-staging&ticker='+encodeURIComponent(ticker);
-  if(!sb){displayName.textContent='Company listing lookup pending';return;}
-  try{
-   const {data:stock,error}=await sb.from('stocks').select('ticker,company_name').eq('ticker',ticker).maybeSingle();
-   if(error)throw error;
-   if(stock){
-    displayName.textContent=String(stock.company_name||ticker);
-    note.textContent='Registered stock · checking verified public company information…';
-    try{
-     const overview=await findPublicProfile(stock.company_name||ticker);
-     if(overview){
-      const mission=add(root,'div','company-mission');
-      add(mission,'strong',null,'Mission / company focus');
-      add(mission,'p',null,overview.description.split(/(?<=[.!?])\s/)[0]);
-      add(root,'h3','company-auto-operations','What they do');
-      add(root,'p','company-description',overview.description);
-      add(root,'h3','company-auto-operations','How they do it');
-      const sentences=overview.description.split(/(?<=[.!?])\s+/);
-      add(root,'p','company-description',sentences.length>1?sentences.slice(1).join(' '):'For a detailed operational breakdown, review corporate filings and independently published research.');
-      if(overview.source){const source=add(root,'a',null,'Company profile source');source.href=overview.source;source.target='_blank';source.rel='noopener noreferrer';}
-      const photo=await sourcedCompanyPhoto(overview.source);
-      if(photo){
-       const figure=add(root,'figure','company-activity-photo');
-       const link=add(figure,'a');link.href=photo.source;link.target='_blank';link.rel='noopener noreferrer';
-       const img=add(link,'img');img.src=photo.url;img.alt=photo.caption;img.loading='lazy';
-       const credit=add(figure,'figcaption',null);credit.textContent=photo.caption+' · '+photo.license+' · ';
-       const source=add(credit,'a',null,'Photo source');source.href=photo.source;source.target='_blank';source.rel='noopener noreferrer';
-      }else add(root,'p','company-asof','A properly sourced company photograph was not available. No substitute image is shown.');
-      note.textContent='Automatically sourced company profile; company focus is not a verified official mission statement.';
-     }else note.textContent='No matching source-backed company overview was confirmed. Chart and research remain available.';
-    }catch{note.textContent='Company source temporarily unavailable; no unverified profile will be shown.';}
-   }else{
-    displayName.textContent='Ticker not registered in ORCA';
-    next.textContent='Search for a verified stock above to open its research workspace.';
-    team.hidden=true;
-   }
-  }catch{
-   displayName.textContent='Company name unavailable; ticker '+ticker;
-   note.textContent='Stock directory could not be loaded. Refresh to verify this company before researching.';
-  }
+  await renderAutomaticCompanyProfile(root,ticker,sb);
   return;
  }
  const head=add(root,'div','company-profile-grid');
