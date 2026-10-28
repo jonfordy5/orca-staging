@@ -3,6 +3,10 @@ const ORCA_STAGING_PROJECT_REF = 'vbziibatnejoswsdggga';
 const ORCA_STAGING_PROJECT_URL = 'https://vbziibatnejoswsdggga.supabase.co';
 const ORCA_STAGING_PUBLISHABLE_KEY = 'sb_publishable_vUOZ5qC2FQVsh7MUyEmHQA_j211UdHH';
 
+// Optional Logo.dev browser-safe publishable key (pk_...), never an sk_ secret.
+// Leave empty until ORCA owner enables the free Logo.dev account.
+export const ORCA_LOGO_DEV_PUBLISHABLE_KEY = '';
+
 export function isOrcaStagingEnvironment() {
   return true;
 }
