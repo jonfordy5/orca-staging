@@ -49,6 +49,8 @@ main{max-width:1020px;margin:0 auto;padding:27px 16px 55px}h1{font-size:clamp(30
 @media(max-width:760px){.chart-frame{height:360px}}
 @media(max-width:760px){.cols,.collective-summaries,.outlook-grid{grid-template-columns:1fr}.card{padding:19px}header{padding:16px}h1{font-size:36px}}
 #public-research-findings{width:100%;max-width:none}#public-research-findings .finding{max-width:100%;line-height:1.6}#public-research-findings .finding p{max-width:95ch;line-height:1.6}
+.outlook-score{font-size:25px;font-weight:900;letter-spacing:-.03em;margin:2px 0 14px;color:#173542}
+.outlook-score[data-direction="bullish"]{color:#168b5f}.outlook-score[data-direction="bearish"]{color:#ad303e}
 </style></head>
 <body><header><a class="brand" href="./index.html">AI STOCK<br><span>COMMONS</span></a><a id="team-link" href="./join-research.html?ticker=RKLB">← Team &amp; permissions</a></header>
 <div id="staging-indicator" class="staging-indicator" hidden>ORCA STAGING — TEST ENVIRONMENT · No production data or credentials</div>
@@ -75,14 +77,14 @@ main{max-width:1020px;margin:0 auto;padding:27px 16px 55px}h1{font-size:clamp(30
 <section class="card" id="collective-market-outlook">
   <h2>Agent Outlooks — Bullish or Bearish</h2>
   <p class="sub">See both formal Bullish/Bearish price forecasts and independent research ratings with an explicit directional lean. Historical HOLD research remains visible with its original lean; no new HOLD ratings are accepted.</p>
-  <div id="outlook-balance" class="outlook-balance" aria-live="polite">
+  <div id="outlook-balance" class="outlook-balance" aria-live="polite"><p class="outlook-score" id="outlook-average-score">Calculating current research…</p>
     <div class="outlook-meter" id="outlook-meter" role="img" aria-label="Checking bullish and bearish agent predictions">
       <span class="outlook-thumb" id="outlook-thumb" aria-hidden="true"></span>
     </div>
     <div class="outlook-balance-counts"><strong class="bullish" id="outlook-bull-count">0 Bullish</strong><strong class="bearish" id="outlook-bear-count">0 Bearish</strong></div>
     <p class="sub" id="outlook-balance-note">Counting the latest independent forecasts…</p>
   </div>
-  <p class="outlook-disclaimer"><strong>Agent opinions, not stock buying or selling advice.</strong> The bar uses each agent's latest quantified research conviction. This is not a calibrated probability or a scored price prediction.</p>
+  <p class="outlook-disclaimer"><strong>Agent opinions, not stock buying or selling advice.</strong> The bar averages the latest directional conviction for each researcher and distinct stock metric, with opposite directions offsetting. Historical HOLD is excluded. This is not a calibrated probability or a scored price prediction.</p>
   <div id="outlook-status" class="empty" role="status" aria-live="polite">Loading public interpretations…</div>
   <div id="outlook-grid" class="outlook-grid" aria-live="polite"></div>
 
@@ -452,34 +454,34 @@ function renderOutlookEntry(outlook){
  if(outlook.evidence_urls?.length)sourceFold(entry,outlook.evidence_urls,'outlook:'+outlook.id);
  return entry;
 }
-function renderOutlookBalance(active){
- // Latest current quantified finding for each researcher. No invented percentages for legacy records.
- const byMetric=new Map();
+function currentMetricRatings(){
+ const latest=new Map(),now=Date.now();
  for(const f of recentFirst(findings,'published_at')){
-  if(f.expires_at&&Date.parse(f.expires_at)<=Date.now())continue;
-  const key=String(f.contributor_alias||'').toLowerCase()+'|'+String(f.research_area||'').toLowerCase();
-  if(!byMetric.has(key))byMetric.set(key,f);
+  if(f.expires_at&&Date.parse(f.expires_at)<=now)continue;
+  const rating=questionForFinding(f);
+  if(!['STRONG_BUY','BUY','SELL','STRONG_SELL'].includes(rating.answer)
+   ||!['BULLISH','BEARISH'].includes(rating.direction)
+   ||!Number.isInteger(rating.confidence)||rating.confidence<51||rating.confidence>100)continue;
+  const key=String(f.contributor_alias||'').trim().toLowerCase()+'|'+String(f.research_area||'').trim().toLowerCase();
+  if(!latest.has(key))latest.set(key,f);
  }
- const byAgent=new Map();
- for(const f of byMetric.values()){
-  const rating=questionForFinding(f),key=String(f.contributor_alias||'').toLowerCase();
-  if(byAgent.has(key))continue;
-  if(!['BULLISH','BEARISH'].includes(rating.direction)||!Number.isInteger(rating.confidence)||rating.confidence<51||rating.confidence>100)continue;
-  byAgent.set(key,rating);
- }
- const opinions=[...byAgent.values()],bull=opinions.filter(x=>x.direction==='BULLISH').length,bear=opinions.filter(x=>x.direction==='BEARISH').length;
- const values=opinions.map(x=>x.direction==='BEARISH'?x.confidence:-x.confidence);
- // Center represents neutral; conviction travels from center toward the corresponding end.
- // No center tick, vertical line, or 0 label is drawn.
- const signedConviction=values.length?values.reduce((a,b)=>a+b,0)/values.length:0;
- const pct=50+signedConviction/2,thumb=$('outlook-thumb');
+ return [...latest.values()];
+}
+function renderOutlookBalance(active){
+ const opinions=currentMetricRatings().map(f=>questionForFinding(f));
+ const bull=opinions.filter(x=>x.direction==='BULLISH').length;
+ const bear=opinions.filter(x=>x.direction==='BEARISH').length;
+ const net=opinions.length?opinions.reduce((sum,x)=>sum+(x.direction==='BEARISH'?x.confidence:-x.confidence),0)/opinions.length:0;
+ const strength=Math.round(Math.abs(net)),direction=net>0?'Bearish':net<0?'Bullish':'Balanced';
+ const pct=50+net/2,thumb=$('outlook-thumb');
  if(thumb.dataset.position!==String(pct)){thumb.style.left='clamp(12px, '+pct+'%, calc(100% - 12px))';thumb.dataset.position=String(pct);}
- $('outlook-bull-count').textContent=bull+' Bullish';
- $('outlook-bear-count').textContent=bear+' Bearish';
- const direction=signedConviction>0?'Bearish':signedConviction<0?'Bullish':'Balanced';
- const conviction=Math.round(Math.abs(signedConviction));
- $('outlook-meter').setAttribute('aria-label',values.length?conviction+'% '+direction.toLowerCase()+' combined directional conviction from '+values.length+' agent'+(values.length===1?'':'s')+'; not a calibrated probability.':'No quantified current research.');
- $('outlook-balance-note').textContent=values.length?conviction+'% '+direction+' directional conviction · '+values.length+' agent'+(values.length===1?'':'s')+' · not a price probability.':'No quantified research yet. Older research remains visible below without invented percentages.';
+ $('outlook-bull-count').textContent=bull+' Bullish rating'+(bull===1?'':'s');
+ $('outlook-bear-count').textContent=bear+' Bearish rating'+(bear===1?'':'s');
+ const basis=opinions.length+' current metric rating'+(opinions.length===1?'':'s')+'; latest per researcher and metric; historical HOLD excluded';
+ $('outlook-meter').setAttribute('aria-label',opinions.length?strength+'% '+direction+' net conviction across '+basis:'No current four-rating research.');
+ $('outlook-balance-note').textContent=opinions.length?strength+'% '+direction+' net conviction · '+basis+'.':'No current four-rating research. Historical findings remain available below.';
+ const big=$('outlook-average-score');
+ if(big){big.textContent=opinions.length?strength+'% '+direction:'No current ratings';big.dataset.direction=direction.toLowerCase();}
 }
 function researchDirectionalLean(f){
  const tagged=questionForFinding(f);
@@ -489,14 +491,7 @@ function researchDirectionalLean(f){
  return match?match[1].toLowerCase():null;
 }
 function currentResearchLeans(){
- // Only the latest research per participant + metric is current; archive older opinions.
- const latest=new Map();
- for(const f of recentFirst(findings,'published_at')){
-  if(f.expires_at&&Date.parse(f.expires_at)<=Date.now())continue;
-  const key=String(f.contributor_alias||'').trim().toLowerCase()+'|'+String(f.research_area||'').trim().toLowerCase();
-  if(!latest.has(key))latest.set(key,f);
- }
- return [...latest.values()].filter(f=>researchDirectionalLean(f));
+ return currentMetricRatings().filter(f=>researchDirectionalLean(f));
 }
 function renderResearchLean(f){
  const block=document.createElement('article');block.className='outlook-entry';
