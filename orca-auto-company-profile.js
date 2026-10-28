@@ -150,17 +150,28 @@ async function referenceFacts(ticker){
  const all=await referenceCache.get(letter);
  return all[ticker]||null;
 }
+// Public, MIT-licensed company records are our primary business-description data.
+// Wikipedia enriches the record with independent context, not the other way around.
 function mergeReference(company,facts){
- if(!facts)return company;
+ if(!facts?.name)return company;
+ const summary=String(facts.summary||'').trim();
+ const parts=sentences(summary);
  const location=[facts.city,facts.state,facts.country].filter(Boolean).join(', ');
- // Public encyclopedia links remain source-attributed; optional MIT source facts
- // complement only missing fields; never override the verified company identity.
+ const focus=parts.slice(0,2).join(' ');
+ const work=parts.slice(0,4).join(' ');
+ const how=parts.slice(2,7).join(' ');
  return {...company,
-  headquarters:company.headquarters||location||null,
-  industry:company.industry||facts.industry||facts.sector||null,
+  title:facts.name,
+  intro:focus||company.intro,
+  focus:focus||company.focus,
+  business:work||company.business,
+  how:how||null,
+  headquarters:location||company.headquarters||null,
+  industry:facts.industry||facts.sector||company.industry||null,
   website:company.website||siteURL(facts.website)||null,
-  listing:company.listing||facts.exchange||null,
-  referenceUsed:true
+  listing:facts.exchange||company.listing||null,
+  referenceUsed:true,
+  referenceSummaryAvailable:Boolean(summary)
  };
 }
 async function wikiProfile(registeredName){
@@ -301,24 +312,26 @@ function render(root,company,ticker){
  renderUnifiedCompanyProfile(root,ticker,{
   name:company.title,description:company.intro,
   eyebrow:'ABOUT THE COMPANY · SOURCED OVERVIEW',
-  missionHeading:'Company focus',mission:company.focus,
-  missionNote:'Publicly sourced company description; not a verified official mission statement.',
+  missionHeading:'Business focus',mission:company.focus,
+  missionNote:company.referenceUsed?'From the free FinanceDatabase company description; not an official mission statement.':'Publicly sourced company description; not a verified official mission statement.',
   headquarters:company.headquarters,founded:company.founded,industry:company.industry,
   listing:ticker,operations:company.business||company.intro,
-  how:company.business||'Detailed operating segments still need verification in primary company filings.',
-  businessSource:company.source,businessSourceLabel:'Company overview source',
+  how:company.how||company.business||'Detailed operating segments still need verification in primary company filings.',
+  businessSource:company.referenceUsed?'https://github.com/JerBouma/FinanceDatabase':company.source,
+  businessSourceLabel:company.referenceUsed?'Business description data':'Company overview source',
   investorFocus:'Company-specific investment catalysts and financial results require independent research using filings and dated sources.',
   investorFocusHeading:'What investors watch',
-  notice:'Source-backed encyclopedia profile, not an audited financial or business segment breakdown.',
+  notice:company.referenceUsed?'Free reference descriptions can be historical. Verify current products, segments and finances against the latest company filings.':'Encyclopedia overview only; the new free reference record was not available for this company.',
   logo:company.logo?{...company.logo,alt:company.title+' sourced company logo',caption:'Company logo · '+company.logo.license+' · linked to source'}:null,
   photo:company.image?{...company.image,alt:'Company-related Commons photo: '+company.image.caption}:null,
   links:[
    {label:'Official website',url:company.website},
    {label:'Company overview',url:company.source},
+   {label:'Free company dataset',url:company.referenceUsed?'https://github.com/JerBouma/FinanceDatabase':null},
    {label:'Company facts',url:company.wikidataURL},
    {label:'SEC filings',url:company.secCIK?'https://www.sec.gov/edgar/browse/?CIK='+encodeURIComponent(company.secCIK):null}
   ],
-  sourceNote:company.referenceUsed?'Company overview: Wikipedia contributors (CC BY-SA). Company facts: Wikidata contributors (CC0); FinanceDatabase contributors (MIT).':'Company overview: Wikipedia contributors (CC BY-SA). Company facts: Wikidata contributors (CC0).',
+  sourceNote:company.referenceUsed?'Business description and industry: FinanceDatabase (MIT); supporting context: Wikipedia (CC BY-SA), Wikidata (CC0).':'Wikipedia (CC BY-SA) and Wikidata (CC0). Free company reference data was not loaded.',
   sourceUpdated:company.revision
  });
 }
@@ -337,9 +350,11 @@ export async function renderAutomaticCompanyProfile(root,ticker,sb){
   if(!info){
    const [facts,article]=await Promise.all([referenceFacts(ticker),wikiProfile(name)]);
    info=article?mergeReference(article,facts):(facts&&facts.name?{
-    title:facts.name,intro:facts.summary||'Publicly listed company profile. Detailed description awaits independent verification.',
-    focus:[facts.sector,facts.industry].filter(Boolean).join(' · ')||'Publicly listed company',
-    business:facts.summary||null,industry:facts.industry||facts.sector||null,
+    title:facts.name,intro:sentences(facts.summary).slice(0,2).join(' ')||'Publicly listed company profile. Detailed description awaits verification.',
+    focus:sentences(facts.summary).slice(0,2).join(' ')||[facts.sector,facts.industry].filter(Boolean).join(' · ')||'Publicly listed company',
+    business:sentences(facts.summary).slice(0,4).join(' ')||null,
+    how:sentences(facts.summary).slice(2,7).join(' ')||null,
+    industry:facts.industry||facts.sector||null,
     headquarters:[facts.city,facts.state,facts.country].filter(Boolean).join(', ')||null,
     listing:facts.exchange||ticker,website:siteURL(facts.website),referenceUsed:true,
     source:'https://github.com/JerBouma/FinanceDatabase',revision:null
