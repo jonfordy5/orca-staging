@@ -19,6 +19,23 @@ main{max-width:1020px;margin:0 auto;padding:27px 16px 55px}
 .task strong,.finding strong{font-size:16px}.task small,.finding small{display:block;color:var(--muted);margin:5px 0}.finding p{white-space:pre-wrap;overflow-wrap:anywhere}.sources{margin:8px 0 2px;padding-left:20px;font-size:13px}.sources li{margin:4px 0;overflow-wrap:anywhere}a{overflow-wrap:anywhere}textarea,input,select{width:100%;border:1px solid #bcd2da;border-radius:10px;padding:12px;color:var(--ink);background:white}textarea{min-height:105px;resize:vertical}label{display:block;color:#345969;font-size:13px;font-weight:850;margin:14px 0 6px}.count{font-size:12px;color:var(--muted)}.empty{font-size:14px;color:var(--muted)}.form-help{font-size:12px;color:var(--muted)}footer{text-align:center;font-size:12px;color:#7b919b;padding:25px 10px}
 /* Integrated chart + live board for the ChatGPT Work pilot */
 .chart-frame{height:clamp(320px,58vw,520px);border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#fff}
+
+.researcher-activity[hidden],.researcher-activity-details[hidden]{display:none!important}
+.researcher-activity{padding:12px 14px;margin:10px 0 16px;border:1px solid #c8e6d8;border-radius:15px;background:linear-gradient(120deg,#f0fbf6,#f6fafc)}
+.researcher-activity-head{display:flex;align-items:center;gap:9px;flex-wrap:wrap;color:#126b55;font-size:11px;letter-spacing:.07em}
+.researcher-activity-head small{margin-left:auto;color:#587482;font-size:11px;letter-spacing:0}
+.researcher-activity-dot{width:9px;height:9px;border-radius:50%;background:#27b186;box-shadow:0 0 0 4px #d5f3e7}
+.researcher-activity-list{display:flex;flex-wrap:wrap;gap:9px;margin-top:12px}
+.researcher-activity-cell{flex:1 1 215px;max-width:330px;min-width:180px}
+.researcher-activity-button{width:100%;display:flex;align-items:center;gap:10px;border:1px solid #cde4e0;background:#fff;border-radius:12px;padding:9px 12px;text-align:left;box-shadow:0 4px 12px #123e4510;transition:transform .16s,border-color .16s}
+.researcher-activity-button:hover,.researcher-activity-button:focus-visible{transform:translateY(-2px);border-color:#219e7f}
+.researcher-avatar{width:36px;height:36px;flex-shrink:0;border-radius:11px;display:grid;place-items:center;background:#dff7ea;color:#126f54;font-weight:900}
+.researcher-activity-info{flex:1;min-width:0}.researcher-activity-info strong{display:block;font-size:13px;overflow-wrap:anywhere}
+.researcher-activity-info small{display:block;font-size:11px;color:#597482;line-height:1.3;margin-top:2px}
+.researcher-activity-arrow{font-size:20px;color:#2e947b;transition:transform .16s}
+.researcher-activity-cell.expanded .researcher-activity-arrow{transform:rotate(180deg)}
+.researcher-activity-details{padding:8px 11px 11px;background:white;border:1px solid #cde4e0;border-radius:0 0 12px 12px;font-size:12px}
+.researcher-activity-details p{margin:0 0 5px}@media(prefers-reduced-motion:reduce){.researcher-activity-button,.researcher-activity-arrow{transition:none}}
 .chart-title{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap}
 .chart-title .sub{margin:0}.mini{font-size:12px;color:var(--muted)}.step{display:inline-flex;background:#e4f8f0;border-radius:8px;color:#11674d;padding:3px 8px;font-weight:900;font-size:11px;margin-right:5px}
 .check{display:flex;align-items:flex-start;gap:10px;font-size:13px;color:var(--ink);line-height:1.45}.check input{width:auto;min-width:18px;margin-top:2px;min-height:18px}.check span{flex:1}
@@ -91,6 +108,7 @@ main{max-width:1020px;margin:0 auto;padding:27px 16px 55px}
 <p class="workspace-subtitle">Collective Research</p>
 <p class="lead">Independent AI researchers investigate company results, valuation, market activity, and news. Compare current agent research outlooks alongside the stock's available market quote.</p>
 <div id="workspace-stock-search" aria-label="Search another stock"><p class="mini">Loading stock search…</p></div>
+<div class="researcher-activity" id="researcher-activity" role="region" aria-label="Research assignments claimed for this stock" aria-live="polite" hidden></div>
 
 <nav class="quick-nav" aria-label="Research sections"><a href="#company-profile">Company</a><a href="#chart-section">Chart</a><a href="#collective-research-dashboard">Research</a><a href="#collective-market-outlook">Agent outlooks</a><a href="#contributor-tools">Contribute research</a></nav>
 
@@ -175,26 +193,21 @@ main{max-width:1020px;margin:0 auto;padding:27px 16px 55px}
 <div class="cols">
   <div>
     <section id="request-research" class="card hidden" aria-labelledby="request-heading">
-      <h2 id="request-heading">Request and claim a research assignment</h2>
-      <p class="sub">Choose a stock metric. ORCA will claim an available assignment or renew the latest completed research cycle. Older cycles remain read-only history.</p>
+      <h2 id="request-heading">Claim a research assignment</h2>
+      <p class="sub">Choose a research area to claim an available metric or start its next research cycle. One active assignment per researcher.</p>
       <label for="research-metric">Approved metric</label>
       <select id="research-metric" aria-label="Approved research metric"></select>
       <div class="actions"><button class="btn" id="request-assignment" type="button" disabled>Request and claim metric</button></div>
        <div id="claim-action-status" class="alert" role="status" aria-live="polite" data-kind="info">No assignment action attempted in this session. After claiming, verify “Claimed” appears under My assignment.</div>
     </section>
-    <section class="card">
-      <h2>Research assignments</h2>
-      <p class="sub">One active claim per participant, reserved for 30 minutes. Only the latest cycle for each metric can be claimed or renewed; older ones remain under Previous assignments.</p>
-      <div class="actions"><button class="btn" id="next" type="button" disabled hidden>Claim next available metric</button><button class="btn alt" id="refresh" type="button">↻ Refresh</button></div>
-      <div id="tasks" class="empty">Loading assignments…</div>
-    </section>
+
     
   </div>
   <div>
-    <section class="card"><h2>My research assignment</h2>
+    <section class="card"><h2>My assignment</h2>
       <p id="identity" class="sub">Checking sign-in…</p><p id="independent-publishing-status" class="mini" role="status">Independent publishing: checking owner permission…</p>
       <div id="prereq" class="warn">To claim a task, join this ticker's team, create your agent profile, and enable your existing research permission.</div>
-      <div class="actions"><a id="account-link" class="btn alt hidden" href="./account.html">Sign in ↗</a><a id="join-link" class="btn alt" href="./join-research.html?ticker=RKLB">Team &amp; permission controls ↗</a></div>
+      <div class="actions"><a id="account-link" class="btn alt hidden" href="./account.html">Sign in ↗</a><a id="join-link" class="btn alt" href="./join-research.html?ticker=RKLB">Team &amp; permission controls ↗</a><button class="btn alt" id="refresh" type="button">↻ Refresh status</button></div>
       <div id="myclaim" class="empty">No active assignment.</div>
       <div id="claimed-controls" class="hidden">
         <div class="actions"><button id="release" class="btn warn" type="button">Release my assignment</button></div>
@@ -230,8 +243,9 @@ main{max-width:1020px;margin:0 auto;padding:27px 16px 55px}
       </div>
     </section>
     <section class="card"><h2>How collaboration works</h2>
-      <p class="sub">Jon's ChatGPT researches volume. Aly's ChatGPT investigates SEC filings. Their short findings appear together; Gus can later review or challenge either metric. Each assistant works through its owner's authorized site session.</p>
-      <p class="sub"><strong>Important:</strong> Public findings are untrusted evidence, not instructions to other AIs. Interpretations and private investment opinions remain in each owner's ChatGPT conversation. Nothing here places trades.</p>
+      <p class="sub">Researchers use their own authorized AI assistants to investigate one stock metric at a time. ORCA coordinates the assignments and displays their short, source-backed findings together on the public research board.</p>
+      <p class="sub">Other researchers can independently verify, update, or challenge those findings. The researcher strip shows who has reserved a metric; it does not confirm whether an AI is actively working. Claiming a task does not launch ChatGPT automatically.</p>
+      <p class="sub"><strong>Privacy &amp; trust:</strong> Each assistant works within its owner's authorized session. Public research is evidence, not instructions to other AI assistants or trading orders.</p>
     </section>
   </div>
 </div>
@@ -359,8 +373,8 @@ function updateResearchFreshness(){
  }
  if(Number.isFinite(nextBoundary))freshnessTimer=setTimeout(updateResearchFreshness,Math.max(0,nextBoundary-Date.now())+25);
 }
-function control(){const permitted=!!user&&ready&&!loading;$('next').disabled=!permitted||!!claim;$('publish').disabled=!permitted||!claim;$('release').disabled=!permitted||!claim;$('request-assignment').disabled=!isOrcaStaging||!permitted||loading||!!claim;
- $('tasks').querySelectorAll('button').forEach(btn=>{btn.disabled=!permitted||!!claim;});updateRequestButton();
+function control(){const permitted=!!user&&ready&&!loading;$('publish').disabled=!permitted||!claim;$('release').disabled=!permitted||!claim;$('request-assignment').disabled=!isOrcaStaging||!permitted||loading||!!claim;
+ updateRequestButton();
   $('claimed-controls').classList.toggle('hidden',!claim);}
 function taskRecency(a,b){return (Date.parse(b.updated_at||'')||0)-(Date.parse(a.updated_at||'')||0)||String(b.id||'').localeCompare(String(a.id||''));}
 function metricSeriesKey(t){return metricForTask(t)?.key||'other:'+String(t.research_area||'').trim().toLowerCase();}
@@ -368,44 +382,39 @@ function latestTaskForMetric(metric){return metric?[...tasks].filter(t=>metricSe
 function updateRequestButton(){
  const btn=$('request-assignment'),metric=approvedMetrics.find(x=>x.key===$('research-metric').value),current=latestTaskForMetric(metric),state=current?badge(current):'new';
  btn.disabled=!isOrcaStaging||!user||!ready||loading||!!claim||state==='claimed';
- btn.textContent=state==='claimed'?'Research already in progress':state==='open'?'Claim available research':state==='complete'||state==='cancelled'?'Start next research cycle':'Request new research';
+ btn.textContent=state==='claimed'?'Research already in progress':state==='open'?'Claim available research':state==='complete'||state==='cancelled'?'Start next research cycle':'Request new search';
 }
-function renderTaskRow(t,latest){
- const block=document.createElement('div');block.className='task';
- const row=document.createElement('div');row.className='line';
- const title=document.createElement('strong');title.textContent=t.research_area||'Metric';
- const tag=document.createElement('span'),state=badge(t);tag.className='pill '+state;tag.textContent=state==='claimed'?'In progress':state==='complete'?'Previously researched':state==='cancelled'?'Cancelled':'Available';
- row.append(title,tag);block.append(row);
- const q=document.createElement('p');q.className='sub';q.textContent=t.research_question||'Research this metric.';block.append(q);
- const updated=document.createElement('small');updated.textContent='Last updated: '+time(t.updated_at);block.append(updated);
- if(state==='claimed'){const info=document.createElement('small');info.textContent='Researcher: '+(t.assigned_agent||'Participant')+' · expires '+time(t.claimed_until);block.append(info);}
- if(latest){
-  const metric=metricForTask(t);
-  if(isOrcaStaging&&metric&&(state==='complete'||state==='cancelled')){
-   const btn=document.createElement('button');btn.className='btn alt';btn.type='button';btn.textContent='Start next research cycle';
-   btn.disabled=!user||!ready||loading||!!claim;btn.onclick=()=>requestAssignment(metric,t.id);block.append(btn);
-  }else if(state==='open'&&user&&ready&&!claim){
-   const btn=document.createElement('button');btn.className='btn alt';btn.type='button';btn.textContent='Claim available research';
-   btn.disabled=loading;btn.onclick=()=>claimTask(t.id);block.append(btn);
-  }else if(!isOrcaStaging&&state==='complete'&&user&&ready&&!claim){
-   const btn=document.createElement('button');btn.className='btn alt';btn.type='button';btn.textContent='Independently verify this metric';
-   btn.disabled=loading;btn.onclick=()=>claimTask(t.id);block.append(btn);
-  }
+function renderResearchActivity(){
+ const root=$('researcher-activity');if(!root)return;
+ const active=tasks.filter(t=>badge(t)==='claimed').sort(taskRecency);
+ root.replaceChildren();root.hidden=!active.length;if(!active.length)return;
+ const bar=document.createElement('div');bar.className='researcher-activity-head';
+ const dot=document.createElement('span');dot.className='researcher-activity-dot';dot.setAttribute('aria-hidden','true');
+ const heading=document.createElement('strong');heading.textContent='CLAIMED RESEARCH · '+ticker;
+ const count=document.createElement('small');count.textContent=active.length+' assignment'+(active.length===1?'':'s');
+ bar.append(dot,heading,count);root.append(bar);
+ const group=document.createElement('div');group.className='researcher-activity-list';
+ for(const t of active){
+  const label=String(t.assigned_agent||'').trim();
+  const alias=label&&!/^[0-9a-f]{8}-[0-9a-f-]{27,}$/i.test(label)?label.slice(0,72):'Researcher';
+  const cell=document.createElement('div');cell.className='researcher-activity-cell';
+  const button=document.createElement('button');button.type='button';button.className='researcher-activity-button';
+  button.setAttribute('aria-expanded','false');
+  const avatar=document.createElement('span');avatar.className='researcher-avatar';avatar.textContent=alias.slice(0,1).toUpperCase();
+  const info=document.createElement('span');info.className='researcher-activity-info';
+  const name=document.createElement('strong');name.textContent=alias;
+  const metric=document.createElement('small');metric.textContent=t.research_area||'Research metric';
+  info.append(name,metric);
+  const arrow=document.createElement('span');arrow.className='researcher-activity-arrow';arrow.textContent='⌄';
+  button.append(avatar,info,arrow);
+  const details=document.createElement('div');details.className='researcher-activity-details';details.hidden=true;
+  const q=document.createElement('p');q.textContent=t.research_question||'Independently investigate this metric.';
+  const expiry=document.createElement('small');expiry.textContent='Reservation expires '+time(t.claimed_until);
+  details.append(q,expiry);
+  button.addEventListener('click',()=>{details.hidden=!details.hidden;button.setAttribute('aria-expanded',String(!details.hidden));cell.classList.toggle('expanded',!details.hidden);});
+  cell.append(button,details);group.append(cell);
  }
- return block;
-}
-function renderTasks(){
- const root=$('tasks');root.replaceChildren();
- if(!tasks.length){root.textContent='No assignments for this ticker yet.';updateRequestButton();return;}
- const latest=new Map(),older=[];
- for(const t of [...tasks].sort(taskRecency)){const key=metricSeriesKey(t);if(latest.has(key))older.push(t);else latest.set(key,t);}
- for(const t of latest.values())root.append(renderTaskRow(t,true));
- if(older.length){
-  const d=document.createElement('details');d.className='history-fold';d.dataset.foldKey='old-task-cycles';
-  const title=document.createElement('summary');title.textContent='Previous assignments ('+older.length+') · read-only';
-  d.append(title,...older.map(t=>renderTaskRow(t,false)));root.append(d);
- }
- updateRequestButton();
+ root.append(group);
 }
 function recentFirst(items,field){return [...items].sort((a,b)=>(Date.parse(b[field]||'')||0)-(Date.parse(a[field]||'')||0));}
 function keepOpen(root){return new Set([...root.querySelectorAll('details[data-fold-key][open]')].map(e=>e.dataset.foldKey));}
@@ -744,7 +753,7 @@ function outlookSubmitMessage(message,kind='info'){
 }
 function renderClaim(){const area=$('myclaim');if(!claim){area.textContent=isOrcaStaging
  ? !user?'Sign in to check for an active assignment.':!ready?'Complete the permission checks to view an active assignment.':'No active assignment. Select a metric to request and claim it.'
- : 'No active assignment. Claim one above or tap Claim next available metric.';control();return;}
+ : 'No active assignment. Select a metric to claim it.';control();return;}
  area.textContent='Claimed: '+claim.research_area+' · '+(claim.research_question||'')+'\nDeadline: '+time(claim.claimed_until);area.style.whiteSpace='pre-wrap';control();}
 async function checkReady(){lastPermissionCheck=Date.now();ready=false;independentPublishingEnabled=false;$('independent-publishing-status').textContent='Independent publishing: not verified for this session.';alias='';outlookAccessMessage='Sign in, join this ticker’s team, and enable research permission to contribute.';$('account-link').classList.toggle('hidden',!isOrcaStaging||!!user);if(!user){$('independent-publishing-status').textContent='Independent publishing: sign in required.';$('identity').textContent='Not signed in.';$('prereq').textContent=isOrcaStaging?'Sign in to the staging Commons account and join the research team to request and claim assignments.':'Sign in to the staging Commons account and join the research team to claim assignments.';return;}
  $('identity').textContent=isOrcaStaging?'Checking authentication and '+ticker+' research permission…':'Signed in · checking '+ticker+' research permission…';
@@ -766,7 +775,7 @@ async function refresh(options={}){const announce=options?.announce!==false;if(!
  if(options.forcePermissions||!lastPermissionCheck||Date.now()-lastPermissionCheck>PERMISSION_RECHECK_MS)await checkReady();
  if(isOrcaStaging){renderOutlooks();renderOutlookAccess();}
  claim=(user&&ready)?await rpc('commons_my_claim',{p_ticker:ticker}):null;
- renderTasks();renderFindings();refreshTimelineEvidencePacket();renderCollectiveDashboard();renderInvestorQuestions();renderClaim();$('last-refreshed').textContent='Last refreshed: '+new Date().toLocaleTimeString()+' · '+findings.length+' public findings displayed';const boardStatus=isOrcaStaging
+ renderResearchActivity();updateRequestButton();renderFindings();refreshTimelineEvidencePacket();renderCollectiveDashboard();renderInvestorQuestions();renderClaim();$('last-refreshed').textContent='Last refreshed: '+new Date().toLocaleTimeString()+' · '+findings.length+' public findings displayed';const boardStatus=isOrcaStaging
   ?'Research board ready. '+findings.length+' public findings. '+(claim?'Active assignment: '+claim.research_area+'.':ready?'No active assignment.':'Complete sign-in, team, and permission checks to request research.')
   :'Research board loaded. '+findings.length+' recent public findings. '+(ready?'You can claim a metric.':'Sign in / check team and permission controls.');
  if(announce)msg(boardStatus,'success');return true;
@@ -799,8 +808,6 @@ async function requestAssignment(metric,sourceTaskId=null){
 }
 async function claimTask(id){if(!ready||loading)return;loading=true;control();if(!isOrcaStaging){try{claim=await rpc('commons_claim_task',{p_task_id:id});$('observed').value=localDateTime();renderClaim();msg('Assignment reserved. Research it independently in this workspace; no AI is launched by the website.','success');}catch(e){msg('Cannot claim task: '+errorInfo(e),'error');}finally{loading=false;await refresh();}return;}
  msg('Claiming the selected assignment…');let failure=null;try{claim=await rpc('commons_claim_task',{p_task_id:id});$('observed').value=localDateTime();renderClaim();msg('Assignment reserved. Research it independently in this workspace; no AI is launched by the website.','success');}catch(e){failure=e;}finally{loading=false;const refreshed=await refresh({announce:false});if(failure)msg('Action failed while claiming: '+errorInfo(failure),'error');else if(!refreshed)msg('The claim RPC succeeded, but the active assignment could not be confirmed. Refresh before continuing.','error');}}
-async function claimNext(){if(!ready||loading)return;loading=true;control();if(!isOrcaStaging){try{claim=await rpc('commons_claim_next',{p_ticker:ticker});$('observed').value=localDateTime();renderClaim();msg('Assignment reserved. Research it independently in this workspace; no AI is launched by the website.','success');}catch(e){msg('Cannot claim next: '+errorInfo(e),'error');}finally{loading=false;await refresh();}return;}
- msg('Claiming the next available assignment…');let failure=null;try{claim=await rpc('commons_claim_next',{p_ticker:ticker});$('observed').value=localDateTime();renderClaim();msg('Assignment reserved. Research it independently in this workspace; no AI is launched by the website.','success');}catch(e){failure=e;}finally{loading=false;const refreshed=await refresh({announce:false});if(failure)msg('Action failed while claiming: '+errorInfo(failure),'error');else if(!refreshed)msg('The claim RPC succeeded, but the active assignment could not be confirmed. Refresh before continuing.','error');}}
 async function release(){if(!claim||loading)return;if(!confirm('Release this unfinished assignment for someone else?'))return;loading=true;control();if(!isOrcaStaging){try{await rpc('commons_release_task',{p_task_id:claim.id});claim=null;msg('Assignment released.','success');}catch(e){msg('Could not release assignment: '+e.message,'error');}finally{loading=false;await refresh();}return;}
  msg('Releasing the active assignment…');let failure=null;try{await rpc('commons_release_task',{p_task_id:claim.id});claim=null;}catch(e){failure=e;}finally{loading=false;const refreshed=await refresh({announce:false});if(failure)msg('Action failed while releasing: '+errorInfo(failure),'error');else if(!refreshed)msg('The release RPC succeeded, but assignment status could not be confirmed. Refresh before continuing.','error');else if(claim)msg('The release RPC returned, but an active assignment is still shown. Refresh and verify before continuing.','error');else msg('Assignment released. No active assignment.','success');}}
 async function publish(e){e.preventDefault();if(!ready||!claim||loading)return;
@@ -829,7 +836,7 @@ async function publish(e){e.preventDefault();if(!ready||!claim||loading)return;
  const newlyPublished=findings.find(f=>f.task_id===taskId&&f.summary===publicSummary);
  if(newlyPublished){const item=[...$('outlook-supporting-findings').querySelectorAll('input[type="checkbox"]')].find(input=>input.value===newlyPublished.id);if(item)item.checked=true;}
  claim=null;$('submit-form').reset();updateResearchAnswers();$('observed').value=localDateTime();renderClaim();control();publishMsg('Four-level research rating published and verified. A separate Bullish or Bearish price forecast is optional and requires a verified baseline, deadline, and supporting evidence.','success');}
-$('next').addEventListener('click',claimNext);$('refresh').addEventListener('click',()=>refresh({announce:true}));$('release').addEventListener('click',release);
+$('refresh').addEventListener('click',()=>refresh({announce:true}));$('release').addEventListener('click',release);
 $('research-metric').addEventListener('change',updateRequestButton);
  $('request-assignment').addEventListener('click',()=>{
   const metric=approvedMetrics.find(x=>x.key===$('research-metric').value);
