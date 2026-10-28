@@ -351,15 +351,15 @@ function render(root,company,ticker){
   name:company.title,description:intro,
   eyebrow:'ABOUT THE COMPANY · SOURCED OVERVIEW',
   missionHeading:'Business focus',mission:focus||'Company operating focus has not yet been independently documented.',
-  missionNote:editorial?.aiGenerated?'AI-organized company description based on cited official sources; may require updating.':editorial?'Business summary extracted from the attributed reference data; not an official mission statement.':company.referenceUsed?'From public company-reference data; not an official mission statement.':'Publicly sourced business overview; not an official mission statement.',
+  missionNote:editorial?.aiPending?'This description is pending generation; company identity and imagery are separately sourced.':editorial?.aiGenerated?'AI-organized company description based on cited official sources; may require updating.':editorial?'Business summary extracted from the attributed reference data; not an official mission statement.':company.referenceUsed?'From public company-reference data; not an official mission statement.':'Publicly sourced business overview; not an official mission statement.',
   headquarters:editorial?.headquarters||company.headquarters,founded:company.founded,industry:editorial?.industry||company.industry,
   listing:ticker,operations:what||'Additional product and service details are not yet verified.',
   how:how||'Sales channels and operating methods are not yet verified from source material.',
-  businessSource:editorial?.businessSource||(company.referenceUsed?'https://github.com/JerBouma/FinanceDatabase':company.source),
+  businessSource:editorial?.aiPending?null:editorial?.businessSource||(company.referenceUsed?'https://github.com/JerBouma/FinanceDatabase':company.source),
   businessSourceLabel:company.referenceUsed?'Business description data':'Company overview source',
   investorFocus:'Company-specific investment catalysts and financial results require independent research using filings and dated sources.',
   investorFocusHeading:'What investors watch',
-  notice:company.referenceUsed?'Free reference descriptions can be historical. Verify current products, segments and finances against the latest company filings.':'Encyclopedia overview only; the new free reference record was not available for this company.',
+  notice:editorial?.aiPending?'Company research will fill this section automatically when generation is available.':editorial?.aiGenerated?'Company information summarized from official and reference sources.':company.referenceUsed?'Free reference descriptions can be historical. Verify current products, segments and finances against the latest company filings.':'Encyclopedia overview only; the new free reference record was not available for this company.',
   logo:company.logo?{...company.logo,alt:company.title+' sourced company logo',caption:'Company logo · '+company.logo.license+' · linked to source'}:null,
   photo:photo?{...photo,alt:'Company-related photo: '+photo.caption}:null,
   links:[
@@ -374,30 +374,32 @@ function render(root,company,ticker){
  });
 }
 async function loadOrcaAiDescription(root,ticker,sb,base){
- if(ticker==="RKLB")return;
+ if(ticker==='RKLB')return;
  const endpoint='https://vbziibatnejoswsdggga.supabase.co/functions/v1/orca-auto-ai-profile?ticker='+encodeURIComponent(ticker);
  const usable=d=>d?.state==='ready'&&d?.content&&['overview','business_focus','what_they_do','how_they_do_it'].every(k=>typeof d.content[k]==='string'&&d.content[k].length>20);
- const apply=d=>{
-  if(!usable(d)||!root.isConnected)return false;
-  const c=d.content;
-  const updated={...base,structured:{
-   ...(base.structured||{}),
-   intro:c.overview,focus:c.business_focus,business:c.what_they_do,how:c.how_they_do_it,
-   businessSource:Array.isArray(d.source_urls)&&d.source_urls[0]||base.source,
-   aiGenerated:true
-  }};
-  render(root,updated,ticker);return true;
+ const display=d=>{
+  if(!root.isConnected)return;
+  if(usable(d)){
+   const c=d.content;
+   render(root,{...base,structured:{...(base.structured||{}),intro:c.overview,focus:c.business_focus,business:c.what_they_do,how:c.how_they_do_it,businessSource:Array.isArray(d.source_urls)?d.source_urls[0]||base.source:base.source,aiGenerated:true}},ticker);
+   return;
+  }
+  const pendingText=d?.limit_reached?'AI company description available after the daily research limit resets.':d?.state==='building'?'AI company description is being prepared.':d?.state==='failed'?'Automated company description unavailable; no automatic paid retry will run.':'AI company description is awaiting its first generation.';
+  render(root,{...base,structured:{...(base.structured||{}),intro:'Company description pending.',focus:'Company description pending.',business:'Products and services will appear when the company profile is generated.',how:pendingText,businessSource:null,aiPending:true}},ticker);
  };
- let entry=null;
- try{const r=await fetch(endpoint,{cache:'no-store'});if(r.ok)entry=await r.json();}catch{}
- if(apply(entry))return;
- if(entry&&entry.state!=='missing')return;
+ let data=null;
+ try{const r=await fetch(endpoint,{cache:'no-store'});if(r.ok)data=await r.json();}catch{}
+ if(usable(data)||data?.state==='building'||data?.state==='failed'||data?.limit_reached){display(data);return;}
+ if(data?.state!=='missing'){display(data);return;}
  try{
   const {data:{session}}=await sb.auth.getSession();
-  if(!session?.access_token)return;
-  const response=await fetch(endpoint,{method:'POST',headers:{'apikey':(await (await import('./orca-staging-config.js')).selectSupabaseConfig()).publishableKey, 'Authorization':'Bearer '+session.access_token,'Content-Type':'application/json'},body:'{}'});
-  if(response.ok)apply(await response.json());
- }catch{ /* Never block workspace or retry a billable call */ }
+  if(!session?.access_token){display(data);return;}
+  display({state:'building'});
+  const config=await (await import('./orca-staging-config.js')).selectSupabaseConfig();
+  const response=await fetch(endpoint,{method:'POST',headers:{apikey:config.publishableKey,Authorization:'Bearer '+session.access_token,'Content-Type':'application/json'},body:'{}'});
+  if(response.ok)display(await response.json());
+  else display({state:response.status===429?'limit':'failed',limit_reached:response.status===429});
+ }catch{display({state:'failed'});}
 }
 export async function renderAutomaticCompanyProfile(root,ticker,sb){
  fallback(root,ticker,ticker,'Loading the verified company listing…');
@@ -447,7 +449,7 @@ export async function renderAutomaticCompanyProfile(root,ticker,sb){
    }
    if(info)cache.set(ticker,info);
   }
-  if(info){render(root,info,ticker);void loadOrcaAiDescription(root,ticker,sb,info);}
+  if(info){void loadOrcaAiDescription(root,ticker,sb,info);}
   else {
    fallback(root,ticker,name,'Company overview is being prepared from available sources.');
    void loadOrcaAiDescription(root,ticker,sb,{title:name,intro:'Company overview is being prepared.',source:null,structured:null});
