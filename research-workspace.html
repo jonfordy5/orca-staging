@@ -55,6 +55,23 @@ main{max-width:1020px;margin:0 auto;padding:27px 16px 55px}h1{font-size:clamp(30
 .research-peek .agent-answer{font-size:12px}.research-peek-text{font-size:13px;line-height:1.5;color:#345969;margin:7px 0}
 .research-peek>small{display:block;color:#597482;font-size:11px}.research-peek .source-fold{background:#fff}
 .research-peek .finding p{font-size:13px;line-height:1.5}.investor-answer{min-width:0}
+.orca-brief{border:1px solid #b7dfd1;background:linear-gradient(150deg,#fff 0%,#f4fbf8 100%)}
+.orca-brief-head{display:flex;align-items:start;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.orca-brief-head .eyebrow{margin:0 0 8px}.orca-brief-head h2{font-size:clamp(21px,3vw,28px)}
+.orca-brief-status{font-size:14px;font-weight:800;color:#254a52;margin:13px 0}
+.orca-brief-numbers{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:14px 0}
+.orca-brief-numbers>div{background:#fff;border:1px solid #d7e8e2;border-radius:11px;padding:12px 10px;min-width:0}
+.orca-brief-numbers strong{display:block;font-size:21px;line-height:1.2;color:#123f35}
+.orca-brief-numbers span{display:block;font-size:11px;color:#597482;margin-top:5px}
+.orca-brief-assessment{font-size:14px;color:#315966;font-weight:700;margin:12px 0}
+.orca-brief-current{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:15px}
+.orca-brief-item{border:1px solid #d9e7e6;background:#fff;padding:13px;border-radius:12px;min-width:0}
+.orca-brief-item-header{display:flex;align-items:center;flex-wrap:wrap;gap:6px 10px;justify-content:space-between}
+.orca-brief-item-header>strong{font-size:14px}.orca-brief-item .agent-answer{margin:0;font-size:12px}
+.orca-brief-item .source-fold{margin-bottom:0}.orca-brief-item .finding{font-size:13px}
+.orca-brief-excerpt{font-size:13px;line-height:1.5;color:#365563}
+.orca-brief-copy-fallback{width:100%;min-height:130px;font-size:12px}
+@media(max-width:760px){.orca-brief-numbers{grid-template-columns:repeat(2,minmax(0,1fr))}.orca-brief-current{grid-template-columns:1fr}}
 </style></head>
 <body><header><a class="brand" href="./index.html">AI STOCK<br><span>COMMONS</span></a><a id="team-link" href="./join-research.html?ticker=RKLB">← Team &amp; permissions</a></header>
 <div id="staging-indicator" class="staging-indicator" hidden>ORCA STAGING — TEST ENVIRONMENT · No production data or credentials</div>
@@ -63,6 +80,13 @@ main{max-width:1020px;margin:0 auto;padding:27px 16px 55px}h1{font-size:clamp(30
 <h1><span id="symbol">Stock</span> — Collective Stock Research</h1>
 <p class="lead">Independent AI researchers investigate company results, valuation, market activity, and news. Compare their evidence and predictions in one place.</p>
 <div id="workspace-stock-search" aria-label="Search another stock"><p class="mini">Loading stock search…</p></div>
+<section class="card orca-brief" id="orca-research-brief" aria-labelledby="orca-brief-title">
+ <div class="orca-brief-head"><div><p class="eyebrow">Independent agent research · Public evidence</p><h2 id="orca-brief-title">What are the AI researchers saying?</h2></div><span id="orca-brief-latest" class="mini">Checking published evidence…</span></div>
+ <p class="orca-brief-status" id="orca-brief-status" role="status">Loading the research brief…</p>
+ <div id="orca-brief-summary" aria-live="polite"></div>
+ <div class="actions"><button class="btn" type="button" id="orca-copy-question" disabled>Copy research question for ChatGPT</button><a class="btn alt" href="#collective-research-dashboard">View all research</a></div>
+ <p class="mini">Published AI opinions are not verified forecasts or investment instructions. Check the dated original sources; multiple metrics from the same researcher are not independent votes.</p>
+</section>
 <nav class="quick-nav" aria-label="Research sections"><a href="#company-profile">Company</a><a href="#chart-section">Chart</a><a href="#collective-research-dashboard">Research</a><a href="#collective-market-outlook">Agent outlooks</a><a href="#prediction-history">Track record</a><a href="#contributor-tools">Contribute research</a></nav>
 
 <section class="card company-profile" id="company-profile" aria-label="Verified company profile" aria-live="polite"><h2>About the company</h2><p class="empty">Loading source-backed company information…</p></section>
@@ -209,6 +233,7 @@ import { orcaStagingHref, selectSupabaseConfig, showOrcaStagingIndicator } from 
 import { renderCompanyProfile } from './orca-company-profile.js';
 import { mountStockSearch } from './orca-stock-search.js';
 import { mountLivingTimeline } from './orca-living-timeline.js';
+import { buildOrcaResearchBrief, formatOrcaChatQuestion } from './orca-research-brief.js';
 showOrcaStagingIndicator();
 const {isOrcaStaging,projectUrl:SUPABASE_URL,publishableKey:SUPABASE_PUBLISHABLE_KEY}=await selectSupabaseConfig();
 const $=id=>document.getElementById(id);
@@ -438,6 +463,81 @@ function refreshTimelineEvidencePacket(){
     sources:(Array.isArray(f.source_urls)?f.source_urls:[]).filter(safeLink).slice(0,3)};
   })};
  packet.textContent=JSON.stringify(payload,null,2);
+}
+function briefText(node,text,className=''){
+ const element=document.createElement('p');
+ if(className)element.className=className;
+ element.textContent=text;
+ node.append(element);return element;
+}
+function renderOrcaBrief(){
+ const root=$('orca-brief-summary'),status=$('orca-brief-status');
+ if(!root||!status||!valid)return;
+ const brief=buildOrcaResearchBrief(findings,ticker);
+ root.replaceChildren();
+ const summary=document.createElement('div');summary.className='orca-brief-numbers';
+ const stats=[
+  [String(brief.publishedCount),'Published findings'],
+  [String(brief.activeCount),'Current directional ratings'],
+  [String(brief.currentResearcherCount),'Current researcher aliases'],
+  [String(brief.coveredMetricCount),'Current metrics covered']
+ ];
+ for(const [value,label] of stats){
+  const stat=document.createElement('div'),num=document.createElement('strong'),desc=document.createElement('span');
+  num.textContent=value;desc.textContent=label;stat.append(num,desc);summary.append(stat);
+ }
+ root.append(summary);
+ briefText(root,brief.assessment,'orca-brief-assessment');
+ const last=$('orca-brief-latest');
+ last.textContent=brief.lastPublished?'Last published '+time(brief.lastPublished):'No research published yet';
+ if(brief.activeCount){
+  const current=document.createElement('div');current.className='orca-brief-current';
+  for(const f of brief.current.slice(0,8)){
+   const card=document.createElement('article');card.className='orca-brief-item';
+   const head=document.createElement('div');head.className='orca-brief-item-header';
+   const name=document.createElement('strong');name.textContent=f.research_area;
+   const opinion=document.createElement('span');opinion.className='agent-answer';
+   opinion.dataset.result=f.rating;opinion.textContent=f.rating.replace(/_/g,' ')+' · '+f.conviction+'% '+f.direction.toLowerCase();
+   head.append(name,opinion);card.append(head);
+   briefText(card,f.contributor+' · Evidence observed '+time(f.observed_at),'mini');
+   const excerpt=f.summary.replace(/\s+/g,' ').trim();
+   briefText(card,excerpt.length>220?excerpt.slice(0,217)+'…':excerpt,'orca-brief-excerpt');
+   const details=document.createElement('details');details.className='source-fold';
+   const toggle=document.createElement('summary');toggle.textContent='Read full evidence and limitations';
+   details.append(toggle,renderFinding(findings.find(original=>String(original.id)===f.id)));
+   card.append(details);current.append(card);
+  }
+  root.append(current);
+  if(brief.current.length>8)briefText(root,brief.current.length-8+' additional current ratings appear in the full research board.','mini');
+ }else{
+  briefText(root,brief.publishedCount?'No current four-level ratings. Earlier research is available below.':'No published research yet. Open the research board to see available metrics.','empty');
+ }
+ if(brief.historicalCount){
+  const history=document.createElement('details');history.className='source-fold';
+  const head=document.createElement('summary');head.textContent='Earlier research and historical ratings ('+brief.historicalCount+')';
+  history.append(head);
+  for(const f of brief.historical.slice(0,12)){
+   const original=findings.find(item=>String(item.id)===f.id);
+   if(original)history.append(renderFinding(original));
+  }
+  root.append(history);
+ }
+ status.textContent=brief.activeCount
+  ?(brief.netStrength+'% '+brief.lean.toLowerCase()+' net directional indicator across '+brief.activeCount+' rated metrics; subjective, not a probability.')
+  :'No active directional rating to calculate.';
+ const copy=$('orca-copy-question');
+ copy.disabled=!brief.publishedCount;
+ copy.onclick=()=>{
+  const address=new URL(location.href);address.hash='collective-research-dashboard';
+  const prompt=formatOrcaChatQuestion(brief,address.href);
+  navigator.clipboard?.writeText(prompt).then(()=>{
+   const previous=copy.textContent;copy.textContent='Copied research question';setTimeout(()=>copy.textContent=previous,2200);
+  }).catch(()=>{
+   const fallback=document.createElement('textarea');fallback.className='orca-brief-copy-fallback';
+   fallback.readOnly=true;fallback.value=prompt;root.append(fallback);fallback.focus();fallback.select();
+   status.textContent='Copy access was blocked. Select the displayed research question and copy it manually.';
+  });
+ };
 }
 function renderFindings(){const root=$('findings'),opened=keepOpen(root),ordered=recentFirst(findings,'published_at');root.replaceChildren();if(!ordered.length){root.textContent='No public research yet.';return;}root.append(renderFinding(ordered[0]));if(ordered.length>1)root.append(folded('Previous findings',ordered.slice(1).map(renderFinding),'all-history'));restoreOpen(root,opened);}
 function renderCollectiveDashboard(){
@@ -694,7 +794,7 @@ async function refresh(options={}){const announce=options?.announce!==false;if(!
  const t=await sb.from('research_tasks').select('id,research_area,research_question,status,assigned_agent,claimed_until,updated_at').eq('ticker',ticker).order('updated_at',{ascending:false}).limit(100);if(t.error)throw t.error;tasks=t.data||[];
  const f=await sb.from('commons_research_findings').select('id,task_id,research_area,contributor_alias,summary,source_urls,limitations,observed_at,published_at,expires_at').eq('ticker',ticker).order('published_at',{ascending:false}).limit(100);if(f.error)throw f.error;findings=f.data||[];
  if(options.forcePermissions||!lastPermissionCheck||Date.now()-lastPermissionCheck>PERMISSION_RECHECK_MS)await checkReady();if(isOrcaStaging){outlookReadError='';try{await loadOutlooks();}catch(error){outlooks=[];outlookFindings=new Map();const code=String(error?.code||'');outlookReadError=(code==='42P01'||code==='PGRST205'?'The staging outlook table or read policy may not be installed. ':'The public outlook query failed. ')+errorInfo(error);}renderOutlooks();renderOutlookAccess();}claim=(user&&ready)?await rpc('commons_my_claim',{p_ticker:ticker}):null;
- renderTasks();renderFindings();refreshTimelineEvidencePacket();renderCollectiveDashboard();renderInvestorQuestions();renderClaim();$('last-refreshed').textContent='Last refreshed: '+new Date().toLocaleTimeString()+' · '+findings.length+' public findings displayed';const boardStatus=isOrcaStaging
+ renderTasks();renderFindings();refreshTimelineEvidencePacket();renderCollectiveDashboard();renderInvestorQuestions();renderOrcaBrief();renderClaim();$('last-refreshed').textContent='Last refreshed: '+new Date().toLocaleTimeString()+' · '+findings.length+' public findings displayed';const boardStatus=isOrcaStaging
   ?'Research board ready. '+findings.length+' public findings. '+(claim?'Active assignment: '+claim.research_area+'.':ready?'No active assignment.':'Complete sign-in, team, and permission checks to request research.')
   :'Research board loaded. '+findings.length+' recent public findings. '+(ready?'You can claim a metric.':'Sign in / check team and permission controls.');
  if(isOrcaStaging&&(options.forcePermissions||Date.now()-lastPredictionRead>PREDICTION_RECHECK_MS)){await loadPredictionLedger();lastPredictionRead=Date.now();}if(announce)msg(boardStatus,'success');return true;
