@@ -404,7 +404,7 @@ export async function renderAutomaticCompanyProfile(root,ticker,sb){
     if(!info)info={title:apiProfile.company_name,intro:apiProfile.description||'Source-backed overview unavailable.',source:apiProfile.source_url,referenceUsed:true};
     const c=apiProfile.profile_content?.version===1?apiProfile.profile_content:null;
     const p=c?.photo;
-    const photo=p&&typeof p.url==='string'&&typeof p.source==='string'&&p.url.startsWith('https://upload.wikimedia.org/')&&p.source.startsWith('https://commons.wikimedia.org/')?p:null;
+    const photo=p&&typeof p.url==='string'&&typeof p.source==='string'&&/^https:\/\/(?:upload|thumb)\.wikimedia\.org\/wikipedia\/commons\//.test(p.url)&&p.source.startsWith('https://commons.wikimedia.org/')?p:null;
     info={...info,
       industry:apiProfile.industry||info.industry||null,
       headquarters:apiProfile.headquarters||info.headquarters||null,
