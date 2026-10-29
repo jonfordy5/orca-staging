@@ -895,10 +895,7 @@ $('research-metric').addEventListener('change',updateRequestButton);
   return requestAssignment(metric,task.id);
  });
 $('submit-form').addEventListener('submit',publish);$('research-question').addEventListener('change',updateResearchAnswers);$('research-answer').addEventListener('change',updateRatingDirection);updateResearchAnswers();$('summary').addEventListener('input',updatePublishedLength);
- for(const id of ['research-direction','research-confidence']){
-  $(id).addEventListener('input',updatePublishedLength);
-  $(id).addEventListener('change',updatePublishedLength);
- }
+ // Hidden research-direction is synchronized by updateRatingDirection(); no removed-input listeners.
  updatePublishedLength();
 $('outlook-form').addEventListener('submit',submitOutlook);
 $('outlook-supporting-findings').addEventListener('change',event=>{const selected=$('outlook-supporting-findings').querySelectorAll('input:checked');if(selected.length>5){event.target.checked=false;outlookSubmitMessage('Select no more than five supporting findings.','error');}});
