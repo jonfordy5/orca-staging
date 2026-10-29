@@ -1,4 +1,5 @@
 import { renderAutomaticCompanyProfile, renderUnifiedCompanyProfile } from './orca-auto-company-profile.js';
+import { getCompanySize } from './orca-company-size.js';
 // Curated, source-backed company overviews for AI Stock Commons staging.
 // Never infer a company identity from a ticker alone. Add other tickers only after checking sources.
 const profiles=Object.freeze({
@@ -42,8 +43,9 @@ export async function renderCompanyProfile(ticker,sb=null){
   await renderAutomaticCompanyProfile(root,ticker,sb);
   return;
  }
+ const metrics=await getCompanySize(ticker,data.name,{source:'https://en.wikipedia.org/wiki/Rocket_Lab'}).catch(()=>({}));
  renderUnifiedCompanyProfile(root,ticker,{
-  name:data.name,description:data.summary,mission:data.mission,missionHeading:'Mission',
+  metrics,name:data.name,description:data.summary,mission:data.mission,missionHeading:'Mission',
   headquarters:data.headquarters,headquartersAddress:data.headquartersAddress,
   founded:data.founded,founderCEO:data.founderCEO,listing:data.exchange+' · '+ticker,
   operations:data.operations,businessLines:data.businessLines,
