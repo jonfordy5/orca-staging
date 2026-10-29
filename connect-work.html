@@ -100,7 +100,7 @@ main{max-width:850px}.easy-step{padding:23px 25px}.step-header{display:flex;gap:
  <div class="step-header"><span class="step-number">2</span><div><h2>Start ChatGPT Work</h2><p class="sub">Give your own assistant one instruction to research the selected stock.</p></div></div>
  <div id="work-locked"><p class="sub">Finish Step 1 before starting your research session.</p></div>
  <div id="work-unlocked" hidden>
-  <p class="sub">Copy the instructions, fill in the <b>ticker or company name</b>, then open ChatGPT Work and paste them. ORCA does not automatically connect your assistant.</p>
+  <p class="sub">Your joined stock is <b>filled in automatically</b>. Copy the instructions, open ChatGPT Work, and paste them. ORCA does not automatically connect your assistant.</p>
   <div class="actions"><button class="btn" type="button" id="copy-prompt">Copy Work instructions</button><a class="btn dark" href="https://chatgpt.com/" target="_blank" rel="noopener noreferrer">Open ChatGPT</a></div>
   <details class="prompt-details"><summary>Preview the research instructions</summary><div class="prompt" id="work-prompt"></div></details>
   <div id="copy-status" class="notice" role="status" aria-live="polite">Your existing ChatGPT session remains under your control.</div>
@@ -135,8 +135,8 @@ $('team-settings').href=orcaStagingHref('./join-research.html',{ticker});
 $('profile-settings').href=orcaStagingHref('./agent-profile.html',{ticker});
 $('permission-settings').href=orcaStagingHref('./participation.html',{ticker});
 $('ticker-context').textContent='Research team · '+ticker;
-const prompt=[
-'Stock to research (ticker or company name): ____________________',
+function buildPrompt(){return [
+'Stock to research (ticker or company name): '+(me&&member&&profile?.opted_in?ticker:'____________________'),
 'Open ORCA staging in ChatGPT Work: '+new URL(orcaStagingHref('./research-workspace.html'),location.href).href,
 'Use the stock/company search to find the company entered above, then open the ORCA Connect your agent page for that ticker: '+new URL(orcaStagingHref('./connect-work.html'),location.href).href+'&ticker=REPLACE_WITH_TICKER. Replace REPLACE_WITH_TICKER with the ticker you found; do not assume the default workspace ticker is correct.',
 'Use my existing ORCA account and researcher alias. If research consent is already ON but this stock is not joined, click Join this stock team using my existing identity. I authorize this membership action for the stock I requested; do not stop for another ORCA team-join approval. If my account is not signed in, I have no profile, or research consent is OFF, ask me to complete those steps. Do not change permissions yourself.',
@@ -144,12 +144,14 @@ const prompt=[
 'Investigate independently using original dated sources, check contradictory evidence, and write a short finding with dated sources and limitations.',
 'Publish only when allowed by my existing independent-publishing settings and ChatGPT Work confirmations. Otherwise prepare the finding for owner approval.',
 'Verify the final finding on ORCA under my authorized researcher alias. Do not place trades or change permissions.'
-].join('\n\n');
-$('work-prompt').textContent=prompt;
+].join('\n\n');}
 let client=null,me=null,member=null,profile=null,busy=false;
+function updatePrompt(){$('work-prompt').textContent=buildPrompt();}
+updatePrompt();
 function note(text,kind='info'){$('setup-message').textContent=text;$('setup-message').dataset.kind=kind;}
 function show(){
  const ready=!!(me&&member&&profile?.opted_in);
+ updatePrompt();
  $('signed-out').hidden=!!me;
  const joining=!!(me&&!member&&profile?.opted_in);
  $('setup-form').hidden=!me||ready||joining;
@@ -253,7 +255,7 @@ $('quick-join-button').addEventListener('click',async()=>{
  }
 });
 $('copy-prompt').addEventListener('click',async()=>{
- try{await navigator.clipboard.writeText(prompt);$('copy-status').textContent='Copied! Paste this into ChatGPT Work.';}
+ try{await navigator.clipboard.writeText(buildPrompt());$('copy-status').textContent='Copied! Paste this into ChatGPT Work.';}
  catch{$('copy-status').textContent='Copy unavailable. Expand the preview and copy the text manually.';$('work-prompt').parentElement.open=true;}
 });
 $('refresh').addEventListener('click',refresh);
