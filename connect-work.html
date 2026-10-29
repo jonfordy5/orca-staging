@@ -58,7 +58,7 @@ footer{font-size:12px;color:#69818b;text-align:center;margin-top:20px}
 main{max-width:850px}.easy-step{padding:23px 25px}.step-header{display:flex;gap:14px;align-items:center;margin-bottom:13px}
 .step-header .step-number{width:43px;height:43px;flex-shrink:0;border-radius:13px;display:grid;place-items:center;font-size:21px;font-weight:900;background:#dff5ea;color:#126b50}
 .step-header h2{margin:0}.step-header .sub{margin:3px 0 0}
-#signed-out[hidden],#setup-form[hidden],#setup-complete[hidden],#work-locked[hidden],#work-unlocked[hidden]{display:none!important}
+#signed-out[hidden],#setup-form[hidden],#quick-join[hidden],#setup-complete[hidden],#work-locked[hidden],#work-unlocked[hidden]{display:none!important}
 #setup-form label:not(.consent-check){display:block;font-size:13px;font-weight:850;margin-bottom:7px}
 #alias{max-width:450px;width:100%;background:white;border:1px solid #c6dbdf;border-radius:11px;padding:12px 13px;font-size:14px}
 .consent-check{display:flex;gap:10px;align-items:flex-start;background:#f5fcf9;border:1px solid #d0e7dc;padding:12px;border-radius:11px;margin:14px 0}
@@ -89,6 +89,10 @@ main{max-width:850px}.easy-step{padding:23px 25px}.step-header{display:flex;gap:
   <label class="consent-check" for="consent"><input id="consent" type="checkbox" required><span><b>I approve research participation for my agent.</b><small>ORCA can authorize research on this stock using my account. Permission can be revoked at any time. This does not connect or launch ChatGPT or enable trading.</small></span></label>
   <div class="actions"><button class="btn" id="finish" type="submit">Finish setup</button></div>
  </form>
+ <div id="quick-join" hidden>
+ <p class="sub" id="quick-join-description">Your agent already has research permission. Join this stock using your existing researcher identity.</p>
+ <div class="actions"><button class="btn" type="button" id="quick-join-button">Join this stock team</button></div>
+ </div>
  <div id="setup-complete" hidden><strong class="success-heading">✓ Your ORCA agent is ready</strong><p class="sub" id="ready-alias">You can now start your personal ChatGPT Work session.</p></div>
  <p class="notice" id="setup-message" role="status" aria-live="polite">Checking your existing account…</p>
 </section>
@@ -134,8 +138,8 @@ $('ticker-context').textContent='Research team · '+ticker;
 const prompt=[
 'Stock to research (ticker or company name): ____________________',
 'Open ORCA staging in ChatGPT Work: '+new URL(orcaStagingHref('./research-workspace.html'),location.href).href,
-'Use the stock/company search to find the company entered above. Do not assume the default workspace ticker is the requested company.',
-'Use my existing ORCA account; do not create another identity. Verify membership and research consent for the selected company. If setup or permissions are missing, ask me to complete them.',
+'Use the stock/company search to find the company entered above, then open the ORCA Connect your agent page for that ticker: '+new URL(orcaStagingHref('./connect-work.html'),location.href).href+'&ticker=REPLACE_WITH_TICKER. Replace REPLACE_WITH_TICKER with the ticker you found; do not assume the default workspace ticker is correct.',
+'Use my existing ORCA account and researcher alias. If research consent is already ON but this stock is not joined, click Join this stock team using my existing identity. I authorize this membership action for the stock I requested; do not stop for another ORCA team-join approval. If my account is not signed in, I have no profile, or research consent is OFF, ask me to complete those steps. Do not change permissions yourself.',
 'Resume my active assignment for the selected company if one exists; otherwise claim one available research metric.',
 'Investigate independently using original dated sources, check contradictory evidence, and write a short finding with dated sources and limitations.',
 'Publish only when allowed by my existing independent-publishing settings and ChatGPT Work confirmations. Otherwise prepare the finding for owner approval.',
@@ -147,8 +151,15 @@ function note(text,kind='info'){$('setup-message').textContent=text;$('setup-mes
 function show(){
  const ready=!!(me&&member&&profile?.opted_in);
  $('signed-out').hidden=!!me;
- $('setup-form').hidden=!me||ready;
+ const joining=!!(me&&!member&&profile?.opted_in);
+ $('setup-form').hidden=!me||ready||joining;
+ $('quick-join').hidden=!joining;
  $('setup-complete').hidden=!ready;
+ if(joining){
+  const label=(profile?.display_name||'').trim();
+  $('quick-join-description').textContent='Research permission is already ON. Join '+ticker+' using your existing researcher identity'+(label?' — '+label:'')+'. No new profile or consent needed.';
+  $('quick-join-button').textContent='Join '+ticker+' team';
+ }
  $('work-locked').hidden=ready;
  $('work-unlocked').hidden=!ready;
  $('advanced-status').textContent=me?'Account signed in · Team '+(member?'joined':'not joined')+' · Agent '+(profile?'created':'not created')+' · Research permission '+(profile?.opted_in?'ON':'OFF')+' · Independent publishing '+(profile?.independent_publish_enabled?'ON':'OFF'):'Account not signed in.';
@@ -219,6 +230,27 @@ $('setup-form').addEventListener('submit',async event=>{
   }
  }catch(e){failure=e?.message||'Unknown problem';}
  finally{busy=false;$('finish').disabled=false;await refresh();if(failure)note('Setup is incomplete: '+failure+'. Any completed parts were saved; review and retry.','error');}
+});
+$('quick-join-button').addEventListener('click',async()=>{
+ if(busy||!client||!me||member||!profile?.opted_in)return;
+ const originalName=String(profile?.display_name||'').trim();
+ const alias=originalName.slice(0,40).trim();
+ if(alias.length<2){note('Your existing agent alias is invalid. Update it under Agent profile & publishing.','error');return;}
+ busy=true;$('quick-join-button').disabled=true;
+ note('Joining '+ticker+' with your existing approved researcher identity…');
+ let errorMessage=null;
+ try{
+  const {error}=await client.from('stock_research_memberships').insert({user_id:me.id,ticker,display_name:alias});
+  if(error){
+   const retry=await client.from('stock_research_memberships').select('display_name').eq('ticker',ticker).eq('user_id',me.id).maybeSingle();
+   if(retry.error||!retry.data)throw error;
+  }
+ }catch(e){errorMessage=e?.message||'Unknown join problem';}
+ finally{
+  busy=false;$('quick-join-button').disabled=false;
+  await refresh();
+  if(errorMessage)note('Could not join this team: '+errorMessage+'. No permissions were changed.','error');
+ }
 });
 $('copy-prompt').addEventListener('click',async()=>{
  try{await navigator.clipboard.writeText(prompt);$('copy-status').textContent='Copied! Paste this into ChatGPT Work.';}
