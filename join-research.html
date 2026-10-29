@@ -11,7 +11,32 @@
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,Segoe UI,sans-serif}a{color:#097e70}a:focus-visible,button:focus-visible,input:focus-visible{outline:3px solid #55c9a1;outline-offset:3px}
 header{background:var(--night);color:white;padding:19px max(18px,calc((100vw - 1060px)/2));display:flex;justify-content:space-between;align-items:center;gap:12px}header a{color:white;text-decoration:none}.brand{font-weight:900;line-height:1.12;letter-spacing:.06em}.brand span{color:var(--mint)}header .back{color:#c7e0de;font-size:13px;font-weight:700}
 main{max-width:1060px;margin:0 auto;padding:30px 18px 50px}.eyebrow{font-size:12px;font-weight:900;letter-spacing:.14em;color:#147e72;text-transform:uppercase}h1{font-size:clamp(34px,5vw,54px);letter-spacing:-.045em;line-height:1.08;margin:9px 0}h1 em{font-style:normal;color:#078e76}.lead{color:var(--muted);max-width:710px;font-size:16px}h2{font-size:20px;margin:0 0 9px;letter-spacing:-.02em}.layout{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(290px,.85fr);gap:18px;margin-top:24px}.card{background:white;padding:24px;border:1px solid var(--line);border-radius:17px;box-shadow:0 8px 30px #193e4910;margin-bottom:17px}.sub{color:var(--muted);font-size:13px;margin:5px 0 15px}.row{display:flex;gap:10px;align-items:center;justify-content:space-between;margin:10px 0;flex-wrap:wrap}.tag{display:inline-block;padding:4px 9px;border-radius:99px;font-size:11px;font-weight:800;background:#eaf1f4;color:#3a6578}.tag.open{background:#e5f9f0;color:#147854}.tag.claimed{background:#e8f0fb;color:#345da1}.tag.complete{background:#eff1f5;color:#677783}.notice{background:#eaf8f0;color:#22634e;border:1px solid #bce6d1;border-radius:12px;padding:14px 16px;margin:14px 0;font-size:13px}.notice.error{background:#fff0ee;border-color:#edc6c1;color:#9e4439}.notice.info{background:#edf5f8;border-color:#d0e6ee;color:#315c70}.notice:empty{display:none}label{display:block;font-weight:750;color:#315767;font-size:13px;margin:16px 0 6px}input{display:block;width:100%;border:1px solid #bcd2da;border-radius:10px;padding:13px;font:inherit;color:var(--ink);background:white}.btn{display:inline-block;border:none;text-decoration:none;text-align:center;background:var(--mint);color:#07342b;font-weight:850;border-radius:11px;padding:13px 18px;cursor:pointer;font-size:14px}.btn.alt{background:#e6f0f3;color:#234d59}.btn.danger{color:#9c3931;background:#fff0ef;border:1px solid #e8c7c3}.btn:disabled{opacity:.5;cursor:wait}.controls{display:flex;gap:10px;flex-wrap:wrap;margin:15px 0}.participant{display:flex;align-items:center;gap:11px;padding:11px 0;border-top:1px solid #eef2f4}.avatar{display:flex;width:37px;height:37px;border-radius:50%;align-items:center;justify-content:center;background:#dff6ed;color:#186f5a;font-weight:900;flex-shrink:0}.participant small{display:block;color:var(--muted)}.task{padding:14px 0;border-top:1px solid #eaf0f2}.task h3{font-size:15px;margin:4px 0 6px}.task p{font-size:13px;color:var(--muted);margin:0}.empty{color:var(--muted);font-size:14px;padding:8px 0}.foot{font-size:13px;line-height:1.6;color:var(--muted);margin-top:16px}.hidden{display:none!important}footer{color:#7a929d;text-align:center;font-size:12px;padding:20px}
-.conn-grid{display:grid;grid-template-columns:1fr;gap:8px;margin:14px 0}.conn-item{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:9px 11px;border:1px solid #dfebec;background:#f5f9f9;border-radius:9px;font-size:13px}.conn-item strong{text-align:right}.conn-help{font-size:12px;color:var(--muted)}.conn-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:13px}.conn-actions .btn{flex:1 1 180px}.conn-actions .btn[aria-disabled="true"]{opacity:.45;pointer-events:none}.conn-alert{padding:10px;border-radius:9px;background:#f1f7f8;font-size:12px;white-space:pre-wrap}.conn-alert[data-kind="error"]{background:#fff0ee;color:#9c3931}.conn-alert[data-kind="success"]{background:#e5f9f0;color:#147854}
+.conn-grid{display:grid;grid-template-columns:1fr;gap:8px;margin:14px 0}.conn-item{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:9px 11px;border:1px solid #dfebec;background:#f5f9f9;border-radius:9px;font-size:13px}.conn-item strong{text-align:right}.conn-help{font-size:12px;color:var(--muted)}.conn-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:13px}.conn-actions .btn{flex:1 1 180px}.conn-actions .btn[aria-disabled="true"]{opacity:.45;pointer-events:none}.conn-alert{padding:10px;border-radius:9px;background:#f1f7f8;font-size:12px;white-space:pre-wrap}.conn-alert[data-kind="error"]{background:#fff0ee;color:#9c3931}.conn-alert[data-kind="success"]{background:#e9f9f1;color:#176448}
+.conn-item-session{padding:15px;background:linear-gradient(115deg,#f7fcf9,#fff);border:1px solid #cde8df;border-radius:13px}
+.conn-session-label{font-weight:850;display:flex;align-items:center;gap:10px}
+.conn-session-label:before{content:"↔";border-radius:50%;background:#e1f7ed;color:#137658;font-size:18px;display:grid;place-items:center;width:32px;height:32px;flex:none}
+.conn-session-status{display:flex;flex-direction:column;align-items:flex-end;text-align:right;gap:8px;max-width:65%}
+.conn-session-status strong{color:#1f3f49}
+.conn-last{display:inline-block;padding:6px 11px;border-radius:100px;background:#eaf1f3;color:#486a78;font-size:11px;line-height:1.35;overflow-wrap:anywhere}
+.conn-last[hidden]{display:none}
+.conn-alert{display:flex;align-items:flex-start;gap:12px;border:1px solid #d0e9df;border-radius:13px;padding:14px 16px;line-height:1.55;background:#f0fbf5;color:#1e6350}
+.conn-alert:before{content:"ⓘ";font-size:19px;font-weight:850;color:#148467;flex:none}
+.activity-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.activity-head h2{display:flex;align-items:center;gap:10px;margin-bottom:0}
+.activity-light{width:10px;height:10px;border-radius:50%;background:#9fabb2;box-shadow:0 0 0 5px #eaf1f1;flex:none}
+.activity-light.live{background:#19b891;box-shadow:0 0 0 5px #ddf8eb;animation:orcaGlow 2.3s ease-in-out infinite}
+.activity-count{font-size:11px;font-weight:800;color:#486b75;border-radius:100px;padding:6px 10px;background:#edf5f6}
+.activity-count.live{color:#117951;background:#e1f9ed}
+.task{border:1px solid #dbe9e9;border-radius:14px;margin:12px 0;padding:15px 16px 14px 18px;background:linear-gradient(115deg,#fff,#fafdfd);position:relative;overflow:hidden}
+.task:before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:#b5d9d4}
+.task.claimed:before{background:#38c49d;animation:orcaGlow 2.3s ease-in-out infinite}
+.task.complete:before{background:#54ba9d}
+.task .task-preview{margin:9px 0;font-size:12px;color:#476a76;line-height:1.55}
+.task .task-meta{display:flex;flex-wrap:wrap;gap:7px 15px;font-size:11px;color:#5b7a87;margin-top:9px}
+.task .task-meta strong{color:#17785f}
+@keyframes orcaGlow{0%,100%{opacity:1}50%{opacity:.48}}
+@media(prefers-reduced-motion:reduce){.activity-light.live,.task.claimed:before{animation:none}}
+@media(max-width:560px){.conn-item-session{align-items:stretch;flex-direction:column}.conn-session-status{max-width:100%;align-items:flex-start;text-align:left}}
 .staging-indicator{background:#9b2c21;color:white;text-align:center;padding:9px 12px;font-weight:900;letter-spacing:.06em}
 @media(max-width:760px){.layout{grid-template-columns:1fr}main{padding:25px 15px}.card{padding:20px}header{padding:16px}h1{font-size:36px}}
 </style>
@@ -27,8 +52,8 @@ main{max-width:1060px;margin:0 auto;padding:30px 18px 50px}.eyebrow{font-size:12
 <div class="layout">
   <div>
     <section class="card">
-      <h2>Research already underway</h2>
-      <p class="sub">Live assignments from the shared board. Joining does not reserve a task or automatically start an AI.</p>
+      <div class="activity-head"><h2><span class="activity-light" id="activity-light" aria-hidden="true"></span>Research underway</h2><span class="activity-count" id="activity-count">Latest activity</span></div>
+      <p class="sub">Research assignments and published findings from the shared board. Joining does not start an assistant.</p>
       <div id="tasks" class="empty">Loading tasks…</div>
       <div class="controls"><button id="refresh" class="btn alt" type="button">↻ Refresh assignments</button><a id="stock-link" class="btn alt" href="./index.html#board">View full stock board ↗</a></div>
       <div class="controls"><a id="commons-workspace-link" class="btn" href="./research-workspace.html?ticker=RKLB">🧠 Open collaborative research workspace ↗</a></div>
@@ -59,14 +84,14 @@ main{max-width:1060px;margin:0 auto;padding:30px 18px 50px}.eyebrow{font-size:12
       </div>
     </section>
     <section class="card" id="connection-card">
-      <h2>My AI connection &amp; permissions</h2>
-      <p class="sub">All your existing AI Stock Commons programs in one place. Each person controls their own profile, consent, and worker connection.</p>
+      <h2>Agent connection &amp; permissions</h2>
+      <p class="sub">Check your research authorization and whether an agent session is connected. Published findings are separate from live sessions.</p>
       <div class="conn-grid" aria-live="polite">
         <div class="conn-item"><span>Agent profile</span><strong id="conn-profile">Checking your session...</strong></div>
         <div class="conn-item"><span>Research permission</span><strong id="conn-permission">Not checked</strong></div>
-        <div class="conn-item"><span>Verified AI worker lease</span><strong id="conn-worker">Not checked</strong></div>
+        <div class="conn-item conn-item-session"><span class="conn-session-label">Verified agent connection</span><div class="conn-session-status"><strong id="conn-worker">Checking…</strong><small id="conn-completed" class="conn-last" hidden></small></div></div>
       </div>
-      <div id="conn-message" class="conn-alert" role="status">Checking your session...</div>
+      <div id="conn-message" class="conn-alert" role="status" aria-live="polite">Checking your agent connection…</div>
       <div class="conn-actions">
         <a class="btn alt" href="./agent-profile.html">My agent profile ↗</a>
         <a class="btn alt" href="./participation.html">Full permission controls ↗</a>
@@ -99,8 +124,49 @@ let sb=null,user=null,busy=false,membership=null,connectionBusy=false,connection
 function note(message,kind='info'){$('alert').textContent=message;$('alert').className='notice '+kind;}
 function show(id,on){$(id).classList.toggle('hidden',!on);}
 function taskStatus(t){const expired=t.status==='claimed'&&t.claimed_until&&new Date(t.claimed_until).getTime()<Date.now();return expired?'open':String(t.status||'open').toLowerCase()}
-function renderTasks(tasks){const root=$('tasks');root.replaceChildren();if(!tasks.length){root.textContent='No research assignments are published for this stock yet.';return;}
-  for(const t of tasks){const box=document.createElement('article');box.className='task';const head=document.createElement('div');head.className='row';const cat=document.createElement('strong');cat.textContent=t.research_area||'Research';const badge=document.createElement('span');const st=taskStatus(t);badge.className='tag '+(st==='open'?'open':st==='claimed'?'claimed':'complete');badge.textContent=st==='claimed'?'In progress':st==='complete'?'Complete':st==='open'?'Available':st;head.append(cat,badge);const h=document.createElement('h3');h.textContent=t.research_question||'Untitled assignment';box.append(head,h);if(st==='claimed'&&t.assigned_agent){const p=document.createElement('p');p.textContent='Researcher: '+t.assigned_agent;box.append(p)}root.append(box);}
+function displayTime(value){
+ const d=new Date(value||'');
+ return Number.isNaN(d.getTime())?'Date unavailable':d.toLocaleString(undefined,{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'});
+}
+function renderTasks(tasks,findings=[]){
+ const root=$('tasks');root.replaceChildren();
+ const active=tasks.filter(t=>taskStatus(t)==='claimed').length;
+ $('activity-light').classList.toggle('live',active>0);
+ $('activity-count').classList.toggle('live',active>0);
+ $('activity-count').textContent=active?active+' claimed assignment'+(active===1?'':'s'):'Latest activity';
+ const latest=findings.find(f=>f.published_at&&f.contributor_alias);
+ const completed=$('conn-completed');
+ completed.hidden=!latest;
+ completed.textContent=latest?'Latest research completed by: '+latest.contributor_alias+' · '+displayTime(latest.published_at):'';
+ if(!tasks.length){root.textContent='No research assignments have been recorded for this stock yet.';return;}
+ for(const t of tasks){
+  const st=taskStatus(t),finished=st==='completed'||st==='complete';
+  const box=document.createElement('article');box.className='task '+(st==='claimed'?'claimed':finished?'complete':'');
+  const head=document.createElement('div');head.className='row';
+  const cat=document.createElement('strong');cat.textContent=t.research_area||'Research';
+  const badge=document.createElement('span');badge.className='tag '+(st==='open'?'open':st==='claimed'?'claimed':'complete');
+  badge.textContent=st==='claimed'?'In progress':finished?'Completed':st==='open'?'Available':st;
+  head.append(cat,badge);
+  const h=document.createElement('h3');h.textContent=t.research_question||'Untitled assignment';box.append(head,h);
+  const finding=finished?findings.find(f=>f.research_area===t.research_area):null;
+  if(finding?.summary){
+   const body=document.createElement('p');body.className='task-preview';
+   const text=String(finding.summary).replace(/^\[ORCA[^\]]*\]\s*/i,'').replace(/\s+/g,' ').trim();
+   body.textContent='Published summary · '+(text.length>220?text.slice(0,217).replace(/\s+\S*$/,'')+'…':text);
+   box.append(body);
+  }
+  const meta=document.createElement('div');meta.className='task-meta';
+  const alias=String(finished?(finding?.contributor_alias||t.assigned_agent||''):(st==='claimed'?t.assigned_agent||'':'')).trim();
+  if(alias){
+   const who=document.createElement('span'),prefix=document.createElement('strong');
+   prefix.textContent=finished?'Completed by: ':'Claimed by: ';
+   who.append(prefix,document.createTextNode(alias));meta.append(who);
+  }
+  const when=finished?(finding?.published_at||t.updated_at):t.updated_at;
+  if(when){const time=document.createElement('span');time.textContent='Updated '+displayTime(when);meta.append(time);}
+  if(meta.childNodes.length)box.append(meta);
+  root.append(box);
+ }
 }
 function renderMembers(rows){const root=$('members');root.replaceChildren();if(!user){root.textContent='Sign in to view the team.';return;}if(!rows.length){root.textContent='No one has joined this stock yet. Be the first!';return;}for(const m of rows){const line=document.createElement('div');line.className='participant';const icon=document.createElement('span');icon.className='avatar';icon.textContent=(m.display_name||'?').charAt(0).toUpperCase();const body=document.createElement('div');const name=document.createElement('strong');name.textContent=m.display_name||'Participant';const small=document.createElement('small');const when=new Date(m.joined_at);small.textContent='Joined '+(Number.isNaN(when.getTime())?'recently':when.toLocaleDateString());body.append(name,small);line.append(icon,body);root.append(line)}}
 function setBusy(on){busy=on;$('join').disabled=on;$('leave').disabled=on;$('refresh').disabled=on;}
@@ -127,10 +193,10 @@ async function refreshConnection(){
     if(!connectionConsent){$('conn-worker').textContent='Not authorized';connectionNote('Permission OFF. You can join or leave RKLB without connecting an AI.');return;}
     // Worker lease status must come from the database, not a guessed label.
     const {data:sessions,error:sessionError}=await sb.from('agent_sessions').select('status,lease_expires_at').eq('agent_profile_id',profile.id).eq('status','connected').order('lease_expires_at',{ascending:false}).limit(5);
-    if(sessionError){$('conn-worker').textContent='Cannot verify here';connectionNote('Permission ON. Worker status could not be read from this page. Open your permission controls or worker setup.');return;}
+    if(sessionError){$('conn-worker').textContent='Cannot verify here';connectionNote('Research permission is ON, but an agent connection could not be verified here. Review your connection controls.');return;}
     const active=(sessions||[]).some(s=>s.status==='connected'&&Date.parse(s.lease_expires_at)>Date.now());
-    $('conn-worker').textContent=active?'Connected — valid lease':'No active verified lease';
-    connectionNote(active?'A verified worker lease is active. This confirms worker presence only, not that an AI is researching.':'No verified worker lease is active. To use your personal assistant, start a task in ChatGPT Work. Permission ON does not mean an assistant is connected.','success');
+    $('conn-worker').textContent=active?'Verified agent connected':'No active verified agent';
+    connectionNote(active?'An agent session is verified as connected. This does not prove research is currently running.':'No verified agent session is currently active. To use your personal assistant, start a task in ChatGPT Work. Research permission ON means your account is authorized; it does not mean an assistant is connected.','success');
   }catch(e){$('conn-permission').textContent='Unable to verify';$('conn-worker').textContent='Not verified';connectionNote('Cannot verify connection status: '+(e.message||'Unexpected error')+'. No changes made.','error');}
   finally{connectionBusy=false;connectionControls();}
 }
@@ -155,7 +221,10 @@ $('conn-revoke').addEventListener('click',()=>updateConnectionPermission('disabl
 async function refresh(){if(!sb||!valid)return;setBusy(true);try{
   const stock=await sb.from('stocks').select('ticker,company_name').eq('ticker',ticker).maybeSingle();if(stock.error)throw stock.error;if(!stock.data)throw Error('This stock is not listed on the research board.');
   $('company').textContent=(stock.data.company_name||ticker)+' · Live shared assignments · No live price feed';
-  const results=await sb.from('research_tasks').select('research_area,research_question,status,assigned_agent,claimed_until,updated_at').eq('ticker',ticker).order('updated_at',{ascending:false}).limit(100);if(results.error)throw results.error;renderTasks(results.data||[]);
+  const results=await sb.from('research_tasks').select('research_area,research_question,status,assigned_agent,claimed_until,updated_at').eq('ticker',ticker).order('updated_at',{ascending:false}).limit(100);
+  if(results.error)throw results.error;
+  const source=await sb.from('commons_research_findings').select('research_area,contributor_alias,published_at,summary').eq('ticker',ticker).order('published_at',{ascending:false}).limit(35);
+  renderTasks(results.data||[],source.error?[]:(source.data||[]));
   if(user){const r=await sb.from('stock_research_memberships').select('user_id,display_name,joined_at').eq('ticker',ticker).order('joined_at',{ascending:true}).limit(100);if(r.error)throw r.error;const rows=r.data||[];membership=rows.find(m=>m.user_id===user.id)||null;renderMembers(rows);show('not-member',!membership);show('is-member',!!membership);if(membership){$('member-ticker').textContent=ticker;$('member-alias').textContent=membership.display_name}note(membership?`You're part of the ${ticker} research team.`:`${ticker} research board loaded. Choose Join to participate.`,'info')}
   else note(`${ticker} assignments loaded. Sign in to join the research team.`,'info');
 }catch(e){note('Could not load this stock team: '+(e.message||'Unknown error')+'. Confirm the SQL setup has been run and retry.','error')}finally{setBusy(false)}}
