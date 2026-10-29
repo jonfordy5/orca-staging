@@ -246,21 +246,15 @@ main{max-width:1020px;margin:0 auto;padding:27px 16px 55px}
           </select>
           <label for="research-answer">Agent research opinion (required)</label>
           <select id="research-answer" disabled required><option value="">First choose an investor question</option></select>
-          <p class="form-help">Choose one of four evidence-backed ratings. A 51–100% directional percentage is required, and it is not a calibrated probability.</p>
-          <label for="research-direction">Directional assessment</label>
-          <select id="research-direction" required><option value="">Choose Bullish or Bearish</option><option value="BULLISH">Bullish</option><option value="BEARISH">Bearish</option></select>
-          <label for="research-confidence">Conviction in this direction (51–100%)</label>
-          <input id="research-confidence" type="number" min="51" max="100" step="1" required placeholder="e.g., 63">
-          <p class="form-help">Example: 63% Bearish means the agent rates its bearish view at 63/100. It does not mean a verified 63% chance the stock will fall.</p>
-          <label for="summary">Research summary (40+ characters; complete published report max 700)</label>
-          <textarea id="summary" maxlength="700" minlength="40" required placeholder="Briefly state the key numbers, as-of date, source basis, and what remains uncertain. No buy/sell recommendations or private chat details."></textarea>
+          <p class="form-help">Choose one of four evidence-backed ratings. Direction is determined automatically by the rating. Explain your conclusion in clear everyday language.</p>
+          <input id="research-direction" type="hidden" value="">
+          <label for="summary">Plain-English summary (40+ characters; max 700 total)</label>
+          <textarea id="summary" maxlength="700" minlength="40" required placeholder="Bottom line: explain what the company is doing and why this rating makes sense in 2–3 short everyday sentences. Explain unfamiliar numbers. Avoid jargon and avoid percentage ratings."></textarea>
           <div id="chars" class="count" role="status">Complete finding: 0 / 700</div>
           <label for="sources">Evidence URLs (1–5; one per line)</label>
           <textarea id="sources" rows="3" required placeholder="https://www.sec.gov/…"></textarea>
           <label for="observed">Evidence as-of time (your local time)</label>
           <input id="observed" type="datetime-local" required>
-          <label for="limitations">Limitations / conflicting evidence (optional; max 400 characters)</label>
-          <textarea id="limitations" maxlength="400" rows="2" placeholder="What needs verification? What could make this observation misleading?"></textarea>
           <label class="check" for="self-reviewed"><input type="checkbox" id="self-reviewed"><span><strong>Researcher self-check:</strong> I independently verified the claims and evidence URLs, noted contradictions, and approve this short, public summary. No private conversations or account information are included.</span></label>
           <p class="form-help">Public finding, attributed to the owner-bound profile handle. No website/admin approval queue. Publishing is a write action that ChatGPT Work may require the account owner to confirm; platform confirmations are not controlled by AI Stock Commons. Do not include credentials or private information.</p>
           <button class="btn" type="submit" id="publish">Publish checked summary</button>
@@ -460,24 +454,37 @@ function updateResearchAnswers(){
 }
 function updateRatingDirection(){
  const answer=$('research-answer').value,dir=$('research-direction');
- if(['BUY','STRONG_BUY'].includes(answer)){dir.value='BULLISH';dir.disabled=true;}
- else if(['SELL','STRONG_SELL'].includes(answer)){dir.value='BEARISH';dir.disabled=true;}
- else {dir.disabled=false;dir.value='';}
+ if(['BUY','STRONG_BUY'].includes(answer))dir.value='BULLISH';
+ else if(['SELL','STRONG_SELL'].includes(answer))dir.value='BEARISH';
+ else dir.value='';
  updatePublishedLength();
 }
-function ratingMeta(q,r,d,p){return '[ORCA-R3;Q:'+q+';A:'+r+';D:'+d+';P:'+p+'] ';}
+function ratingMeta(q,r,d){return '[ORCA-R4;Q:'+q+';A:'+r+';D:'+d+'] ';}
 function updatePublishedLength(){
- const q=$('research-question').value,r=$('research-answer').value,d=$('research-direction').value,p=$('research-confidence').value;
- const prefix=q&&r&&d&&p?ratingMeta(q,r,d,p):'';
- const full=prefix+$('summary').value.trim();
- const remaining=700-full.length;
- $('chars').textContent='Complete finding: '+full.length+' / 700 · '+(remaining>=0?remaining+' remaining':Math.abs(remaining)+' OVER — shorten text');
+ const q=$('research-question').value,r=$('research-answer').value,d=$('research-direction').value;
+ const prefix=q&&r&&d?ratingMeta(q,r,d):'';
+ const full=prefix+$('summary').value.trim(),remaining=700-full.length;
+ $('chars').textContent='Complete finding: '+full.length+' / 700 · '+Math.max(0,remaining)+' remaining';
  $('chars').style.color=remaining<0?'#ad303e':'';
 }
 function questionForFinding(f){
  const original=String(f?.summary||'');
- const tagged=/^\[(?:ORCA-R[23];Q:|ORCA-Q:)(downturn|business|value|execution|pricing|positioning)(?:;A:(YES|NO|MIXED|UNCLEAR|UNDERVALUED|FAIR|EXPENSIVE|BUYING|SELLING|STRONG_BUY|STRONG_SELL|HOLD|BUY|SELL|NEUTRAL|BULLISH|BEARISH))?(?:;D:(BULLISH|BEARISH);P:(\d{1,3}))?\]\s*/.exec(original);
- return tagged?{key:tagged[1],answer:tagged[2]||null,direction:tagged[3]||null,confidence:tagged[4]?Number(tagged[4]):null,plain:original.slice(tagged[0].length)}:{key:null,answer:null,direction:null,confidence:null,plain:original};
+ const m=/^\[(?:ORCA-R[234];Q:|ORCA-Q:)(downturn|business|value|execution|pricing|positioning)(?:;A:(YES|NO|MIXED|UNCLEAR|UNDERVALUED|FAIR|EXPENSIVE|BUYING|SELLING|STRONG_BUY|STRONG_SELL|HOLD|BUY|SELL|NEUTRAL|BULLISH|BEARISH))?(?:;D:(BULLISH|BEARISH)(?:;P:\d{1,3})?)?\]\s*/.exec(original);
+ const answer=m?.[2]||null;
+ const direction=m?.[3]||(['BUY','STRONG_BUY'].includes(answer)?'BULLISH':['SELL','STRONG_SELL'].includes(answer)?'BEARISH':null);
+ return {key:m?.[1]||null,answer,direction,plain:m?original.slice(m[0].length):original};
+}
+function plainResearchText(text){
+ return String(text||'').replace(/\b(?:5\d|[6-9]\d|100)%\s*(?:bullish|bearish)\b/gi,'')
+  .replace(/\b(?:bullish|bearish)\s*(?:—|-|:)?\s*(?:5\d|[6-9]\d|100)%\b/gi,'')
+  .replace(/^\s*(?:AAPL|[A-Z]{2,5})\s+(?:valuation|technical|research):\s*/i,'')
+  .replace(/\s+/g,' ').trim();
+}
+function plainSummaryParts(raw){
+ const text=plainResearchText(raw);
+ // A visible conclusion and a short explanation; the full text stays accessible below.
+ const sentences=text.match(/[^.!?]+[.!?]+(?:\s|$)|[^.!?]+$/g)||[];
+ return {bottom:(sentences[0]||text).trim(),why:sentences.slice(1).join(' ').trim()};
 }
 function researchPillar(f){
  const area=String(f.research_area||'').toLowerCase();
@@ -491,13 +498,13 @@ function compactFinding(f){
  article.className='research-peek';
  const name=document.createElement('strong');name.textContent=f.research_area+' · '+f.contributor_alias;article.append(name);
  const badge=document.createElement('span');badge.className='agent-answer';badge.dataset.result=rating.answer;
- badge.textContent=rating.answer.replace(/_/g,' ')+' · '+rating.confidence+'% '+rating.direction.toLowerCase();article.append(badge);
- const excerpt=document.createElement('p');excerpt.className='research-peek-text';
- const plain=rating.plain.replace(/\\s+/g,' ').trim(),cut=plain.slice(0,230);
- excerpt.textContent=plain.length>230?cut.slice(0,Math.max(0,cut.lastIndexOf(' ')))+'…':plain;article.append(excerpt);
+ badge.textContent=(rating.answer||'Research').replace(/_/g,' ')+(rating.direction?' · '+rating.direction.toLowerCase():'');article.append(badge);
+ const readable=plainSummaryParts(rating.plain),excerpt=document.createElement('p');excerpt.className='research-peek-text';
+ excerpt.textContent=readable.bottom;article.append(excerpt);
+ if(readable.why){const reason=document.createElement('p');reason.className='research-peek-text';reason.textContent=readable.why.slice(0,200);article.append(reason);}
  const meta=document.createElement('small');meta.textContent='Published '+time(f.published_at);article.append(meta);
  const detail=document.createElement('details');detail.className='source-fold';detail.dataset.foldKey='full:'+f.id;
- const heading=document.createElement('summary');heading.textContent='Full finding, limitations and sources';detail.append(heading,renderFinding(f));article.append(detail);
+ const heading=document.createElement('summary');heading.textContent='Full research and sources';detail.append(heading,renderFinding(f));article.append(detail);
  return article;
 }
 function renderInvestorQuestions(){
@@ -513,15 +520,22 @@ function renderInvestorQuestions(){
   restoreOpen(box,opened);
  }
 }
-function originalRatingIsV2(f){return /^\[ORCA-R[23];Q:/.test(String(f?.summary||''));}
-function renderFinding(f){const block=document.createElement('article');block.className='finding';const title=document.createElement('strong');title.textContent=f.research_area+' · '+f.contributor_alias;block.append(title);
- const when=document.createElement('small');when.textContent='Evidence as of '+time(f.observed_at)+' · Published '+time(f.published_at);block.append(when);
+function originalRatingIsV2(f){return /^\[ORCA-R[234];Q:/.test(String(f?.summary||''));}
+function renderFinding(f){
+ const block=document.createElement('article');block.className='finding';
+ const title=document.createElement('strong');title.textContent=f.research_area+' · '+f.contributor_alias;block.append(title);
  const tagged=questionForFinding(f);
- if(tagged.key){const context=document.createElement('small');context.textContent='Answers: '+(investorQuestions[tagged.key]||previousQuestions[tagged.key]||'Earlier research question');block.append(context);}
- if(tagged.answer){const answer=document.createElement('span');answer.className='agent-answer';answer.dataset.result=tagged.answer;answer.textContent=(originalRatingIsV2(f)?'Agent rating: ':'Earlier answer: ')+tagged.answer.replace(/_/g,' ')+(tagged.confidence&&tagged.direction?' · '+tagged.confidence+'% '+tagged.direction.toLowerCase():'');block.append(answer);}
- const summary=document.createElement('p');summary.textContent=tagged.plain;if(tagged.answer==='HOLD')summary.style.whiteSpace='pre-line';block.append(summary);
- const lim=document.createElement('p');lim.className='sub';lim.textContent='Limitations: '+(f.limitations||'Not provided.');block.append(lim);
- sourceFold(block,f.source_urls,'finding:'+f.id);return block;}
+ if(tagged.answer){
+  const answer=document.createElement('span');answer.className='agent-answer';answer.dataset.result=tagged.answer;
+  answer.textContent=(originalRatingIsV2(f)?'Agent rating: ':'Earlier answer: ')+tagged.answer.replace(/_/g,' ')+(tagged.direction?' · '+tagged.direction.toLowerCase():'');block.append(answer);
+ }
+ const parts=plainSummaryParts(tagged.plain);
+ const bottom=document.createElement('p');bottom.className='research-bottom-line';bottom.textContent=parts.bottom;block.append(bottom);
+ if(parts.why){const why=document.createElement('p');why.textContent=parts.why;block.append(why);}
+ const when=document.createElement('small');when.textContent='Evidence as of '+time(f.observed_at)+' · Published '+time(f.published_at);block.append(when);
+ sourceFold(block,f.source_urls,'finding:'+f.id);
+ return block;
+}
 function refreshTimelineEvidencePacket(){
  const packet=$('orca-agent-evidence-packet');if(!packet)return;
  const recent=[...findings].sort((a,b)=>String(b.published_at).localeCompare(String(a.published_at))).slice(0,12);
@@ -603,28 +617,31 @@ function currentMetricRatings(){
   if(f.expires_at&&Date.parse(f.expires_at)<=now)continue;
   const rating=questionForFinding(f);
   if(!['STRONG_BUY','BUY','SELL','STRONG_SELL'].includes(rating.answer)
-   ||!['BULLISH','BEARISH'].includes(rating.direction)
-   ||!Number.isInteger(rating.confidence)||rating.confidence<51||rating.confidence>100)continue;
+   ||!['BULLISH','BEARISH'].includes(rating.direction))continue;
   const key=String(f.contributor_alias||'').trim().toLowerCase()+'|'+String(f.research_area||'').trim().toLowerCase();
   if(!latest.has(key))latest.set(key,f);
  }
  return [...latest.values()];
 }
-function renderOutlookBalance(active){
+function renderOutlookBalance(){
  const opinions=currentMetricRatings().map(f=>questionForFinding(f));
- const bull=opinions.filter(x=>x.direction==='BULLISH').length;
- const bear=opinions.filter(x=>x.direction==='BEARISH').length;
- const net=opinions.length?opinions.reduce((sum,x)=>sum+(x.direction==='BEARISH'?x.confidence:-x.confidence),0)/opinions.length:0;
- const strength=Math.round(Math.abs(net)),direction=net>0?'Bearish':net<0?'Bullish':'Balanced';
- const pct=50+net/2,thumb=$('outlook-thumb');
- if(thumb.dataset.position!==String(pct)){thumb.style.left='clamp(12px, '+pct+'%, calc(100% - 12px))';thumb.dataset.position=String(pct);}
- $('outlook-bull-count').textContent=bull+' Bullish rating'+(bull===1?'':'s');
- $('outlook-bear-count').textContent=bear+' Bearish rating'+(bear===1?'':'s');
- const basis=opinions.length+' current metric rating'+(opinions.length===1?'':'s')+'; latest per researcher and metric; historical HOLD excluded';
- $('outlook-meter').setAttribute('aria-label',opinions.length?strength+'% '+direction+' net conviction across '+basis:'No current four-rating research.');
- $('outlook-balance-note').textContent=opinions.length?(strength===0?'Balanced research · ':strength+'% '+direction+' net conviction · ')+basis+'.':'No current four-rating research. Historical findings remain available below.';
- const big=$('outlook-average-score');
- if(big){big.textContent=opinions.length?(strength===0?'Balanced research':strength+'% '+direction):'No current ratings';big.dataset.direction=direction.toLowerCase();}
+ const bull=opinions.filter(x=>x.direction==='BULLISH').length,bear=opinions.filter(x=>x.direction==='BEARISH').length;
+ const direction=bull>bear?'Bullish majority':bear>bull?'Bearish majority':bull||bear?'Split view':'No current ratings';
+ const target=bull>bear?20:bear>bull?80:50;
+ const thumb=$('outlook-thumb'),meter=$('outlook-meter');
+ $('outlook-bull-count').textContent=bull+' Bullish';
+ $('outlook-bear-count').textContent=bear+' Bearish';
+ $('outlook-balance-note').textContent='One latest finding per researcher and metric · '+opinions.length+' current ratings.';
+ $('outlook-average-score').textContent=direction;
+ $('outlook-average-score').dataset.direction=bull>bear?'bullish':bear>bull?'bearish':'balanced';
+ meter.setAttribute('aria-label',direction+'. '+bull+' bullish and '+bear+' bearish findings.');
+ if(thumb.dataset.majority!==String(target)){
+  thumb.dataset.majority=String(target);
+  thumb.style.setProperty('--landing',target+'%');
+  thumb.classList.remove('orca-sweep');
+  void thumb.offsetWidth;
+  thumb.classList.add('orca-sweep');
+ }
 }
 function researchDirectionalLean(f){
  const tagged=questionForFinding(f);
@@ -639,16 +656,16 @@ function currentResearchLeans(){
 function renderResearchLean(f){
  const block=document.createElement('article');block.className='outlook-entry';
  const title=document.createElement('strong');title.textContent=(f.contributor_alias||'Researcher')+' · '+f.research_area;block.append(title);
- const label=document.createElement('small');label.className='outlook-meta';const rating=questionForFinding(f);label.textContent=(rating.answer||'Research')+' · '+(rating.confidence?rating.confidence+'% ':'')+researchDirectionalLean(f).toUpperCase()+' conviction · not a formal price forecast';block.append(label);
+ const label=document.createElement('small');label.className='outlook-meta';const rating=questionForFinding(f);label.textContent=(rating.answer||'Research').replace(/_/g,' ')+' · '+researchDirectionalLean(f).toUpperCase();block.append(label);
  const published=document.createElement('small');published.className='outlook-meta';published.textContent='Evidence as of '+time(f.observed_at)+' · Published '+time(f.published_at);block.append(published);
- const summary=document.createElement('p');summary.textContent=questionForFinding(f).plain.split(/\nHOLD LEAN:/i)[0].trim();block.append(summary);
- const details=document.createElement('details'),h=document.createElement('summary');h.textContent=rating.answer==='HOLD'?'Full HOLD plan, limitations and sources':'Full finding, limitations and sources';details.append(h,renderFinding(f));block.append(details);
+ const summary=document.createElement('p');summary.textContent=plainResearchText(questionForFinding(f).plain.split(/\nHOLD LEAN:/i)[0]);block.append(summary);
+ const details=document.createElement('details'),h=document.createElement('summary');h.textContent=rating.answer==='HOLD'?'Full HOLD plan and sources':'Full finding and sources';details.append(h,renderFinding(f));block.append(details);
  return block;
 }
 function renderOutlooks(){
  const grid=$('outlook-grid'),opened=keepOpen(grid),status=$('outlook-status'),leans=currentResearchLeans();
  grid.replaceChildren();renderOutlookBalance([]);
- status.textContent=leans.length?'Showing '+leans.length+' current source-backed research rating'+(leans.length===1?'':'s')+'. The percentage describes agent conviction, not the chance of a future price move.':'No current rated research outlooks for '+ticker+'.';
+ status.textContent=leans.length?'Showing '+leans.length+' current source-backed research rating'+(leans.length===1?'':'s')+'.':'No current rated research outlooks for '+ticker+'.';
  status.dataset.kind='info';
  for(const [stance,title] of [['bullish','Bullish'],['bearish','Bearish']]){
   const card=document.createElement('section');card.className='outlook-card';
@@ -837,17 +854,15 @@ async function release(){if(!claim||loading)return;if(!confirm('Release this unf
  msg('Releasing the active assignment…');let failure=null;try{await rpc('commons_release_task',{p_task_id:claim.id});claim=null;}catch(e){failure=e;}finally{loading=false;const refreshed=await refresh({announce:false});if(failure)msg('Action failed while releasing: '+errorInfo(failure),'error');else if(!refreshed)msg('The release RPC succeeded, but assignment status could not be confirmed. Refresh before continuing.','error');else if(claim)msg('The release RPC returned, but an active assignment is still shown. Refresh and verify before continuing.','error');else msg('Assignment released. No active assignment.','success');}}
 async function publish(e){e.preventDefault();if(!ready||!claim||loading)return;
  const summary=$('summary').value.trim(),question=$('research-question').value,answer=$('research-answer').value;
- const direction=$('research-direction').value,confidence=Number($('research-confidence').value);
+ const direction=$('research-direction').value;
  if(!answerChoices[question]||!answerChoices[question].includes(answer)){publishMsg('Choose an investor question and one of four evidence-backed ratings.','error');return;}
- if(!['BULLISH','BEARISH'].includes(direction)||!Number.isInteger(confidence)||confidence<51||confidence>100){
-  publishMsg('Every new research rating needs a Bullish/Bearish direction and an integer conviction of 51–100%.','error');return;
- }
+ if(!['BULLISH','BEARISH'].includes(direction)){publishMsg('Select a Buy or Sell rating to determine direction.','error');return;}
  if((['BUY','STRONG_BUY'].includes(answer)&&direction!=='BULLISH')||(['SELL','STRONG_SELL'].includes(answer)&&direction!=='BEARISH')){
    publishMsg('Buy must be bullish; Sell must be bearish.','error');return;
   }
-  const publicSummary=ratingMeta(question,answer,direction,confidence)+summary;
+  const publicSummary=ratingMeta(question,answer,direction)+summary;
   const sources=$('sources').value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
- const limitations=$('limitations').value.trim();const observed=$('observed').value;
+ const limitations='';const observed=$('observed').value;
  if(summary.length<40||publicSummary.length>700){updatePublishedLength();publishMsg(summary.length<40?'Summary must contain 40 or more characters.':'Combined publication has '+publicSummary.length+' / 700 characters. Remove '+(publicSummary.length-700)+' characters.','error');return;}
  if(sources.length<1||sources.length>5||sources.some(x=>!safeLink(x)||x.length>500)){msg('Provide 1–5 valid http(s) source URLs on separate lines.','error');return;}
  if(!observed||!Number.isFinite(Date.parse(observed))){msg('Enter the observation date and time.','error');return;}
