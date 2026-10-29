@@ -161,7 +161,7 @@ main{max-width:1020px;margin:0 auto;padding:27px 16px 55px}
   <h2>Collective Research at a Glance</h2>
   <p class="sub">Three essential stock research views with concise current ratings. Open each report for research and evidence sources.</p>
   <div class="collective-summaries" id="investor-question-board">
-    <section class="investor-question"><h3>Performance</h3><p class="sub"><strong>Is management executing?</strong> Roadmap, milestones and horizon.</p><div id="investor-answer-execution" class="investor-answer">Checking recent research…</div></section>
+    <section class="investor-question"><h3>Performance</h3><p class="sub"><strong>Management</strong> Roadmap, milestones and horizon.</p><div id="investor-answer-execution" class="investor-answer">Checking recent research…</div></section>
     <section class="investor-question"><h3>Appraisement</h3><p class="sub"><strong>Do the numbers match the price?</strong> Earnings, cash flow, and expectations.</p><div id="investor-answer-pricing" class="investor-answer">Checking recent research…</div></section>
     <section class="investor-question"><h3>Positioning</h3><p class="sub"><strong>What are investors and price trends doing?</strong> Institutional filings, volume, options and technical analysis.</p><div id="investor-answer-positioning" class="investor-answer">Checking recent research…</div></section>
   </div>
@@ -243,12 +243,12 @@ main{max-width:1020px;margin:0 auto;padding:27px 16px 55px}
       <div id="claimed-controls" class="hidden">
         <div class="actions"><button id="release" class="btn warn" type="button">Release my assignment</button></div>
         <form id="submit-form">
-          <label for="research-question">Which investor question does this research help answer? (required)</label>
+          <label for="research-question">Research category (required)</label>
           <select id="research-question" required>
-            <option value="">Choose the closest investor question</option>
-            <option value="execution">Is management executing?</option>
-            <option value="pricing">Does the price match the numbers?</option>
-            <option value="positioning">Is smart money buying or selling?</option>
+            <option value="">Choose a research category</option>
+            <option value="execution">Management</option>
+            <option value="pricing">Earnings</option>
+            <option value="positioning">Market Positioning</option>
           </select>
           <label for="research-answer">Agent research opinion (required)</label>
           <select id="research-answer" disabled required><option value="">First choose an investor question</option></select>
@@ -446,7 +446,7 @@ function keepOpen(root){return new Set([...root.querySelectorAll('details[data-f
 function restoreOpen(root,keys){for(const e of root.querySelectorAll('details[data-fold-key]'))e.open=keys.has(e.dataset.foldKey);}
 function folded(title,items,key,css='history-fold'){const d=document.createElement('details'),h=document.createElement('summary');d.className=css;d.dataset.foldKey=key;h.textContent=title+' ('+items.length+')';d.append(h,...items);return d;}
 function sourceFold(root,urls,key){const urlsOk=(Array.isArray(urls)?urls:[]).map(safeLink).filter(Boolean);const d=document.createElement('details'),h=document.createElement('summary'),list=document.createElement('ul');d.className='source-fold';d.dataset.foldKey=key;h.textContent='Source websites ('+urlsOk.length+')';list.className='sources';for(const url of urlsOk){const li=document.createElement('li'),a=document.createElement('a');a.href=url;a.target='_blank';a.rel='noopener noreferrer';a.textContent=url;li.append(a);list.append(li);}if(!urlsOk.length){const li=document.createElement('li');li.textContent='No valid source links.';list.append(li);}d.append(h,list);root.append(d);}
-const investorQuestions={execution:'Is management executing?',pricing:'Does the price match the numbers?',positioning:'Is smart money buying or selling?'};
+const investorQuestions={execution:'Management',pricing:'Earnings',positioning:'Market Positioning'};
 const previousQuestions={downturn:'How well can they survive a downturn?',business:'How well is this business run?',value:'How fair is the price relative to value?'};
 const ratingChoices=['STRONG_BUY','BUY','SELL','STRONG_SELL'];
 const answerChoices={execution:ratingChoices,pricing:ratingChoices,positioning:ratingChoices};
