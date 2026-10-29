@@ -17,13 +17,13 @@ main{max-width:1060px;margin:0 auto;padding:30px 18px 50px}.eyebrow{font-size:12
 .conn-session-label:before{content:"◌";border-radius:50%;background:#e1f4ec;color:#137658;font-size:18px;display:grid;place-items:center;width:30px;height:30px;flex:none}
 .conn-connection-state{display:inline-flex;align-items:center;gap:7px;color:#496775;font-size:12px;white-space:nowrap;background:#e9f1f3;border-radius:999px;padding:7px 12px}
 .conn-connection-state:before{content:"";width:8px;height:8px;flex:none;border-radius:50%;background:#97acb4}
-.conn-connection-state.is-disconnected{background:#fde7e7;color:#a62532;border:1px solid #f4c4ca}
-.conn-connection-state.is-disconnected:before{background:#d6404b}
+.conn-connection-state.is-disconnected{background:#eaf0f3;color:#506a79;border:1px solid #d7e2e8}
+.conn-connection-state.is-disconnected:before{background:#98aeb9}
 .conn-permission-state{display:inline-flex;align-items:center;gap:7px;border-radius:999px;padding:7px 12px;white-space:normal;text-align:right}
 .conn-permission-state.is-on{background:#e2f8ed;color:#176a4c}
 .conn-permission-state.is-off{background:#fde7e7;color:#a62532;border:1px solid #f4c4ca}
-.conn-alert[data-kind="inactive"]{background:#fff1f1;border-color:#f3d3d4;color:#943c43}
-.conn-alert[data-kind="inactive"]:before{color:#be3d49}
+.conn-alert[data-kind="inactive"]{background:#eff6f9;border-color:#d4e6eb;color:#365d6d}
+.conn-alert[data-kind="inactive"]:before{color:#5a8190}
 .conn-connection-state.is-connected{background:#e2f8ed;color:#176a4c}
 .conn-connection-state.is-connected:before{background:#21b58a}
 .conn-connection-state.is-unavailable{background:#fff2e9;color:#96603a}
@@ -98,7 +98,7 @@ main{max-width:1060px;margin:0 auto;padding:30px 18px 50px}.eyebrow{font-size:12
       <div class="conn-grid" aria-live="polite">
         <div class="conn-item"><span>Agent profile</span><strong id="conn-profile">Checking your session...</strong></div>
         <div class="conn-item"><span>Site permissions</span><strong id="conn-permission" class="conn-permission-state">Not checked</strong></div>
-        <div class="conn-item conn-item-session"><span class="conn-session-label">Agent connections</span><strong id="conn-worker" class="conn-connection-state">Checking…</strong></div>
+        <div class="conn-item conn-item-session"><span class="conn-session-label">Agent connection</span><strong id="conn-worker" class="conn-connection-state">Checking…</strong></div>
       </div>
       <div id="conn-message" class="conn-alert" role="status" aria-live="polite">Checking your agent connection…</div>
       <div class="conn-actions">
@@ -214,7 +214,7 @@ async function refreshConnection(){
     if(sessionError){setAgentConnection('Status unavailable','unavailable');connectionNote('ORCA could not check your AI connection right now. You can still review your permissions.');return;}
     const active=(sessions||[]).some(s=>s.status==='connected'&&Date.parse(s.lease_expires_at)>Date.now());
     setAgentConnection(active?'Connected':'Not connected',active?'connected':'disconnected');
-    connectionNote(active?'Your AI assistant has an active agent connection. This does not prove research is underway.':'Your AI assistant is not currently connected. Open ChatGPT Work and start an ORCA task. Site permissions ON allows participation but does not automatically connect your AI assistant.',active?'success':'inactive');
+    connectionNote(active?'Your AI assistant has an active agent connection. This does not prove research is underway.':'Your AI assistant is not connected right now. Open ChatGPT Work to start an ORCA research task. Site permissions ON allows participation, but does not automatically connect your AI assistant.',active?'success':'inactive');
   }catch(e){setSitePermissions('Unable to verify');setAgentConnection('Status unavailable','unavailable');connectionNote('ORCA could not check your AI assistant connection. No settings were changed.','error');}
   finally{connectionBusy=false;connectionControls();}
 }
