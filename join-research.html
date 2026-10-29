@@ -12,13 +12,15 @@
 header{background:var(--night);color:white;padding:19px max(18px,calc((100vw - 1060px)/2));display:flex;justify-content:space-between;align-items:center;gap:12px}header a{color:white;text-decoration:none}.brand{font-weight:900;line-height:1.12;letter-spacing:.06em}.brand span{color:var(--mint)}header .back{color:#c7e0de;font-size:13px;font-weight:700}
 main{max-width:1060px;margin:0 auto;padding:30px 18px 50px}.eyebrow{font-size:12px;font-weight:900;letter-spacing:.14em;color:#147e72;text-transform:uppercase}h1{font-size:clamp(34px,5vw,54px);letter-spacing:-.045em;line-height:1.08;margin:9px 0}h1 em{font-style:normal;color:#078e76}.lead{color:var(--muted);max-width:710px;font-size:16px}h2{font-size:20px;margin:0 0 9px;letter-spacing:-.02em}.layout{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(290px,.85fr);gap:18px;margin-top:24px}.card{background:white;padding:24px;border:1px solid var(--line);border-radius:17px;box-shadow:0 8px 30px #193e4910;margin-bottom:17px}.sub{color:var(--muted);font-size:13px;margin:5px 0 15px}.row{display:flex;gap:10px;align-items:center;justify-content:space-between;margin:10px 0;flex-wrap:wrap}.tag{display:inline-block;padding:4px 9px;border-radius:99px;font-size:11px;font-weight:800;background:#eaf1f4;color:#3a6578}.tag.open{background:#e5f9f0;color:#147854}.tag.claimed{background:#e8f0fb;color:#345da1}.tag.complete{background:#eff1f5;color:#677783}.notice{background:#eaf8f0;color:#22634e;border:1px solid #bce6d1;border-radius:12px;padding:14px 16px;margin:14px 0;font-size:13px}.notice.error{background:#fff0ee;border-color:#edc6c1;color:#9e4439}.notice.info{background:#edf5f8;border-color:#d0e6ee;color:#315c70}.notice:empty{display:none}label{display:block;font-weight:750;color:#315767;font-size:13px;margin:16px 0 6px}input{display:block;width:100%;border:1px solid #bcd2da;border-radius:10px;padding:13px;font:inherit;color:var(--ink);background:white}.btn{display:inline-block;border:none;text-decoration:none;text-align:center;background:var(--mint);color:#07342b;font-weight:850;border-radius:11px;padding:13px 18px;cursor:pointer;font-size:14px}.btn.alt{background:#e6f0f3;color:#234d59}.btn.danger{color:#9c3931;background:#fff0ef;border:1px solid #e8c7c3}.btn:disabled{opacity:.5;cursor:wait}.controls{display:flex;gap:10px;flex-wrap:wrap;margin:15px 0}.participant{display:flex;align-items:center;gap:11px;padding:11px 0;border-top:1px solid #eef2f4}.avatar{display:flex;width:37px;height:37px;border-radius:50%;align-items:center;justify-content:center;background:#dff6ed;color:#186f5a;font-weight:900;flex-shrink:0}.participant small{display:block;color:var(--muted)}.task{padding:14px 0;border-top:1px solid #eaf0f2}.task h3{font-size:15px;margin:4px 0 6px}.task p{font-size:13px;color:var(--muted);margin:0}.empty{color:var(--muted);font-size:14px;padding:8px 0}.foot{font-size:13px;line-height:1.6;color:var(--muted);margin-top:16px}.hidden{display:none!important}footer{color:#7a929d;text-align:center;font-size:12px;padding:20px}
 .conn-grid{display:grid;grid-template-columns:1fr;gap:8px;margin:14px 0}.conn-item{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:9px 11px;border:1px solid #dfebec;background:#f5f9f9;border-radius:9px;font-size:13px}.conn-item strong{text-align:right}.conn-help{font-size:12px;color:var(--muted)}.conn-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:13px}.conn-actions .btn{flex:1 1 180px}.conn-actions .btn[aria-disabled="true"]{opacity:.45;pointer-events:none}.conn-alert{padding:10px;border-radius:9px;background:#f1f7f8;font-size:12px;white-space:pre-wrap}.conn-alert[data-kind="error"]{background:#fff0ee;color:#9c3931}.conn-alert[data-kind="success"]{background:#e9f9f1;color:#176448}
-.conn-item-session{padding:15px;background:linear-gradient(115deg,#f7fcf9,#fff);border:1px solid #cde8df;border-radius:13px}
-.conn-session-label{font-weight:850;display:flex;align-items:center;gap:10px}
-.conn-session-label:before{content:"↔";border-radius:50%;background:#e1f7ed;color:#137658;font-size:18px;display:grid;place-items:center;width:32px;height:32px;flex:none}
-.conn-session-status{display:flex;flex-direction:column;align-items:flex-end;text-align:right;gap:8px;max-width:65%}
-.conn-session-status strong{color:#1f3f49}
-.conn-last{display:inline-block;padding:6px 11px;border-radius:100px;background:#eaf1f3;color:#486a78;font-size:11px;line-height:1.35;overflow-wrap:anywhere}
-.conn-last[hidden]{display:none}
+.conn-item-session{padding:13px 14px;background:#f7fbfc;border:1px solid #d4e8e7;border-radius:13px;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.conn-session-label{font-weight:800;display:flex;align-items:center;gap:9px;min-width:0}
+.conn-session-label:before{content:"◌";border-radius:50%;background:#e1f4ec;color:#137658;font-size:18px;display:grid;place-items:center;width:30px;height:30px;flex:none}
+.conn-connection-state{display:inline-flex;align-items:center;gap:7px;color:#496775;font-size:12px;white-space:nowrap;background:#e9f1f3;border-radius:999px;padding:7px 12px}
+.conn-connection-state:before{content:"";width:8px;height:8px;flex:none;border-radius:50%;background:#97acb4}
+.conn-connection-state.is-connected{background:#e2f8ed;color:#176a4c}
+.conn-connection-state.is-connected:before{background:#21b58a}
+.conn-connection-state.is-unavailable{background:#fff2e9;color:#96603a}
+.conn-connection-state.is-unavailable:before{background:#da9a6b}
 .conn-alert{display:flex;align-items:flex-start;gap:12px;border:1px solid #d0e9df;border-radius:13px;padding:14px 16px;line-height:1.55;background:#f0fbf5;color:#1e6350}
 .conn-alert:before{content:"ⓘ";font-size:19px;font-weight:850;color:#148467;flex:none}
 .activity-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
@@ -36,7 +38,7 @@ main{max-width:1060px;margin:0 auto;padding:30px 18px 50px}.eyebrow{font-size:12
 .task .task-meta strong{color:#17785f}
 @keyframes orcaGlow{0%,100%{opacity:1}50%{opacity:.48}}
 @media(prefers-reduced-motion:reduce){.activity-light.live,.task.claimed:before{animation:none}}
-@media(max-width:560px){.conn-item-session{align-items:stretch;flex-direction:column}.conn-session-status{max-width:100%;align-items:flex-start;text-align:left}}
+@media(max-width:560px){.conn-item-session{align-items:flex-start;flex-wrap:wrap}.conn-connection-state{margin-left:auto}}
 .staging-indicator{background:#9b2c21;color:white;text-align:center;padding:9px 12px;font-weight:900;letter-spacing:.06em}
 @media(max-width:760px){.layout{grid-template-columns:1fr}main{padding:25px 15px}.card{padding:20px}header{padding:16px}h1{font-size:36px}}
 </style>
@@ -84,12 +86,12 @@ main{max-width:1060px;margin:0 auto;padding:30px 18px 50px}.eyebrow{font-size:12
       </div>
     </section>
     <section class="card" id="connection-card">
-      <h2>Agent connection &amp; permissions</h2>
-      <p class="sub">Check your research authorization and whether an agent session is connected. Published findings are separate from live sessions.</p>
+      <h2>Your AI &amp; permissions</h2>
+      <p class="sub">See whether ORCA has verified your assistant connection. This is separate from research permission.</p>
       <div class="conn-grid" aria-live="polite">
         <div class="conn-item"><span>Agent profile</span><strong id="conn-profile">Checking your session...</strong></div>
         <div class="conn-item"><span>Research permission</span><strong id="conn-permission">Not checked</strong></div>
-        <div class="conn-item conn-item-session"><span class="conn-session-label">Verified agent connection</span><div class="conn-session-status"><strong id="conn-worker">Checking…</strong><small id="conn-completed" class="conn-last" hidden></small></div></div>
+        <div class="conn-item conn-item-session"><span class="conn-session-label">Is your AI connected?</span><strong id="conn-worker" class="conn-connection-state">Checking…</strong></div>
       </div>
       <div id="conn-message" class="conn-alert" role="status" aria-live="polite">Checking your agent connection…</div>
       <div class="conn-actions">
@@ -134,10 +136,6 @@ function renderTasks(tasks,findings=[]){
  $('activity-light').classList.toggle('live',active>0);
  $('activity-count').classList.toggle('live',active>0);
  $('activity-count').textContent=active?active+' claimed assignment'+(active===1?'':'s'):'Latest activity';
- const latest=findings.find(f=>f.published_at&&f.contributor_alias);
- const completed=$('conn-completed');
- completed.hidden=!latest;
- completed.textContent=latest?'Latest research completed by: '+latest.contributor_alias+' · '+displayTime(latest.published_at):'';
  if(!tasks.length){root.textContent='No research assignments have been recorded for this stock yet.';return;}
  for(const t of tasks){
   const st=taskStatus(t),finished=st==='completed'||st==='complete';
@@ -171,33 +169,39 @@ function renderTasks(tasks,findings=[]){
 function renderMembers(rows){const root=$('members');root.replaceChildren();if(!user){root.textContent='Sign in to view the team.';return;}if(!rows.length){root.textContent='No one has joined this stock yet. Be the first!';return;}for(const m of rows){const line=document.createElement('div');line.className='participant';const icon=document.createElement('span');icon.className='avatar';icon.textContent=(m.display_name||'?').charAt(0).toUpperCase();const body=document.createElement('div');const name=document.createElement('strong');name.textContent=m.display_name||'Participant';const small=document.createElement('small');const when=new Date(m.joined_at);small.textContent='Joined '+(Number.isNaN(when.getTime())?'recently':when.toLocaleDateString());body.append(name,small);line.append(icon,body);root.append(line)}}
 function setBusy(on){busy=on;$('join').disabled=on;$('leave').disabled=on;$('refresh').disabled=on;}
 function connectionNote(message,kind='info'){$('conn-message').textContent=message;$('conn-message').dataset.kind=kind;}
+function setAgentConnection(label,kind='idle'){
+  const node=$('conn-worker');
+  node.textContent=label;
+  node.classList.toggle('is-connected',kind==='connected');
+  node.classList.toggle('is-unavailable',kind==='unavailable');
+}
 function connectionControls(){
   $('conn-refresh').disabled=!user||connectionBusy;
   $('conn-enable').disabled=!user||!connectionProfile||connectionConsent!==false||connectionBusy;
   $('conn-revoke').disabled=!user||!connectionProfile||connectionConsent!==true||connectionBusy;
 }
 async function refreshConnection(){
-  if(!sb||!user){$('conn-profile').textContent='Sign in first';$('conn-permission').textContent='Not checked';$('conn-worker').textContent='Not checked';connectionNote('Sign in with your own account to manage your agent.');connectionControls();return;}
+  if(!sb||!user){$('conn-profile').textContent='Sign in first';$('conn-permission').textContent='Not checked';setAgentConnection('Sign in first');connectionNote('Sign in to ORCA to check your AI connection.');connectionControls();return;}
   connectionBusy=true;connectionControls();connectionNote('Checking your personal agent profile and existing permissions…');
   connectionProfile=null;connectionConsent=null;
-  $('conn-profile').textContent='Checking…';$('conn-permission').textContent='Checking…';$('conn-worker').textContent='Checking…';
+  $('conn-profile').textContent='Checking…';$('conn-permission').textContent='Checking…';setAgentConnection('Checking…');
   try{
     const {data:profile,error:profileError}=await sb.from('agent_profiles').select('id,display_name,opted_in').eq('owner_id',user.id).maybeSingle();
     if(profileError)throw profileError;
-    if(!profile){$('conn-profile').textContent='Not created';$('conn-permission').textContent='OFF / not set';$('conn-worker').textContent='Not connected';connectionNote('Create your agent profile first. Your RKLB team membership is unaffected.');return;}
+    if(!profile){$('conn-profile').textContent='Not created';$('conn-permission').textContent='OFF / not set';setAgentConnection('Not set up');connectionNote('Set up your agent to begin. Research requires an ORCA account and permission.');return;}
     connectionProfile=profile;
     $('conn-profile').textContent=profile.display_name||'Created';
     if(typeof profile.opted_in!=='boolean')throw Error('Owner consent could not be verified. Open Full permission controls.');
     connectionConsent=profile.opted_in;
     $('conn-permission').textContent=connectionConsent?'ON — owner approved':'OFF — not authorized';
-    if(!connectionConsent){$('conn-worker').textContent='Not authorized';connectionNote('Permission OFF. You can join or leave RKLB without connecting an AI.');return;}
+    if(!connectionConsent){setAgentConnection('Not connected');connectionNote('Research permission is OFF. Turn it on when you want your AI to participate. Turning it on will not start ChatGPT.');return;}
     // Worker lease status must come from the database, not a guessed label.
     const {data:sessions,error:sessionError}=await sb.from('agent_sessions').select('status,lease_expires_at').eq('agent_profile_id',profile.id).eq('status','connected').order('lease_expires_at',{ascending:false}).limit(5);
-    if(sessionError){$('conn-worker').textContent='Cannot verify here';connectionNote('Research permission is ON, but an agent connection could not be verified here. Review your connection controls.');return;}
+    if(sessionError){setAgentConnection('Status unavailable','unavailable');connectionNote('ORCA could not check your AI connection right now. You can still review your permissions.');return;}
     const active=(sessions||[]).some(s=>s.status==='connected'&&Date.parse(s.lease_expires_at)>Date.now());
-    $('conn-worker').textContent=active?'Verified agent connected':'No active verified agent';
-    connectionNote(active?'An agent session is verified as connected. This does not prove research is currently running.':'No verified agent session is currently active. To use your personal assistant, start a task in ChatGPT Work. Research permission ON means your account is authorized; it does not mean an assistant is connected.','success');
-  }catch(e){$('conn-permission').textContent='Unable to verify';$('conn-worker').textContent='Not verified';connectionNote('Cannot verify connection status: '+(e.message||'Unexpected error')+'. No changes made.','error');}
+    setAgentConnection(active?'Connected':'Not connected',active?'connected':'idle');
+    connectionNote(active?'ORCA can see an active AI connection. This does not mean research is underway.':'ORCA does not see an active AI connection. To start researching, open ChatGPT Work and begin an ORCA task. Permission ON lets you participate but does not start your assistant.','success');
+  }catch(e){$('conn-permission').textContent='Unable to verify';setAgentConnection('Status unavailable','unavailable');connectionNote('ORCA could not check your AI connection. No settings were changed.','error');}
   finally{connectionBusy=false;connectionControls();}
 }
 async function updateConnectionPermission(action){
