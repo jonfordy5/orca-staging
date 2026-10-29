@@ -40,7 +40,7 @@ const params=new URLSearchParams(location.search);
 const ticker=(params.get('ticker')||'RKLB').trim().toUpperCase();
 const returnTo=params.get('returnTo');
 const stagingReturnTo=isOrcaStaging
-  ?(['join-research.html','research-workspace-staging.html'].includes(returnTo)?returnTo:'research-workspace-staging.html')
+  ?(['join-research.html','connect-work.html','research-workspace-staging.html'].includes(returnTo)?returnTo:'research-workspace-staging.html')
   :null;
 const status=document.getElementById('status');
 const controls=document.getElementById('auth-controls');
@@ -67,7 +67,7 @@ if(isOrcaStaging){
 function selectMode(next){mode=next;signinTab.setAttribute('aria-selected',String(next==='signin'));signupTab.setAttribute('aria-selected',String(next==='signup'));confirmWrap.hidden=(next!=='signup');confirmPassword.required=next==='signup';password.autocomplete=next==='signup'?'new-password':'current-password';submit.textContent=next==='signup'?'Create account':'Sign in';document.getElementById('mode-help').textContent=next==='signup'?'We’ll email a confirmation link. After confirming, return here to sign in.':'Use the email and password you registered with.';note('');}
 signinTab.addEventListener('click',()=>selectMode('signin'));
 signupTab.addEventListener('click',()=>selectMode('signup'));
-function continueLabel(){return stagingReturnTo==='join-research.html'?'Continue to Join Research':'Continue to ORCA staging workspace';}
+function continueLabel(){return stagingReturnTo==='join-research.html'?'Continue to Join Research':stagingReturnTo==='connect-work.html'?'Continue to Connect your agent':'Continue to ORCA staging workspace';}
 function showUser(user){const loggedIn=!!user;signed.style.display=loggedIn?'block':'none';controls.style.display=loggedIn?'none':'block';document.getElementById('account-email').textContent=loggedIn?user.email||'Authenticated participant':'';continueWorkspace.hidden=!(loggedIn&&stagingReturnTo);if(stagingReturnTo)continueWorkspace.textContent=continueLabel();}
 continueWorkspace.addEventListener('click',()=>{if(stagingReturnTo)location.assign(orcaStagingHref('./'+stagingReturnTo,{ticker}));});
 async function showCurrent(){const {data,error}=await client.auth.getUser();if(error&&error.name!=='AuthSessionMissingError')console.warn('Authentication check:',error.message);showUser(data?.user||null);}
@@ -87,7 +87,7 @@ form.addEventListener('submit',async(event)=>{
     if(mode==='signup'){
       const stagingRedirectPath=stagingReturnTo==='join-research.html'
         ?'join-research.html'
-        :'research-workspace.html';
+        :stagingReturnTo==='connect-work.html'?'connect-work.html':'research-workspace.html';
       const emailRedirectTo=new URL(orcaStagingHref('./'+stagingRedirectPath,{ticker}),location.href).href;
       const {error}=await client.auth.signUp({email:e,password:p,options:{emailRedirectTo}});
       if(error)throw error;
