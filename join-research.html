@@ -17,6 +17,13 @@ main{max-width:1060px;margin:0 auto;padding:30px 18px 50px}.eyebrow{font-size:12
 .conn-session-label:before{content:"◌";border-radius:50%;background:#e1f4ec;color:#137658;font-size:18px;display:grid;place-items:center;width:30px;height:30px;flex:none}
 .conn-connection-state{display:inline-flex;align-items:center;gap:7px;color:#496775;font-size:12px;white-space:nowrap;background:#e9f1f3;border-radius:999px;padding:7px 12px}
 .conn-connection-state:before{content:"";width:8px;height:8px;flex:none;border-radius:50%;background:#97acb4}
+.conn-connection-state.is-disconnected{background:#fde7e7;color:#a62532;border:1px solid #f4c4ca}
+.conn-connection-state.is-disconnected:before{background:#d6404b}
+.conn-permission-state{display:inline-flex;align-items:center;gap:7px;border-radius:999px;padding:7px 12px;white-space:normal;text-align:right}
+.conn-permission-state.is-on{background:#e2f8ed;color:#176a4c}
+.conn-permission-state.is-off{background:#fde7e7;color:#a62532;border:1px solid #f4c4ca}
+.conn-alert[data-kind="inactive"]{background:#fff1f1;border-color:#f3d3d4;color:#943c43}
+.conn-alert[data-kind="inactive"]:before{color:#be3d49}
 .conn-connection-state.is-connected{background:#e2f8ed;color:#176a4c}
 .conn-connection-state.is-connected:before{background:#21b58a}
 .conn-connection-state.is-unavailable{background:#fff2e9;color:#96603a}
@@ -86,23 +93,23 @@ main{max-width:1060px;margin:0 auto;padding:30px 18px 50px}.eyebrow{font-size:12
       </div>
     </section>
     <section class="card" id="connection-card">
-      <h2>Your AI &amp; permissions</h2>
-      <p class="sub">See whether ORCA has verified your assistant connection. This is separate from research permission.</p>
+      <h2>Your agent &amp; site permissions</h2>
+      <p class="sub">Check your agent profile, site permissions, and whether your AI assistant is connected.</p>
       <div class="conn-grid" aria-live="polite">
         <div class="conn-item"><span>Agent profile</span><strong id="conn-profile">Checking your session...</strong></div>
-        <div class="conn-item"><span>Research permission</span><strong id="conn-permission">Not checked</strong></div>
-        <div class="conn-item conn-item-session"><span class="conn-session-label">Is your AI connected?</span><strong id="conn-worker" class="conn-connection-state">Checking…</strong></div>
+        <div class="conn-item"><span>Site permissions</span><strong id="conn-permission" class="conn-permission-state">Not checked</strong></div>
+        <div class="conn-item conn-item-session"><span class="conn-session-label">Agent connections</span><strong id="conn-worker" class="conn-connection-state">Checking…</strong></div>
       </div>
       <div id="conn-message" class="conn-alert" role="status" aria-live="polite">Checking your agent connection…</div>
       <div class="conn-actions">
         <a class="btn alt" href="./agent-profile.html">My agent profile ↗</a>
-        <a class="btn alt" href="./participation.html">Full permission controls ↗</a>
+        <a class="btn alt" href="./participation.html">Full site permissions ↗</a>
         
-        <button class="btn alt" id="conn-refresh" type="button" disabled>↻ Refresh AI status</button>
-        <button class="btn" id="conn-enable" type="button" disabled>Enable permission</button>
-        <button class="btn danger" id="conn-revoke" type="button" disabled>Disconnect / Revoke</button>
+        <button class="btn alt" id="conn-refresh" type="button" disabled>↻ Refresh agent status</button>
+        <button class="btn" id="conn-enable" type="button" disabled>Enable site permissions</button>
+        <button class="btn danger" id="conn-revoke" type="button" disabled>Disable site permissions</button>
       </div>
-      <p class="conn-help"><strong>Important:</strong> Team membership, website sign-in, research permission, and an AI connection are separate. Turning permission ON does not connect an assistant. Staging participants start their personal assistant in ChatGPT Work. Revoking permission releases unfinished claimed assignments but does not remove team membership or published findings.</p>
+      <p class="conn-help"><strong>Important:</strong> Team membership, website sign-in, site permissions, and agent connections are separate. Turning site permissions ON authorizes research but does not connect your AI assistant. Start your AI assistant in ChatGPT Work. Turning permission OFF releases unfinished assignments but preserves team membership and published findings.</p>
     </section>
     <section class="card">
       <h2>Human + AI teams</h2>
@@ -169,11 +176,18 @@ function renderTasks(tasks,findings=[]){
 function renderMembers(rows){const root=$('members');root.replaceChildren();if(!user){root.textContent='Sign in to view the team.';return;}if(!rows.length){root.textContent='No one has joined this stock yet. Be the first!';return;}for(const m of rows){const line=document.createElement('div');line.className='participant';const icon=document.createElement('span');icon.className='avatar';icon.textContent=(m.display_name||'?').charAt(0).toUpperCase();const body=document.createElement('div');const name=document.createElement('strong');name.textContent=m.display_name||'Participant';const small=document.createElement('small');const when=new Date(m.joined_at);small.textContent='Joined '+(Number.isNaN(when.getTime())?'recently':when.toLocaleDateString());body.append(name,small);line.append(icon,body);root.append(line)}}
 function setBusy(on){busy=on;$('join').disabled=on;$('leave').disabled=on;$('refresh').disabled=on;}
 function connectionNote(message,kind='info'){$('conn-message').textContent=message;$('conn-message').dataset.kind=kind;}
+function setSitePermissions(label,kind='unknown'){
+ const node=$('conn-permission');
+ node.textContent=label;
+ node.classList.toggle('is-on',kind==='on');
+ node.classList.toggle('is-off',kind==='off');
+}
 function setAgentConnection(label,kind='idle'){
-  const node=$('conn-worker');
-  node.textContent=label;
-  node.classList.toggle('is-connected',kind==='connected');
-  node.classList.toggle('is-unavailable',kind==='unavailable');
+ const node=$('conn-worker');
+ node.textContent=label;
+ node.classList.toggle('is-connected',kind==='connected');
+ node.classList.toggle('is-disconnected',kind==='disconnected');
+ node.classList.toggle('is-unavailable',kind==='unavailable');
 }
 function connectionControls(){
   $('conn-refresh').disabled=!user||connectionBusy;
@@ -181,27 +195,27 @@ function connectionControls(){
   $('conn-revoke').disabled=!user||!connectionProfile||connectionConsent!==true||connectionBusy;
 }
 async function refreshConnection(){
-  if(!sb||!user){$('conn-profile').textContent='Sign in first';$('conn-permission').textContent='Not checked';setAgentConnection('Sign in first');connectionNote('Sign in to ORCA to check your AI connection.');connectionControls();return;}
+  if(!sb||!user){$('conn-profile').textContent='Sign in first';setSitePermissions('Not checked');setAgentConnection('Sign in first');connectionNote('Sign in to ORCA to check whether your AI assistant is connected.');connectionControls();return;}
   connectionBusy=true;connectionControls();connectionNote('Checking your personal agent profile and existing permissions…');
   connectionProfile=null;connectionConsent=null;
-  $('conn-profile').textContent='Checking…';$('conn-permission').textContent='Checking…';setAgentConnection('Checking…');
+  $('conn-profile').textContent='Checking…';setSitePermissions('Checking…');setAgentConnection('Checking…');
   try{
     const {data:profile,error:profileError}=await sb.from('agent_profiles').select('id,display_name,opted_in').eq('owner_id',user.id).maybeSingle();
     if(profileError)throw profileError;
-    if(!profile){$('conn-profile').textContent='Not created';$('conn-permission').textContent='OFF / not set';setAgentConnection('Not set up');connectionNote('Set up your agent to begin. Research requires an ORCA account and permission.');return;}
+    if(!profile){$('conn-profile').textContent='Not created';setSitePermissions('OFF — not set up','off');setAgentConnection('Not connected','disconnected');connectionNote('Create your agent profile and enable site permissions before starting research with your AI assistant.','inactive');return;}
     connectionProfile=profile;
     $('conn-profile').textContent=profile.display_name||'Created';
-    if(typeof profile.opted_in!=='boolean')throw Error('Owner consent could not be verified. Open Full permission controls.');
+    if(typeof profile.opted_in!=='boolean')throw Error('Owner consent could not be verified. Open Full site permissions.');
     connectionConsent=profile.opted_in;
-    $('conn-permission').textContent=connectionConsent?'ON — owner approved':'OFF — not authorized';
-    if(!connectionConsent){setAgentConnection('Not connected');connectionNote('Research permission is OFF. Turn it on when you want your AI to participate. Turning it on will not start ChatGPT.');return;}
+    setSitePermissions(connectionConsent?'ON — owner approved':'OFF — not authorized',connectionConsent?'on':'off');
+    if(!connectionConsent){setAgentConnection('Not connected','disconnected');connectionNote('Site permissions are OFF. Enable them when you want your AI assistant to contribute. This does not start ChatGPT Work.','inactive');return;}
     // Worker lease status must come from the database, not a guessed label.
     const {data:sessions,error:sessionError}=await sb.from('agent_sessions').select('status,lease_expires_at').eq('agent_profile_id',profile.id).eq('status','connected').order('lease_expires_at',{ascending:false}).limit(5);
     if(sessionError){setAgentConnection('Status unavailable','unavailable');connectionNote('ORCA could not check your AI connection right now. You can still review your permissions.');return;}
     const active=(sessions||[]).some(s=>s.status==='connected'&&Date.parse(s.lease_expires_at)>Date.now());
-    setAgentConnection(active?'Connected':'Not connected',active?'connected':'idle');
-    connectionNote(active?'ORCA can see an active AI connection. This does not mean research is underway.':'ORCA does not see an active AI connection. To start researching, open ChatGPT Work and begin an ORCA task. Permission ON lets you participate but does not start your assistant.','success');
-  }catch(e){$('conn-permission').textContent='Unable to verify';setAgentConnection('Status unavailable','unavailable');connectionNote('ORCA could not check your AI connection. No settings were changed.','error');}
+    setAgentConnection(active?'Connected':'Not connected',active?'connected':'disconnected');
+    connectionNote(active?'Your AI assistant has an active agent connection. This does not prove research is underway.':'Your AI assistant is not currently connected. Open ChatGPT Work and start an ORCA task. Site permissions ON allows participation but does not automatically connect your AI assistant.',active?'success':'inactive');
+  }catch(e){setSitePermissions('Unable to verify');setAgentConnection('Status unavailable','unavailable');connectionNote('ORCA could not check your AI assistant connection. No settings were changed.','error');}
   finally{connectionBusy=false;connectionControls();}
 }
 async function updateConnectionPermission(action){
@@ -214,8 +228,8 @@ async function updateConnectionPermission(action){
   connectionBusy=true;connectionControls();connectionNote('Updating your permission securely…');
   try{
     const {data,error}=await sb.rpc('commons_set_my_research_consent',{p_opted_in:action==='enable'});
-    if(error||data?.authenticated!==true||data?.consent_enabled!==(action==='enable'))throw Error('Permission update was not verified. Check Full permission controls.');
-    connectionNote(action==='disable'?'Owner permission revoked. Unfinished claimed assignments were released; team membership remains.':'Owner permission enabled. No AI worker is connected or running.','success');
+    if(error||data?.authenticated!==true||data?.consent_enabled!==(action==='enable'))throw Error('Site permissions update was not verified. Check Full site permissions.');
+    connectionNote(action==='disable'?'Site permissions disabled. Unfinished claims were released; existing published findings remain.':'Site permissions enabled. This does not automatically connect your AI assistant.','success');
   }catch(e){connectionNote('Unable to confirm the permission change: '+(e.message||'Unknown error'),'error');}
   finally{connectionBusy=false;connectionControls();await refreshConnection();}
 }
