@@ -1,4 +1,5 @@
 import { ORCA_LOGO_DEV_PUBLISHABLE_KEY } from './orca-staging-config.js';
+import { getCompanySize, formatCompanyRevenue } from './orca-company-size.js';
 // Auto-generated, source-attributed company profile for newly registered stocks.
 // This is informational only; never infer a company's mission, ownership, or finances.
 const cache=new Map();
@@ -218,20 +219,29 @@ export function renderUnifiedCompanyProfile(root,ticker,profile={}){
   $(entry,'dt',null,title);$(entry,'dd',null,String(value));
  }
  const what=$(body,'div','company-business');
- $(what,'strong',null,'What they do');
+ $(what,'strong',null,'What they do and how they do it');
  $(what,'p',null,operations);
+ if(profile.how&&String(profile.how).trim()!==operations)$(what,'p','company-business-method',String(profile.how));
+ for(const item of lines){
+  if(!item?.name||!item?.detail)continue;
+  const block=$(what,'div','company-business-line');
+  $(block,'h4',null,String(item.name));$(block,'p',null,String(item.detail));
+ }
  const breakdown=$(body,'section','company-business-breakdown');
  const heading=$(breakdown,'div','company-business-heading');
- $(heading,'h3',null,'How they do it');
- if(profile.businessSource)urlLink(heading,profile.businessSourceLabel||'Company filings',profile.businessSource);
- if(lines.length){
-  for(const item of lines){
-   if(!item?.name||!item?.detail)continue;
-   const block=$(breakdown,'div','company-business-line');
-   $(block,'h4',null,String(item.name));
-   $(block,'p',null,String(item.detail));
-  }
- }else $(breakdown,'p','company-description',profile.how||'Detailed operating segments have not yet been verified.');
+ $(heading,'h3',null,'Company size and impact');
+ const list=$(breakdown,'ul','company-impact-list');
+ const metrics=profile.metrics||{};
+ for(const [label,entry,fmt] of [
+  ['Employees',metrics.employees,v=>new Intl.NumberFormat('en-US').format(v.value)],
+  ['Annual revenue',metrics.revenue,formatCompanyRevenue]
+ ]){
+  const item=$(list,'li','company-impact-item');
+  $(item,'strong',null,label+(entry?.year?' ('+entry.year+')':'')+': ');
+  item.append(document.createTextNode(entry?fmt(entry)||'Not available':'Not available in reference data'));
+  if(entry?.source)urlLink(item,'Source',entry.source);
+ }
+ $(breakdown,'p','company-impact-note','Wikipedia/Wikidata figures may be historical. Annual revenue means sales, not net profit.');
  if(profile.notice)$(body,'p','company-auto-notice',profile.notice);
  const side=$(layout,'aside','company-visual');
  const frame=$(side,'div','company-logo-frame');
@@ -353,7 +363,7 @@ function render(root,company,ticker){
   missionHeading:'Business focus',mission:focus||'Company operating focus has not yet been independently documented.',
   missionNote:editorial?.aiPending?'This description is pending generation; company identity and imagery are separately sourced.':editorial?.aiGenerated?'AI-organized company description based on cited official sources; may require updating.':editorial?'Business summary extracted from the attributed reference data; not an official mission statement.':company.referenceUsed?'From public company-reference data; not an official mission statement.':'Publicly sourced business overview; not an official mission statement.',
   headquarters:editorial?.headquarters||company.headquarters,founded:company.founded,industry:editorial?.industry||company.industry,
-  listing:ticker,operations:what||'Additional product and service details are not yet verified.',
+  listing:ticker,metrics:company.metrics||null,operations:what||'Additional product and service details are not yet verified.',
   how:how||'Sales channels and operating methods are not yet verified from source material.',
   businessSource:editorial?.aiPending?null:editorial?.businessSource||(company.referenceUsed?'https://github.com/JerBouma/FinanceDatabase':company.source),
   businessSourceLabel:company.referenceUsed?'Business description data':'Company overview source',
@@ -461,7 +471,11 @@ export async function renderAutomaticCompanyProfile(root,ticker,sb){
    }
    if(info)cache.set(ticker,info);
   }
-  if(info){void loadOrcaAiDescription(root,ticker,sb,info);}
+  if(info){
+   info.metrics=await getCompanySize(ticker,name,info).catch(()=>({}));
+   render(root,info,ticker);
+   void loadOrcaAiDescription(root,ticker,sb,info);
+  }
   else {
    fallback(root,ticker,name,'Company overview is being prepared from available sources.');
    void loadOrcaAiDescription(root,ticker,sb,{title:name,intro:'Company overview is being prepared.',source:null,structured:null});
