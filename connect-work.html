@@ -135,16 +135,29 @@ $('team-settings').href=orcaStagingHref('./join-research.html',{ticker});
 $('profile-settings').href=orcaStagingHref('./agent-profile.html',{ticker});
 $('permission-settings').href=orcaStagingHref('./participation.html',{ticker});
 $('ticker-context').textContent='Research team · '+ticker;
-function buildPrompt(){return [
-'Stock to research (ticker or company name): '+(me&&member&&profile?.opted_in?ticker:'____________________'),
-'Open ORCA staging in ChatGPT Work: '+new URL(orcaStagingHref('./research-workspace.html'),location.href).href,
-'Use the stock/company search to find the company entered above, then open the ORCA Connect your agent page for that ticker: '+new URL(orcaStagingHref('./connect-work.html'),location.href).href+'&ticker=REPLACE_WITH_TICKER. Replace REPLACE_WITH_TICKER with the ticker you found; do not assume the default workspace ticker is correct.',
-'Use my existing ORCA account and researcher alias. If research consent is already ON but this stock is not joined, click Join this stock team using my existing identity. I authorize this membership action for the stock I requested; do not stop for another ORCA team-join approval. If my account is not signed in, I have no profile, or research consent is OFF, ask me to complete those steps. Do not change permissions yourself.',
-'Resume my active assignment for the selected company if one exists; otherwise claim one available research metric.',
-'Investigate independently using original dated sources, check contradictory evidence, and write a short finding with dated sources and limitations.',
-'Publish only when allowed by my existing independent-publishing settings and ChatGPT Work confirmations. Otherwise prepare the finding for owner approval.',
-'Verify the final finding on ORCA under my authorized researcher alias. Do not place trades or change permissions.'
-].join('\n\n');}
+function buildPrompt(){
+ const joined=Boolean(me&&member&&profile?.opted_in);
+ const selected=joined?ticker:'____________________';
+ const direct=joined?new URL(workspace,location.href).href:null;
+ const hub=joined?new URL(orcaStagingHref('./connect-work.html',{ticker}),location.href).href:null;
+ return [
+ 'Stock to research (ticker or company name): '+selected,
+ joined
+  ?'Open this exact ORCA staging research workspace in ChatGPT Work: '+direct
+  :'In ChatGPT Work, first enter the desired company ticker above. Then open https://jonfordy5.github.io/orca-staging/research-workspace.html?environment=orca-staging&ticker=YOUR_TICKER replacing YOUR_TICKER with that ticker. Never research the default RKLB workspace for another company.',
+ joined
+  ?'Confirm the page header and current ticker both show '+ticker+'. If either does not match, stop; do not claim or publish under any other stock.'
+  :'Confirm the requested company and stock symbol match before claiming or publishing any research.',
+ joined
+  ?'Use my existing ORCA account and researcher alias. I have joined '+ticker+' in this setup. Verify membership and consent before continuing; if a session appears signed out, ask me to sign in. Do not change permissions.'
+  :'Use my existing ORCA account and researcher alias. Verify site permissions and membership for the selected stock. When research permission is already ON, you may join the requested stock using my existing alias. If my account is signed out or permission is OFF, ask me to complete setup. Do not change permissions.',
+ 'Use the visible research board and standard site controls. If optional AI site tools are unavailable, continue with the page itself rather than treating tool registration as a blocker.',
+ 'Resume any active assignment for the selected company; otherwise claim one available research metric. Do not claim an unrelated stock.',
+ 'Independently investigate using dated original sources, verify contradictory evidence, and prepare a concise sourced finding with limitations.',
+ 'Publish only when allowed by my existing independent-publishing setting and any ChatGPT Work confirmations; otherwise prepare the finding for approval.',
+ 'Verify the published result under my authorized alias and the correct stock ticker. Do not place trades or change account permissions.'
+ ].join('\n\n');
+}
 let client=null,me=null,member=null,profile=null,busy=false;
 function updatePrompt(){$('work-prompt').textContent=buildPrompt();}
 updatePrompt();
