@@ -481,16 +481,21 @@ function questionForFinding(f){
  return {key:m?.[1]||null,answer,direction,plain:m?original.slice(m[0].length):original};
 }
 function plainResearchText(text){
- return String(text||'').replace(/\b(?:5\d|[6-9]\d|100)%\s*(?:bullish|bearish)\b/gi,'')
-  .replace(/\b(?:bullish|bearish)\s*(?:—|-|:)?\s*(?:5\d|[6-9]\d|100)%\b/gi,'')
-  .replace(/^\s*(?:AAPL|[A-Z]{2,5})\s+(?:valuation|technical|research):\s*/i,'')
+ // Legacy numeric conviction is hidden in the UI, while the original finding stays in Supabase.
+ // Retain directional wording and all financial values (including decimal prices/EPS).
+ return String(text||'')
+  .replace(/\b(?:5\d|[6-9]\d|100)%\s*(bullish|bearish)\b/gi,'$1')
+  .replace(/\b(bullish|bearish)\s*(?:—|-|:)?\s*(?:5\d|[6-9]\d|100)%\b/gi,'$1')
+  .replace(/^\s*[A-Z]{1,5}\s+(?:valuation|technical|research):\s*/i,'')
+  .replace(/^\s*(?:STRONG\s+BUY|STRONG\s+SELL|BUY|SELL)\s*,?\s*(?:bullish|bearish)\s*(?:\(\s*subjective(?:,\s*not a probability)?\s*\))?\s*\.\s*/i,'')
   .replace(/\s+/g,' ').trim();
 }
 function plainSummaryParts(raw){
  const text=plainResearchText(raw);
- // A visible conclusion and a short explanation; the full text stays accessible below.
- const sentences=text.match(/[^.!?]+[.!?]+(?:\s|$)|[^.!?]+$/g)||[];
- return {bottom:(sentences[0]||text).trim(),why:sentences.slice(1).join(' ').trim()};
+ // Only divide at real sentence boundaries; $343.83, 39.4x, and 2025 filings stay intact.
+ const cut=/(^|[^\d])[.!?](?=\s+[A-Z])/g.exec(text);
+ const end=cut?cut.index+cut[1].length:-1;
+ return {bottom:end>=0?text.slice(0,end+1).trim():text,why:end>=0?text.slice(end+1).trim():''};
 }
 function researchPillar(f){
  const area=String(f.research_area||'').toLowerCase();
@@ -507,7 +512,7 @@ function compactFinding(f){
  badge.textContent=(rating.answer||'Research').replace(/_/g,' ')+(rating.direction?' · '+rating.direction.toLowerCase():'');article.append(badge);
  const readable=plainSummaryParts(rating.plain),excerpt=document.createElement('p');excerpt.className='research-peek-text';
  excerpt.textContent=readable.bottom;article.append(excerpt);
- if(readable.why){const reason=document.createElement('p');reason.className='research-peek-text';reason.textContent=readable.why.slice(0,200);article.append(reason);}
+ if(readable.why){const reason=document.createElement('p');reason.className='research-peek-text';reason.textContent=readable.why;article.append(reason);}
  const meta=document.createElement('small');meta.textContent='Published '+time(f.published_at);article.append(meta);
  const detail=document.createElement('details');detail.className='source-fold';detail.dataset.foldKey='full:'+f.id;
  const heading=document.createElement('summary');heading.textContent='Full research and sources';detail.append(heading,renderFinding(f));article.append(detail);
