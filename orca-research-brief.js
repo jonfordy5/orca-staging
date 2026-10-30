@@ -7,17 +7,19 @@ const FOUR_RATINGS = new Set(['STRONG_BUY','BUY','SELL','STRONG_SELL']);
 const STANCE = new Set(['BULLISH','BEARISH']);
 
 export function parseOrcaFinding(finding) {
-  const summary = String(finding?.summary || '');
-  const match = /^\[ORCA-R3;Q:(execution|pricing|positioning);A:(STRONG_BUY|BUY|HOLD|SELL|STRONG_SELL);D:(BULLISH|BEARISH);P:(\d{1,3})\]\s*/.exec(summary);
-  const old = /^\[ORCA-R2;Q:[a-z]+;A:([A-Z_]+)\]\s*/.exec(summary);
+  const raw = String(finding?.summary || '');
+  const tagged = /^\[ORCA-R([234]);Q:(execution|pricing|positioning);A:(STRONG_BUY|BUY|HOLD|SELL|STRONG_SELL)(?:;D:(BULLISH|BEARISH)(?:;P:(\d{1,3}))?)?\]\s*/.exec(raw);
+  const old = /^\[ORCA-R2;Q:[a-z]+;A:([A-Z_]+)\]\s*/.exec(raw);
+  const legacy = /^\[ORCA-Q:[a-z]+;A:([A-Z_]+)\]\s*/.exec(raw);
+  const rating = tagged?.[3] || old?.[1] || legacy?.[1] || null;
+  const direction = tagged?.[4] || (['STRONG_BUY','BUY'].includes(rating) ? 'BULLISH' : ['STRONG_SELL','SELL'].includes(rating) ? 'BEARISH' : null);
+  const historicalConviction = tagged?.[5] ? Number(tagged[5]) : null;
   return {
-    rating: match ? match[2] : old ? old[1] : null,
-    direction: match ? match[3] : null,
-    conviction: match ? Number(match[4]) : null,
-    summary: summary.slice(match?.[0]?.length || old?.[0]?.length || 0).trim(),
-    isFourRating: Boolean(match && FOUR_RATINGS.has(match[2]) && STANCE.has(match[3])
-      && Number(match[4]) >= 51 && Number(match[4]) <= 100),
-    isHistoricalHold: Boolean((match && match[2] === 'HOLD') || (old && old[1] === 'HOLD'))
+    rating, direction, conviction: historicalConviction,
+    summary: raw.slice(tagged?.[0]?.length || old?.[0]?.length || legacy?.[0]?.length || 0).trim(),
+    isFourRating: Boolean(tagged && FOUR_RATINGS.has(rating) && STANCE.has(direction) &&
+      (historicalConviction === null || (historicalConviction >= 51 && historicalConviction <= 100))),
+    isHistoricalHold: rating === 'HOLD'
   };
 }
 
@@ -81,8 +83,8 @@ export function buildOrcaResearchBrief(rawFindings, ticker, now = Date.now()) {
   const publishedKeys = new Set(records.map(identityKey));
   const bullish = current.filter(f => f.direction === 'BULLISH').length;
   const bearish = current.filter(f => f.direction === 'BEARISH').length;
-  const signedNet = current.length ? current.reduce((sum,f) =>
-    sum + (f.direction === 'BEARISH' ? f.conviction : -f.conviction), 0) / current.length : null;
+  // Current R4 ratings have no numerical conviction. Count directional findings instead.
+  const signedNet = current.length ? bearish - bullish : null;
   const lean = signedNet === null ? null : signedNet > 0 ? 'BEARISH' : signedNet < 0 ? 'BULLISH' : 'BALANCED';
   const coverage = [...new Set(current.map(f => metricKey(f)))].length;
   const independentAuthors = contributorKeys.size;
@@ -107,7 +109,7 @@ export function buildOrcaResearchBrief(rawFindings, ticker, now = Date.now()) {
     bearish,
     signedNet,
     lean,
-    netStrength: signedNet === null ? null : Math.round(Math.abs(signedNet)),
+    netStrength: null, // Deprecated percentage signal; preserve the property for older consumers.
     assessment,
     lastPublished,
     current,
@@ -123,12 +125,12 @@ export function formatOrcaChatQuestion(brief, workspaceUrl) {
     'Independently open/check the original sources and distinguish research observations from forecasts or statistical probabilities.',
     'Research snapshot: ' + brief.publishedCount + ' public findings; ' + brief.activeCount + ' current rated findings; ' +
       brief.currentResearcherCount + ' current contributor alias(es). ' + brief.assessment,
-    'Current net directional indicator: ' + (brief.netStrength === null ? 'unavailable' : brief.netStrength + '% ' + brief.lean.toLowerCase()) +
-      ' (subjective, not a calibrated probability).',
+    'Current research direction: ' + (brief.lean ? brief.lean.toLowerCase() : 'unavailable') +
+      ' (' + brief.bullish + ' bullish, ' + brief.bearish + ' bearish current ratings; no calibrated probability).',
   ];
   for (const f of brief.current.slice(0, 12)) {
     lines.push('\nCURRENT · ' + f.research_area + ' · ' + f.contributor + ' · ' + f.rating.replace(/_/g,' ') +
-      ' · ' + f.conviction + '% ' + f.direction.toLowerCase());
+      ' · ' + f.direction.toLowerCase());
     lines.push('Evidence observed: ' + (f.observed_at || 'not stated') + '; published: ' + (f.published_at || 'not stated'));
     lines.push('Reported summary: ' + f.summary.slice(0, 450));
     lines.push('Limitations: ' + (f.limitations || 'not supplied'));
