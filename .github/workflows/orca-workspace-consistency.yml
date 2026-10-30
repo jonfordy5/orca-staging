@@ -1,0 +1,25 @@
+name: ORCA shared workspace consistency
+on:
+  push:
+    paths:
+      - 'research-workspace.html'
+      - 'research-workspace-staging.html'
+      - 'orca-company-profile.js'
+      - 'orca-auto-company-profile.js'
+      - 'orca-stock-search.js'
+      - 'scripts/check-shared-research-workspace.cjs'
+      - '.github/workflows/orca-workspace-consistency.yml'
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  shared-workspace:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate common stock research layout and controls
+        run: node scripts/check-shared-research-workspace.cjs
