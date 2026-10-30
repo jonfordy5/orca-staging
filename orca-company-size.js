@@ -82,7 +82,18 @@ export function formatCompanyRevenue(r){
  return prefix+new Intl.NumberFormat('en-US',{maximumFractionDigits:2}).format(v/scale)+suffix;
 }
 export async function getCompanySize(ticker,name,profile={}){
- const key='orca-company-size-v1-'+ticker;
+ // SEC-backed metrics are cached in Supabase and shared across ALL site visitors.
+ // Prefer the audited official value before reading the older browser/Wikipedia cache.
+ const key='orca-company-size-v2-'+ticker;
+ let official=null;
+ try{
+  const result=await json('https://vbziibatnejoswsdggga.supabase.co/functions/v1/orca-company-official-metrics?ticker='+encodeURIComponent(ticker));
+  if(result&&result.ticker===ticker)official={
+    employees:result.employees?.value>0?result.employees:null,
+    revenue:result.revenue?.value>0&&result.revenue?.currency?result.revenue:null
+  };
+ }catch{/* Official data unavailable: preserve the dated, attributed fallback. */}
+ if(official?.employees&&official?.revenue)return official;
  if(memory.has(key))return memory.get(key);
  const p=(async()=>{
   try{
@@ -127,7 +138,8 @@ export async function getCompanySize(ticker,name,profile={}){
    })());
   }
   await Promise.all(jobs);
-  const facts={employees:last(wikidata.employees,infobox.employees),revenue:last(wikidata.revenue,infobox.revenue)};
+  const facts={employees:official?.employees||last(wikidata.employees,infobox.employees),
+    revenue:official?.revenue||last(wikidata.revenue,infobox.revenue)};
   try{localStorage.setItem(key,JSON.stringify({at:Date.now(),facts}));}catch{}
   return facts;
  })();
