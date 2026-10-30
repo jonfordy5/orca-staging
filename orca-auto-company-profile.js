@@ -395,7 +395,8 @@ async function loadOrcaAiDescription(root,ticker,sb,base){
    return;
   }
   const pendingText=d?.state==='building'?'Company description is being prepared.':d?.state==='failed'?'Automated description did not pass verification; existing sourced company information remains available.':d?.limit_reached?'Daily profile generation capacity has been reached; cached company information remains available.':d?.refresh_due?'A source-backed profile update is pending; existing information remains available.':'A verified company description is not yet available.';
-  render(root,{...base,structured:{...(base.structured||{}),intro:'Company description pending.',focus:'Company description pending.',business:'Products and services will appear when the company profile is generated.',how:pendingText,businessSource:null,aiPending:true}},ticker);
+  // Keep the source-backed reference profile on display while generation is pending.
+  render(root,base,ticker);
  };
  let data=null;
  try{const r=await fetch(endpoint,{cache:'no-store'});if(r.ok)data=await r.json();}catch{}
@@ -411,17 +412,16 @@ async function loadOrcaAiDescription(root,ticker,sb,base){
   }catch{/* Keep the last good company description; never automatically retry. */}
   return;
  }
- if(data?.state==='building'||data?.state==='failed'||data?.limit_reached){display(data);return;}
- if(data?.state!=='missing'){display(data);return;}
+ if(data?.state==='building'||(data?.state==='failed'&&!data?.refresh_due)||data?.limit_reached){return;}
+ if(data?.state!=='missing'&&!data?.refresh_due)return;
  try{
   const {data:{session}}=await sb.auth.getSession();
   if(!session?.access_token){display(data);return;}
-  display({state:'building'});
+  // The existing sourced profile remains visible.
   const config=await (await import('./orca-staging-config.js')).selectSupabaseConfig();
   const response=await fetch(endpoint,{method:'POST',headers:{apikey:config.publishableKey,Authorization:'Bearer '+session.access_token,'Content-Type':'application/json'},body:'{}'});
-  if(response.ok)display(await response.json());
-  else display({state:response.status===429?'limit':'failed',limit_reached:response.status===429});
- }catch{display({state:'failed'});}
+  if(response.ok){const output=await response.json();if(usable(output))display(output);}
+ }catch{/* Keep the source-backed company profile. */}
 }
 export async function renderAutomaticCompanyProfile(root,ticker,sb){
  fallback(root,ticker,ticker,'Loading the verified company listing…');
