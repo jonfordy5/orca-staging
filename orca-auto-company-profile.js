@@ -219,7 +219,7 @@ export function renderUnifiedCompanyProfile(root,ticker,profile={}){
   $(entry,'dt',null,title);$(entry,'dd',null,String(value));
  }
  const what=$(body,'div','company-business');
- $(what,'strong',null,'What they do and how they do it');
+ $(what,'strong',null,'The mission and the method');
  $(what,'p',null,operations);
  if(profile.how&&String(profile.how).trim()!==operations)$(what,'p','company-business-method',String(profile.how));
  for(const item of lines){
