@@ -394,7 +394,7 @@ async function loadOrcaAiDescription(root,ticker,sb,base){
    render(root,{...base,structured:{...(base.structured||{}),intro:c.overview,focus:c.business_focus,business:c.what_they_do,how:c.how_they_do_it,businessSource:Array.isArray(d.source_urls)?d.source_urls[0]||base.source:base.source,aiGenerated:true}},ticker);
    return;
   }
-  const pendingText=d?.limit_reached?'AI company description available after the daily research limit resets.':d?.state==='building'?'AI company description is being prepared.':d?.state==='failed'?'Automated company description unavailable; no automatic paid retry will run.':'AI company description is awaiting its first generation.';
+  const pendingText=d?.state==='building'?'Company description is being prepared.':d?.state==='failed'?'Automated description did not pass verification; existing sourced company information remains available.':d?.limit_reached?'Daily profile generation capacity has been reached; cached company information remains available.':d?.refresh_due?'A source-backed profile update is pending; existing information remains available.':'A verified company description is not yet available.';
   render(root,{...base,structured:{...(base.structured||{}),intro:'Company description pending.',focus:'Company description pending.',business:'Products and services will appear when the company profile is generated.',how:pendingText,businessSource:null,aiPending:true}},ticker);
  };
  let data=null;
