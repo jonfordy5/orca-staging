@@ -35,7 +35,8 @@ export async function mountLivingTimeline({sb,ticker,getUser,canContribute,getFi
   return (getFindings()||[]).filter(f=>f&&f.id&&f.published_at&&(!f.expires_at||Date.parse(f.expires_at)>Date.now()));
  }
  function ratingOf(f){
-  const tag=/^\[(?:ORCA-R2;Q:[a-z]+;A:|ORCA-Q:[a-z]+;A:)([A-Z_]+)\] /.exec(String(f.summary||''));
+  // Include legacy R2/R3 and the current four-rating R4 findings.
+  const tag=/^\[(?:ORCA-R[234];Q:[a-z]+;A:|ORCA-Q:[a-z]+;A:)([A-Z_]+)(?:;D:(?:BULLISH|BEARISH)(?:;P:\d{1,3})?)?\]\s*/.exec(String(f.summary||''));
   return tag?tag[1].replace(/_/g,' '):'Earlier research';
  }
  function publicationSession(timestamp){
