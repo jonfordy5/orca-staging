@@ -9,8 +9,9 @@ from datetime import datetime, timezone
 BASE="https://vbziibatnejoswsdggga.supabase.co"
 AGENT=os.environ.get("SEC_USER_AGENT","").strip()
 KEY=os.environ.get("SUPABASE_SECRET_KEY","").strip()
-TICKERS=os.environ.get("ORCA_TICKERS","").split(",")
-if not AGENT or "@" not in AGENT or not KEY or not TICKERS or not TICKERS[0]:
+from orca_registered_tickers import assigned_tickers
+TICKERS=assigned_tickers()
+if not AGENT or "@" not in AGENT or not KEY or not TICKERS:
     sys.exit("SEC_USER_AGENT, SUPABASE_SECRET_KEY and ORCA_TICKERS required; no writes performed")
 def fetch(url):
     request=urllib.request.Request(url,headers={"User-Agent":AGENT,"Accept":"application/json"})
