@@ -1,0 +1,25 @@
+name: Refresh ORCA SEC employee headcounts
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '45 11 * * 1'
+permissions:
+  contents: read
+concurrency:
+  group: orca-sec-employee-import
+  cancel-in-progress: false
+jobs:
+  employees:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      SEC_USER_AGENT: ${{ secrets.SEC_USER_AGENT }}
+      SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+      ORCA_TICKERS: AAPL,AMZN,CVX,DG,F,INTC,MCD,META,MSFT,NVDA,RKLB,TSLA,TXRH,ULTA,WMT
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Import headcounts independently of revenue
+        run: python scripts/import-sec-employees.py
