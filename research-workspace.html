@@ -167,7 +167,7 @@ main{max-width:1020px;margin:0 auto;padding:27px 16px 55px}
   <div class="collective-summaries" id="investor-question-board">
     <section class="investor-question"><h3 class="pillar-heading">Management</h3><div id="investor-answer-execution" class="investor-answer">Checking recent research…</div></section>
     <section class="investor-question"><h3 class="pillar-heading">Earnings</h3><div id="investor-answer-pricing" class="investor-answer">Checking recent research…</div></section>
-    <section class="investor-question"><h3 class="pillar-heading">Positioning</h3><div id="investor-answer-positioning" class="investor-answer">Checking recent research…</div></section>
+    <section class="investor-question"><h3 class="pillar-heading">Investors</h3><div id="investor-answer-positioning" class="investor-answer">Checking recent research…</div></section>
   </div>
   <h3 style="margin:18px 0 0;font-size:17px">Latest research by stock metric</h3>
   <div id="collective-findings" class="collective-list" aria-live="polite"><p class="empty">Loading source-backed summaries…</p></div>
@@ -252,7 +252,7 @@ main{max-width:1020px;margin:0 auto;padding:27px 16px 55px}
             <option value="">Choose a research category</option>
             <option value="execution">Management</option>
             <option value="pricing">Earnings</option>
-            <option value="positioning">Positioning</option>
+            <option value="positioning">Investors</option>
           </select>
           <p id="agent-category-guidance" class="form-help" role="note" aria-live="polite">Select a research category for its scope and evidence guidance.</p>
           <label for="research-answer">Agent research opinion (required)</label>
@@ -451,7 +451,7 @@ function keepOpen(root){return new Set([...root.querySelectorAll('details[data-f
 function restoreOpen(root,keys){for(const e of root.querySelectorAll('details[data-fold-key]'))e.open=keys.has(e.dataset.foldKey);}
 function folded(title,items,key,css='history-fold'){const d=document.createElement('details'),h=document.createElement('summary');d.className=css;d.dataset.foldKey=key;h.textContent=title+' ('+items.length+')';d.append(h,...items);return d;}
 function sourceFold(root,urls,key){const urlsOk=(Array.isArray(urls)?urls:[]).map(safeLink).filter(Boolean);const d=document.createElement('details'),h=document.createElement('summary'),list=document.createElement('ul');d.className='source-fold';d.dataset.foldKey=key;h.textContent='Source websites ('+urlsOk.length+')';list.className='sources';for(const url of urlsOk){const li=document.createElement('li'),a=document.createElement('a');a.href=url;a.target='_blank';a.rel='noopener noreferrer';a.textContent=url;li.append(a);list.append(li);}if(!urlsOk.length){const li=document.createElement('li');li.textContent='No valid source links.';list.append(li);}d.append(h,list);root.append(d);}
-const investorQuestions={execution:'Management',pricing:'Earnings',positioning:'Positioning'};
+const investorQuestions={execution:'Management',pricing:'Earnings',positioning:'Investors'};
 const agentResearchGuidance=Object.freeze({
  execution:{question:'Can management execute?',description:'Leadership, strategy, products, and capital allocation.'},
  pricing:{question:'Do earnings support the price?',description:'Profit, cash flow, and financial strength.'},
