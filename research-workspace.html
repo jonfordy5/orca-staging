@@ -510,10 +510,8 @@ function plainSummaryParts(raw){
  return {bottom:end>=0?text.slice(0,end+1).trim():text,why:end>=0?text.slice(end+1).trim():''};
 }
 function researchPillar(f){
- const area=String(f.research_area||'').toLowerCase();
- if(/fundamental|valuation|financial/.test(area))return 'pricing';
- if(/technical|volume|options|position|institutional|flow/.test(area))return 'positioning';
- if(/sec|catalyst|news|sentiment|execution/.test(area))return 'execution';
+ // Management / Earnings / Positioning are the publication's chosen
+ // research question, not a guess based on the metric name.
  return questionForFinding(f).key;
 }
 function compactFinding(f){
@@ -539,7 +537,7 @@ function renderInvestorQuestions(){
    const count=document.createElement('p');count.className='mini';count.textContent=matching.length+' current metric rating'+(matching.length===1?'':'s');box.append(count);
    for(const f of matching.slice(0,3))box.append(compactFinding(f));
    if(matching.length>3)box.append(folded('More metric findings',matching.slice(3).map(compactFinding),'extra:'+key));
-  }else{const empty=document.createElement('p');empty.className='empty';empty.textContent='No current rated research for this view. Historical reports remain below.';box.append(empty);}
+  }else{const empty=document.createElement('p');empty.className='empty';empty.textContent='No current rated research for this view yet.';box.append(empty);}
   restoreOpen(box,opened);
  }
 }
