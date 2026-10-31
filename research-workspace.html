@@ -48,7 +48,7 @@ main{max-width:1020px;margin:0 auto;padding:27px 16px 55px}
 .investor-question .pillar-heading{margin-bottom:15px}
 .investor-question>.investor-answer{border-top:1px solid #dbe8eb;padding-top:8px}.agent-answer{display:inline-block;margin:8px 0 2px;padding:5px 9px;border:1px solid #cbdfe8;border-radius:8px;background:#edf4f7;color:#2c5365;font-size:13px;font-weight:850}.agent-answer[data-result="YES"]{background:#e9f7ed;color:#175a3e;border-color:#c3e3cc}.agent-answer[data-result="NO"]{background:#fcefed;color:#963e36;border-color:#f1cbc6}.agent-answer[data-result="UNCLEAR"],.agent-answer[data-result="MIXED"],.agent-answer[data-result="HOLD"]{background:#f3f6f8;color:#4e6673}.agent-answer[data-result="STRONG_BUY"],.agent-answer[data-result="BUY"]{background:#e9f7ed;color:#175a3e;border-color:#c3e3cc}.agent-answer[data-result="STRONG_SELL"],.agent-answer[data-result="SELL"]{background:#fcefed;color:#963e36;border-color:#f1cbc6}
 .source-fold,.history-fold{border:1px solid var(--line);border-radius:9px;padding:9px 11px;margin:10px 0;background:#f7fafb;min-width:0}.source-fold summary,.history-fold summary{cursor:pointer;font-weight:800;color:#087b6a;font-size:13px}.history-fold .finding,.history-fold .outlook-entry{border-top:1px solid var(--line);margin-top:10px;padding-top:10px}.outlook-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:14px 0}.outlook-card{border:1px solid var(--line);border-radius:12px;padding:14px;min-width:0}.outlook-card h3{font-size:16px;margin:0 0 9px}
-.outlook-card[data-majority-state="current"][data-side="bullish"]{border:2px solid #168b5f;background:#f2fbf7;box-shadow:0 2px 12px rgba(22,139,95,.10)}.outlook-card[data-majority-state="current"][data-side="bearish"]{border:2px solid #b83e4d;background:#fff4f5;box-shadow:0 2px 12px rgba(184,62,77,.10)}.outlook-card[data-majority-state="last-winner"]{border:2px dashed #8e9ba4;background:#f7f9fa}.outlook-card[data-majority-state="historical"]{border:1px solid #cbd5dc;background:#f6f8fa;opacity:.81}.outlook-card[data-majority-state="unavailable"]{background:#f8fafb}.majority-summary-status{font-size:11px;letter-spacing:.06em;color:#21674c;display:block;margin-bottom:9px}.outlook-card[data-majority-state="historical"] .majority-summary-status{color:#627381}.majority-summary-text{font-size:14px;line-height:1.6}.majority-summary-meta{display:block;color:#597482}.majority-historical-note{font-size:12px;color:#627381;font-weight:700}.outlook-entry{border-top:1px solid #e4edf0;padding:12px 0 0;margin-top:12px;overflow-wrap:anywhere}.outlook-entry:first-of-type{border-top:0;margin-top:0;padding-top:0}.outlook-entry p{font-size:13px}.outlook-meta{display:block;color:var(--muted);font-size:12px;margin:4px 0}.outlook-entry details{margin-top:8px}.outlook-entry details summary{cursor:pointer;font-weight:750;font-size:13px}.outlook-form{border-top:1px solid var(--line);margin-top:18px;padding-top:16px}.outlook-sources{max-height:230px;overflow:auto;border:1px solid var(--line);border-radius:10px;padding:8px 12px}.outlook-source-option{display:flex;align-items:flex-start;gap:8px;margin:0;padding:7px 0;border-bottom:1px solid #edf2f4;font-size:12px}.outlook-source-option:last-child{border-bottom:0}.outlook-source-option input{width:auto;margin-top:3px}.outlook-source-option span{min-width:0;overflow-wrap:anywhere}
+.outlook-card[data-majority-state="current"][data-side="bullish"]{border:2px solid #168b5f;background:#f2fbf7;box-shadow:0 2px 12px rgba(22,139,95,.10)}.outlook-card[data-majority-state="current"][data-side="bearish"]{border:2px solid #b83e4d;background:#fff4f5;box-shadow:0 2px 12px rgba(184,62,77,.10)}.outlook-card[data-majority-state="last-winner"]{border:2px dashed #8e9ba4;background:#f7f9fa}.outlook-card[data-majority-state="historical"]{border:1px solid #cbd5dc;background:#f8fafb}.outlook-card[data-majority-state="unavailable"]{background:#f8fafb}.majority-summary-status{font-size:11px;letter-spacing:.06em;color:#21674c;display:block;margin-bottom:9px}.outlook-card[data-majority-state="historical"] .majority-summary-status{color:#627381}.majority-summary-text{font-size:14px;line-height:1.6}.majority-summary-meta{display:block;color:#597482}.majority-historical-note{font-size:12px;color:#627381;font-weight:700}.outlook-entry{border-top:1px solid #e4edf0;padding:12px 0 0;margin-top:12px;overflow-wrap:anywhere}.outlook-entry:first-of-type{border-top:0;margin-top:0;padding-top:0}.outlook-entry p{font-size:13px}.outlook-meta{display:block;color:var(--muted);font-size:12px;margin:4px 0}.outlook-entry details{margin-top:8px}.outlook-entry details summary{cursor:pointer;font-weight:750;font-size:13px}.outlook-form{border-top:1px solid var(--line);margin-top:18px;padding-top:16px}.outlook-sources{max-height:230px;overflow:auto;border:1px solid var(--line);border-radius:10px;padding:8px 12px}.outlook-source-option{display:flex;align-items:flex-start;gap:8px;margin:0;padding:7px 0;border-bottom:1px solid #edf2f4;font-size:12px}.outlook-source-option:last-child{border-bottom:0}.outlook-source-option input{width:auto;margin-top:3px}.outlook-source-option span{min-width:0;overflow-wrap:anywhere}
 /* Fixed two-color opinion gauge. Only published forecast directions move the marker. */
 .outlook-balance{margin:18px 0 10px}
 .orca-quick-reference{display:grid;grid-template-columns:minmax(270px,0.9fr) minmax(0,1.1fr);gap:18px;margin:16px 0}
@@ -339,6 +339,7 @@ let sb=null,user=null,ready=false,loading=false,claim=null,alias='',tasks=[],fin
 let outlooks=[],outlookFindings=new Map(),outlookReadError='',outlookFindingError='',outlookAccessMessage='',outlookSubmitting=false;
 let predictionLedger=[];
 let cachedMajoritySummaries=[];
+let lastSavedMajoritySide=null;
 let independentPublishingEnabled=false;
 let lastPermissionCheck=0,lastPredictionRead=0;
 const PERMISSION_RECHECK_MS=120000, PREDICTION_RECHECK_MS=120000;
@@ -715,38 +716,37 @@ function renderOutlooks(){
  const grid=$('outlook-grid'),status=$('outlook-status');
  const current=currentMetricRatings(),bull=current.filter(f=>questionForFinding(f).direction==='BULLISH').length,bear=current.filter(f=>questionForFinding(f).direction==='BEARISH').length;
  const majority=bull>bear?'bullish':bear>bull?'bearish':bull||bear?'split':'none';
- const previousWinner=[...cachedMajoritySummaries].sort((a,b)=>(Date.parse(b.generated_at)||0)-(Date.parse(a.generated_at)||0))[0]?.side||null;
- const latestPublication=Math.max(0,...current.map(f=>Date.parse(f.published_at)||0));
+ const previousWinner=lastSavedMajoritySide||[...cachedMajoritySummaries].sort((a,b)=>(Date.parse(b.generated_at)||0)-(Date.parse(a.generated_at)||0))[0]?.side||null;
  grid.replaceChildren();renderOutlookBalance();
- status.textContent=majority==='split'?'Current ratings are tied. The last published winning summary remains visible as historical context.':majority==='none'?'No current directional research ratings.':majority.toUpperCase()+' is the current majority of '+current.length+' rated metric findings.';
+ status.textContent=majority==='split'?'Current ratings are tied. The last winning side is outlined; both available research summaries remain visible.':majority==='none'?'No current directional research ratings.':majority.toUpperCase()+' is the current majority of '+current.length+' rated metric findings.';
  status.dataset.kind='info';
  for(const [side,title] of [['bullish','Bullish'],['bearish','Bearish']]){
   const card=document.createElement('section');card.className='outlook-card majority-summary-card';
-  const live=side===majority,record=cachedMajoritySummaries.find(x=>x.side===side);
+  const live=side===majority;
+  const sideFindings=current.filter(f=>questionForFinding(f).direction===side.toUpperCase());
+  const record=sideFindings.length?cachedMajoritySummaries.find(x=>x.side===side):null;
   const lastWinner=majority==='split'&&side===previousWinner;
-  const currentSummary=live&&record&&Date.parse(record.coverage_through)>=latestPublication;
+  const latestSidePublication=Math.max(0,...sideFindings.map(f=>Date.parse(f.published_at)||0));
+  const currentSummary=record&&Date.parse(record.coverage_through)>=latestSidePublication;
   card.dataset.majorityState=live?'current':lastWinner?'last-winner':record?'historical':'unavailable';
   card.dataset.side=side;
   const heading=document.createElement('h3');heading.textContent=title;card.append(heading);
-  const flag=document.createElement('strong');flag.className='majority-summary-status';
-  flag.textContent=live?(currentSummary?'CURRENT MAJORITY':'CURRENT MAJORITY · SUMMARY AWAITING UPDATE'):lastWinner?'LAST WINNING SUMMARY · CURRENTLY TIED':record?'PREVIOUS MAJORITY SUMMARY':'NO SAVED SUMMARY';
-  card.append(flag);
+  if(live||lastWinner){
+   const flag=document.createElement('strong');flag.className='majority-summary-status';
+   flag.textContent=live?(currentSummary?'CURRENT MAJORITY':'CURRENT MAJORITY · SUMMARY AWAITING UPDATE'):'LAST WINNING SIDE · CURRENTLY TIED';
+   card.append(flag);
+  }
   if(record){
    const body=document.createElement('p');body.className='majority-summary-text';body.textContent=record.summary;card.append(body);
    const meta=document.createElement('small');meta.className='majority-summary-meta';
-   meta.textContent=(currentSummary?'Generated ':'Saved summary generated ')+time(record.generated_at)+' · Evidence through '+time(record.coverage_through);
+   meta.textContent='Generated '+time(record.generated_at)+' · Evidence through '+time(record.coverage_through);
    card.append(meta);
    if(Array.isArray(record.evidence_links)&&record.evidence_links.length)sourceFold(card,record.evidence_links,'synthesis:'+side);
    const ids=new Set(record.supporting_finding_ids||[]);
    const linked=findings.filter(f=>ids.has(f.id));
    if(linked.length)card.append(folded('Supporting agent findings',linked.map(compactFinding),'majority-evidence:'+side));
-  }else{
-   const placeholder=document.createElement('p');placeholder.className='empty';
-   placeholder.textContent=live?'Majority summary not yet generated. Published research remains available below.':'No previous winning summary has been generated for this side.';
-   card.append(placeholder);
   }
-  if(record&&!live){const note=document.createElement('p');note.className='majority-historical-note';note.textContent=lastWinner?'Last winning side; current rating counts are tied.':'Historical viewpoint — not the current majority.';card.append(note);}
-  if(record&&live&&!currentSummary){const note=document.createElement('p');note.className='majority-historical-note';note.textContent='This summary predates the latest research. The current majority is based on the published ratings above.';card.append(note);}
+  if(record&&!currentSummary){const note=document.createElement('p');note.className='majority-historical-note';note.textContent='Earlier summary — new research is awaiting synthesis.';card.append(note);}
   grid.append(card);
  }
 }
@@ -898,6 +898,8 @@ async function refresh(options={}){const announce=options?.announce!==false;if(!
  const f=await sb.from('commons_research_findings').select('id,task_id,research_area,contributor_alias,summary,source_urls,limitations,observed_at,published_at,expires_at').eq('ticker',ticker).order('published_at',{ascending:false}).limit(100);if(f.error)throw f.error;findings=(f.data||[]).filter(item=>String(item.summary||'').startsWith('[ORCA-R4;'));
  const summaries=await sb.from('orca_majority_summaries').select('side,summary,supporting_finding_ids,evidence_links,source_hash,coverage_through,generated_at').eq('ticker',ticker).limit(2);
  cachedMajoritySummaries=summaries.error?[]:(summaries.data||[]);
+ const majorityState=await sb.from('orca_majority_view_state').select('last_winner').eq('ticker',ticker).maybeSingle();
+ lastSavedMajoritySide=majorityState.error?null:(majorityState.data?.last_winner||null);
  if(options.forcePermissions||!lastPermissionCheck||Date.now()-lastPermissionCheck>PERMISSION_RECHECK_MS)await checkReady();
  if(isOrcaStaging){renderOutlooks();renderOutlookAccess();}
  claim=(user&&ready)?await rpc('commons_my_claim',{p_ticker:ticker}):null;
