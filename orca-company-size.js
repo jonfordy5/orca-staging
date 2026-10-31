@@ -1,6 +1,15 @@
-// ORCA company-size facts: Wikipedia/Wikidata only, never a paid AI generation.
+// ORCA company-size facts: official SEC-backed Supabase first; recent dated Wikimedia fallback only.
 // Figures are historical and must carry source links and observation years.
-const TTL=180*24*60*60*1000;
+const TTL=7*24*60*60*1000; // Dated Wikimedia fallback only; official records are shared in Supabase.
+const validDate=d=>typeof d==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(d)&&!Number.isNaN(Date.parse(d));
+const recent=entry=>{
+ if(!entry||!Number.isFinite(Number(entry.value))||Number(entry.value)<=0)return null;
+ const year=Number(entry.year);
+ if(!Number.isInteger(year)||year>new Date().getUTCFullYear()||year<new Date().getUTCFullYear()-1)return null;
+ if(validDate(entry.as_of) && (Date.now()-Date.parse(entry.as_of)>550*86400000 || Date.parse(entry.as_of)>Date.now()+86400000))return null;
+ try{if(!/^https:\/\//.test(entry.source))return null;}catch{return null;}
+ return {...entry,value:Number(entry.value),year};
+};
 const memory=new Map();
 const yr=(s)=>{
  const all=String(s||'').match(/(?:19|20)\d{2}/g)?.map(Number).filter(y=>y<=new Date().getFullYear()&&y>1980)||[];
@@ -84,13 +93,13 @@ export function formatCompanyRevenue(r){
 export async function getCompanySize(ticker,name,profile={}){
  // SEC-backed metrics are cached in Supabase and shared across ALL site visitors.
  // Prefer the audited official value before reading the older browser/Wikipedia cache.
- const key='orca-company-size-v2-'+ticker;
+ const key='orca-company-size-v3-'+ticker;
  let official=null;
  try{
   const result=await json('https://vbziibatnejoswsdggga.supabase.co/functions/v1/orca-company-official-metrics?ticker='+encodeURIComponent(ticker));
   if(result&&result.ticker===ticker)official={
-    employees:result.employees?.value>0?result.employees:null,
-    revenue:result.revenue?.value>0&&result.revenue?.currency?result.revenue:null
+    employees:recent(result.employees),
+    revenue:result.revenue?.currency?recent(result.revenue):null
   };
  }catch{/* Official data unavailable: preserve the dated, attributed fallback. */}
  if(official?.employees&&official?.revenue)return official;
@@ -98,7 +107,10 @@ export async function getCompanySize(ticker,name,profile={}){
  const p=(async()=>{
   try{
    const cached=JSON.parse(localStorage.getItem(key)||'null');
-   if(cached?.at&&Date.now()-cached.at<TTL&&cached.facts)return cached.facts;
+   if(cached?.at&&Date.now()-cached.at<TTL&&cached.facts)return {
+    employees:official?.employees||recent(cached.facts.employees),
+    revenue:official?.revenue||(cached.facts.revenue?.currency?recent(cached.facts.revenue):null)
+   };
   }catch{}
   let title=summaryTitle(name,profile.source),qid=String(profile.wikidataURL||'').match(/Q\d+$/)?.[0]||'';
   // Confirm the Wikipedia article and its Wikidata ID; no company-name search guess.
@@ -138,8 +150,8 @@ export async function getCompanySize(ticker,name,profile={}){
    })());
   }
   await Promise.all(jobs);
-  const facts={employees:official?.employees||last(wikidata.employees,infobox.employees),
-    revenue:official?.revenue||last(wikidata.revenue,infobox.revenue)};
+  const facts={employees:official?.employees||recent(last(wikidata.employees,infobox.employees)),
+    revenue:official?.revenue||recent(last(wikidata.revenue,infobox.revenue))};
   try{localStorage.setItem(key,JSON.stringify({at:Date.now(),facts}));}catch{}
   return facts;
  })();
