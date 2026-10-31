@@ -242,7 +242,7 @@ export function renderUnifiedCompanyProfile(root,ticker,profile={}){
   item.append(document.createTextNode(entry?fmt(entry)||'Not available':'Not available in reference data'));
   if(entry?.source)urlLink(item,'Source',entry.source);
  }
- $(breakdown,'p','company-impact-note','Wikipedia/Wikidata figures may be historical. Annual revenue means sales, not net profit.');
+ $(breakdown,'p','company-impact-note','Figures show their reported periods and linked sources. Annual revenue means sales, not net profit.');
  if(profile.notice)$(body,'p','company-auto-notice',profile.notice);
  const side=$(layout,'aside','company-visual');
  const frame=$(side,'div','company-logo-frame');
