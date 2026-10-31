@@ -2,7 +2,7 @@ name: Refresh ORCA official financial facts
 on:
   workflow_dispatch:
   schedule:
-    - cron: '32 10 * * 1'
+    - cron: '32 10 * * *'
 permissions:
   contents: read
 concurrency:
@@ -15,7 +15,7 @@ jobs:
     env:
       SEC_USER_AGENT: ${{ secrets.SEC_USER_AGENT }}
       SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
-      ORCA_TICKERS: AAPL,AMZN,CVX,DG,F,INTC,MCD,META,MSFT,NVDA,RKLB,TSLA,TXRH,ULTA,WMT
+      ORCA_BATCH_SIZE: 60
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
