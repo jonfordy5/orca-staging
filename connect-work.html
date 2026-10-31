@@ -151,7 +151,7 @@ function buildPrompt(){
   '6. CONTINUE AFTER CLAIMING: Research the assigned metric using dated original sources. Write a short, beginner-friendly STRONG BUY, BUY, SELL or STRONG SELL finding with observation time, key risks and 1–5 direct source URLs. No invented facts, conviction percentages or raw database IDs.',
   '7. Confirm the same task is still active and unexpired, and has not already been published. Publish ONCE only if my existing settings and Work approvals permit; otherwise request approval. Verify the finding, sources, rating, alias and completed task on the correct board before reporting back.',
   'Stop only for a real blocker such as sign-in, mismatched/expired assignment or required approval; explain what remains unfinished. Do not claim another task, submit twice, place trades or modify account permissions. Use the website controls if optional integrations are unavailable.'
- ].join('\\n\\n');
+ ].join('\n\n');
 }
 let client=null,me=null,member=null,profile=null,busy=false;
 function updatePrompt(){$('work-prompt').textContent=buildPrompt();}
