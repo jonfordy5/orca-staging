@@ -20,7 +20,8 @@ from html.parser import HTMLParser
 BASE = 'https://vbziibatnejoswsdggga.supabase.co'
 CONTACT = os.environ.get('SEC_USER_AGENT', '').strip()
 KEY = os.environ.get('SUPABASE_SECRET_KEY', '').strip()
-TICKERS = [t.strip().upper() for t in os.environ.get('ORCA_TICKERS', '').split(',') if t.strip()]
+from orca_registered_tickers import assigned_tickers
+TICKERS = assigned_tickers()
 MAX_FILING_BYTES = 15_000_000
 MONTH = r'(?:January|February|March|April|May|June|July|August|September|October|November|December)'
 DATE = re.compile(r'\b(?:as\s+of|at|on)\s+((?:' + MONTH + r')\s+\d{1,2},?\s+20\d{2})\b', re.I)
