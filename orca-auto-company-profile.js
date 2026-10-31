@@ -123,7 +123,8 @@ async function wikidataCompany(article,intro){
   const homepage=siteURL(valueOf(entity,'P856'));
   const logoName=valueOf(entity,'P154');
   const logo=await commonsFile(logoName,{logo:true});
-  const cik=String(valueOf(entity,'P1278')||'').trim();
+  // Wikidata P5531 is the SEC Central Index Key (CIK); P1278 is a different identifier.
+  const cik=String(valueOf(entity,'P5531')||'').trim();
   return {
    website:homepage,logo,headquarters:label(hqId)||firstHqFromArticle(intro),
    founded:foundedYear(valueOf(entity,'P571')),industry:label(industryId),
