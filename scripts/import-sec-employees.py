@@ -21,16 +21,20 @@ BASE = 'https://vbziibatnejoswsdggga.supabase.co'
 CONTACT = os.environ.get('SEC_USER_AGENT', '').strip()
 KEY = os.environ.get('SUPABASE_SECRET_KEY', '').strip()
 from orca_registered_tickers import assigned_tickers
-TICKERS = assigned_tickers()
+
 MAX_FILING_BYTES = 15_000_000
 MONTH = r'(?:January|February|March|April|May|June|July|August|September|October|November|December)'
 DATE = re.compile(r'\b(?:as\s+of|at|on)\s+((?:' + MONTH + r')\s+\d{1,2},?\s+20\d{2})\b', re.I)
+FISCAL_DATE = re.compile(r'\b(?:as\s+of|at)\s+(?:the\s+)?(?:end\s+of\s+)?(?:our\s+)?(?:fiscal\s+year|fiscal\s+FY|FY)\s*(20\d{2})\b', re.I)
 NUMBER = r'(?P<n>\d{1,3}(?:,\d{3})+|\d{4,7}|\d+(?:\.\d+)?\s+(?:million|thousand))'
-PERSON = r'(?:full[- ]time(?:\s+equivalent)?\s+)?(?:employees|associates|people|team\s+members|workers)'
+PERSON = r'(?:(?:full[- ]time(?:\s+(?:and|or)\s+part[- ]time)?|part[- ]time\s+and\s+full[- ]time|full[- ]time\s+equivalent)\s+)?(?:employees|associates|people|team\s+members|workers)'
 HEADCOUNT = re.compile(
     r'\b(?:we|the\s+company|our\s+company|our\s+business|the\s+group)\s+'
     r'(?:had|have|employed|employ|employs)\s+'
-    r'(?:(?:a\s+total\s+of|approximately|about|around|roughly)\s+){0,2}'
+    r'(?:(?:a\s+total\s+of|approximately|about|around|roughly|nearly)\s+){0,3}'
+    + NUMBER + r'\s+' + PERSON + r'\b', re.I)
+HEADCOUNT_WITH = re.compile(
+    r'\b(?:with|having)\s+(?:(?:approximately|about|around|roughly|nearly)\s+)?'
     + NUMBER + r'\s+' + PERSON + r'\b', re.I)
 HEADCOUNT_REVERSED = re.compile(
     r'\b(?:(?:our|the)\s+)?(?:total\s+)?(?:worldwide\s+|global\s+)?'
@@ -73,20 +77,26 @@ def find_headcount(text, report_date):
     """Return headcount only when a dated total-workforce statement is unambiguous."""
     report = date.fromisoformat(report_date)
     # Focus on Item 1 / human capital; avoid later notes and exhibits.
-    text = re.sub(r'\s+', ' ', text)[:350_000]
+    text = re.sub(r'\s+', ' ', text)[:2_000_000]
     candidates=[]
-    for pattern in (HEADCOUNT, HEADCOUNT_REVERSED):
+    for pattern in (HEADCOUNT, HEADCOUNT_REVERSED, HEADCOUNT_WITH):
         for m in pattern.finditer(text):
             value = number(m.group('n'))
             if not 100 <= value <= 10_000_000: continue
-            before = text[max(0,m.start()-150):m.start()]
-            after = text[m.end():m.end()+140]
+            before = text[max(0,m.start()-250):m.start()]
+            after = text[m.end():m.end()+230]
             nearby = [(parse_date(d.group(1)), 'before') for d in DATE.finditer(before)]
             nearby += [(parse_date(d.group(1)), 'after') for d in DATE.finditer(after)]
+            if not nearby:
+                fiscal=FISCAL_DATE.search(before) or FISCAL_DATE.search(after)
+                if fiscal and int(fiscal.group(1))==report.year:
+                    nearby=[(report,'fiscal-year-end')]
             if not nearby: continue
             observed = min(nearby,key=lambda p:abs((p[0]-report).days))[0]
             if abs((observed-report).days)>120: continue
             context = text[max(0,m.start()-80):m.end()+65].lower()
+            tail = text[m.end():m.end()+65].lower()
+            if re.search(r'^\s+(?:in|across|from)\s+(?:the\s+)?(?:u\.?s\.?|united states|canada|europe|asia|china|india)\b', tail): continue
             if any(word in context for word in ('contractors and', 'temporary personnel', 'franchisee employees', 'employees of our franchisees')):
                 continue
             candidates.append((value,observed.isoformat(),m.group(0)))
@@ -130,12 +140,13 @@ def put_employee(ticker,entry):
     request(url,method='PATCH',body=json.dumps({'employees':entry}).encode('utf-8'))
 
 def run():
-    if '@' not in CONTACT or not KEY.startswith('sb_secret_') or not TICKERS:
+    tickers=assigned_tickers()
+    if '@' not in CONTACT or not KEY.startswith('sb_secret_') or not tickers:
         raise SystemExit('SEC_USER_AGENT, SUPABASE_SECRET_KEY and ORCA_TICKERS required')
     directory=json.loads(request('https://www.sec.gov/files/company_tickers.json'))
     by_ticker={str(r.get('ticker','')).upper():r for r in directory.values()}
     updated=0; unmatched=0; failures=[]
-    for ticker in TICKERS:
+    for ticker in tickers:
         if not re.fullmatch(r'[A-Z][A-Z0-9.]{0,9}',ticker):continue
         company=by_ticker.get(ticker)
         if not company:
@@ -167,7 +178,7 @@ def run():
         time.sleep(0.6)
     print('Employee import: '+str(updated)+' updated; '+str(unmatched)+' without qualified headcount; '+str(len(failures))+' errors')
     if failures:print('Employee import errors: '+','.join(failures))
-    if failures and updated == 0 and len(failures) >= max(3, len(TICKERS)//2):
+    if failures and updated == 0 and len(failures) >= max(3, len(tickers)//2):
         raise SystemExit('Employee filing collection failed for most tickers; check SEC access')
 
 if __name__=='__main__':run()
