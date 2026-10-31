@@ -524,8 +524,8 @@ function compactFinding(f){
  excerpt.textContent=readable.bottom;article.append(excerpt);
  if(readable.why){const reason=document.createElement('p');reason.className='research-peek-text';reason.textContent=readable.why;article.append(reason);}
  const meta=document.createElement('small');meta.textContent='Published '+time(f.published_at);article.append(meta);
- const detail=document.createElement('details');detail.className='source-fold';detail.dataset.foldKey='full:'+f.id;
- const heading=document.createElement('summary');heading.textContent='Full research and sources';detail.append(heading,renderFinding(f));article.append(detail);
+ // The plain-English finding is already visible above; expand only evidence links.
+ sourceFold(article,f.source_urls,'pillar-sources:'+f.id);
  return article;
 }
 function renderInvestorQuestions(){
@@ -535,8 +535,10 @@ function renderInvestorQuestions(){
   box.replaceChildren();
   if(matching.length){
    const count=document.createElement('p');count.className='mini';count.textContent=matching.length+' current metric rating'+(matching.length===1?'':'s');box.append(count);
-   for(const f of matching.slice(0,3))box.append(compactFinding(f));
-   if(matching.length>3)box.append(folded('More metric findings',matching.slice(3).map(compactFinding),'extra:'+key));
+   // Lead with the latest finding; keep other current findings collapsed.
+   const ordered=recentFirst(matching,'published_at');
+   box.append(compactFinding(ordered[0]));
+   if(ordered.length>1)box.append(folded('Previous research',ordered.slice(1).map(compactFinding),'previous:'+key));
   }else{const empty=document.createElement('p');empty.className='empty';empty.textContent='No current rated research for this view yet.';box.append(empty);}
   restoreOpen(box,opened);
  }
