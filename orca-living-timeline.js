@@ -59,6 +59,8 @@ export async function mountLivingTimeline({sb,ticker}){
   }
  }
  livingButton.hidden=false;tvButton.hidden=false;
+ livingButton.setAttribute('aria-pressed','false');
+ tvButton.setAttribute('aria-pressed','true');
  livingButton.addEventListener('click',()=>switchTo('timeline'));
  tvButton.addEventListener('click',()=>switchTo('tradingview'));
  function validSource(value){
