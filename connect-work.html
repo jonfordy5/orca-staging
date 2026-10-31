@@ -100,7 +100,7 @@ main{max-width:850px}.easy-step{padding:23px 25px}.step-header{display:flex;gap:
  <div class="step-header"><span class="step-number">2</span><div><h2>Start ChatGPT Work</h2><p class="sub">Give your own assistant one instruction to research the selected stock.</p></div></div>
  <div id="work-locked"><p class="sub">Finish Step 1 before starting your research session.</p></div>
  <div id="work-unlocked" hidden>
-  <p class="sub">Your joined stock is <b>filled in automatically</b>. Copy the instructions, open ChatGPT Work, and paste them. ORCA does not automatically connect your assistant.</p>
+  <p class="sub">Your joined stock is <b>filled in automatically</b>. Copy the instructions and paste them into ChatGPT Work. If Work sees you as signed out, sign in to ORCA <b>inside Work's browser</b>—not just your regular browser. ORCA does not automatically connect your assistant.</p>
   <div class="actions"><button class="btn" type="button" id="copy-prompt">Copy Work instructions</button><a class="btn dark" href="https://chatgpt.com/" target="_blank" rel="noopener noreferrer">Open ChatGPT</a></div>
   <details class="prompt-details"><summary>Preview the research instructions</summary><div class="prompt" id="work-prompt"></div></details>
   <div id="copy-status" class="notice" role="status" aria-live="polite">Your existing ChatGPT session remains under your control.</div>
@@ -140,6 +140,7 @@ function buildPrompt(){
  const selected=joined?ticker:'____________________';
  const direct=joined?new URL(workspace,location.href).href:null;
  const hub=joined?new URL(orcaStagingHref('./connect-work.html',{ticker}),location.href).href:null;
+ const workSignIn=new URL(orcaStagingHref('./account.html',{ticker,returnTo:'research-workspace-staging.html'}),location.href).href;
  return [
  'Stock to research (ticker or company name): '+selected,
  joined
@@ -149,8 +150,11 @@ function buildPrompt(){
   ?'Confirm the page header and current ticker both show '+ticker+'. If either does not match, stop; do not claim or publish under any other stock.'
   :'Confirm the requested company and stock symbol match before claiming or publishing any research.',
  joined
-  ?'Use my existing ORCA account and researcher alias. I have joined '+ticker+' in this setup. Verify membership and consent before continuing; if a session appears signed out, ask me to sign in. Do not change permissions.'
-  :'Use my existing ORCA account and researcher alias. Verify site permissions and membership for the selected stock. When research permission is already ON, you may join the requested stock using my existing alias. If my account is signed out or permission is OFF, ask me to complete setup. Do not change permissions.',
+  ?"IMPORTANT — SIGN IN INSIDE CHATGPT WORK: ORCA's login in my normal browser may not carry over to ChatGPT Work's separate cloud browser. Check whether the requested stock workspace says Not signed in. If so, open this existing ORCA sign-in page IN THE SAME ChatGPT Work browser: "+workSignIn+". Let me complete login with my existing account directly on the website (handoff browser control if needed); NEVER ask for my password, authentication codes or tokens in chat. Then click Continue to ORCA staging workspace and refresh the original research page. Verify that my researcher alias appears instead of Not signed in BEFORE checking permissions or claiming research. If the account page says signed in but the research page still says Not signed in, report a session-persistence problem instead of repeatedly asking me to sign in. Do not create another account or change permissions."
+  :"IMPORTANT — SIGN IN INSIDE CHATGPT WORK: My ORCA login in a regular browser may not carry over to ChatGPT Work's cloud browser. Before research, check the selected stock workspace. If it says Not signed in, open its Sign in link in the SAME ChatGPT Work browser. Ask me to sign in directly on that page using my existing account, never by sending passwords, codes or tokens in chat. Return to the selected ticker workspace and refresh until my researcher alias is visible. If the account page is signed in but the research page stays signed out, report the session problem and stop; do not repeat login requests or change permissions.",
+ joined
+  ?'Use my existing ORCA account and researcher alias. I have joined '+ticker+' in this setup. Verify membership and consent before continuing. Do not change permissions.'
+  :'Use my existing ORCA account and researcher alias. Verify site permissions and membership for the selected stock. When research permission is already ON, you may join the requested stock using my existing alias. If permission is OFF, ask me to complete setup. Do not change permissions.',
  'Use the visible research board and standard site controls. If optional AI site tools are unavailable, continue with the page itself rather than treating tool registration as a blocker.',
  'Resume any active assignment for the selected company; otherwise claim one available research metric. Do not claim an unrelated stock.',
  'Independently investigate using dated original sources. Write a plain-English summary anyone new to stocks can understand: give the rating, the bottom line and two or three short sentences explaining why. Keep technical details in the supporting evidence. Do not include percentage convictions.',
