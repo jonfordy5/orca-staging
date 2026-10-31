@@ -346,6 +346,7 @@ const PERMISSION_RECHECK_MS=120000, PREDICTION_RECHECK_MS=120000;
 const pendingResearchRequests=new Map();
 let assignedResearchBoard=null;
 let researchCycleStatus=null;
+let cumulativeResearchStatus=null;
 function msg(s,kind='info'){$('message').textContent=s;$('message').dataset.kind=kind;}
 function claimActionNote(s,kind='info'){const el=$('claim-action-status');el.textContent=s;el.dataset.kind=kind;msg(s,kind);}
 function publishMsg(s,kind='info'){const el=$('publish-message');el.textContent=s;el.dataset.kind=kind;el.classList.remove('hidden');}
@@ -604,6 +605,7 @@ function refreshTimelineEvidencePacket(){
 function renderFindings(){const root=$('findings'),opened=keepOpen(root),ordered=recentFirst(findings,'published_at');root.replaceChildren();if(!ordered.length){root.textContent='No public research yet.';return;}root.append(renderFinding(ordered[0]));if(ordered.length>1)root.append(folded('Previous findings',ordered.slice(1).map(renderFinding),'all-history'));restoreOpen(root,opened);}
 function renderCollectiveDashboard(){
  const root=$('collective-findings'),opened=keepOpen(root),current=currentMetricRatings();
+ const cumulative=cumulativeResearchStatus?.metric_counts||{};
  root.replaceChildren();
  for(const category of researchCategories){
   const row=document.createElement('details'),heading=document.createElement('summary'),status=document.createElement('span'),meta=document.createElement('span');
@@ -613,7 +615,10 @@ function renderCollectiveDashboard(){
   const ids=new Set(active.map(f=>f.id)),archive=all.filter(f=>!ids.has(f.id));
   heading.append(document.createTextNode(category.title));
   status.className='collective-status';status.dataset.publishedAt=active[0]?.published_at||'';
-  meta.className='collective-meta';meta.textContent=active.length?active.length+' current rating'+(active.length===1?'':'s'):'Research needed';
+  const total=Number(cumulative[category.id]||0);
+  meta.className='collective-meta';
+  meta.textContent=cumulativeResearchStatus?(total+' search'+(total===1?'':'es')+' performed'):
+   'Search count unavailable';
   heading.append(status,meta);row.append(heading);
   if(active.length)for(const f of active)row.append(compactFinding(f));
   else{const p=document.createElement('p');p.className='collective-placeholder';p.textContent='No current four-rating finding.';row.append(p);}
@@ -676,14 +681,14 @@ function currentMetricRatings(){
  return [...latest.values()];
 }
 function renderOutlookBalance(){
- const opinions=currentMetricRatings().map(f=>questionForFinding(f));
- const bull=opinions.filter(x=>x.direction==='BULLISH').length,bear=opinions.filter(x=>x.direction==='BEARISH').length;
+ const bull=Number(cumulativeResearchStatus?.bullish_count||0),
+       bear=Number(cumulativeResearchStatus?.bearish_count||0);
  const direction=bull>bear?'Bullish majority':bear>bull?'Bearish majority':bull||bear?'Split view':'No current ratings';
  const target=bull>bear?20:bear>bull?80:50;
  const thumb=$('outlook-thumb'),meter=$('outlook-meter');
  $('outlook-bull-count').textContent=bull+' Bullish';
  $('outlook-bear-count').textContent=bear+' Bearish';
- $('outlook-balance-note').textContent='One latest finding per researcher and metric · '+opinions.length+' current ratings.';
+ $('outlook-balance-note').textContent=(cumulativeResearchStatus?.total||0)+' published searches under ORCA’s new assignment rules · all rounds.';
  $('outlook-average-score').textContent=direction;
  $('outlook-average-score').dataset.direction=bull>bear?'bullish':bear>bull?'bearish':'balanced';
  meter.setAttribute('aria-label',direction+'. '+bull+' bullish and '+bear+' bearish findings.');
@@ -716,20 +721,27 @@ function renderResearchLean(f){
 }
 function renderOutlooks(){
  const grid=$('outlook-grid'),status=$('outlook-status');
- const current=currentMetricRatings(),bull=current.filter(f=>questionForFinding(f).direction==='BULLISH').length,bear=current.filter(f=>questionForFinding(f).direction==='BEARISH').length;
+ const included=new Set(cumulativeResearchStatus?.finding_ids||[]);
+ const current=findings.filter(f=>included.has(f.id));
+ const bull=Number(cumulativeResearchStatus?.bullish_count||0),
+       bear=Number(cumulativeResearchStatus?.bearish_count||0);
  const majority=bull>bear?'bullish':bear>bull?'bearish':bull||bear?'split':'none';
  const previousWinner=lastSavedMajoritySide||[...cachedMajoritySummaries].sort((a,b)=>(Date.parse(b.generated_at)||0)-(Date.parse(a.generated_at)||0))[0]?.side||null;
  grid.replaceChildren();renderOutlookBalance();
- status.textContent=majority==='split'?'Current ratings are tied. The last winning side is outlined; both available research summaries remain visible.':majority==='none'?'No current directional research ratings.':majority.toUpperCase()+' is the current majority of '+current.length+' rated metric findings.';
+ status.textContent=majority==='split'?'Published searches under the new assignment rules are tied.':majority==='none'?'No qualifying searches under the new assignment rules yet.':majority.toUpperCase()+' leads among '+(cumulativeResearchStatus?.total||0)+' published searches across all research rounds.';
  status.dataset.kind='info';
  for(const [side,title] of [['bullish','Bullish'],['bearish','Bearish']]){
   const card=document.createElement('section');card.className='outlook-card majority-summary-card';
   const live=side===majority;
   const sideFindings=current.filter(f=>questionForFinding(f).direction===side.toUpperCase());
-  const record=sideFindings.length?cachedMajoritySummaries.find(x=>x.side===side):null;
+  const saved=cachedMajoritySummaries.find(x=>x.side===side);
+  const compatible=saved&&Array.isArray(saved.supporting_finding_ids)&&saved.supporting_finding_ids.length>0&&
+   saved.supporting_finding_ids.every(id=>included.has(id)) &&
+   sideFindings.length>0;
+  const record=compatible?saved:null;
   const lastWinner=majority==='split'&&side===previousWinner;
   const latestSidePublication=Math.max(0,...sideFindings.map(f=>Date.parse(f.published_at)||0));
-  const currentSummary=record&&Date.parse(record.coverage_through)>=latestSidePublication;
+  const currentSummary=record&&record.source_hash===cumulativeResearchStatus?.source_hash;
   card.dataset.majorityState=live?'current':lastWinner?'last-winner':record?'other':'unavailable';
   card.dataset.side=side;
   const heading=document.createElement('h3');heading.textContent=title;card.append(heading);
@@ -898,6 +910,9 @@ async function checkReady(){lastPermissionCheck=Date.now();ready=false;independe
 async function refresh(options={}){const announce=options?.announce!==false;if(!sb||!valid||loading)return false;loading=true;control();if(announce)msg(isOrcaStaging?'Checking authentication, permissions, assignments, and public findings…':'Loading research assignments and public findings…');try{
  const t=await sb.from('research_tasks').select('id,research_area,research_question,status,assigned_agent,claimed_until,updated_at').eq('ticker',ticker).order('updated_at',{ascending:false}).limit(100);if(t.error)throw t.error;tasks=t.data||[];
  const f=await sb.from('commons_research_findings').select('id,task_id,research_area,contributor_alias,summary,source_urls,limitations,observed_at,published_at,expires_at').eq('ticker',ticker).order('published_at',{ascending:false}).limit(100);if(f.error)throw f.error;findings=(f.data||[]).filter(item=>String(item.summary||'').startsWith('[ORCA-R4;'));
+ const cumulativeResult=await sb.rpc('orca_research_cumulative_status',{p_ticker:ticker});
+ if(cumulativeResult.error||!cumulativeResult.data)throw cumulativeResult.error||new Error('Research counters unavailable');
+ cumulativeResearchStatus=cumulativeResult.data;
  const summaries=await sb.from('orca_majority_summaries').select('side,summary,supporting_finding_ids,evidence_links,source_hash,coverage_through,generated_at').eq('ticker',ticker).limit(2);
  cachedMajoritySummaries=summaries.error?[]:(summaries.data||[]);
  const majorityState=await sb.from('orca_majority_view_state').select('last_winner').eq('ticker',ticker).maybeSingle();
