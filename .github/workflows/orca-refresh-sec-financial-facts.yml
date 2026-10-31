@@ -1,0 +1,32 @@
+name: Refresh ORCA official financial facts
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '32 10 * * 1'
+permissions:
+  contents: read
+concurrency:
+  group: orca-sec-financial-import
+  cancel-in-progress: false
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      SEC_USER_AGENT: ${{ secrets.SEC_USER_AGENT }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      ORCA_TICKERS: AAPL,AMZN,CVX,DG,F,INTC,MCD,META,MSFT,NVDA,RKLB,TSLA,TXRH,ULTA,WMT
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Check SEC contact and Supabase writer configuration
+        shell: bash
+        run: |
+          if [ -z "$SEC_USER_AGENT" ] || [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
+            echo "::error::Configure SEC_USER_AGENT and SUPABASE_SERVICE_ROLE_KEY as repository secrets before enabling imports."
+            exit 1
+          fi
+      - name: Import official 10-K metrics into shared cache
+        run: python scripts/import-sec-company-facts.py
