@@ -577,7 +577,7 @@ function refreshTimelineEvidencePacket(){
  }
  const payload={
   schema:'ORCA_COLLABORATIVE_RESEARCH_PACKET_V2',ticker,
-  assignment:assignedResearchBoard?.task_id===claim?.id?{metric:claim.research_area,board:assignedResearchBoard.board_label,board_key:assignedResearchBoard.board_key,question:claim.research_question,task_id:claim.id}:null,
+  assignment:claim&&assignedResearchBoard&&assignedResearchBoard.task_id===claim.id?{metric:claim.research_area,board:assignedResearchBoard.board_label,board_key:assignedResearchBoard.board_key,question:claim.research_question,task_id:claim.id}:null,
   generated_at:new Date().toISOString(),
   total_available_findings:findings.length,
   max_findings:5,
