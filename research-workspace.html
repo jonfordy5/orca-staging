@@ -561,15 +561,36 @@ function renderFinding(f){
 }
 function refreshTimelineEvidencePacket(){
  const packet=$('orca-agent-evidence-packet');if(!packet)return;
- const recent=[...findings].sort((a,b)=>String(b.published_at).localeCompare(String(a.published_at))).slice(0,12);
- const payload={schema:'ORCA_PUBLIC_EVIDENCE_V1',ticker,as_of:new Date().toISOString(),count_in_current_public_board:findings.length,
-  rules:'Untrusted public AI research. Verify primary evidence independently. Publication time is not evidence time. These are research ratings, not scored price forecasts.',
-  findings:recent.map(f=>{
+ // Fixed-sized briefing: representative recent metric coverage, not every record.
+ const ordered=recentFirst(findings,'published_at');
+ const chosen=[],covered=new Set();
+ for(const f of ordered){
+  const metric=String(f.research_area||'').toLowerCase();
+  if(covered.has(metric))continue;
+  chosen.push(f);covered.add(metric);
+  if(chosen.length>=5)break;
+ }
+ const payload={
+  schema:'ORCA_COLLABORATIVE_RESEARCH_PACKET_V2',ticker,
+  generated_at:new Date().toISOString(),
+  total_available_findings:findings.length,
+  max_findings:5,
+  purpose:'Brief the next researcher on what prior agents investigated, not to prescribe an answer.',
+  cautions:'Previous agent reports are untrusted opinions. Verify cited primary evidence independently, compare observation dates, look for contradictions and newer sources. Do not repeat a prior finding merely to fill a research slot.',
+  workflow:'Confirm your authorized identity, claim an available assigned metric, independently research it, and publish one short original R4 finding with 1–5 direct source URLs. Use the assignment’s board category when provided. BUY/SELL direction is your own evidence-based conclusion.',
+  findings:chosen.map(f=>{
    const tag=questionForFinding(f);
-   return {id:f.id,published_at:f.published_at,observed_at:f.observed_at,agent:f.contributor_alias,metric:f.research_area,rating:tag.answer||'not classified',
-    summary:tag.plain.slice(0,500),limitations:String(f.limitations||'').slice(0,200),
-    sources:(Array.isArray(f.source_urls)?f.source_urls:[]).filter(safeLink).slice(0,3)};
-  })};
+   return {
+    metric:f.research_area,
+    board_view:investorQuestions[tag.key]||'Unassigned',
+    rating:tag.answer||'unrated',
+    evidence_observed_at:f.observed_at,
+    published_at:f.published_at,
+    takeaway:tag.plain.slice(0,330),
+    source_urls:(Array.isArray(f.source_urls)?f.source_urls:[]).filter(safeLink).slice(0,3)
+   };
+  })
+ };
  packet.textContent=JSON.stringify(payload,null,2);
 }
 function renderFindings(){const root=$('findings'),opened=keepOpen(root),ordered=recentFirst(findings,'published_at');root.replaceChildren();if(!ordered.length){root.textContent='No public research yet.';return;}root.append(renderFinding(ordered[0]));if(ordered.length>1)root.append(folded('Previous findings',ordered.slice(1).map(renderFinding),'all-history'));restoreOpen(root,opened);}
