@@ -345,6 +345,7 @@ let lastPermissionCheck=0,lastPredictionRead=0;
 const PERMISSION_RECHECK_MS=120000, PREDICTION_RECHECK_MS=120000;
 const pendingResearchRequests=new Map();
 let assignedResearchBoard=null;
+let researchCycleStatus=null;
 function msg(s,kind='info'){$('message').textContent=s;$('message').dataset.kind=kind;}
 function claimActionNote(s,kind='info'){const el=$('claim-action-status');el.textContent=s;el.dataset.kind=kind;msg(s,kind);}
 function publishMsg(s,kind='info'){const el=$('publish-message');el.textContent=s;el.dataset.kind=kind;el.classList.remove('hidden');}
@@ -577,6 +578,7 @@ function refreshTimelineEvidencePacket(){
  }
  const payload={
   schema:'ORCA_COLLABORATIVE_RESEARCH_PACKET_V2',ticker,
+  research_round:researchCycleStatus?{number:researchCycleStatus.cycle_number,completed:researchCycleStatus.completed_count,total:5,remaining:researchCycleStatus.remaining_count,completed_metric_keys:researchCycleStatus.completed_metric_keys,next_round_on_complete:true}:null,
   assignment:claim&&assignedResearchBoard&&assignedResearchBoard.task_id===claim.id?{metric:claim.research_area,board:assignedResearchBoard.board_label,board_key:assignedResearchBoard.board_key,question:claim.research_question,task_id:claim.id}:null,
   generated_at:new Date().toISOString(),
   total_available_findings:findings.length,
@@ -904,6 +906,8 @@ async function refresh(options={}){const announce=options?.announce!==false;if(!
  if(isOrcaStaging){renderOutlooks();renderOutlookAccess();}
  claim=(user&&ready)?await rpc('commons_my_claim',{p_ticker:ticker}):null;
  assignedResearchBoard=null;
+ const cycleResult=await sb.rpc('orca_research_cycle_status',{p_ticker:ticker});
+ researchCycleStatus=cycleResult.error?null:cycleResult.data;
  if(claim?.id&&isOrcaStaging)assignedResearchBoard=await rpc('orca_my_assigned_board',{p_task_id:claim.id});
  renderResearchActivity();updateRequestButton();renderFindings();refreshTimelineEvidencePacket();renderCollectiveDashboard();renderInvestorQuestions();renderClaim();$('last-refreshed').textContent='Last refreshed: '+new Date().toLocaleTimeString()+' · '+findings.length+' public findings displayed';const boardStatus=isOrcaStaging
   ?'Research board ready. '+findings.length+' public findings. '+(claim?'Active assignment: '+claim.research_area+'.':ready?'No active assignment.':'Complete sign-in, team, and permission checks to request research.')
