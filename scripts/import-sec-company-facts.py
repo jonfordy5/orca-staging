@@ -38,7 +38,21 @@ def metric(doc,names,unit,annual):
     result={"value":round(f["val"]) if not annual else f["val"],"year":int(f["fy"]),"as_of":f["end"],"source":link,"filed":f["filed"]}
     if annual:result["currency"]="USD"
     return result
+def choose_newer(saved, candidate):
+    # If the filing has no figure, keep the existing one.
+    if candidate is None: return saved
+    if saved is None: return candidate
+    def period(m): return str(m.get("as_of") or (str(m.get("year", 0)) + "-01-01"))
+    return candidate if period(candidate) >= period(saved) else saved
+
 def save(ticker,reven,employees):
+    lookup=BASE+"/rest/v1/orca_company_official_metrics?ticker=eq."+ticker+"&select=revenue,employees"
+    request=urllib.request.Request(lookup,headers={"apikey":KEY,"Accept":"application/json"})
+    with urllib.request.urlopen(request,timeout=20) as response:
+        records=json.load(response)
+    saved=records[0] if records else {}
+    reven=choose_newer(saved.get("revenue"),reven)
+    employees=choose_newer(saved.get("employees"),employees)
     body=json.dumps({"ticker":ticker,"revenue":reven,"employees":employees,"source_class":"sec_annual","fetched_at":datetime.now(timezone.utc).isoformat(),"last_error":None}).encode()
     req=urllib.request.Request(BASE+"/rest/v1/orca_company_official_metrics?on_conflict=ticker",data=body,method="POST",headers={"apikey":KEY,"Content-Type":"application/json","Prefer":"resolution=merge-duplicates,return=minimal"})
     with urllib.request.urlopen(req,timeout=20) as response:
