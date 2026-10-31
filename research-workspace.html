@@ -231,8 +231,9 @@ main{max-width:1020px;margin:0 auto;padding:27px 16px 55px}
     <section id="request-research" class="card hidden" aria-labelledby="request-heading">
       <h2 id="request-heading">Claim a research assignment</h2>
       <p class="sub">Choose a research area to claim an available metric or start its next research cycle. One active assignment per researcher.</p>
-      <label for="research-metric">Approved metric</label>
-      <select id="research-metric" aria-label="Approved research metric"></select>
+      <p class="form-help">ORCA assigns the next suitable metric and balances Management, Earnings and Investors. The research destination is reserved with the task.</p>
+      <label for="research-metric" class="hidden">Research metric (automatic)</label>
+      <select id="research-metric" class="hidden" aria-label="Research metric (automatic)" disabled></select>
       <div class="actions"><button class="btn" id="request-assignment" type="button" disabled>Request and claim metric</button></div>
        <div id="claim-action-status" class="alert" role="status" aria-live="polite" data-kind="info">No assignment action attempted in this session. After claiming, verify “Claimed” appears under My assignment.</div>
     </section>
@@ -248,8 +249,8 @@ main{max-width:1020px;margin:0 auto;padding:27px 16px 55px}
       <div id="claimed-controls" class="hidden">
         <div class="actions"><button id="release" class="btn warn" type="button">Release my assignment</button></div>
         <form id="submit-form">
-          <label for="research-question">Research category (required)</label>
-          <select id="research-question" required>
+          <label for="research-question">ORCA-assigned research board</label>
+          <select id="research-question" required disabled>
             <option value="">Choose a research category</option>
             <option value="execution">Management</option>
             <option value="pricing">Earnings</option>
@@ -342,6 +343,7 @@ let independentPublishingEnabled=false;
 let lastPermissionCheck=0,lastPredictionRead=0;
 const PERMISSION_RECHECK_MS=120000, PREDICTION_RECHECK_MS=120000;
 const pendingResearchRequests=new Map();
+let assignedResearchBoard=null;
 function msg(s,kind='info'){$('message').textContent=s;$('message').dataset.kind=kind;}
 function claimActionNote(s,kind='info'){const el=$('claim-action-status');el.textContent=s;el.dataset.kind=kind;msg(s,kind);}
 function publishMsg(s,kind='info'){const el=$('publish-message');el.textContent=s;el.dataset.kind=kind;el.classList.remove('hidden');}
@@ -412,9 +414,9 @@ function taskRecency(a,b){return (Date.parse(b.updated_at||'')||0)-(Date.parse(a
 function metricSeriesKey(t){return metricForTask(t)?.key||'other:'+String(t.research_area||'').trim().toLowerCase();}
 function latestTaskForMetric(metric){return metric?[...tasks].filter(t=>metricSeriesKey(t)===metric.key).sort(taskRecency)[0]||null:null;}
 function updateRequestButton(){
- const btn=$('request-assignment'),metric=approvedMetrics.find(x=>x.key===$('research-metric').value),current=latestTaskForMetric(metric),state=current?badge(current):'new';
- btn.disabled=!isOrcaStaging||!user||!ready||loading||!!claim||state==='claimed';
- btn.textContent=state==='claimed'?'Research already in progress':state==='open'?'Claim available research':state==='complete'||state==='cancelled'?'Start next research cycle':'Request new search';
+ const btn=$('request-assignment');
+ btn.disabled=!isOrcaStaging||!user||!ready||loading||!!claim;
+ btn.textContent=claim?'Research assignment active':'Claim next research';
 }
 function renderResearchActivity(){
  const root=$('researcher-activity');if(!root)return;
@@ -574,6 +576,7 @@ function refreshTimelineEvidencePacket(){
  }
  const payload={
   schema:'ORCA_COLLABORATIVE_RESEARCH_PACKET_V2',ticker,
+  assignment:assignedResearchBoard?.task_id===claim?.id?{metric:claim.research_area,board:assignedResearchBoard.board_label,board_key:assignedResearchBoard.board_key,question:claim.research_question,task_id:claim.id}:null,
   generated_at:new Date().toISOString(),
   total_available_findings:findings.length,
   max_findings:5,
@@ -861,10 +864,21 @@ async function submitOutlook(event){
 function outlookSubmitMessage(message,kind='info'){
  const node=$('outlook-submit-message');node.textContent=message;node.dataset.kind=kind;node.classList.remove('hidden');
 }
-function renderClaim(){const area=$('myclaim');if(!claim){area.textContent=isOrcaStaging
- ? !user?'Sign in to check for an active assignment.':!ready?'Complete the permission checks to view an active assignment.':'No active assignment. Select a metric to request and claim it.'
- : 'No active assignment. Select a metric to claim it.';control();return;}
- area.textContent='Claimed: '+claim.research_area+' · '+(claim.research_question||'')+'\nDeadline: '+time(claim.claimed_until);area.style.whiteSpace='pre-wrap';control();}
+function renderClaim(){
+ const area=$('myclaim'),select=$('research-question');
+ if(!claim){
+  area.textContent=!user?'Sign in to check for an active assignment.':!ready?'Complete research permission checks.':'No active assignment. ORCA will select the next metric and board.';
+  select.value='';select.disabled=true;control();return;
+ }
+ const assigned=assignedResearchBoard?.task_id===claim.id?assignedResearchBoard:null;
+ select.value=assigned?.board_key||'';
+ select.disabled=true;
+ updateResearchAnswers();
+ area.textContent='Metric: '+claim.research_area+'\nResearch board: '+(assigned?.board_label||'Legacy claim — no board assigned')+
+  '\nResearch question: '+(claim.research_question||'Investigate independently')+
+  '\nDeadline: '+time(claim.claimed_until);
+ area.style.whiteSpace='pre-wrap';control();
+}
 async function checkReady(){lastPermissionCheck=Date.now();ready=false;independentPublishingEnabled=false;$('independent-publishing-status').textContent='Independent publishing: not verified for this session.';alias='';outlookAccessMessage='Sign in, join this ticker’s team, and enable research permission to contribute.';$('account-link').classList.toggle('hidden',!isOrcaStaging||!!user);if(!user){$('independent-publishing-status').textContent='Independent publishing: sign in required.';$('identity').textContent='Not signed in.';$('prereq').textContent=isOrcaStaging?'Sign in to the staging Commons account and join the research team to request and claim assignments.':'Sign in to the staging Commons account and join the research team to claim assignments.';return;}
  $('identity').textContent=isOrcaStaging?'Checking authentication and '+ticker+' research permission…':'Signed in · checking '+ticker+' research permission…';
  const {data:member,error:memberErr}=await sb.from('stock_research_memberships').select('display_name').eq('ticker',ticker).eq('user_id',user.id).maybeSingle();if(memberErr)throw memberErr;
@@ -887,35 +901,33 @@ async function refresh(options={}){const announce=options?.announce!==false;if(!
  if(options.forcePermissions||!lastPermissionCheck||Date.now()-lastPermissionCheck>PERMISSION_RECHECK_MS)await checkReady();
  if(isOrcaStaging){renderOutlooks();renderOutlookAccess();}
  claim=(user&&ready)?await rpc('commons_my_claim',{p_ticker:ticker}):null;
+ assignedResearchBoard=null;
+ if(claim?.id&&isOrcaStaging)assignedResearchBoard=await rpc('orca_my_assigned_board',{p_task_id:claim.id});
  renderResearchActivity();updateRequestButton();renderFindings();refreshTimelineEvidencePacket();renderCollectiveDashboard();renderInvestorQuestions();renderClaim();$('last-refreshed').textContent='Last refreshed: '+new Date().toLocaleTimeString()+' · '+findings.length+' public findings displayed';const boardStatus=isOrcaStaging
   ?'Research board ready. '+findings.length+' public findings. '+(claim?'Active assignment: '+claim.research_area+'.':ready?'No active assignment.':'Complete sign-in, team, and permission checks to request research.')
   :'Research board loaded. '+findings.length+' recent public findings. '+(ready?'You can claim a metric.':'Sign in / check team and permission controls.');
  if(announce)msg(boardStatus,'success');return true;
  }catch(e){if(isOrcaStaging){ready=false;claim=null;outlookAccessMessage='Permission checks failed. Refresh to retry; contributions stay disabled until they succeed.';$('identity').textContent='Action failed while checking sign-in or research permission.';$('prereq').textContent='Refresh to retry the authentication and permission checks.';renderOutlookAccess();renderClaim();}if(announce||isOrcaStaging)msg((isOrcaStaging?'Action failed: ':'Could not refresh the research board: ')+errorInfo(e),'error');return false;}finally{loading=false;control();}}
-async function requestAssignment(metric,sourceTaskId=null){
+async function requestAssignment(){
  if(!isOrcaStaging||!ready||loading||claim)return;
- const key=[user.id,ticker,metric.categoryKey,metric.key,sourceTaskId||'new'].join(':');
+ const key=[user.id,ticker,'orca-auto-v1'].join(':');
  let requestId=pendingResearchRequests.get(key);
  if(!requestId){requestId=crypto.randomUUID();pendingResearchRequests.set(key,requestId);}
- loading=true;control();claimActionNote('Safely requesting and claiming '+metric.label+'…');
+ loading=true;control();claimActionNote('ORCA is assigning the next available metric and board…');
  try{
-  // Atomic server operation: existing functions validate consent, ownership, team, cycle and one-claim limit.
-  // Client status is informational only; the server makes the authorization decision.
-  const reserved=await rpc('commons_request_and_claim_metric',{
-   p_ticker:ticker,p_category_key:metric.categoryKey,p_metric_key:metric.key,
-   p_request_id:requestId,p_source_task_id:sourceTaskId
-  });
-  if(!reserved?.id)throw new Error('No confirmed task returned.');
+  const reserved=await rpc('orca_request_and_claim_next',{p_ticker:ticker,p_request_id:requestId});
+  if(!reserved?.id||!reserved?.board_key)throw new Error('No confirmed metric and board returned.');
   $('observed').value=localDateTime();
   loading=false;
   const verified=await refresh({announce:false,forcePermissions:true});
-  if(!verified||claim?.id!==reserved.id)throw new Error('Assignment could not be independently confirmed. Check My assignment before retrying.');
+  if(!verified||claim?.id!==reserved.id||assignedResearchBoard?.board_key!==reserved.board_key)
+   throw new Error('Task and board were not both verified. Refresh before publishing.');
   pendingResearchRequests.delete(key);
-  claimActionNote('SUCCESS: '+metric.label+' claimed and verified. Ready to investigate.','success');
+  claimActionNote('Claim verified: '+claim.research_area+' → '+assignedResearchBoard.board_label+'. Refresh and read the collaborative packet before researching.','success');
  }catch(error){
   loading=false;
   await refresh({announce:false,forcePermissions:true});
-  claimActionNote('Assignment not confirmed. Review My assignment before retrying. '+errorInfo(error),'error');
+  claimActionNote('Assignment not confirmed. Check My assignment before retrying. '+errorInfo(error),'error');
  }finally{loading=false;control();}
 }
 async function claimTask(id){if(!ready||loading)return;loading=true;control();if(!isOrcaStaging){try{claim=await rpc('commons_claim_task',{p_task_id:id});$('observed').value=localDateTime();renderClaim();msg('Assignment reserved. Research it independently in this workspace; no AI is launched by the website.','success');}catch(e){msg('Cannot claim task: '+errorInfo(e),'error');}finally{loading=false;await refresh();}return;}
@@ -924,6 +936,9 @@ async function release(){if(!claim||loading)return;if(!confirm('Release this unf
  msg('Releasing the active assignment…');let failure=null;try{await rpc('commons_release_task',{p_task_id:claim.id});claim=null;}catch(e){failure=e;}finally{loading=false;const refreshed=await refresh({announce:false});if(failure)msg('Action failed while releasing: '+errorInfo(failure),'error');else if(!refreshed)msg('The release RPC succeeded, but assignment status could not be confirmed. Refresh before continuing.','error');else if(claim)msg('The release RPC returned, but an active assignment is still shown. Refresh and verify before continuing.','error');else msg('Assignment released. No active assignment.','success');}}
 async function publish(e){e.preventDefault();if(!ready||!claim||loading)return;
  const summary=$('summary').value.trim(),question=$('research-question').value,answer=$('research-answer').value;
+ if(isOrcaStaging&&(!assignedResearchBoard||assignedResearchBoard.task_id!==claim.id||question!==assignedResearchBoard.board_key)){
+  publishMsg('This task has no verified ORCA research board. Refresh first; draft retained.','error');return;
+ }
  const direction=$('research-direction').value;
  if(!answerChoices[question]||!answerChoices[question].includes(answer)){publishMsg('Choose an investor question and one of four evidence-backed ratings.','error');return;}
  if(!['BULLISH','BEARISH'].includes(direction)){publishMsg('Select a Buy or Sell rating to determine direction.','error');return;}
@@ -953,17 +968,7 @@ async function publish(e){e.preventDefault();if(!ready||!claim||loading)return;
  }
  claim=null;$('submit-form').reset();updateResearchAnswers();$('observed').value=localDateTime();renderClaim();control();publishMsg('Four-level research rating published and verified. A separate Bullish or Bearish price forecast is optional and requires a verified baseline, deadline, and supporting evidence.','success');}
 $('refresh').addEventListener('click',()=>refresh({announce:true}));$('release').addEventListener('click',release);
-$('research-metric').addEventListener('change',updateRequestButton);
- $('request-assignment').addEventListener('click',()=>{
-  const metric=approvedMetrics.find(x=>x.key===$('research-metric').value);
-  if(!metric||!ready||loading||claim)return;
-  const task=latestTaskForMetric(metric);
-  if(!task)return requestAssignment(metric);
-  const state=badge(task);
-  if(state==='open')return claimTask(task.id);
-  if(state==='claimed')return msg('This metric is already in progress. Choose another metric or check back when the reservation ends.','error');
-  return requestAssignment(metric,task.id);
- });
+$('request-assignment').addEventListener('click',()=>requestAssignment());
 $('submit-form').addEventListener('submit',publish);$('research-question').addEventListener('change',updateResearchAnswers);$('research-answer').addEventListener('change',updateRatingDirection);updateResearchAnswers();$('summary').addEventListener('input',updatePublishedLength);
  // Hidden research-direction is synchronized by updateRatingDirection(); no removed-input listeners.
  updatePublishedLength();
