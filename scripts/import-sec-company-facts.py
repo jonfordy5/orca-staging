@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
 """ORCA staging: scheduled SEC Company Facts import into Supabase.
 Required GitHub Actions secrets: SEC_USER_AGENT (real organization + contact email),
-SUPABASE_SERVICE_ROLE_KEY (server-only credential). Never put secrets in client code.
+SUPABASE_SECRET_KEY (server-only credential). Never put secrets in client code.
 Fetch only registered ticker symbols passed via ORCA_TICKERS; validate data dates.
 """
 import json, os, re, sys, time, urllib.request, urllib.error
 from datetime import datetime, timezone
 BASE="https://vbziibatnejoswsdggga.supabase.co"
 AGENT=os.environ.get("SEC_USER_AGENT","").strip()
-KEY=os.environ.get("SUPABASE_SERVICE_ROLE_KEY","").strip()
+KEY=os.environ.get("SUPABASE_SECRET_KEY","").strip()
 TICKERS=os.environ.get("ORCA_TICKERS","").split(",")
 if not AGENT or "@" not in AGENT or not KEY or not TICKERS or not TICKERS[0]:
-    sys.exit("SEC_USER_AGENT, SUPABASE_SERVICE_ROLE_KEY and ORCA_TICKERS required; no writes performed")
+    sys.exit("SEC_USER_AGENT, SUPABASE_SECRET_KEY and ORCA_TICKERS required; no writes performed")
 def fetch(url):
     request=urllib.request.Request(url,headers={"User-Agent":AGENT,"Accept":"application/json"})
     with urllib.request.urlopen(request,timeout=18) as r:return json.load(r)
@@ -40,7 +40,7 @@ def metric(doc,names,unit,annual):
     return result
 def save(ticker,reven,employees):
     body=json.dumps({"ticker":ticker,"revenue":reven,"employees":employees,"source_class":"sec_annual","fetched_at":datetime.now(timezone.utc).isoformat(),"last_error":None}).encode()
-    req=urllib.request.Request(BASE+"/rest/v1/orca_company_official_metrics?on_conflict=ticker",data=body,method="POST",headers={"apikey":KEY,"Authorization":"Bearer "+KEY,"Content-Type":"application/json","Prefer":"resolution=merge-duplicates,return=minimal"})
+    req=urllib.request.Request(BASE+"/rest/v1/orca_company_official_metrics?on_conflict=ticker",data=body,method="POST",headers={"apikey":KEY,"Content-Type":"application/json","Prefer":"resolution=merge-duplicates,return=minimal"})
     with urllib.request.urlopen(req,timeout=20) as response:
         if response.status not in (200,201,204):raise RuntimeError("database write unsuccessful")
 directory=fetch("https://www.sec.gov/files/company_tickers.json")
