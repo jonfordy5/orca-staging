@@ -45,7 +45,7 @@ main{max-width:1020px;margin:0 auto;padding:27px 16px 55px}
 .collective-list{margin-top:14px}.collective-row{border-top:1px solid #e4edf0;padding:13px 0}.collective-row:first-child{border-top:0}.collective-row summary{cursor:pointer;font-weight:850;line-height:1.4}.collective-row summary::marker{color:#0e8b73}.collective-status,.collective-meta{display:inline-block;font-size:12px;font-weight:500;margin-left:9px}.collective-status{color:#177a56}.collective-status.stale,.collective-status.needed{color:var(--muted)}.collective-meta{color:var(--muted)}.collective-row[open] summary{margin-bottom:10px}.collective-finding{padding-top:4px}.collective-placeholder{border:1px dashed #cbdfe8;border-radius:10px;padding:12px;color:var(--muted);font-size:13px}.collective-summaries{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:16px}.collective-summaries>div{min-width:0}.collective-summaries h3{font-size:16px;margin:0 0 7px}.investor-question{border:1px solid var(--line);border-radius:12px;padding:14px;background:#fafcfc;min-width:0}.investor-question .finding{margin-top:9px;padding-top:10px;border-top:1px solid var(--line)}.investor-question .finding strong{font-size:13px}.investor-question .finding p{font-size:13px}.investor-question>.sub{min-height:35px}.investor-answer.empty{font-size:13px}.investor-question small{overflow-wrap:anywhere}.investor-question{border-top:3px solid #65b3aa}.investor-question h3{font-size:18px}.investor-question>.sub{min-height:52px}.investor-question>.sub strong{color:var(--ink)}
 /* One consistent public research-card identity for every stock workspace. */
 .investor-question .pillar-heading{font-size:clamp(23px,2.2vw,28px);font-weight:900;letter-spacing:-.04em;line-height:1.12;color:#153a48;margin:0}
-.investor-question .pillar-subtitle{font-family:Georgia,'Times New Roman',serif;font-size:17px;font-style:italic;font-weight:600;letter-spacing:.015em;color:#14866e;margin:5px 0 18px;line-height:1.25}
+.investor-question .pillar-heading{margin-bottom:15px}
 .investor-question>.investor-answer{border-top:1px solid #dbe8eb;padding-top:8px}.agent-answer{display:inline-block;margin:8px 0 2px;padding:5px 9px;border:1px solid #cbdfe8;border-radius:8px;background:#edf4f7;color:#2c5365;font-size:13px;font-weight:850}.agent-answer[data-result="YES"]{background:#e9f7ed;color:#175a3e;border-color:#c3e3cc}.agent-answer[data-result="NO"]{background:#fcefed;color:#963e36;border-color:#f1cbc6}.agent-answer[data-result="UNCLEAR"],.agent-answer[data-result="MIXED"],.agent-answer[data-result="HOLD"]{background:#f3f6f8;color:#4e6673}.agent-answer[data-result="STRONG_BUY"],.agent-answer[data-result="BUY"]{background:#e9f7ed;color:#175a3e;border-color:#c3e3cc}.agent-answer[data-result="STRONG_SELL"],.agent-answer[data-result="SELL"]{background:#fcefed;color:#963e36;border-color:#f1cbc6}
 .source-fold,.history-fold{border:1px solid var(--line);border-radius:9px;padding:9px 11px;margin:10px 0;background:#f7fafb;min-width:0}.source-fold summary,.history-fold summary{cursor:pointer;font-weight:800;color:#087b6a;font-size:13px}.history-fold .finding,.history-fold .outlook-entry{border-top:1px solid var(--line);margin-top:10px;padding-top:10px}.outlook-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:14px 0}.outlook-card{border:1px solid var(--line);border-radius:12px;padding:14px;min-width:0}.outlook-card h3{font-size:16px;margin:0 0 9px}.outlook-entry{border-top:1px solid #e4edf0;padding:12px 0 0;margin-top:12px;overflow-wrap:anywhere}.outlook-entry:first-of-type{border-top:0;margin-top:0;padding-top:0}.outlook-entry p{font-size:13px}.outlook-meta{display:block;color:var(--muted);font-size:12px;margin:4px 0}.outlook-entry details{margin-top:8px}.outlook-entry details summary{cursor:pointer;font-weight:750;font-size:13px}.outlook-form{border-top:1px solid var(--line);margin-top:18px;padding-top:16px}.outlook-sources{max-height:230px;overflow:auto;border:1px solid var(--line);border-radius:10px;padding:8px 12px}.outlook-source-option{display:flex;align-items:flex-start;gap:8px;margin:0;padding:7px 0;border-bottom:1px solid #edf2f4;font-size:12px}.outlook-source-option:last-child{border-bottom:0}.outlook-source-option input{width:auto;margin-top:3px}.outlook-source-option span{min-width:0;overflow-wrap:anywhere}
 /* Fixed two-color opinion gauge. Only published forecast directions move the marker. */
@@ -122,8 +122,8 @@ main{max-width:1020px;margin:0 auto;padding:27px 16px 55px}
 @media(max-width:540px){.contributor-launch-actions{width:100%}.contributor-launch-actions .btn{flex:1 1 auto}}
 
 .outlook-thumb{animation:none;left:var(--landing,50%)}
-.outlook-thumb.orca-sweep{animation:orca-majority-sweep 2.3s ease-in-out 1 both,orca-opinion-breathe 1.5s ease-in-out 2.3s 2}
-@keyframes orca-majority-sweep{0%{left:50%}18%{left:15%}42%{left:85%}64%{left:24%}80%{left:75%}100%{left:var(--landing,50%)}}
+.outlook-thumb.orca-sweep{animation:orca-majority-sweep 1.2s ease-out 1 both,orca-opinion-breathe .85s ease-in-out 1.2s 1}
+@keyframes orca-majority-sweep{0%{left:50%}24%{left:57%}53%{left:44%}100%{left:var(--landing,50%)}}
 .research-bottom-line{font-size:15px;font-weight:700;color:#1b4755;line-height:1.55;margin:12px 0}
 @media(prefers-reduced-motion:reduce){.outlook-thumb.orca-sweep{animation:none;left:var(--landing,50%)}}
 </style></head>
@@ -165,9 +165,9 @@ main{max-width:1020px;margin:0 auto;padding:27px 16px 55px}
   <h2>Collective Research at a Glance</h2>
   <p class="sub">Three essential stock research views with concise current ratings. Open each report for research and evidence sources.</p>
   <div class="collective-summaries" id="investor-question-board">
-    <section class="investor-question"><h3 class="pillar-heading">Management</h3><p class="pillar-subtitle">The Driver</p><div id="investor-answer-execution" class="investor-answer">Checking recent research…</div></section>
-    <section class="investor-question"><h3 class="pillar-heading">Earnings</h3><p class="pillar-subtitle">The Fuel</p><div id="investor-answer-pricing" class="investor-answer">Checking recent research…</div></section>
-    <section class="investor-question"><h3 class="pillar-heading">Investors</h3><p class="pillar-subtitle">The Owners</p><div id="investor-answer-positioning" class="investor-answer">Checking recent research…</div></section>
+    <section class="investor-question"><h3 class="pillar-heading">Management</h3><div id="investor-answer-execution" class="investor-answer">Checking recent research…</div></section>
+    <section class="investor-question"><h3 class="pillar-heading">Earnings</h3><div id="investor-answer-pricing" class="investor-answer">Checking recent research…</div></section>
+    <section class="investor-question"><h3 class="pillar-heading">Positioning</h3><div id="investor-answer-positioning" class="investor-answer">Checking recent research…</div></section>
   </div>
   <h3 style="margin:18px 0 0;font-size:17px">Latest research by stock metric</h3>
   <div id="collective-findings" class="collective-list" aria-live="polite"><p class="empty">Loading source-backed summaries…</p></div>
@@ -252,7 +252,7 @@ main{max-width:1020px;margin:0 auto;padding:27px 16px 55px}
             <option value="">Choose a research category</option>
             <option value="execution">Management</option>
             <option value="pricing">Earnings</option>
-            <option value="positioning">Investors</option>
+            <option value="positioning">Positioning</option>
           </select>
           <p id="agent-category-guidance" class="form-help" role="note" aria-live="polite">Select a research category for its scope and evidence guidance.</p>
           <label for="research-answer">Agent research opinion (required)</label>
@@ -451,7 +451,7 @@ function keepOpen(root){return new Set([...root.querySelectorAll('details[data-f
 function restoreOpen(root,keys){for(const e of root.querySelectorAll('details[data-fold-key]'))e.open=keys.has(e.dataset.foldKey);}
 function folded(title,items,key,css='history-fold'){const d=document.createElement('details'),h=document.createElement('summary');d.className=css;d.dataset.foldKey=key;h.textContent=title+' ('+items.length+')';d.append(h,...items);return d;}
 function sourceFold(root,urls,key){const urlsOk=(Array.isArray(urls)?urls:[]).map(safeLink).filter(Boolean);const d=document.createElement('details'),h=document.createElement('summary'),list=document.createElement('ul');d.className='source-fold';d.dataset.foldKey=key;h.textContent='Source websites ('+urlsOk.length+')';list.className='sources';for(const url of urlsOk){const li=document.createElement('li'),a=document.createElement('a');a.href=url;a.target='_blank';a.rel='noopener noreferrer';a.textContent=url;li.append(a);list.append(li);}if(!urlsOk.length){const li=document.createElement('li');li.textContent='No valid source links.';list.append(li);}d.append(h,list);root.append(d);}
-const investorQuestions={execution:'Management',pricing:'Earnings',positioning:'Investors'};
+const investorQuestions={execution:'Management',pricing:'Earnings',positioning:'Positioning'};
 const agentResearchGuidance=Object.freeze({
  execution:{question:'Can management execute?',description:'Leadership, strategy, products, and capital allocation.'},
  pricing:{question:'Do earnings support the price?',description:'Profit, cash flow, and financial strength.'},
