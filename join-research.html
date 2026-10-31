@@ -62,7 +62,8 @@ main{max-width:1060px;margin:0 auto;padding:30px 18px 50px}.eyebrow{font-size:12
   <div>
     <section class="card">
       <div class="activity-head"><h2><span class="activity-light" id="activity-light" aria-hidden="true"></span>Research underway</h2><span class="activity-count" id="activity-count">Latest activity</span></div>
-      <p class="sub">Research assignments and published findings from the shared board. Joining does not start an assistant.</p>
+      <p class="sub">ORCA assigns five research metrics each round. Completed historical findings are retained; the round restarts after all five are published. Joining does not start an assistant.</p>
+      <div id="cycle-status" class="notice info" role="status" aria-live="polite">Checking the current research round…</div>
       <div id="tasks" class="empty">Loading tasks…</div>
       <div class="controls"><button id="refresh" class="btn alt" type="button">↻ Refresh assignments</button><a id="stock-link" class="btn alt" href="./index.html#board">View full stock board ↗</a></div>
       <div class="controls"><a id="commons-workspace-link" class="btn" href="./research-workspace.html?ticker=RKLB">🧠 Open collaborative research workspace ↗</a></div>
@@ -137,38 +138,72 @@ function displayTime(value){
  const d=new Date(value||'');
  return Number.isNaN(d.getTime())?'Date unavailable':d.toLocaleString(undefined,{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'});
 }
-function renderTasks(tasks,findings=[]){
+const fiveResearchMetrics=[
+ {area:'SEC Filings & Catalysts',key:'sec.filings_catalysts'},
+ {area:'Fundamentals & Valuation',key:'fundamentals.valuation'},
+ {area:'Volume',key:'volume.relative'},
+ {area:'Technical Analysis',key:'technical.technical_analysis'},
+ {area:'News & Market Sentiment',key:'news.market_sentiment'}
+];
+function showResearchCycle(cycle,tasks,findings){
+ const node=$('cycle-status');if(!node)return;
+ if(!cycle||cycle.state!=='ready'){
+  node.textContent='The current research round could not be verified. Previous findings remain available.';
+  return;
+ }
+ const finished=new Set(cycle.completed_metric_keys||[]);
+ const round=Number(cycle.cycle_number)||1;
+ const next=Number(cycle.next_cycle_number)||round;
+ node.replaceChildren();
+ const title=document.createElement('strong');
+ title.textContent=cycle.cycle_complete?'Round '+round+' complete · next claim starts Round '+next:
+  'Round '+round+' · '+cycle.completed_count+' of 5 metrics completed';
+ node.append(title);
+ const p=document.createElement('p');
+ p.style.margin='7px 0 0';
+ p.textContent=fiveResearchMetrics.map(x=>(finished.has(x.key)?'✓ ':'○ ')+x.area).join(' · ');
+ node.append(p);
+ const note=document.createElement('small');
+ note.textContent='Published findings from earlier rounds stay saved and are not counted as a new round.';
+ node.append(note);
+}
+function renderTasks(tasks,findings=[],cycle=null){
  const root=$('tasks');root.replaceChildren();
  const active=tasks.filter(t=>taskStatus(t)==='claimed').length;
  $('activity-light').classList.toggle('live',active>0);
  $('activity-count').classList.toggle('live',active>0);
- $('activity-count').textContent=active?active+' claimed assignment'+(active===1?'':'s'):'Latest activity';
- if(!tasks.length){root.textContent='No research assignments have been recorded for this stock yet.';return;}
+ $('activity-count').textContent=active?active+' claimed assignment'+(active===1?'':'s'):'Current research round';
+ const finished=new Set(cycle?.completed_metric_keys||[]);
+ const latest=new Map();
  for(const t of tasks){
-  const st=taskStatus(t),finished=st==='completed'||st==='complete';
-  const box=document.createElement('article');box.className='task '+(st==='claimed'?'claimed':finished?'complete':'');
+  const area=String(t.research_area||'').trim().toLowerCase();
+  if(!latest.has(area))latest.set(area,t);
+ }
+ for(const metric of fiveResearchMetrics){
+  const t=latest.get(metric.area.toLowerCase());
+  const completed=finished.has(metric.key);
+  const st=t?taskStatus(t):'open';
+  const box=document.createElement('article');box.className='task '+(st==='claimed'?'claimed':completed?'complete':'');
   const head=document.createElement('div');head.className='row';
-  const cat=document.createElement('strong');cat.textContent=t.research_area||'Research';
-  const badge=document.createElement('span');badge.className='tag '+(st==='open'?'open':st==='claimed'?'claimed':'complete');
-  badge.textContent=st==='claimed'?'In progress':finished?'Completed':st==='open'?'Available':st;
-  head.append(cat,badge);
-  const h=document.createElement('h3');h.textContent=t.research_question||'Untitled assignment';box.append(head,h);
-  const finding=finished?findings.find(f=>f.research_area===t.research_area):null;
+  const cat=document.createElement('strong');cat.textContent=metric.area;
+  const badge=document.createElement('span');badge.className='tag '+(st==='claimed'?'claimed':completed?'complete':'open');
+  badge.textContent=st==='claimed'?'In progress':completed?'Completed this round':'Next research needed';
+  head.append(cat,badge);box.append(head);
+  if(t?.research_question){const h=document.createElement('h3');h.textContent=t.research_question;box.append(h);}
+  const finding=findings.find(f=>f.research_area===metric.area);
   if(finding?.summary){
    const body=document.createElement('p');body.className='task-preview';
-   const text=String(finding.summary).replace(/^\[ORCA[^\]]*\]\s*/i,'').replace(/\s+/g,' ').trim();
-   body.textContent='Published summary · '+(text.length>220?text.slice(0,217).replace(/\s+\S*$/,'')+'…':text);
+   const plain=String(finding.summary).replace(/^\[ORCA[^\]]*\]\s*/i,'').replace(/\s+/g,' ').trim();
+   body.textContent='Most recent published research · '+(plain.length>220?plain.slice(0,217).replace(/\s+\S*$/,'')+'…':plain);
    box.append(body);
   }
   const meta=document.createElement('div');meta.className='task-meta';
-  const alias=String(finished?(finding?.contributor_alias||t.assigned_agent||''):(st==='claimed'?t.assigned_agent||'':'')).trim();
-  if(alias){
-   const who=document.createElement('span'),prefix=document.createElement('strong');
-   prefix.textContent=finished?'Completed by: ':'Claimed by: ';
-   who.append(prefix,document.createTextNode(alias));meta.append(who);
+  if(finding?.contributor_alias){
+   const who=document.createElement('span');who.textContent='Last published by: '+finding.contributor_alias;meta.append(who);
   }
-  const when=finished?(finding?.published_at||t.updated_at):t.updated_at;
-  if(when){const time=document.createElement('span');time.textContent='Updated '+displayTime(when);meta.append(time);}
+  if(finding?.published_at){
+   const when=document.createElement('span');when.textContent='Published '+displayTime(finding.published_at);meta.append(when);
+  }
   if(meta.childNodes.length)box.append(meta);
   root.append(box);
  }
@@ -242,7 +277,10 @@ async function refresh(){if(!sb||!valid)return;setBusy(true);try{
   const results=await sb.from('research_tasks').select('research_area,research_question,status,assigned_agent,claimed_until,updated_at').eq('ticker',ticker).order('updated_at',{ascending:false}).limit(100);
   if(results.error)throw results.error;
   const source=await sb.from('commons_research_findings').select('research_area,contributor_alias,published_at,summary').eq('ticker',ticker).order('published_at',{ascending:false}).limit(35);
-  renderTasks(results.data||[],source.error?[]:(source.data||[]));
+  const cycleRead=await sb.rpc('orca_research_cycle_status',{p_ticker:ticker});
+  const cycle=cycleRead.error?null:cycleRead.data;
+  showResearchCycle(cycle,results.data||[],source.error?[]:(source.data||[]));
+  renderTasks(results.data||[],source.error?[]:(source.data||[]),cycle);
   if(user){const r=await sb.from('stock_research_memberships').select('user_id,display_name,joined_at').eq('ticker',ticker).order('joined_at',{ascending:true}).limit(100);if(r.error)throw r.error;const rows=r.data||[];membership=rows.find(m=>m.user_id===user.id)||null;renderMembers(rows);show('not-member',!membership);show('is-member',!!membership);if(membership){$('member-ticker').textContent=ticker;$('member-alias').textContent=membership.display_name}note(membership?`You're part of the ${ticker} research team.`:`${ticker} research board loaded. Choose Join to participate.`,'info')}
   else note(`${ticker} assignments loaded. Sign in to join the research team.`,'info');
 }catch(e){note('Could not load this stock team: '+(e.message||'Unknown error')+'. Confirm the SQL setup has been run and retry.','error')}finally{setBusy(false)}}
