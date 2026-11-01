@@ -41,7 +41,6 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
  let visible='tradingview',data=[],chart=null,series=null,chartLibrary=null,activeIndex=0;
  let automaticDiscoveryAttempted=false;
  let prices=[];
- let priceInterval='daily';
  function switchTo(which){
   if(which===visible)return;
   if(which==='timeline'){
@@ -84,7 +83,7 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
    const d=Math.abs(Date.parse(price.time+'T00:00:00Z')-Date.parse(day+'T00:00:00Z'));
    if(d<distance){closest=price;distance=d;}
   }
-  return closest&&(priceInterval==='monthly'?closest.time.slice(0,7)===day.slice(0,7):distance<=3*86400000)?closest:null;
+  return distance<=3*86400000?closest:null;
  }
  function selectMilestone(i){
   if(!data.length)return;
@@ -122,7 +121,9 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
    const button=document.createElement('button');
    button.type='button';button.className='orca-timeline-event';button.dataset.index=String(i);
    const media=document.createElement('span');media.className='orca-timeline-event-media';
-   media.textContent=({earnings:'$',product:'◆',macro:'●',legal:'§',custom_note:'✦'})[event.category]||'◆';
+   if(event.image_url){
+    const image=document.createElement('img');image.src=event.image_url;image.alt='';image.loading='lazy';image.referrerPolicy='no-referrer';image.addEventListener('error',()=>{media.textContent='◆';},{once:true});media.append(image);
+   }else media.textContent=({earnings:'$',product:'◆',macro:'●',legal:'§',custom_note:'✦'})[event.category]||'◆';
    const date=document.createElement('small');date.textContent=formatDate(event.event_at);
    const title=document.createElement('strong');title.textContent=event.title;
    button.append(media,date,title);
@@ -145,7 +146,9 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
    button.style.left=x+'px';button.style.top=Math.max(32,y-(i%2?55:65))+'px';
    button.title=event.title+' · '+formatDate(event.event_at);
    button.setAttribute('aria-label',event.title+' on '+formatDate(event.event_at));
-   button.textContent=({earnings:'$',product:'◆',macro:'●',legal:'§',custom_note:'✦'})[event.category]||'◆';
+   if(event.image_url){
+    const image=document.createElement('img');image.src=event.image_url;image.alt='';image.loading='lazy';image.referrerPolicy='no-referrer';image.addEventListener('error',()=>{button.textContent='◆';},{once:true});button.append(image);
+   }else button.textContent=({earnings:'$',product:'◆',macro:'●',legal:'§',custom_note:'✦'})[event.category]||'◆';
    button.addEventListener('click',()=>selectMilestone(i));pins.append(button);
   });
  }
@@ -160,7 +163,7 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
    .map(x=>({...x,image_url:validImage(x.image_url)}));
   renderCards();drawPins();
   status.textContent=data.length+' sourced company milestone'+(data.length===1?'':'s')+
-   (prices.length>1?' · '+prices.length+' historical '+priceInterval+' closes':' · historical price chart not yet available')+
+   (prices.length>1?' · '+prices.length+' historical daily closes':' · historical price chart not yet available')+
    ' · no agent research markers';
  }
  let pricePreviewBusy=false;
@@ -182,7 +185,6 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
       .filter(p=>/^\d{4}-\d{2}-\d{2}$/.test(p.time)&&Number.isFinite(p.value)&&p.value>0)
       .sort((a,b)=>a.time.localeCompare(b.time));
      privatePreview=prices.length>=2;
-     if(privatePreview)priceInterval=result?.interval==='monthly'?'monthly':'daily';
     }catch{prices=[];}
    }
    noPrice.hidden=prices.length>=2;
@@ -198,7 +200,7 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
     chart.timeScale().subscribeVisibleLogicalRangeChange(drawPins);
     const observer=new ResizeObserver(drawPins);observer.observe(pricePlot);
     window.addEventListener('pagehide',()=>{observer.disconnect();chart?.remove()},{once:true});
-    if(privatePreview)status.textContent=prices.length+' actual ULTA '+priceInterval+' closes from Alpha Vantage · milestones matched by month where possible';
+    if(privatePreview)status.textContent=prices.length+' actual recent ULTA closes from Alpha Vantage · earlier milestones remain accessible below';
    }catch{
     noPrice.hidden=false;noPrice.textContent='Price chart library unavailable. Sourced company milestones remain accessible below.';
    }
@@ -235,9 +237,8 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
   }
  }
  // Preserve the normal TradingView chart on initial load. Living Timeline is opt-in.
+ await initializePrices();
  await loadEvents();
- // Do not block workspace startup on an optional private market-data provider.
- void initializePrices().then(()=>{if(visible==='timeline')void loadEvents();}).catch(()=>{noPrice.hidden=false;});
  const poll=setInterval(()=>{if(document.visibilityState==='visible')loadEvents()},60000);
  window.addEventListener('pagehide',()=>clearInterval(poll),{once:true});
 }
