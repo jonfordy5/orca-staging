@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#101925">
+<title>ORCA | ULTA Private Price Chart Test</title>
+<style>
+:root{color-scheme:dark;--bg:#0b131f;--panel:#172233;--edge:#34475e;--muted:#a9bbcd;--ink:#f0f5fa;--mint:#58dbc0}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,Segoe UI,Arial,sans-serif}
+a{color:#9bd9fd}
+header{background:#101e2b;border-bottom:1px solid var(--edge);padding:13px max(17px,calc((100% - 1230px)/2));display:flex;justify-content:space-between;align-items:center;gap:15px;flex-wrap:wrap}
+header strong{letter-spacing:.09em}header strong span{color:var(--mint)}header a{font-size:13px}
+main{max-width:1240px;margin:0 auto;padding:23px 17px 50px}
+small.eyebrow{display:block;font-size:12px;letter-spacing:.12em;font-weight:800;color:var(--mint)}
+h1{font-size:clamp(28px,4vw,40px);line-height:1.15;margin:5px 0 7px}
+.intro{margin:0 0 20px;color:var(--muted);font-size:14px;max-width:850px}
+.card{background:var(--panel);border:1px solid var(--edge);border-radius:18px;overflow:hidden}
+.controls{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:13px;padding:17px 20px}
+.controls .group{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+button,.button-link{border:1px solid #47617b;border-radius:9px;background:#243750;color:#f4f9ff;padding:9px 12px;font-weight:800;cursor:pointer;font:inherit;text-decoration:none}
+button.primary{background:#257b73;border-color:#55d4c0;color:#fff}
+button[aria-pressed=true]{background:#32659b;border-color:#80b4ee}
+button:disabled{cursor:wait;opacity:.65}
+button:focus-visible,a:focus-visible{outline:2px solid #52e1bc;outline-offset:3px}
+.info{padding:10px 20px;border-top:1px solid var(--edge);border-bottom:1px solid var(--edge);background:#202c3d;color:#d5e5f0;min-height:48px}
+.info.error{background:#432936;color:#ffd7d7}
+.note{padding:10px 20px;color:#e9d5a5;font-size:12px;border-bottom:1px solid var(--edge);background:#292819}
+.metrics{display:flex;gap:20px;padding:10px 20px;color:#a6bbcd;font-size:12px;flex-wrap:wrap}
+.metrics b{color:white}
+#chart{height:clamp(310px,43vw,520px);width:100%;position:relative}
+.chart-shell{position:relative;padding:5px 10px 9px}
+#pins{position:absolute;inset:0 10px;pointer-events:none}
+.pin{position:absolute;transform:translate(-50%,-50%);width:45px;height:45px;background:#294b6a;border:2px solid #b4e4f4;border-radius:50%;display:grid;place-items:center;font-size:23px;box-shadow:0 2px 12px #0009;pointer-events:auto;z-index:4;padding:0}
+.pin[data-selected=true]{border-color:var(--mint);background:#2c645d;box-shadow:0 0 0 3px #2c645d7a}
+.events-head{padding:15px 20px 3px;display:flex;align-items:baseline;justify-content:space-between;gap:14px}
+.events-head h2{font-size:18px;margin:0}
+.events-head span{font-size:12px;color:#b8c5d3}
+.event-grid{display:flex;gap:9px;padding:12px 20px;overflow-x:auto}
+.event{background:#25364c;border:1px solid #4a5d73;min-width:210px;width:210px;border-radius:10px;padding:10px;text-align:left;white-space:normal;display:block;min-height:89px}
+.event[aria-pressed=true]{border-color:var(--mint);background:#294c55}
+.event time{display:block;color:#b4c6d8;font-size:11px}.event strong{display:block;font-size:13px;line-height:1.35;margin-top:4px}.event em{display:block;font-style:normal;font-size:10px;color:#cfb784;margin-top:5px}
+.detail{margin:7px 20px 20px;padding:15px 17px;background:#203047;border:1px solid #405771;border-radius:12px}
+.detail h3{font-size:18px;margin:0 0 3px}.detail small{color:#b0c4d7}.detail p{font-size:13px;margin:8px 0 10px}
+.footer{margin-top:17px;color:#91aabd;font-size:12px}
+@media(max-width:600px){main{padding:16px 10px}.controls,.info,.note,.metrics,.events-head{padding-left:12px;padding-right:12px}.event-grid{padding-left:12px;padding-right:12px}.detail{margin-left:12px;margin-right:12px}.pin{width:35px;height:35px;font-size:16px}}
+</style>
+</head>
+<body>
+<header><strong>AI STOCK <span>COMMONS</span> · ORCA</strong><a href="./research-workspace.html?environment=orca-staging&amp;ticker=ULTA">Back to ULTA research board</a></header>
+<main>
+<small class="eyebrow">ALPHA VANTAGE · PRIVATE DEVELOPER PREVIEW</small>
+<h1>History of ULTA</h1>
+<p class="intro">Test TradingView Lightweight Charts with actual daily prices from your private Alpha Vantage connection, alongside ORCA's existing sourced company milestones.</p>
+<div class="card">
+ <div class="controls">
+  <div class="group">
+   <button class="primary" type="button" id="load">Load real ULTA daily prices</button>
+   <a class="button-link" href="./account.html?ticker=ULTA" target="_blank" rel="noopener">ORCA sign-in ↗</a>
+  </div>
+  <div class="group" aria-label="Chart controls">
+   <button type="button" data-style="line" aria-pressed="true">Line</button>
+   <button type="button" data-style="area" aria-pressed="false">Area</button>
+   <button type="button" data-style="candles" aria-pressed="false">Candles</button>
+   <button type="button" data-range="1M" aria-pressed="false">1M</button>
+   <button type="button" data-range="3M" aria-pressed="false">3M</button>
+   <button type="button" data-range="ALL" aria-pressed="true">All</button>
+  </div>
+ </div>
+ <div class="info" id="status" role="status">Ready. Sign in to ORCA, then press “Load real ULTA daily prices” to use your private API key.</div>
+ <div class="note">PRIVATE DEVELOPMENT TEST ONLY. Real prices are requested from Alpha Vantage only after sign-in and a button click; they are not saved to the public database. Alpha Vantage's free tier may return only 100 recent daily sessions. Historical milestones outside that period appear below the chart.</div>
+ <div class="metrics"><span>Source: <b id="source">Not loaded</b></span><span>Daily candles: <b id="bars">—</b></span><span>Date range: <b id="dates">—</b></span><span>Cursor price: <b id="cursor">—</b></span></div>
+ <div class="chart-shell"><div id="chart"></div><div id="pins"></div></div>
+ <div class="events-head"><h2>Company milestones</h2><span id="event-count">Loading saved events…</span></div>
+ <div class="event-grid" id="events"></div>
+ <div class="detail" id="detail">
+  <h3 id="detail-name">Select a company milestone</h3>
+  <small id="detail-day">Sourced company history</small>
+  <p id="detail-text">Click an event below to read about it and open the company's announcement.</p>
+  <a id="detail-link" hidden target="_blank" rel="noopener noreferrer">Read original source</a>
+ </div>
+</div>
+<p class="footer">Lightweight Charts™ by TradingView. No agents, research findings, ratings, or public price feed were changed. API requests are restricted server-side for this private test.</p>
+</main>
+<script type="module">
+import {selectSupabaseConfig} from './orca-staging-config.js';
+const el=id=>document.getElementById(id);
+let sb=null,light=null,chart=null,series=null,markerAPI=null,styles='line',range='ALL',bars=[],milestones=[],selected=-1;
+const types={earnings:'💰',product:'🚀',macro:'🤝',legal:'⚖️',custom_note:'📌'};
+function status(message,error=false){el('status').textContent=message;el('status').classList.toggle('error',error)}
+function date(value){return String(value||'').slice(0,10)}
+function pretty(day){const t=new Date(date(day)+'T12:00:00Z');return Number.isNaN(t.getTime())?date(day):t.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric',timeZone:'UTC'})}
+function quote(symbol){return types[symbol]||'📌'}
+function nearest(m){
+ const time=Date.parse(date(m.event_at)+'T00:00:00Z');
+ if(!Number.isFinite(time)||!bars.length)return null;
+ let point=null,best=Infinity;
+ for(const p of bars){const distance=Math.abs(Date.parse(p.time+'T00:00:00Z')-time);if(distance<best){best=distance;point=p}}
+ return best<=4*86400000?point:null;
+}
+function selectEvent(index,center=false){
+ if(index<0||index>=milestones.length)return;
+ selected=index;const e=milestones[index];
+ el('detail-name').textContent=e.title;
+ el('detail-day').textContent=pretty(e.event_at)+' · '+String(e.category).replaceAll('_',' ');
+ el('detail-text').textContent=e.ai_summary;
+ const anchor=el('detail-link');
+ if(/^https:\/\/[^ ]+/.test(e.source_url||'')){anchor.href=e.source_url;anchor.hidden=false}else{anchor.removeAttribute('href');anchor.hidden=true}
+ for(const [i,node] of [...el('events').children].entries())node.setAttribute('aria-pressed',String(i===index));
+ if(center&&chart){
+  const p=nearest(e);if(p){const idx=bars.indexOf(p),first=bars[Math.max(0,idx-22)],last=bars[Math.min(bars.length-1,idx+22)];
+   if(first&&last&&first.time!==last.time)chart.timeScale().setVisibleRange({from:first.time,to:last.time});
+  }
+ }
+ drawPins();
+}
+function showEvents(){
+ const list=el('events');list.replaceChildren();
+ el('event-count').textContent=milestones.length+' saved milestones';
+ milestones.forEach((e,i)=>{
+  const button=document.createElement('button');button.className='event';button.type='button';button.setAttribute('aria-pressed',String(i===selected));
+  const time=document.createElement('time');time.textContent=pretty(e.event_at)+' · '+quote(e.category);
+  const name=document.createElement('strong');name.textContent=e.title;button.append(time,name);
+  if(bars.length&&!nearest(e)){const label=document.createElement('em');label.textContent='Outside available price range';button.append(label)}
+  button.addEventListener('click',()=>selectEvent(i,true));list.append(button)
+ });
+ if(milestones.length&&selected<0)selectEvent(0);
+}
+function options(){return styles==='line'?{color:'#51aaf7',lineWidth:3,priceLineVisible:true,lastValueVisible:true}:
+ styles==='area'?{lineColor:'#51aaf7',topColor:'#328fd4aa',bottomColor:'#328fd400',lineWidth:3,lastValueVisible:true}:
+ {upColor:'#40cfa4',downColor:'#ef737c',borderVisible:false,wickUpColor:'#40cfa4',wickDownColor:'#ef737c'};}
+function applyRange(){
+ if(!chart||bars.length<2)return;
+ if(range==='ALL'){chart.timeScale().fitContent();return}
+ const count=range==='1M'?22:65;
+ const from=bars[Math.max(0,bars.length-count)],to=bars.at(-1);
+ if(from&&to&&from.time!==to.time)chart.timeScale().setVisibleRange({from:from.time,to:to.time});
+}
+function redraw(){
+ if(!chart||bars.length<2)return;
+ if(series){chart.removeSeries(series);series=null;markerAPI=null}
+ const seriesType=styles==='line'?light.LineSeries:styles==='area'?light.AreaSeries:light.CandlestickSeries;
+ series=chart.addSeries(seriesType,options());
+ series.setData(styles==='candles'?bars:bars.map(x=>({time:x.time,value:x.close})));
+ const markers=milestones.map((m,index)=>{const day=nearest(m);return day?{time:day.time,position:'aboveBar',shape:'circle',color:'#67e0c7',text:String(index+1)}:null})
+  .filter(Boolean).sort((a,b)=>a.time.localeCompare(b.time));
+ markerAPI=light.createSeriesMarkers(series,markers);
+ applyRange();drawPins();showEvents();
+}
+function drawPins(){
+ const host=el('pins');host.replaceChildren();
+ if(!chart||!series||!bars.length)return;
+ const width=host.clientWidth;
+ milestones.forEach((m,index)=>{
+  const day=nearest(m);if(!day)return;
+  const x=chart.timeScale().timeToCoordinate(day.time);
+  const y=series.priceToCoordinate(day.close);
+  if(x===null||y===null||x<20||x>width-20||y<55)return;
+  const b=document.createElement('button');b.type='button';b.className='pin';b.textContent=quote(m.category);
+  b.title=pretty(m.event_at)+' — '+m.title;
+  b.setAttribute('aria-label',b.title);b.dataset.selected=String(index===selected);
+  b.style.left=x+'px';b.style.top=Math.max(42,y-58-(index%2)*28)+'px';
+  b.addEventListener('click',()=>selectEvent(index));host.append(b);
+ });
+}
+async function init(){
+ const conf=await selectSupabaseConfig();
+ const {createClient}=await import('https://esm.sh/@supabase/supabase-js@2.57.0');
+ sb=createClient(conf.projectUrl,conf.publishableKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+ light=await import('https://esm.sh/lightweight-charts@5.0.8');
+ chart=light.createChart(el('chart'),{
+  autoSize:true,layout:{background:{type:light.ColorType.Solid,color:'#131e2c'},textColor:'#a7c0d3',attributionLogo:true},
+  grid:{vertLines:{color:'#243449'},horzLines:{color:'#243449'}},
+  rightPriceScale:{borderColor:'#3d536a',scaleMargins:{top:.18,bottom:.1}},
+  timeScale:{borderColor:'#3d536a',rightOffset:3,timeVisible:false},
+  crosshair:{mode:light.CrosshairMode.Normal},
+  localization:{priceFormatter:x=>'$'+Number(x).toFixed(2)}
+ });
+ chart.subscribeCrosshairMove(p=>{
+  const at=p.seriesData?.get(series);el('cursor').textContent=at?
+   '$'+Number(styles==='candles'?at.close:at.value).toFixed(2):'—';
+ });
+ chart.timeScale().subscribeVisibleLogicalRangeChange(drawPins);
+ new ResizeObserver(drawPins).observe(el('chart'));
+ for(const button of document.querySelectorAll('[data-style]'))button.addEventListener('click',()=>{
+  styles=button.dataset.style;
+  for(const b of document.querySelectorAll('[data-style]'))b.setAttribute('aria-pressed',String(b.dataset.style===styles));
+  redraw()
+ });
+ for(const button of document.querySelectorAll('[data-range]'))button.addEventListener('click',()=>{
+  range=button.dataset.range;
+  for(const b of document.querySelectorAll('[data-range]'))b.setAttribute('aria-pressed',String(b.dataset.range===range));
+  applyRange();drawPins();
+ });
+ el('load').addEventListener('click',loadPrices);
+ const {data,error}=await sb.from('orca_timeline_annotations')
+  .select('id,event_at,category,title,ai_summary,source_url')
+  .eq('ticker','ULTA').order('event_at',{ascending:true}).limit(60);
+ if(!error){milestones=(data||[]).filter(x=>x.title&&x.ai_summary);showEvents()}
+ else el('event-count').textContent='Milestones temporarily unavailable';
+}
+async function loadPrices(){
+ const button=el('load');
+ button.disabled=true;status('Checking your ORCA sign-in…');
+ try{
+  const {data:auth,error:authError}=await sb.auth.getUser();
+  if(authError||!auth?.user){status('Please sign in with your existing ORCA account in the sign-in tab, return here, and click Load again.',true);return}
+  status('Contacting your private Alpha Vantage function. This counts as a development API request…');
+  const {data,error}=await sb.functions.invoke('orca-av-ulta-private-preview',{body:{ticker:'ULTA'}});
+  if(error){
+   let message='Alpha Vantage request failed.';
+   try{const body=await error.context?.json();if(body?.error)message+= ' '+body.error;if(body?.reason)message+=' ('+body.reason+')';}catch{}
+   status(message+' Check that your ORCA Test Researcher 1 account has joined ULTA and the secret is saved.',true);return
+  }
+  if(!Array.isArray(data?.bars)||data.bars.length<2){status('Provider response had no usable bars.',true);return}
+  bars=data.bars.filter(r=>/^\d{4}-\d{2}-\d{2}$/.test(r.time)&&['open','high','low','close'].every(k=>Number.isFinite(r[k])&&r[k]>0))
+    .sort((a,b)=>a.time.localeCompare(b.time));
+  if(bars.length<2){status('No valid price bars returned.',true);return}
+  el('source').textContent='Alpha Vantage · private test';el('bars').textContent=String(bars.length);
+  el('dates').textContent=pretty(bars[0].time)+' – '+pretty(bars.at(-1).time);
+  redraw();status('Success: actual ULTA daily prices loaded into Lightweight Charts. Company milestones now align by date when within the available price range.');
+ }catch{status('Could not retrieve the private price series. Sign in and verify the function configuration.',true)}
+ finally{button.disabled=false}
+}
+init().catch(()=>status('Chart startup failed. Reload the page or check your connection.',true));
+</script>
+</body>
+</html>
