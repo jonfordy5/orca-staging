@@ -121,9 +121,7 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
    const button=document.createElement('button');
    button.type='button';button.className='orca-timeline-event';button.dataset.index=String(i);
    const media=document.createElement('span');media.className='orca-timeline-event-media';
-   if(event.image_url){
-    const image=document.createElement('img');image.src=event.image_url;image.alt='';image.loading='lazy';image.referrerPolicy='no-referrer';image.addEventListener('error',()=>{media.textContent='◆';},{once:true});media.append(image);
-   }else media.textContent=({earnings:'$',product:'◆',macro:'●',legal:'§',custom_note:'✦'})[event.category]||'◆';
+   media.textContent=({earnings:'$',product:'◆',macro:'●',legal:'§',custom_note:'✦'})[event.category]||'◆';
    const date=document.createElement('small');date.textContent=formatDate(event.event_at);
    const title=document.createElement('strong');title.textContent=event.title;
    button.append(media,date,title);
@@ -146,9 +144,7 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
    button.style.left=x+'px';button.style.top=Math.max(32,y-(i%2?55:65))+'px';
    button.title=event.title+' · '+formatDate(event.event_at);
    button.setAttribute('aria-label',event.title+' on '+formatDate(event.event_at));
-   if(event.image_url){
-    const image=document.createElement('img');image.src=event.image_url;image.alt='';image.loading='lazy';image.referrerPolicy='no-referrer';image.addEventListener('error',()=>{button.textContent='◆';},{once:true});button.append(image);
-   }else button.textContent=({earnings:'$',product:'◆',macro:'●',legal:'§',custom_note:'✦'})[event.category]||'◆';
+   button.textContent=({earnings:'$',product:'◆',macro:'●',legal:'§',custom_note:'✦'})[event.category]||'◆';
    button.addEventListener('click',()=>selectMilestone(i));pins.append(button);
   });
  }
