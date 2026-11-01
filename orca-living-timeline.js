@@ -17,9 +17,9 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
  heading.append(h,description);
  const navigation=document.createElement('div');
  navigation.className='orca-timeline-navigation';
- const prev=document.createElement('button');prev.type='button';prev.textContent='‹ Earlier';
+ const prev=document.createElement('button');prev.type='button';prev.textContent='‹';prev.setAttribute('aria-label','Jump to earliest event');prev.title='Earliest event';
  const index=document.createElement('span');index.setAttribute('aria-live','polite');
- const next=document.createElement('button');next.type='button';next.textContent='Later ›';
+ const next=document.createElement('button');next.type='button';next.textContent='›';next.setAttribute('aria-label','Jump to latest event');next.title='Latest event';
  navigation.append(prev,index,next);
  const rail=document.createElement('div');
  rail.className='orca-timeline-events';
@@ -27,6 +27,7 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
  details.className='orca-timeline-details';
  details.hidden=true;
  frame.append(heading,navigation,rail,details);
+ details.classList.add('orca-history-popover');details.setAttribute('role','dialog');details.setAttribute('aria-label','Milestone details');details.setAttribute('tabindex','-1');
  let visible='tradingview',data=[],chart=null,series=null,chartLibrary=null,activeIndex=0;
  let automaticDiscoveryAttempted=false;
  let prices=[];
@@ -89,6 +90,7 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
  }
  function renderCards(){
   rail.replaceChildren();
+  details.hidden=true;
   navigation.hidden=!data.length;
   if(!data.length){
    const empty=document.createElement('div');empty.className='orca-timeline-empty';
@@ -118,7 +120,8 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
    spine.append(stop);
   });
   rail.append(spine);
-  selectMilestone(Math.min(activeIndex,data.length-1));
+  // Do not automatically display milestone details.
+  details.hidden=true;
  }
  async function loadEvents(){
   const {data:rows,error}=await sb.from('orca_timeline_annotations')
