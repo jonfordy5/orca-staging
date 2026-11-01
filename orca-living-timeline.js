@@ -233,8 +233,9 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
   }
  }
  // Preserve the normal TradingView chart on initial load. Living Timeline is opt-in.
- await initializePrices();
  await loadEvents();
+ // Do not block workspace startup on an optional private market-data provider.
+ void initializePrices().then(()=>{if(visible==='timeline')void loadEvents();}).catch(()=>{noPrice.hidden=false;});
  const poll=setInterval(()=>{if(document.visibilityState==='visible')loadEvents()},60000);
  window.addEventListener('pagehide',()=>clearInterval(poll),{once:true});
 }
