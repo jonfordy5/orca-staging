@@ -182,7 +182,7 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
      const {data:result,error:avError}=await sb.functions.invoke('orca-av-ulta-private-preview',{body:{ticker:'ULTA'}});
      if(avError)throw avError;
      prices=(Array.isArray(result?.bars)?result.bars:[]).map(p=>({time:String(p.time),value:Number(p.close)}))
-      .filter(p=>/^\\d{4}-\\d{2}-\\d{2}$/.test(p.time)&&Number.isFinite(p.value)&&p.value>0)
+      .filter(p=>/^\d{4}-\d{2}-\d{2}$/.test(p.time)&&Number.isFinite(p.value)&&p.value>0)
       .sort((a,b)=>a.time.localeCompare(b.time));
      privatePreview=prices.length>=2;
     }catch{prices=[];}
