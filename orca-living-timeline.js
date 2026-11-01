@@ -62,7 +62,7 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
  livingButton.hidden=false;tvButton.hidden=false;
  livingButton.setAttribute('aria-pressed','false');
  tvButton.setAttribute('aria-pressed','true');
- livingButton.addEventListener('click',()=>{switchTo('timeline');void maybePopulateCompanyHistory();});
+ livingButton.addEventListener('click',()=>{switchTo('timeline');void initializePrices().then(loadEvents);void maybePopulateCompanyHistory();});
  tvButton.addEventListener('click',()=>switchTo('tradingview'));
  function validSource(value){
   try{const u=new URL(String(value));return u.protocol==='https:'&&!u.username&&!u.password?u.href:null;}catch{return null}
@@ -166,26 +166,45 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
    (prices.length>1?' · '+prices.length+' historical daily closes':' · historical price chart not yet available')+
    ' · no agent research markers';
  }
+ let pricePreviewBusy=false;
  async function initializePrices(){
-  const {data:bars,error}=await sb.from('orca_chart_daily_prices')
-   .select('session_date,close_price').eq('ticker',ticker).order('session_date',{ascending:true}).limit(1500);
-  prices=error?[]:(bars||[]).map(p=>({time:p.session_date,value:Number(p.close_price)})).filter(p=>Number.isFinite(p.value)&&p.value>0);
-  noPrice.hidden=prices.length>=2;
-  if(prices.length<2)return;
+  if(chart||pricePreviewBusy)return;
+  pricePreviewBusy=true;
   try{
-   chartLibrary=await import('https://esm.sh/lightweight-charts@5.0.8');
-   chart=chartLibrary.createChart(pricePlot,{autoSize:true,
-    layout:{background:{type:chartLibrary.ColorType.Solid,color:'#141922'},textColor:'#aeb9c8',fontFamily:'system-ui'},
-    grid:{vertLines:{color:'#232c39'},horzLines:{color:'#232c39'}},
-    rightPriceScale:{borderColor:'#3a4653'},timeScale:{borderColor:'#3a4653'}});
-   series=chart.addSeries(chartLibrary.LineSeries,{color:'#4e9deb',lineWidth:2,priceLineVisible:false,lastValueVisible:true});
-   series.setData(prices);chart.timeScale().fitContent();
-   chart.timeScale().subscribeVisibleLogicalRangeChange(drawPins);
-   const observer=new ResizeObserver(drawPins);observer.observe(pricePlot);
-   window.addEventListener('pagehide',()=>{observer.disconnect();chart?.remove()},{once:true});
-  }catch{
-   noPrice.hidden=false;noPrice.textContent='Price chart library unavailable. Sourced company milestones remain accessible below.';
-  }
+   const {data:bars,error}=await sb.from('orca_chart_daily_prices')
+    .select('session_date,close_price').eq('ticker',ticker).order('session_date',{ascending:true}).limit(1500);
+   prices=error?[]:(bars||[]).map(p=>({time:p.session_date,value:Number(p.close_price)}))
+    .filter(p=>Number.isFinite(p.value)&&p.value>0);
+   let privatePreview=false;
+   if(prices.length<2&&ticker==='ULTA'&&getUser()){
+    status.textContent='Checking private Alpha Vantage ULTA price preview…';
+    try{
+     const {data:result,error:avError}=await sb.functions.invoke('orca-av-ulta-private-preview',{body:{ticker:'ULTA'}});
+     if(avError)throw avError;
+     prices=(Array.isArray(result?.bars)?result.bars:[]).map(p=>({time:String(p.time),value:Number(p.close)}))
+      .filter(p=>/^\\d{4}-\\d{2}-\\d{2}$/.test(p.time)&&Number.isFinite(p.value)&&p.value>0)
+      .sort((a,b)=>a.time.localeCompare(b.time));
+     privatePreview=prices.length>=2;
+    }catch{prices=[];}
+   }
+   noPrice.hidden=prices.length>=2;
+   if(prices.length<2)return;
+   try{
+    chartLibrary=await import('https://esm.sh/lightweight-charts@5.0.8');
+    chart=chartLibrary.createChart(pricePlot,{autoSize:true,
+     layout:{background:{type:chartLibrary.ColorType.Solid,color:'#141922'},textColor:'#aeb9c8',fontFamily:'system-ui'},
+     grid:{vertLines:{color:'#232c39'},horzLines:{color:'#232c39'}},
+     rightPriceScale:{borderColor:'#3a4653'},timeScale:{borderColor:'#3a4653'}});
+    series=chart.addSeries(chartLibrary.LineSeries,{color:'#4e9deb',lineWidth:2,priceLineVisible:true,lastValueVisible:true});
+    series.setData(prices);chart.timeScale().fitContent();
+    chart.timeScale().subscribeVisibleLogicalRangeChange(drawPins);
+    const observer=new ResizeObserver(drawPins);observer.observe(pricePlot);
+    window.addEventListener('pagehide',()=>{observer.disconnect();chart?.remove()},{once:true});
+    if(privatePreview)status.textContent=prices.length+' actual recent ULTA closes from Alpha Vantage · earlier milestones remain accessible below';
+   }catch{
+    noPrice.hidden=false;noPrice.textContent='Price chart library unavailable. Sourced company milestones remain accessible below.';
+   }
+  }finally{pricePreviewBusy=false;}
  }
  async function maybePopulateCompanyHistory(){
   if(automaticDiscoveryAttempted||data.length>=5)return;
