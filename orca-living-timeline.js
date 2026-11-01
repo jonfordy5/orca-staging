@@ -40,7 +40,8 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
  frame.append(heading,display,navigation,rail,details);
  let visible='tradingview',data=[],chart=null,series=null,chartLibrary=null,activeIndex=0;
  let automaticDiscoveryAttempted=false;
- let prices=[];\n let priceInterval='daily';
+ let prices=[];
+ let priceInterval='daily';
  function switchTo(which){
   if(which===visible)return;
   if(which==='timeline'){
@@ -180,7 +181,8 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
      prices=(Array.isArray(result?.bars)?result.bars:[]).map(p=>({time:String(p.time),value:Number(p.close)}))
       .filter(p=>/^\d{4}-\d{2}-\d{2}$/.test(p.time)&&Number.isFinite(p.value)&&p.value>0)
       .sort((a,b)=>a.time.localeCompare(b.time));
-     privatePreview=prices.length>=2;\n     if(privatePreview)priceInterval=result?.interval==='monthly'?'monthly':'daily';
+     privatePreview=prices.length>=2;
+     if(privatePreview)priceInterval=result?.interval==='monthly'?'monthly':'daily';
     }catch{prices=[];}
    }
    noPrice.hidden=prices.length>=2;
