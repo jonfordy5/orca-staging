@@ -1,6 +1,6 @@
 // ORCA Living Timeline: sourced company milestones only, separate from TradingView.
 // Images are optional and must be licensed/authorized. No agent-research chart markers.
-export async function mountLivingTimeline({sb,ticker}){
+export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContribute=()=>false}){
  const host=document.getElementById('chart-frame');
  const status=document.getElementById('living-status');
  const livingButton=document.getElementById('living-show');
@@ -39,6 +39,7 @@ export async function mountLivingTimeline({sb,ticker}){
  details.hidden=true;
  frame.append(heading,display,navigation,rail,details);
  let visible='tradingview',data=[],chart=null,series=null,chartLibrary=null,activeIndex=0;
+ let automaticDiscoveryAttempted=false;
  let prices=[];
  function switchTo(which){
   if(which===visible)return;
@@ -61,7 +62,7 @@ export async function mountLivingTimeline({sb,ticker}){
  livingButton.hidden=false;tvButton.hidden=false;
  livingButton.setAttribute('aria-pressed','false');
  tvButton.setAttribute('aria-pressed','true');
- livingButton.addEventListener('click',()=>switchTo('timeline'));
+ livingButton.addEventListener('click',()=>{switchTo('timeline');void maybePopulateCompanyHistory();});
  tvButton.addEventListener('click',()=>switchTo('tradingview'));
  function validSource(value){
   try{const u=new URL(String(value));return u.protocol==='https:'&&!u.username&&!u.password?u.href:null;}catch{return null}
@@ -184,6 +185,36 @@ export async function mountLivingTimeline({sb,ticker}){
    window.addEventListener('pagehide',()=>{observer.disconnect();chart?.remove()},{once:true});
   }catch{
    noPrice.hidden=false;noPrice.textContent='Price chart library unavailable. Sourced company milestones remain accessible below.';
+  }
+ }
+ async function maybePopulateCompanyHistory(){
+  if(automaticDiscoveryAttempted||data.length>=5)return;
+  if(!getUser()||!canContribute()){
+   if(!data.length)status.textContent='No company history cached yet. Sign in and join this stock’s research team to populate it. Viewing cached histories is free.';
+   return;
+  }
+  automaticDiscoveryAttempted=true;
+  status.textContent='Researching and caching official company milestones. Existing research findings and TradingView are unaffected.';
+  try{
+   const {data:result,error}=await sb.functions.invoke('orca-timeline-discovery',{body:{ticker}});
+   if(error)throw error;
+   if(result?.state==='ready'){
+    await loadEvents();
+    status.textContent=(result.added||0)+' additional sourced milestones saved for '+ticker+' · cached for future visitors.';
+   }else if(result?.state==='cached'){
+    await loadEvents();
+   }else{
+    const type=String(result?.state||'unavailable');
+    const note=({
+     building:'Company milestone discovery is already underway.',
+     cooldown:'Milestone discovery is temporarily resting after a previous unsuccessful attempt.',
+     daily_limit:'Daily development safeguard reached for this account.',
+     budget_exhausted:'The shared $15 monthly AI reservation allowance has been reached.'
+    })[type]||'Automatic milestone discovery is currently unavailable.';
+    status.textContent=note+' '+data.length+' previously cached milestones remain available.';
+   }
+  }catch{
+   status.textContent='Could not build the milestone history now. Previously saved events remain available; TradingView is unaffected.';
   }
  }
  // Preserve the normal TradingView chart on initial load. Living Timeline is opt-in.
