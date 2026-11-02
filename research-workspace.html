@@ -245,6 +245,17 @@ main{max-width:1020px;margin:0 auto;padding:27px 16px 55px}
 .orca-company-timeline .orca-photo-fill[hidden]{display:none!important}
 .orca-company-timeline .orca-photo-attribution{display:block;margin-top:12px;font-size:11px;color:#cbdff3}
 .orca-company-timeline .orca-photo-attribution a{color:#a6dcff;margin:0 3px}
+
+/* Photo-backed milestones: preserve readable event titles and descriptions. */
+.orca-company-timeline .orca-history-stop .orca-timeline-event:has(.orca-photo-image){
+ height:178px!important;min-height:178px!important;max-height:178px!important;gap:3px!important;
+}
+.orca-company-timeline .orca-history-stop:nth-child(odd) .orca-timeline-event:has(.orca-photo-image){top:2px!important}
+.orca-company-timeline .orca-history-stop:nth-child(even) .orca-timeline-event:has(.orca-photo-image){bottom:2px!important}
+.orca-company-timeline .orca-history-stop .orca-timeline-event:has(.orca-photo-image) strong{-webkit-line-clamp:2;line-clamp:2}
+.orca-company-timeline .orca-history-stop .orca-timeline-event:has(.orca-photo-image) .orca-history-teaser{-webkit-line-clamp:2;line-clamp:2}
+.orca-company-timeline .orca-history-stop:has(.orca-photo-image) .orca-history-stem{top:180px!important;height:calc(50% - 180px)!important}
+.orca-company-timeline .orca-history-stop:nth-child(even):has(.orca-photo-image) .orca-history-stem{top:50%!important;height:calc(50% - 180px)!important}
 </style></head>
 <body><header><a class="brand" href="./index.html">AI STOCK<br><span>COMMONS</span></a><a id="team-link" class="connect-agent-pill" href="./connect-work.html?ticker=RKLB">Connect your agent</a></header>
 <div id="staging-indicator" class="staging-indicator" hidden>ORCA STAGING — TEST ENVIRONMENT · No production data or credentials</div>
@@ -1137,7 +1148,7 @@ document.addEventListener('visibilitychange',()=>{if(document.visibilityState===
  void loadWorkspaceCompanyName();
  const {data}=await sb.auth.getUser();user=data?.user||null;await renderCompanyProfile(ticker,sb);await refresh();
  mountStockSearch({sb,root:$('workspace-stock-search'),activeTicker:ticker}).catch(()=>{$('workspace-stock-search').textContent='Stock lookup unavailable. The requested stock workspace can still be used.';});
- if(isOrcaStaging)import('./orca-living-timeline.js?v=unsplash-visuals-20261102').then(({mountLivingTimeline})=>
+ if(isOrcaStaging)import('./orca-living-timeline.js?v=unsplash-keywords-20261102').then(({mountLivingTimeline})=>
   mountLivingTimeline({sb,ticker,getUser:()=>user,canContribute:()=>ready,getFindings:()=>findings})
  ).catch(err=>{console.error('ORCA Living Timeline isolated error:',err);$('living-status').textContent='Timeline unavailable; TradingView remains available.';});
   // Passive monitor for the HUMAN observer's browser; no autonomous research or API requests.
