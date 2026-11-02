@@ -104,8 +104,21 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
   const title=document.createElement('h3');title.textContent=event.title;
   const meta=document.createElement('small');meta.textContent=formatDate(event.event_at)+' · '+event.category.replace('_',' ');
   const body=document.createElement('p');body.textContent=event.ai_summary;
+  const brief=event.quick_brief;
+  const hasBrief=brief&&Array.isArray(brief.points)&&brief.points.length>=2&&typeof brief.why==='string';
+  const points=document.createElement('ul');points.className='orca-brief-points';
+  if(hasBrief){
+   for(const point of brief.points.slice(0,2)){
+    if(typeof point!=='string'||!point.trim())continue;
+    const li=document.createElement('li');li.textContent=point;points.append(li);
+   }
+  }
+  const takeaway=document.createElement('p');takeaway.className='orca-brief-takeaway';
+  if(hasBrief)takeaway.textContent='Why it matters: '+brief.why;
   const link=document.createElement('a');link.href=event.source_url;link.target='_blank';link.rel='noopener noreferrer';link.textContent='Read original source';
-  details.append(title,meta,body,link);
+  details.append(title,meta,body);
+  if(hasBrief){details.append(points,takeaway)}
+  details.append(link);
   if(event.image_url){
    const image=document.createElement('img');
    image.src=event.image_url;image.alt=event.title;image.loading='lazy';image.referrerPolicy='no-referrer';
@@ -198,7 +211,7 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
  },{passive:false});
  async function loadEvents(){
   const {data:rows,error}=await sb.from('orca_timeline_annotations')
-   .select('id,event_at,category,title,ai_summary,source_url,image_url,image_credit')
+   .select('id,event_at,category,title,ai_summary,quick_brief,source_url,image_url,image_credit')
    .eq('ticker',ticker).order('event_at',{ascending:true}).limit(500);
   if(error){status.textContent='Company milestone data unavailable; TradingView is unaffected.';return}
   data=(rows||[]).filter(x=>validSource(x.source_url))
