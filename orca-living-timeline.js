@@ -170,9 +170,17 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
    card.append(icon,date,title,summary);
    const stem=document.createElement('span');stem.className='orca-history-stem';
    const dot=document.createElement('span');dot.className='orca-history-dot';
-   const year=document.createElement('span');year.className='orca-history-year';
-   year.textContent=String(new Date(event.event_at).getUTCFullYear());
-   stop.append(card,stem,dot,year);
+   // One label per calendar-year group, placed by its middle event.
+   // All milestones still retain their individual dates on their cards.
+   const eventYear=new Date(event.event_at).getUTCFullYear();
+   const sameYearIndices=data.map((item,index)=>new Date(item.event_at).getUTCFullYear()===eventYear?index:-1).filter(index=>index>=0);
+   const yearLabelIndex=sameYearIndices[Math.floor((sameYearIndices.length-1)/2)];
+   stop.append(card,stem,dot);
+   if(i===yearLabelIndex){
+    const year=document.createElement('span');year.className='orca-history-year';
+    year.textContent=String(eventYear);
+    stop.append(year);
+   }
    card.addEventListener('click',()=>selectMilestone(i));
    stop.addEventListener('keydown',e=>{if(e.key==='ArrowRight'){e.preventDefault();selectMilestone(Math.min(i+1,data.length-1));}if(e.key==='ArrowLeft'){e.preventDefault();selectMilestone(Math.max(i-1,0));}});
    spine.append(stop);
