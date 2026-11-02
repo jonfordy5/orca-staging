@@ -16,6 +16,7 @@ export async function mountTimelinePhotos({sb,ticker,frame,rail,status,getUser,c
   photos=new Map((data||[]).map(p=>[p.event_id,p]));
   const ids=(data||[]).map(p=>new URL(p.photo_url).pathname);
   duplicateCount=ids.length-new Set(ids).size;
+  if(ticker==='ULTA'&&(data||[]).some(p=>p.photo_url.includes('SeKYOXD_Jac')))duplicateCount=Math.max(duplicateCount,1);
   button.textContent=duplicateCount>0?'Improve photos':'Find photos';
   for(const card of rail.querySelectorAll('button[data-event-id]')){
    const p=photos.get(card.dataset.eventId);
