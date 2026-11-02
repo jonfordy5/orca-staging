@@ -170,15 +170,17 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
    card.append(icon,date,title,summary);
    const stem=document.createElement('span');stem.className='orca-history-stem';
    const dot=document.createElement('span');dot.className='orca-history-dot';
-   // One label per calendar-year group, placed by its middle event.
-   // All milestones still retain their individual dates on their cards.
+   // Render exactly one distinct year badge, anchored to the middle event of that year.
+   // Legacy .orca-history-year labels are hidden by CSS as a cache-safe fallback.
    const eventYear=new Date(event.event_at).getUTCFullYear();
    const sameYearIndices=data.map((item,index)=>new Date(item.event_at).getUTCFullYear()===eventYear?index:-1).filter(index=>index>=0);
    const yearLabelIndex=sameYearIndices[Math.floor((sameYearIndices.length-1)/2)];
    stop.append(card,stem,dot);
    if(i===yearLabelIndex){
-    const year=document.createElement('span');year.className='orca-history-year';
+    const year=document.createElement('span');
+    year.className='orca-history-year-once';
     year.textContent=String(eventYear);
+    year.setAttribute('aria-label','Year '+eventYear);
     stop.append(year);
    }
    card.addEventListener('click',()=>selectMilestone(i));
