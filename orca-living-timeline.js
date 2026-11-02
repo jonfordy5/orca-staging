@@ -35,6 +35,7 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
  let visible='tradingview',data=[],chart=null,series=null,chartLibrary=null,activeIndex=0;
  let automaticDiscoveryAttempted=false;
  let prices=[];
+ let photoMount=null;
  function switchTo(which){
   if(which===visible)return;
   if(which==='timeline'){
@@ -116,7 +117,7 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
   data.forEach((event,i)=>{
    const stop=document.createElement('div');stop.className='orca-history-stop';
    const card=document.createElement('button');card.type='button';card.className='orca-timeline-event';
-   card.dataset.index=String(i);card.setAttribute('aria-pressed',String(i===activeIndex));
+   card.dataset.index=String(i);card.dataset.eventId=event.id;card.setAttribute('aria-pressed',String(i===activeIndex));
    const icon=document.createElement('span');icon.className='orca-timeline-event-media';
    const fallbackIcon=icons[event.category]||'◆';
    icon.textContent=fallbackIcon;
@@ -148,6 +149,7 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
   // Do not automatically display milestone details.
   closeDetails();
   index.textContent=data.length+' company milestones';
+  if(photoMount)void photoMount.refresh();
  }
  function jumpTo(targetIndex){
   if(!data.length)return;
@@ -217,6 +219,10 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
  }
  // Preserve the normal TradingView chart on initial load. Living Timeline is opt-in.
  await loadEvents();
+ try{
+  const module=await import('./orca-timeline-photos.js?v=1');
+  photoMount=await module.mountTimelinePhotos({sb,ticker,frame,rail,status,getUser,canContribute});
+ }catch(error){console.warn('Optional history photography is unavailable',error)}
  const poll=setInterval(()=>{if(document.visibilityState==='visible')loadEvents()},60000);
  window.addEventListener('pagehide',()=>clearInterval(poll),{once:true});
 }
