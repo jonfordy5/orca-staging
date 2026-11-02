@@ -256,6 +256,121 @@ main{max-width:1020px;margin:0 auto;padding:27px 16px 55px}
 .orca-company-timeline .orca-history-stop .orca-timeline-event:has(.orca-photo-image) .orca-history-teaser{-webkit-line-clamp:2;line-clamp:2}
 .orca-company-timeline .orca-history-stop:has(.orca-photo-image) .orca-history-stem{top:180px!important;height:calc(50% - 180px)!important}
 .orca-company-timeline .orca-history-stop:nth-child(even):has(.orca-photo-image) .orca-history-stem{top:50%!important;height:calc(50% - 180px)!important}
+
+/* ORCA photo-cover cards: use the real selected Unsplash/approved photo as the FULL card background.
+   Text is in a gradient layer; no-image milestones keep their original light design. */
+.orca-company-timeline .orca-history-stop .orca-timeline-event:has(.orca-history-thumb img){
+ position:absolute!important;
+ isolation:isolate;
+ display:flex!important;
+ flex-direction:column!important;
+ justify-content:flex-end!important;
+ align-items:flex-start!important;
+ text-align:left!important;
+ gap:4px!important;
+ height:178px!important;
+ min-height:178px!important;
+ max-height:178px!important;
+ padding:13px 12px 12px!important;
+ color:#f7fbff!important;
+ background:#15283c!important;
+ border:2px solid #9accf5!important;
+ box-shadow:0 9px 22px #0008!important;
+ text-shadow:0 1px 3px #000b;
+ overflow:hidden!important;
+}
+.orca-company-timeline .orca-history-stop .orca-timeline-event:has(.orca-history-thumb img)::before{
+ content:"";
+ position:absolute;
+ inset:0;
+ z-index:1;
+ pointer-events:none;
+ border-radius:inherit;
+ background:linear-gradient(to bottom,rgba(4,12,24,.05) 0%,rgba(4,12,24,.27) 25%,rgba(4,12,24,.69) 58%,rgba(4,12,24,.96) 100%);
+}
+.orca-company-timeline .orca-history-stop .orca-timeline-event:has(.orca-history-thumb img) .orca-timeline-event-media.orca-history-thumb{
+ position:absolute!important;
+ inset:0!important;
+ z-index:0;
+ width:100%!important;
+ height:100%!important;
+ max-height:none!important;
+ min-height:100%!important;
+ margin:0!important;
+ border:0!important;
+ padding:0!important;
+ border-radius:0!important;
+ overflow:hidden!important;
+ background:#172d42!important;
+}
+.orca-company-timeline .orca-history-stop .orca-timeline-event:has(.orca-history-thumb img) .orca-history-thumb img{
+ display:block!important;
+ width:100%!important;
+ height:100%!important;
+ min-height:100%!important;
+ object-fit:cover!important;
+ object-position:center center;
+}
+.orca-company-timeline .orca-history-stop .orca-timeline-event:has(.orca-history-thumb img) > small,
+.orca-company-timeline .orca-history-stop .orca-timeline-event:has(.orca-history-thumb img) > strong,
+.orca-company-timeline .orca-history-stop .orca-timeline-event:has(.orca-history-thumb img) > .orca-history-teaser{
+ position:relative;
+ z-index:2;
+ color:#f8fbff!important;
+ width:100%;
+ max-width:100%;
+ text-align:left!important;
+ margin:0;
+}
+.orca-company-timeline .orca-history-stop .orca-timeline-event:has(.orca-history-thumb img) > small{
+ font-size:11px!important;
+ line-height:1.15!important;
+ font-weight:650;
+ color:#d9efff!important;
+}
+.orca-company-timeline .orca-history-stop .orca-timeline-event:has(.orca-history-thumb img) > strong{
+ font-size:12px!important;
+ line-height:1.28!important;
+ font-weight:800;
+ -webkit-line-clamp:2!important;
+ line-clamp:2!important;
+}
+.orca-company-timeline .orca-history-stop .orca-timeline-event:has(.orca-history-thumb img) > .orca-history-teaser{
+ font-size:10px!important;
+ line-height:1.25!important;
+ color:#e4f1ff!important;
+ -webkit-line-clamp:2!important;
+ line-clamp:2!important;
+}
+.orca-company-timeline .orca-history-stop .orca-timeline-event:has(.orca-history-thumb img)[aria-pressed="true"]{
+ border-color:#62b4ff!important;
+ box-shadow:0 0 0 3px #4299ff8c,0 10px 26px #000a!important;
+}
+.orca-company-timeline .orca-history-stop .orca-timeline-event:has(.orca-history-thumb img):focus-visible{
+ outline:3px solid #c5e7ff!important;
+ outline-offset:3px;
+}
+.orca-company-timeline .orca-history-stop:has(.orca-history-thumb img) .orca-history-stem{
+ top:180px!important;
+ height:calc(50% - 180px)!important;
+}
+.orca-company-timeline .orca-history-stop:nth-child(even):has(.orca-history-thumb img) .orca-history-stem{
+ top:50%!important;
+ height:calc(50% - 180px)!important;
+}
+.orca-company-timeline .orca-timeline-events:has(.orca-history-thumb img) .orca-history-spine{
+ min-height:410px!important;
+}
+.orca-company-timeline .orca-timeline-events:has(.orca-history-thumb img) .orca-history-stop{
+ min-height:410px!important;
+}
+@media(max-width:600px){
+ .orca-company-timeline .orca-timeline-events:has(.orca-history-thumb img){min-height:410px!important}
+ .orca-company-timeline .orca-history-stop .orca-timeline-event:has(.orca-history-thumb img){
+  padding:12px 10px 11px!important;
+ }
+}
+
 </style></head>
 <body><header><a class="brand" href="./index.html">AI STOCK<br><span>COMMONS</span></a><a id="team-link" class="connect-agent-pill" href="./connect-work.html?ticker=RKLB">Connect your agent</a></header>
 <div id="staging-indicator" class="staging-indicator" hidden>ORCA STAGING — TEST ENVIRONMENT · No production data or credentials</div>
