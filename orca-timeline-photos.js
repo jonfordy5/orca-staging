@@ -16,6 +16,9 @@ export async function mountTimelinePhotos({sb,ticker,frame,rail,status,getUser,c
   photos=new Map((data||[]).map(p=>[p.event_id,p]));
   const ids=(data||[]).map(p=>new URL(p.photo_url).pathname);
   duplicateCount=ids.length-new Set(ids).size;
+  // Different photo IDs can still depict almost identical scenes.
+  const related=(data||[]).filter(p=>/woman-holding.*product.*store|woman-holding.*skincare.*beauty-store/.test(p.photo_url||''));
+  if(related.length>1&&new Set(related.map(p=>p.photographer)).size===1)duplicateCount=Math.max(duplicateCount,1);
   if(ticker==='ULTA'&&(data||[]).some(p=>p.photo_url.includes('SeKYOXD_Jac')))duplicateCount=Math.max(duplicateCount,1);
   button.textContent=duplicateCount>0?'Improve photos':'Find photos';
   for(const card of rail.querySelectorAll('button[data-event-id]')){
