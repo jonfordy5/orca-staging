@@ -1,0 +1,44 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ORCA Unsplash photo test</title><style>
+*{box-sizing:border-box}body{background:#0c1627;color:#eaf4ff;font:15px/1.5 system-ui,sans-serif;margin:0;padding:25px 16px}main{max-width:1080px;margin:auto}a{color:#8ed2ff}h1{font-size:clamp(26px,5vw,38px)}.note{color:#b7d1e8}.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}article{background:#182a43;border:1px solid #416180;border-radius:12px;overflow:hidden}article img{width:100%;height:158px;object-fit:cover;display:block}article div{padding:12px}small{display:block;color:#b4cce3}.status{margin:18px 0;background:#213b54;border-radius:9px;padding:12px}.actions{display:flex;gap:10px;flex-wrap:wrap;margin:16px 0 20px}button{background:#2e7ccd;color:#fff;border:1px solid #8bc8ff;border-radius:9px;padding:10px 14px;cursor:pointer}button:disabled{opacity:.5}section h2{margin-top:28px}.empty{padding:22px;color:#a9c2d9}@media(max-width:650px){.grid{grid-template-columns:1fr}article img{height:190px}}</style></head><body><main>
+<a href="./research-workspace.html?environment=orca-staging&amp;ticker=ULTA">← Return to ORCA ULTA</a>
+<h1>Unsplash milestone-photo pilot</h1><p class="note">Real stock photography, for visual illustration only—not photographs of the actual ULTA events. This page does not publish images to ORCA or modify its database. Select a category below to search only when needed.</p>
+<div class="actions"><button data-event="ulta-ipo">2007 IPO concept</button><button data-event="ulta-target">Target partnership concept</button><button data-event="ulta-space-nk">Space NK concept</button></div>
+<div id="status" class="status" role="status">Sign in to ORCA staging first, then select an event to preview photos.</div>
+<div id="results" class="grid" aria-live="polite"></div>
+<p class="note">Each photo links to its original Unsplash page and credits the photographer. Image selection requires review and appropriate Unsplash API attribution. ORCA's working timeline is untouched.</p>
+</main><script type="module">
+import {createClient} from 'https://esm.sh/@supabase/supabase-js@2.57.0';
+import {selectSupabaseConfig} from './orca-staging-config.js';
+const status=document.getElementById('status'),out=document.getElementById('results');
+let busy=false;
+for(const button of document.querySelectorAll('button[data-event]'))button.addEventListener('click',()=>void run(button.dataset.event));
+function setStatus(s){status.textContent=s;}
+function link(href,text){const a=document.createElement('a');a.href=href;a.target='_blank';a.rel='noopener noreferrer';a.textContent=text;return a;}
+async function run(event){
+ if(busy)return;busy=true;out.replaceChildren();
+ document.querySelectorAll('button[data-event]').forEach(b=>b.disabled=true);
+ setStatus('Checking ORCA session and searching Unsplash…');
+ try{
+  const {projectUrl,publishableKey}=await selectSupabaseConfig();
+  const sb=createClient(projectUrl,publishableKey,{auth:{persistSession:true,autoRefreshToken:true}});
+  const {data:{session}}=await sb.auth.getSession();
+  if(!session?.access_token){setStatus('Not signed in. Sign in to your existing ORCA account, then return to this page.');return;}
+  const url=projectUrl+'/functions/v1/orca-unsplash-photo-pilot?event='+encodeURIComponent(event);
+  const response=await fetch(url,{headers:{Authorization:'Bearer '+session.access_token,apikey:publishableKey}});
+  const payload=await response.json();
+  if(!response.ok)throw Error(payload.error||'Photo search failed');
+  if(!payload.photos?.length){setStatus('No photos returned for this query.');return;}
+  setStatus(payload.photos.length+' illustrative photos returned. Review before selecting anything for the timeline.');
+  for(const p of payload.photos){
+   if(!p.image_url||!p.photo_url||!p.photographer_url)continue;
+   const card=document.createElement('article');
+   const img=document.createElement('img');img.src=p.image_url;img.alt='Illustrative photography, not the actual company event';img.loading='lazy';
+   const details=document.createElement('div');
+   const label=document.createElement('strong');label.textContent='Illustrative photo';
+   const credit=document.createElement('small');credit.append('Photo by ',link(p.photographer_url,p.photographer||'photographer'),' on ',link('https://unsplash.com/?utm_source=ai_stock_commons_orca&utm_medium=referral','Unsplash'));
+   details.append(label,credit,link(p.photo_url,'View original image'));card.append(img,details);out.append(card);
+  }
+ }catch(error){setStatus('Preview unavailable: '+String(error.message||error));}
+ finally{busy=false;document.querySelectorAll('button[data-event]').forEach(b=>b.disabled=false);}
+}
+</script></body></html>
