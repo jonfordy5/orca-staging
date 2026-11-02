@@ -26,7 +26,11 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
  const details=document.createElement('section');
  details.className='orca-timeline-details';
  details.hidden=true;
- frame.append(heading,navigation,rail,details);
+ const backdrop=document.createElement('div');
+ backdrop.className='orca-history-backdrop';
+ backdrop.hidden=true;
+ backdrop.setAttribute('aria-hidden','true');
+ frame.append(heading,navigation,rail,backdrop,details);
  details.classList.add('orca-history-popover');details.setAttribute('role','dialog');details.setAttribute('aria-label','Milestone details');details.setAttribute('tabindex','-1');
  let visible='tradingview',data=[],chart=null,series=null,chartLibrary=null,activeIndex=0;
  let automaticDiscoveryAttempted=false;
@@ -44,6 +48,7 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
    while(host.firstChild)host.removeChild(host.firstChild);
    host.append(tvBackup);
    visible='tradingview';
+   closeDetails();
    livingButton?.setAttribute('aria-pressed','false');
    tvButton?.setAttribute('aria-pressed','true');
   }
@@ -63,9 +68,16 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
   return url;
  }
  const formatDate=value=>new Date(value).toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric',timeZone:'UTC'});
+ function closeDetails(){
+  details.hidden=true;
+  backdrop.hidden=true;
+  details.setAttribute('aria-hidden','true');
+ }
  function selectMilestone(i){
   if(!data.length)return;
-  activeIndex=(i+data.length)%data.length;
+  const nextIndex=(i+data.length)%data.length;
+  if(!details.hidden&&activeIndex===nextIndex){closeDetails();return;}
+  activeIndex=nextIndex;
   const event=data[activeIndex];
   for(const item of rail.querySelectorAll('button[data-index]'))item.setAttribute('aria-pressed',String(Number(item.dataset.index)===activeIndex));
   details.replaceChildren();
@@ -84,13 +96,15 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
    }
   }
   details.hidden=false;
+  backdrop.hidden=false;
+  details.removeAttribute('aria-hidden');
   index.textContent='Milestone '+(activeIndex+1)+' of '+data.length;
   const selected=rail.querySelector('.orca-timeline-event[data-index="'+activeIndex+'"]');
   if(selected){selected.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});selected.focus({preventScroll:true});}
  }
  function renderCards(){
   rail.replaceChildren();
-  details.hidden=true;
+  closeDetails();
   navigation.hidden=!data.length;
   if(!data.length){
    const empty=document.createElement('div');empty.className='orca-timeline-empty';
@@ -107,9 +121,10 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
    icon.textContent=icons[event.category]||'◆';
    const date=document.createElement('small');date.textContent=formatDate(event.event_at);
    const title=document.createElement('strong');title.textContent=event.title;
-   const category=document.createElement('span');category.className='orca-history-category';
-   category.textContent=String(event.category||'milestone').replace('_',' ');
-   card.append(icon,date,title,category);
+   const summary=document.createElement('span');summary.className='orca-history-teaser';
+   summary.textContent=String(event.ai_summary||'').trim();
+   card.setAttribute('aria-label',formatDate(event.event_at)+': '+event.title+'. Select to read sourced details.');
+   card.append(icon,date,title,summary);
    const stem=document.createElement('span');stem.className='orca-history-stem';
    const dot=document.createElement('span');dot.className='orca-history-dot';
    const year=document.createElement('span');year.className='orca-history-year';
@@ -121,8 +136,34 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
   });
   rail.append(spine);
   // Do not automatically display milestone details.
-  details.hidden=true;
+  closeDetails();
+  index.textContent=data.length+' company milestones';
  }
+ function jumpTo(targetIndex){
+  if(!data.length)return;
+  closeDetails();
+  activeIndex=targetIndex;
+  for(const card of rail.querySelectorAll('.orca-timeline-event[data-index]')){
+   card.setAttribute('aria-pressed',String(Number(card.dataset.index)===targetIndex));
+  }
+  index.textContent='Milestone '+(targetIndex+1)+' of '+data.length;
+  const target=rail.querySelector('.orca-timeline-event[data-index="'+targetIndex+'"]');
+  if(target){target.scrollIntoView({behavior:'smooth',block:'nearest',inline:targetIndex===0?'start':'end'});}
+ }
+ prev.addEventListener('click',()=>jumpTo(0));
+ next.addEventListener('click',()=>jumpTo(data.length-1));
+ // Capture outside clicks, including clicks elsewhere on the page.
+ document.addEventListener('pointerdown',event=>{
+  if(visible!=='timeline'||details.hidden)return;
+  if(!details.contains(event.target)&&!event.target.closest?.('.orca-timeline-event'))closeDetails();
+ },true);
+ document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!details.hidden)closeDetails();});
+ rail.addEventListener('wheel',event=>{
+  if(Math.abs(event.deltaY)>Math.abs(event.deltaX)&&rail.scrollWidth>rail.clientWidth){
+   rail.scrollLeft+=event.deltaY;
+   event.preventDefault();
+  }
+ },{passive:false});
  async function loadEvents(){
   const {data:rows,error}=await sb.from('orca_timeline_annotations')
    .select('id,event_at,category,title,ai_summary,source_url,image_url,image_credit')
