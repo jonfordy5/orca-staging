@@ -36,12 +36,31 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
  let automaticDiscoveryAttempted=false;
  let prices=[];
  let photoMount=null;
+ function fitRailEdges(){
+  const spine=rail.querySelector('.orca-history-spine');
+  const stop=spine?.querySelector('.orca-history-stop');
+  if(!spine||!stop||!rail.clientWidth)return;
+  const padding=Math.max(30,Math.round((rail.clientWidth-stop.getBoundingClientRect().width)/2));
+  spine.style.paddingLeft=padding+'px';
+  spine.style.paddingRight=padding+'px';
+ }
+ function centerMilestone(element,behavior='smooth'){
+  const stop=element?.closest('.orca-history-stop');
+  if(!stop||!rail.clientWidth)return;
+  fitRailEdges();
+  const left=stop.offsetLeft+stop.offsetWidth/2-rail.clientWidth/2;
+  rail.scrollTo({left:Math.max(0,left),behavior});
+ }
+ window.addEventListener('resize',()=>{
+  if(visible==='timeline')fitRailEdges();
+ });
  function switchTo(which){
   if(which===visible)return;
   if(which==='timeline'){
    while(host.firstChild)tvBackup.append(host.firstChild);
    host.append(frame);
    visible='timeline';
+   requestAnimationFrame(()=>{fitRailEdges();if(rail.scrollLeft===0)centerMilestone(rail.querySelector('.orca-timeline-event[data-index="0"]'),'instant')});
    livingButton?.setAttribute('aria-pressed','true');
    tvButton?.setAttribute('aria-pressed','false');
    // History uses its own event spine; TradingView remains a separate chart mode.
@@ -101,7 +120,7 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
   details.removeAttribute('aria-hidden');
   index.textContent='Milestone '+(activeIndex+1)+' of '+data.length;
   const selected=rail.querySelector('.orca-timeline-event[data-index="'+activeIndex+'"]');
-  if(selected){selected.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});selected.focus({preventScroll:true});}
+  if(selected){centerMilestone(selected);selected.focus({preventScroll:true});}
  }
  function renderCards(){
   rail.replaceChildren();
@@ -146,6 +165,7 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
    spine.append(stop);
   });
   rail.append(spine);
+  if(visible==='timeline')fitRailEdges();
   // Do not automatically display milestone details.
   closeDetails();
   index.textContent=data.length+' company milestones';
@@ -160,7 +180,7 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
   }
   index.textContent='Milestone '+(targetIndex+1)+' of '+data.length;
   const target=rail.querySelector('.orca-timeline-event[data-index="'+targetIndex+'"]');
-  if(target){target.scrollIntoView({behavior:'smooth',block:'nearest',inline:targetIndex===0?'start':'end'});}
+  if(target)centerMilestone(target);
  }
  prev.addEventListener('click',()=>jumpTo(0));
  next.addEventListener('click',()=>jumpTo(data.length-1));
