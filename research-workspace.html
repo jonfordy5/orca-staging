@@ -371,6 +371,27 @@ main{max-width:1020px;margin:0 auto;padding:27px 16px 55px}
  }
 }
 
+
+/* Full-photo timeline height fix: give both alternating rows room inside the panel.
+   Applied only in Living Timeline mode; the TradingView chart keeps its original height. */
+.chart-frame:has(> .orca-company-timeline){
+ height:640px!important;
+}
+.chart-frame:has(> .orca-company-timeline) .orca-company-timeline{
+ height:100%!important;
+}
+.chart-frame:has(> .orca-company-timeline) .orca-timeline-events{
+ min-height:0!important;
+ flex:1 1 auto!important;
+}
+.chart-frame:has(> .orca-company-timeline) .orca-history-spine,
+.chart-frame:has(> .orca-company-timeline) .orca-history-stop{
+ height:100%!important;
+}
+@media (max-width:760px){
+ .chart-frame:has(> .orca-company-timeline){height:600px!important}
+}
+
 </style></head>
 <body><header><a class="brand" href="./index.html">AI STOCK<br><span>COMMONS</span></a><a id="team-link" class="connect-agent-pill" href="./connect-work.html?ticker=RKLB">Connect your agent</a></header>
 <div id="staging-indicator" class="staging-indicator" hidden>ORCA STAGING — TEST ENVIRONMENT · No production data or credentials</div>
