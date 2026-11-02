@@ -118,7 +118,17 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
    const card=document.createElement('button');card.type='button';card.className='orca-timeline-event';
    card.dataset.index=String(i);card.setAttribute('aria-pressed',String(i===activeIndex));
    const icon=document.createElement('span');icon.className='orca-timeline-event-media';
-   icon.textContent=icons[event.category]||'◆';
+   const fallbackIcon=icons[event.category]||'◆';
+   icon.textContent=fallbackIcon;
+   // Only use photo records with a source/credit; the database currently has none for ULTA.
+   if(event.image_url&&event.image_credit){
+    const photo=document.createElement('img');
+    photo.src=event.image_url;photo.alt='';photo.loading='lazy';
+    photo.referrerPolicy='no-referrer';
+    photo.addEventListener('error',()=>{icon.classList.remove('orca-history-thumb');icon.replaceChildren(document.createTextNode(fallbackIcon));},{once:true});
+    icon.classList.add('orca-history-thumb');
+    icon.replaceChildren(photo);
+   }
    const date=document.createElement('small');date.textContent=formatDate(event.event_at);
    const title=document.createElement('strong');title.textContent=event.title;
    const summary=document.createElement('span');summary.className='orca-history-teaser';
