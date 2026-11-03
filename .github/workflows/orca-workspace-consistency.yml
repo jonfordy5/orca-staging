@@ -7,6 +7,9 @@ on:
       - 'orca-company-profile.js'
       - 'orca-auto-company-profile.js'
       - 'orca-stock-search.js'
+      - 'orca-living-timeline.js'
+      - 'orca-timeline-photos.js'
+      - 'docs/orca-company-page-standard.md'
       - 'scripts/check-shared-research-workspace.cjs'
       - '.github/workflows/orca-workspace-consistency.yml'
   pull_request:
