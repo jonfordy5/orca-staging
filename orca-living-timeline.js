@@ -18,7 +18,7 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
  const navigation=document.createElement('div');
  navigation.className='orca-timeline-navigation';
  const prev=document.createElement('button');prev.type='button';prev.textContent='‹';prev.setAttribute('aria-label','Jump to earliest event');prev.title='Earliest event';
- const index=document.createElement('span');index.setAttribute('aria-live','polite');
+ const index=document.createElement('span');index.className='orca-timeline-index';index.setAttribute('aria-live','polite');
  const next=document.createElement('button');next.type='button';next.textContent='›';next.setAttribute('aria-label','Jump to latest event');next.title='Latest event';
  navigation.append(prev,index,next);
  const rail=document.createElement('div');
@@ -270,7 +270,7 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
  // Preserve the normal TradingView chart on initial load. Living Timeline is opt-in.
  await loadEvents();
  try{
-  const module=await import('./orca-timeline-photos.js?v=5');
+  const module=await import('./orca-timeline-photos.js?v=6');
   photoMount=await module.mountTimelinePhotos({sb,ticker,frame,rail,status,getUser,canContribute});
  }catch(error){console.warn('Optional history photography is unavailable',error)}
  const poll=setInterval(()=>{if(document.visibilityState==='visible')loadEvents()},60000);
