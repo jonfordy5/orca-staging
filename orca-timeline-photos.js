@@ -22,12 +22,19 @@ export async function mountTimelinePhotos({sb,ticker,frame,rail,status,getUser,c
   const {data,error}=await sb.from('orca_timeline_photo_selections')
    .select('event_id,image_url,full_image_url,photo_url,photographer,photographer_url,needs_review,strategy_version').eq('ticker',ticker).limit(500);
   if(error){button.hidden=true;return;}
-  photos=new Map((data||[]).map(p=>[p.event_id,p]));
-  // Evaluate only displayed milestones; cached photos for archived events
-  // must not make an incomplete ten-card timeline appear finished.
+  // Never display photos flagged as misleading: keep cached records for audit,
+  // but show a clean card until an appropriate replacement has been selected.
+  const rawPhotos=new Map((data||[]).map(p=>[p.event_id,p]));
+  photos=new Map((data||[]).filter(p=>!p.needs_review).map(p=>[p.event_id,p]));
   const visibleCards=Array.from(rail.querySelectorAll('button[data-event-id]'));
-  const visiblePhotos=visibleCards.map(card=>photos.get(card.dataset.eventId)).filter(Boolean);
-  remainingPhotos=visibleCards.filter(card=>!photos.has(card.dataset.eventId)).length;
+  for(const card of visibleCards){
+   if(!rawPhotos.get(card.dataset.eventId)?.needs_review)continue;
+   const slot=card.querySelector('.orca-timeline-event-media');
+   if(slot){slot.replaceChildren(document.createTextNode('◆'));slot.classList.remove('orca-history-thumb');}
+   card.title='This milestone photo is awaiting a relevant replacement.';
+  }
+  const visiblePhotos=visibleCards.map(card=>rawPhotos.get(card.dataset.eventId)).filter(Boolean);
+  remainingPhotos=visibleCards.filter(card=>!rawPhotos.has(card.dataset.eventId)).length;
   const ids=visiblePhotos.map(p=>{
    try{return new URL(p.photo_url).pathname}catch{return p.image_url||''}
   });
