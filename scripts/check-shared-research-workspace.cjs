@@ -104,5 +104,14 @@ check('Universal page standard is documented without a hard metadata cap', () =>
   pageStandard.includes('not a hard 20 KiB ceiling') &&
   pageStandard.includes('Never overwrite archived findings'));
 
+check('Empty registered timelines explain consent and offer a generate action', () =>
+  timeline.includes("empty.textContent='No sourced company milestones cached") &&
+  timeline.includes("generate.textContent='Generate company history'") &&
+  timeline.includes("generate.addEventListener('click',()=>void maybePopulateCompanyHistory())"));
+check('Timeline generation checks opted-in researcher without requiring stock membership in UI', () =>
+  timeline.includes("async function checkHistoryPermission()") &&
+  timeline.includes(".eq('owner_id',user.id).eq('opted_in',true)") &&
+  timeline.includes("canContribute:()=>historyAuthorized") &&
+  timeline.includes('discoveryPending=true'));
 console.log('\nShared workspace checks: ' + passed + ' passed, ' + failures.length + ' failed.');
 if (failures.length) process.exitCode = 1;
