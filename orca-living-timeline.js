@@ -142,6 +142,7 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
  function renderCards(){
   rail.replaceChildren();
   closeDetails();
+  frame.classList.toggle('orca-history-empty',!data.length);
   navigation.hidden=!data.length;
   if(!data.length){
    const empty=document.createElement('div');empty.className='orca-timeline-empty';
