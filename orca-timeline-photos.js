@@ -10,21 +10,33 @@ export async function mountTimelinePhotos({sb,ticker,frame,rail,status,getUser,c
  let photos=new Map();
  let duplicateCount=0;
  let remainingPhotos=0;
+ let actionPending=false;
+ function updatePhotoAction(){
+  const needsAction=duplicateCount>0||remainingPhotos>0;
+  // A finished timeline should show its photos, not a disabled "Photos ready" button.
+  button.hidden=!needsAction||!(getUser()&&canContribute());
+  button.disabled=actionPending;
+  if(!actionPending)button.textContent=duplicateCount>0?'Improve photos':'Find photos';
+ }
  async function refresh(){
   const {data,error}=await sb.from('orca_timeline_photo_selections')
    .select('event_id,image_url,full_image_url,photo_url,photographer,photographer_url,needs_review,strategy_version').eq('ticker',ticker).limit(500);
-  if(error)return;
+  if(error){button.hidden=true;return;}
   photos=new Map((data||[]).map(p=>[p.event_id,p]));
-  const allEvents=rail.querySelectorAll('button[data-event-id]').length;
-  remainingPhotos=Math.max(0,allEvents-photos.size);
-  const ids=(data||[]).map(p=>new URL(p.photo_url).pathname);
+  // Evaluate only displayed milestones; cached photos for archived events
+  // must not make an incomplete ten-card timeline appear finished.
+  const visibleCards=Array.from(rail.querySelectorAll('button[data-event-id]'));
+  const visiblePhotos=visibleCards.map(card=>photos.get(card.dataset.eventId)).filter(Boolean);
+  remainingPhotos=visibleCards.filter(card=>!photos.has(card.dataset.eventId)).length;
+  const ids=visiblePhotos.map(p=>{
+   try{return new URL(p.photo_url).pathname}catch{return p.image_url||''}
+  });
   duplicateCount=ids.length-new Set(ids).size;
-  const needsReview=(data||[]).filter(p=>p.needs_review).length;
-  duplicateCount+=needsReview;
-  const badMatch=(data||[]).some(p=>ticker==='ULTA'&&(p.photo_url||'').includes('SeKYOXD_Jac'));
-  if(badMatch)duplicateCount=Math.max(1,duplicateCount);
-  button.textContent=duplicateCount>0?'Improve photos':remainingPhotos>0?'Find photos':'Photos ready';
-  button.disabled=duplicateCount===0&&remainingPhotos===0;
+  duplicateCount+=visiblePhotos.filter(p=>p.needs_review).length;
+  const related=visiblePhotos.filter(p=>/woman-holding.*product.*store|woman-holding.*skincare.*beauty-store/.test(p.photo_url||''));
+  if(related.length>1&&new Set(related.map(p=>p.photographer)).size===1)duplicateCount=Math.max(1,duplicateCount);
+  if(ticker==='ULTA'&&visiblePhotos.some(p=>(p.photo_url||'').includes('SeKYOXD_Jac')))duplicateCount=Math.max(1,duplicateCount);
+  updatePhotoAction();
   for(const card of rail.querySelectorAll('button[data-event-id]')){
    const p=photos.get(card.dataset.eventId);
    if(!p)continue;
@@ -41,8 +53,8 @@ export async function mountTimelinePhotos({sb,ticker,frame,rail,status,getUser,c
   }
  }
  button.addEventListener('click',async()=>{
-  if(!getUser()||!canContribute())return;
-  button.disabled=true;button.textContent='Finding…';
+  if(button.hidden||actionPending||!getUser()||!canContribute())return;
+  actionPending=true;button.disabled=true;button.textContent='Finding…';
   try{
    const {data,error}=await sb.functions.invoke('orca-timeline-photo-fill',{body:{ticker,improve:duplicateCount>0}});
    if(error)throw error;
@@ -52,7 +64,7 @@ export async function mountTimelinePhotos({sb,ticker,frame,rail,status,getUser,c
    status.textContent=saved>0?saved+' company-relevant photo'+(saved===1?'':'s')+' saved.'+(left?' '+left+' event'+(left===1?'':'s')+' still need better photos.':'')+' Research sources unchanged.':
     data?.state==='cached'?'Photographs are already cached. No changes needed.':'No suitable replacement found; existing photographs preserved.';
   }catch{status.textContent='Unable to select photos right now; existing timeline is unchanged.'}
-  finally{button.disabled=duplicateCount===0&&remainingPhotos===0;button.textContent=duplicateCount>0?'Improve photos':remainingPhotos>0?'Find photos':'Photos ready'}
+  finally{actionPending=false;updatePhotoAction()}
  });
  rail.addEventListener('click',event=>{
   const card=event.target.closest?.('button[data-event-id]');
