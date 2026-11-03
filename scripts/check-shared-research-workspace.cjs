@@ -13,6 +13,9 @@ const redirect = read('research-workspace-staging.html');
 const search = read('orca-stock-search.js');
 const company = read('orca-company-profile.js');
 const auto = read('orca-auto-company-profile.js');
+const timeline = read('orca-living-timeline.js');
+const photos = read('orca-timeline-photos.js');
+const pageStandard = read('docs/orca-company-page-standard.md');
 const failures = [];
 let passed = 0;
 function check(name, test) {
@@ -63,5 +66,43 @@ check('Staging stock registration uses the selected ticker', () =>
 check('All profiles share the same mission/method and company size headings', () =>
   auto.includes("'The mission and the method'") &&
   auto.includes("'Company size and impact'"));
+
+check('All tickers mount the same source-backed Living Timeline component', () =>
+  workspace.includes("mountLivingTimeline({sb,ticker,") &&
+  workspace.includes("import('./orca-living-timeline.js?"));
+check('Living Timeline features ten milestones without removing archived events', () =>
+  timeline.includes('const milestoneTarget=10') &&
+  timeline.includes('data=verified.length<=milestoneTarget?verified:Array.from(') &&
+  timeline.includes("sb.from('orca_timeline_annotations')") &&
+  timeline.includes("validSource(x.source_url)") &&
+  timeline.includes(".is('created_by',null)"));
+check('Milestone popup supports meaningful short briefs and source links', () =>
+  timeline.includes('const hasBrief=') &&
+  timeline.includes("const points=document.createElement('ul')") &&
+  timeline.includes("const takeaway=document.createElement('p')") &&
+  timeline.includes("link.href=event.source_url"));
+check('Historical source data stays independent of the TradingView chart', () =>
+  timeline.includes("mountLivingTimeline({sb,") &&
+  timeline.includes("switchTo('tradingview')") &&
+  workspace.includes("id=\"living-tradingview\""));
+check('Illustrative photos come from separately cached metadata URLs', () =>
+  photos.includes("sb.from('orca_timeline_photo_selections')") &&
+  photos.includes("img.src=p.image_url") &&
+  photos.includes('photographer_url') &&
+  !photos.includes('data:image/'));
+check('Photo controls vanish when complete but remain available for missing or weak photos', () =>
+  photos.includes('button.hidden=!needsAction') &&
+  photos.includes("button.textContent=duplicateCount>0?'Improve photos':'Find photos'") &&
+  photos.includes('visiblePhotos.filter(p=>p.needs_review)') &&
+  photos.includes('visibleCards.filter(card=>!photos.has(card.dataset.eventId))'));
+check('Photo status is hidden visually but research navigation remains accessible', () =>
+  timeline.includes("index.className='orca-timeline-index'") &&
+  timeline.includes("index.setAttribute('aria-live','polite')") &&
+  workspace.includes('.orca-timeline-navigation .orca-timeline-index'));
+check('Universal page standard is documented without a hard metadata cap', () =>
+  pageStandard.includes('existing and future stock ticker') &&
+  pageStandard.includes('not a hard 20 KiB ceiling') &&
+  pageStandard.includes('Never overwrite archived findings'));
+
 console.log('\nShared workspace checks: ' + passed + ' passed, ' + failures.length + ' failed.');
 if (failures.length) process.exitCode = 1;
