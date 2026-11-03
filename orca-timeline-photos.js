@@ -4,23 +4,27 @@ export async function mountTimelinePhotos({sb,ticker,frame,rail,status,getUser,c
  if(!nav)return;
  const button=document.createElement('button');
  button.type='button';button.textContent='Find photos';button.className='orca-photo-fill';
- button.title='Find event-matched illustrative Unsplash photos, without changing research.';
+ button.title='Find company-first illustrative photos. Replace weak cached images without changing research.';
  button.hidden=!(getUser()&&canContribute());
  nav.append(button);
  let photos=new Map();
  let duplicateCount=0;
+ let remainingPhotos=0;
  async function refresh(){
   const {data,error}=await sb.from('orca_timeline_photo_selections')
-   .select('event_id,image_url,full_image_url,photo_url,photographer,photographer_url').eq('ticker',ticker).limit(500);
+   .select('event_id,image_url,full_image_url,photo_url,photographer,photographer_url,needs_review,strategy_version').eq('ticker',ticker).limit(500);
   if(error)return;
   photos=new Map((data||[]).map(p=>[p.event_id,p]));
+  const allEvents=rail.querySelectorAll('button[data-event-id]').length;
+  remainingPhotos=Math.max(0,allEvents-photos.size);
   const ids=(data||[]).map(p=>new URL(p.photo_url).pathname);
   duplicateCount=ids.length-new Set(ids).size;
-  // Different photo IDs can still depict almost identical scenes.
-  const related=(data||[]).filter(p=>/woman-holding.*product.*store|woman-holding.*skincare.*beauty-store/.test(p.photo_url||''));
-  if(related.length>1&&new Set(related.map(p=>p.photographer)).size===1)duplicateCount=Math.max(duplicateCount,1);
-  if(ticker==='ULTA'&&(data||[]).some(p=>p.photo_url.includes('SeKYOXD_Jac')))duplicateCount=Math.max(duplicateCount,1);
-  button.textContent=duplicateCount>0?'Improve photos':'Find photos';
+  const needsReview=(data||[]).filter(p=>p.needs_review).length;
+  duplicateCount+=needsReview;
+  const badMatch=(data||[]).some(p=>ticker==='ULTA'&&(p.photo_url||'').includes('SeKYOXD_Jac'));
+  if(badMatch)duplicateCount=Math.max(1,duplicateCount);
+  button.textContent=duplicateCount>0?'Improve photos':remainingPhotos>0?'Find photos':'Photos ready';
+  button.disabled=duplicateCount===0&&remainingPhotos===0;
   for(const card of rail.querySelectorAll('button[data-event-id]')){
    const p=photos.get(card.dataset.eventId);
    if(!p)continue;
@@ -43,9 +47,12 @@ export async function mountTimelinePhotos({sb,ticker,frame,rail,status,getUser,c
    const {data,error}=await sb.functions.invoke('orca-timeline-photo-fill',{body:{ticker,improve:duplicateCount>0}});
    if(error)throw error;
    await refresh();
-   status.textContent=(data?.added||0)+' illustrative photographs selected and cached; research sources unchanged.';
+   const saved=Number(data?.added||0);
+   const left=Number(data?.remaining||0);
+   status.textContent=saved>0?saved+' company-relevant photo'+(saved===1?'':'s')+' saved.'+(left?' '+left+' event'+(left===1?'':'s')+' still need better photos.':'')+' Research sources unchanged.':
+    data?.state==='cached'?'Photographs are already cached. No changes needed.':'No suitable replacement found; existing photographs preserved.';
   }catch{status.textContent='Unable to select photos right now; existing timeline is unchanged.'}
-  finally{button.disabled=false;button.textContent=duplicateCount>0?'Improve photos':'Find photos'}
+  finally{button.disabled=duplicateCount===0&&remainingPhotos===0;button.textContent=duplicateCount>0?'Improve photos':remainingPhotos>0?'Find photos':'Photos ready'}
  });
  rail.addEventListener('click',event=>{
   const card=event.target.closest?.('button[data-event-id]');
