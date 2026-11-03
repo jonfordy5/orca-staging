@@ -222,16 +222,23 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
  async function loadEvents(){
   const {data:rows,error}=await sb.from('orca_timeline_annotations')
    .select('id,event_at,category,title,ai_summary,quick_brief,source_url,image_url,image_credit')
-   .eq('ticker',ticker).order('event_at',{ascending:true}).limit(500);
+   .eq('ticker',ticker).is('created_by',null).order('event_at',{ascending:true}).limit(500);
   if(error){status.textContent='Company milestone data unavailable; TradingView is unaffected.';return}
-  data=(rows||[]).filter(x=>validSource(x.source_url))
+  const verified=(rows||[]).filter(x=>validSource(x.source_url))
    .map(x=>({...x,image_url:validImage(x.image_url)}));
+  const milestoneTarget=10;
+  // Exactly ten featured events by default, spaced across the full cached chronology.
+  // Preserve every extra source-backed milestone in Supabase, rather than deleting it.
+  data=verified.length<=milestoneTarget?verified:Array.from({length:milestoneTarget},(_,i)=>
+   verified[Math.round(i*(verified.length-1)/(milestoneTarget-1))]);
   renderCards();
+  const extra=Math.max(0,verified.length-data.length);
   status.textContent=data.length+' sourced company milestone'+(data.length===1?'':'s')+
-   ' · explore sourced events along the company history';
+   (extra?' shown · '+extra+' additional verified milestone'+(extra===1?'':'s')+' retained in the archive':'')+
+   ' · explore company history';
  }
  async function maybePopulateCompanyHistory(){
-  if(automaticDiscoveryAttempted||data.length>=5)return;
+  if(automaticDiscoveryAttempted||data.length>=10)return;
   if(!getUser()||!canContribute()){
    if(!data.length)status.textContent='No company history cached yet. Sign in and join this stock’s research team to populate it. Viewing cached histories is free.';
    return;
