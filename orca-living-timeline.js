@@ -34,6 +34,7 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
  details.classList.add('orca-history-popover');details.setAttribute('role','dialog');details.setAttribute('aria-label','Milestone details');details.setAttribute('tabindex','-1');
  let visible='tradingview',data=[],chart=null,series=null,chartLibrary=null,activeIndex=0;
  let automaticDiscoveryAttempted=false;
+ let discoveryPending=false;
  let historyAuthorized=false;
  let historyPermissionKnownFor=null;
  let historyPermissionPending=false;
@@ -144,8 +145,18 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
   navigation.hidden=!data.length;
   if(!data.length){
    const empty=document.createElement('div');empty.className='orca-timeline-empty';
-   empty.textContent='No company history cached yet for '+ticker+'. Open this timeline while signed in with ORCA research consent to create its first sourced milestones. Existing company profiles and TradingView are unaffected.';
-   rail.append(empty);details.hidden=true;return;
+   empty.textContent='No sourced company milestones cached for '+ticker+' yet. Research consent is required before generating a shared history.';
+   rail.append(empty);
+   if(getUser()){
+    const generate=document.createElement('button');
+    generate.type='button';
+    generate.className='orca-timeline-generate';
+    generate.textContent='Generate company history';
+    generate.title='Research and cache up to ten sourced milestones under the existing ORCA budget safeguards';
+    generate.addEventListener('click',()=>void maybePopulateCompanyHistory());
+    rail.append(generate);
+   }
+   details.hidden=true;return;
   }
   const spine=document.createElement('div');spine.className='orca-history-spine';
   const icons={earnings:'$',product:'◆',macro:'●',legal:'§',custom_note:'✦'};
@@ -243,7 +254,7 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
  async function checkHistoryPermission(){
   const user=getUser();
   if(!user?.id){historyAuthorized=false;historyPermissionKnownFor=null;return false}
-  if(historyPermissionKnownFor===user.id)return historyAuthorized;
+  if(historyPermissionKnownFor===user.id&&historyAuthorized)return true;
   if(historyPermissionPending)return false;
   historyPermissionPending=true;
   try{
@@ -257,7 +268,7 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
   return historyAuthorized;
  }
  async function maybePopulateCompanyHistory(){
-  if(automaticDiscoveryAttempted||data.length>=10)return;
+  if(discoveryPending||automaticDiscoveryAttempted||data.length>=10)return;
   if(!getUser()){
    if(!data.length)status.textContent='No company timeline cached. Sign in and enable ORCA research consent to generate it; viewing cached company histories is free.';
    return;
@@ -267,6 +278,9 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
    return;
   }
   automaticDiscoveryAttempted=true;
+  discoveryPending=true;
+  const generateButton=rail.querySelector('.orca-timeline-generate');
+  if(generateButton){generateButton.disabled=true;generateButton.textContent='Researching company history…';}
   status.textContent='Researching and caching sourced company milestones for '+ticker+'. This does not claim an agent research assignment.';
   try{
    const {data:result,error}=await sb.functions.invoke('orca-timeline-discovery',{body:{ticker}});
@@ -291,6 +305,10 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
    }
   }catch{
    status.textContent='Could not generate sourced company milestones now. Existing research stays safe; TradingView remains available.';
+  }finally{
+   discoveryPending=false;
+   const generateButton=rail.querySelector('.orca-timeline-generate');
+   if(generateButton){generateButton.disabled=false;generateButton.textContent='Generate company history';}
   }
  }
  // Preserve the normal TradingView chart on initial load. Living Timeline is opt-in.
