@@ -34,6 +34,9 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
  details.classList.add('orca-history-popover');details.setAttribute('role','dialog');details.setAttribute('aria-label','Milestone details');details.setAttribute('tabindex','-1');
  let visible='tradingview',data=[],chart=null,series=null,chartLibrary=null,activeIndex=0;
  let automaticDiscoveryAttempted=false;
+ let historyAuthorized=false;
+ let historyPermissionKnownFor=null;
+ let historyPermissionPending=false;
  let prices=[];
  let photoMount=null;
  function fitRailEdges(){
@@ -141,7 +144,7 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
   navigation.hidden=!data.length;
   if(!data.length){
    const empty=document.createElement('div');empty.className='orca-timeline-empty';
-   empty.textContent='No sourced company milestones have been published yet for '+ticker+'.';
+   empty.textContent='No company history cached yet for '+ticker+'. Open this timeline while signed in with ORCA research consent to create its first sourced milestones. Existing company profiles and TradingView are unaffected.';
    rail.append(empty);details.hidden=true;return;
   }
   const spine=document.createElement('div');spine.className='orca-history-spine';
@@ -237,41 +240,64 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
    (extra?' shown · '+extra+' additional verified milestone'+(extra===1?'':'s')+' retained in the archive':'')+
    ' · explore company history';
  }
+ async function checkHistoryPermission(){
+  const user=getUser();
+  if(!user?.id){historyAuthorized=false;historyPermissionKnownFor=null;return false}
+  if(historyPermissionKnownFor===user.id)return historyAuthorized;
+  if(historyPermissionPending)return false;
+  historyPermissionPending=true;
+  try{
+   const {data:profiles,error}=await sb.from('agent_profiles').select('id')
+    .eq('owner_id',user.id).eq('opted_in',true).limit(1);
+   historyAuthorized=!error&&Array.isArray(profiles)&&profiles.length>0;
+   if(!error)historyPermissionKnownFor=user.id;
+  }catch{historyAuthorized=false}
+  finally{historyPermissionPending=false}
+  if(photoMount)void photoMount.refresh();
+  return historyAuthorized;
+ }
  async function maybePopulateCompanyHistory(){
   if(automaticDiscoveryAttempted||data.length>=10)return;
-  if(!getUser()||!canContribute()){
-   if(!data.length)status.textContent='No company history cached yet. Sign in and join this stock’s research team to populate it. Viewing cached histories is free.';
+  if(!getUser()){
+   if(!data.length)status.textContent='No company timeline cached. Sign in and enable ORCA research consent to generate it; viewing cached company histories is free.';
+   return;
+  }
+  if(!(await checkHistoryPermission())){
+   if(!data.length)status.textContent='No company timeline cached. Enable research consent in your ORCA agent profile to create it. You do not need to join this stock to generate public company history.';
    return;
   }
   automaticDiscoveryAttempted=true;
-  status.textContent='Researching and caching official company milestones. Existing research findings and TradingView are unaffected.';
+  status.textContent='Researching and caching sourced company milestones for '+ticker+'. This does not claim an agent research assignment.';
   try{
    const {data:result,error}=await sb.functions.invoke('orca-timeline-discovery',{body:{ticker}});
    if(error)throw error;
    if(result?.state==='ready'){
     await loadEvents();
-    status.textContent=(result.added||0)+' additional sourced milestones saved for '+ticker+' · cached for future visitors.';
+    const added=Number(result.added||0);
+    status.textContent=added>0?added+' sourced milestone'+(added===1?'':'s')+' saved for '+ticker+' · available to future visitors.':
+     'Company history search finished without new verified milestones. Existing records remain unchanged.';
    }else if(result?.state==='cached'){
     await loadEvents();
+    if(!data.length)status.textContent='Company history is temporarily cached with no verified milestones; try again after the research cooldown.';
    }else{
     const type=String(result?.state||'unavailable');
     const note=({
      building:'Company milestone discovery is already underway.',
-     cooldown:'Milestone discovery is temporarily resting after a previous unsuccessful attempt.',
+     cooldown:'Milestone discovery is temporarily resting after an unsuccessful attempt.',
      daily_limit:'Daily development safeguard reached for this account.',
      budget_exhausted:'The shared $15 monthly AI reservation allowance has been reached.'
     })[type]||'Automatic milestone discovery is currently unavailable.';
     status.textContent=note+' '+data.length+' previously cached milestones remain available.';
    }
   }catch{
-   status.textContent='Could not build the milestone history now. Previously saved events remain available; TradingView is unaffected.';
+   status.textContent='Could not generate sourced company milestones now. Existing research stays safe; TradingView remains available.';
   }
  }
  // Preserve the normal TradingView chart on initial load. Living Timeline is opt-in.
  await loadEvents();
  try{
   const module=await import('./orca-timeline-photos.js?v=6');
-  photoMount=await module.mountTimelinePhotos({sb,ticker,frame,rail,status,getUser,canContribute});
+  photoMount=await module.mountTimelinePhotos({sb,ticker,frame,rail,status,getUser,canContribute:()=>historyAuthorized});
  }catch(error){console.warn('Optional history photography is unavailable',error)}
  const poll=setInterval(()=>{if(document.visibilityState==='visible')loadEvents()},60000);
  window.addEventListener('pagehide',()=>clearInterval(poll),{once:true});
