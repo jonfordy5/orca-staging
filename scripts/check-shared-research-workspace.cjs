@@ -94,7 +94,8 @@ check('Photo controls vanish when complete but remain available for missing or w
   photos.includes('button.hidden=!needsAction') &&
   photos.includes("button.textContent=duplicateCount>0?'Improve photos':'Find photos'") &&
   photos.includes('visiblePhotos.filter(p=>p.needs_review)') &&
-  photos.includes('visibleCards.filter(card=>!photos.has(card.dataset.eventId))'));
+  photos.includes('visibleCards.filter(card=>!rawPhotos.has(card.dataset.eventId))') &&
+  photos.includes('filter(p=>!p.needs_review)'));
 check('Photo status is hidden visually but research navigation remains accessible', () =>
   timeline.includes("index.className='orca-timeline-index'") &&
   timeline.includes("index.setAttribute('aria-live','polite')") &&
