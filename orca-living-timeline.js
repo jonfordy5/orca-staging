@@ -13,7 +13,7 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
  const heading=document.createElement('div');
  heading.className='orca-timeline-heading';
  const h=document.createElement('strong');h.textContent='History of '+ticker;
- const description=document.createElement('span');description.textContent='Verified milestones · select an event to read more';
+ const description=document.createElement('span');description.textContent='Company milestones · select to read more';
  heading.append(h,description);
  const navigation=document.createElement('div');
  navigation.className='orca-timeline-navigation';
