@@ -97,7 +97,7 @@ check('Photo controls vanish when complete but remain available for missing or w
   photos.includes("button.textContent=duplicateCount>0?'Improve photos':'Find photos'") &&
   photos.includes('visiblePhotos.filter(p=>p.needs_review)') &&
   photos.includes('visibleCards.filter(card=>!rawPhotos.has(card.dataset.eventId))') &&
-  photos.includes('filter(p=>!p.needs_review)'));
+  photos.includes('filter(p=>!p.needs_review&&'));
 check('Photo status is hidden visually but research navigation remains accessible', () =>
   timeline.includes("index.className='orca-timeline-index'") &&
   timeline.includes("index.setAttribute('aria-live','polite')") &&
@@ -129,7 +129,7 @@ check('New media requires rights and exact subject metadata, with unlicensed sou
 check('Photo app shows correct source attribution and hides flagged media', () =>
   photos.includes("p.source_type==='wikimedia_commons'") &&
   photos.includes('link(p.license_url') &&
-  photos.includes('filter(p=>!p.needs_review)'));
+  photos.includes('filter(p=>!p.needs_review&&'));
 check('Source limitations are transparently documented', () =>
   mediaStandard.includes('Flickr CC') &&
   mediaStandard.includes('Not enabled') &&
