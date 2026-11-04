@@ -20,10 +20,14 @@ function withUtm(value:unknown){
 
 type ThemeProfile={brand:string,theme:string,terms:string[],queries:string[]};
 function companyTheme(ticker:string,name:string,description:string):ThemeProfile{
- const short=name.replace(/\b(common stock|class [a-z] stock|corporation|incorporated|inc\.?|corp\.?|company|limited|ltd\.?|plc)\b/ig,"").replace(/[.,]/g,"").trim().split(/\s+/)[0].toLowerCase();
- const brand=({AAP:"advance auto parts",NVDA:"nvidia",ULTA:"ulta",AAPL:"apple",MSFT:"microsoft",INTC:"intel",META:"meta",RKLB:"rocket lab",AMZN:"amazon",WMT:"walmart",TSLA:"tesla"} as Record<string,string>)[ticker]||short||ticker.toLowerCase();
+ const short=name.replace(/\b(common stock|class [a-z] stock|corporation|incorporated|inc\.?|corp\.?|company|limited|ltd\.?|plc)\b/ig,"").replace(/[.,]/g,"").trim().toLowerCase();
+ const brand=({DG:"dollar general",AAP:"advance auto parts",NVDA:"nvidia",ULTA:"ulta",AAPL:"apple",MSFT:"microsoft",INTC:"intel",META:"meta",RKLB:"rocket lab",AMZN:"amazon",WMT:"walmart",TSLA:"tesla"} as Record<string,string>)[ticker]||short||ticker.toLowerCase();
  const info=(name+" "+description).toLowerCase();
  const themes=[
+  {test:/dollar general|discount (?:retailer|retail|store)|variety store|value retailer/,
+   theme:"discount retail",
+   terms:["dollar general","discount store","discount retail","grocery aisle","retail shelves","store shelves","household essentials","household products","general merchandise","groceries"],
+   queries:["discount store groceries","discount retail shelves","household essentials retail","grocery store aisle"]},
   // Retail replacement parts must not inherit automotive manufacturing imagery.
   {test:/advance auto parts|auto parts (retailer|store|retail|chain)|automotive aftermarket parts|automotive parts retailer|car parts (retail|store)/,theme:"auto parts retail",
    terms:["auto parts","car parts","parts store","spare parts","auto supply","automotive accessories","car batteries","car battery","brake pads","oil filter","motor oil","store","retail","shelves"],
@@ -46,10 +50,11 @@ function photoPlans(profile:ThemeProfile){
  // is crowded by unrelated subjects (e.g. Apple fruit vs Apple computers).
  const brandTokens=profile.brand.toLowerCase().split(/\s+/);
  const primaryQuery=profile.brand==="apple"?"apple computers":
-  profile.theme==="auto parts retail"?profile.brand+" store":profile.brand;
+  (profile.theme==="auto parts retail"||profile.theme==="discount retail")?profile.brand+" store":profile.brand;
  return [
   {query:primaryQuery,keywords:brandTokens,minimumScore:8,companyOnly:true},
-  {query:profile.theme==="auto parts retail"?"auto parts store":profile.brand+" "+profile.queries[0],keywords:profile.terms,minimumScore:3,companyOnly:false},
+  {query:profile.theme==="auto parts retail"?"auto parts store":
+   profile.theme==="discount retail"?profile.brand+" discount store":profile.brand+" "+profile.queries[0],keywords:profile.terms,minimumScore:3,companyOnly:false},
   ...profile.queries.filter((query,index)=>!(profile.theme==="auto parts retail"&&index===0)).map(query=>({query,keywords:profile.terms,minimumScore:3,companyOnly:false}))
  ];
 }
@@ -59,6 +64,15 @@ function photoScore(photo:any,plan:any,profile:ThemeProfile){
  const has=(word:string)=>description.includes(word);
  const matches=profile.terms.filter(has);
  const brandMatch=profile.brand.split(/\s+/).every(has);
+ if(profile.theme==="discount retail"){
+  const cash=/\b(banknote|banknotes|dollar bills?|cash|currency|coins?|bitcoin|bank teller|forex|banking|money|financial chart)\b/i;
+  const competitor=/\b(dollar tree|family dollar|walmart|target|costco|aldi|lidl|five below|walgreens|cvs)\b/i;
+  const retail=/\b(discount stores?|discount retail|grocery aisles?|grocery shelves|retail shelves|store shelves|store aisle|storefront|household essentials|household products|general merchandise|variety store|shopping aisles?)\b/i;
+  const brand=/\bdollar general\b/i.test(description);
+  if(cash.test(description)||competitor.test(description)||!(brand||retail.test(description)))return -100;
+  if(plan.companyOnly&&!brand)return -100;
+  return (brand?26:0)+(retail.test(description)?12:0);
+ }
  // Require strong evidence of a RETAIL parts scene or identifiable products.
  // Anything confusing, industrial, scrap-related, or belonging to a competing chain is rejected.
  if(profile.theme==="auto parts retail"){
@@ -129,19 +143,22 @@ type Candidate={
 function visualQueries(profile:ThemeProfile):string[]{
  const specific=photoPlans(profile);
  const theme=profile.theme;
- const primary=theme==="auto parts retail"?"automotive parts products":theme==="beauty retail"?"beauty cosmetics":
+ const primary=theme==="discount retail"?"discount store grocery shelves":
+  theme==="auto parts retail"?"automotive parts products":theme==="beauty retail"?"beauty cosmetics":
   theme==="semiconductors"?"computer chip graphics processor":
   theme==="aerospace"?"rocket spacecraft":
   theme==="consumer devices"?"laptop smartphone":
   theme==="software and cloud"?"cloud computing servers":profile.queries[0];
- const category=theme==="auto parts retail"?"automotive retail shelves brake pads":
+ const category=theme==="discount retail"?"retail shelves household essentials":
+  theme==="auto parts retail"?"automotive retail shelves brake pads":
   theme==="beauty retail"?"cosmetics skincare editorial":
   theme==="semiconductors"?"circuit board processor macro":
   theme==="aerospace"?"rocket launch night":
   theme==="consumer devices"?"desktop computers elegant":
   theme==="software and cloud"?"data center technology":
   profile.queries[1]||"professional business workspace";
- const thematic=theme==="auto parts retail"?"automotive parts closeup":
+ const thematic=theme==="discount retail"?"discount shopping store aisle":
+  theme==="auto parts retail"?"automotive parts closeup":
   theme==="beauty retail"?"makeup skincare product photography":
   theme==="semiconductors"?"advanced computing electronics":
   theme==="aerospace"?"space technology stars":
@@ -152,6 +169,7 @@ function visualQueries(profile:ThemeProfile):string[]{
  // not an assertion that an image depicts a historical event.
  return [...new Set([specific[0]?.query,specific[1]?.query,primary,category,thematic,
   theme==="beauty retail"?"beauty editorial still life":
+  theme==="discount retail"?"discount grocery store":
   theme==="auto parts retail"?"car maintenance tools products":
   theme==="semiconductors"?"technology abstract blue":
   theme==="aerospace"?"space exploration stars":"business abstract editorial"]
