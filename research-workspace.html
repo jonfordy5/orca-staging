@@ -464,6 +464,33 @@ main{max-width:1020px;margin:0 auto;padding:27px 16px 55px}
  background:#213047;border-radius:12px;padding:18px 20px;
  max-width:100%;line-height:1.5;
 }
+
+/* ORCA resilience: even if image CDN or metadata is unavailable, no milestone
+   ever falls back to the unfinished bright-white card design. */
+.orca-company-timeline .orca-history-stop .orca-timeline-event:not(:has(.orca-history-thumb img)){
+ isolation:isolate;display:flex!important;flex-direction:column!important;
+ justify-content:flex-end!important;align-items:flex-start!important;
+ padding:13px 12px 12px!important;gap:4px!important;
+ height:178px!important;min-height:178px!important;max-height:178px!important;
+ color:#f7fbff!important;border:2px solid #80b8ed!important;
+ background:radial-gradient(ellipse at 76% 24%,#2a577b 0%,transparent 61%),
+  linear-gradient(148deg,#213c59 0%,#101f33 65%,#091624 100%)!important;
+ text-align:left!important;text-shadow:0 1px 3px #0008;
+}
+.orca-company-timeline .orca-history-stop .orca-timeline-event:not(:has(.orca-history-thumb img)) > small,
+.orca-company-timeline .orca-history-stop .orca-timeline-event:not(:has(.orca-history-thumb img)) > strong,
+.orca-company-timeline .orca-history-stop .orca-timeline-event:not(:has(.orca-history-thumb img)) > .orca-history-teaser{
+ color:#f4faff!important;text-align:left!important;width:100%;
+}
+.orca-company-timeline .orca-history-stop .orca-timeline-event:not(:has(.orca-history-thumb img)) .orca-timeline-event-media{
+ background:#244a6f!important;color:#a7d7ff!important;
+}
+.orca-company-timeline .orca-history-stop:not(:has(.orca-history-thumb img)) .orca-history-stem{
+ top:180px!important;height:calc(50% - 180px)!important;
+}
+.orca-company-timeline .orca-history-stop:nth-child(even):not(:has(.orca-history-thumb img)) .orca-history-stem{
+ top:50%!important;height:calc(50% - 180px)!important;
+}
 </style></head>
 <body><header><a class="brand" href="./index.html">AI STOCK<br><span>COMMONS</span></a><a id="team-link" class="connect-agent-pill" href="./connect-work.html?ticker=RKLB">Connect your agent</a></header>
 <div id="staging-indicator" class="staging-indicator" hidden>ORCA STAGING — TEST ENVIRONMENT · No production data or credentials</div>
