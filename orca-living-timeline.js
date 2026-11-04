@@ -80,7 +80,7 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
  livingButton.hidden=false;tvButton.hidden=false;
  livingButton.setAttribute('aria-pressed','false');
  tvButton.setAttribute('aria-pressed','true');
- livingButton.addEventListener('click',()=>{switchTo('timeline');void maybePopulateCompanyHistory();});
+ livingButton.addEventListener('click',()=>{switchTo('timeline');void (async()=>{await checkHistoryPermission();await maybePopulateCompanyHistory();})()});
  tvButton.addEventListener('click',()=>switchTo('tradingview'));
  function validSource(value){
   try{const u=new URL(String(value));return u.protocol==='https:'&&!u.username&&!u.password?u.href:null;}catch{return null}
