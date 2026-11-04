@@ -11,6 +11,7 @@ export async function mountTimelinePhotos({sb,ticker,frame,rail,status,getUser,c
  let duplicateCount=0;
  let remainingPhotos=0;
  let actionPending=false;
+ let autoFillAttempted=false;
  function updatePhotoAction(){
   const needsAction=duplicateCount>0||remainingPhotos>0;
   // A finished timeline should show its photos, not a disabled "Photos ready" button.
@@ -101,10 +102,15 @@ export async function mountTimelinePhotos({sb,ticker,frame,rail,status,getUser,c
   credit.append('Illustrative photo · Photo by ',link(p.photographer_url,p.photographer),' on ',link('https://unsplash.com/?utm_source=ai_stock_commons_orca&utm_medium=referral','Unsplash'));
   popup.append(credit);
  },false);
- await refresh();
- // A source-backed ten-event timeline is a finished visual experience by default.
- // The auto-fill is attempted once per mounted page, and only with research consent.
- if((remainingPhotos>0||duplicateCount>0)&&getUser()&&canContribute())
-  void fillPhotos();
- return {refresh};
+ async function refreshAndMaybeFill(){
+  await refresh();
+  // New history may be generated after initial mount. Run photo filling exactly once
+  // per browser session when the first eligible sourced milestones appear.
+  if(!autoFillAttempted&&(remainingPhotos>0||duplicateCount>0)&&getUser()&&canContribute()){
+   autoFillAttempted=true;
+   void fillPhotos();
+  }
+ }
+ await refreshAndMaybeFill();
+ return {refresh:refreshAndMaybeFill};
 }
