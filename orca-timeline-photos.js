@@ -22,19 +22,21 @@ export async function mountTimelinePhotos({sb,ticker,frame,rail,status,getUser,c
   const {data,error}=await sb.from('orca_timeline_photo_selections')
    .select('event_id,image_url,full_image_url,photo_url,photographer,photographer_url,needs_review,strategy_version').eq('ticker',ticker).limit(500);
   if(error){button.hidden=true;return;}
-  // Never display photos flagged as misleading: keep cached records for audit,
-  // but show a clean card until an appropriate replacement has been selected.
+  // Keep existing flagged illustrations visible while seeking better images:
+  // never turn a completed full-photo card into a white placeholder.
   const rawPhotos=new Map((data||[]).map(p=>[p.event_id,p]));
-  photos=new Map((data||[]).filter(p=>!p.needs_review).map(p=>[p.event_id,p]));
+  photos=new Map(rawPhotos);
   const visibleCards=Array.from(rail.querySelectorAll('button[data-event-id]'));
-  for(const card of visibleCards){
-   if(!rawPhotos.get(card.dataset.eventId)?.needs_review)continue;
-   const slot=card.querySelector('.orca-timeline-event-media');
-   if(slot){slot.replaceChildren(document.createTextNode('◆'));slot.classList.remove('orca-history-thumb');}
-   card.title='This milestone photo is awaiting a relevant replacement.';
-  }
   const visiblePhotos=visibleCards.map(card=>rawPhotos.get(card.dataset.eventId)).filter(Boolean);
   remainingPhotos=visibleCards.filter(card=>!rawPhotos.has(card.dataset.eventId)).length;
+  // If one of the featured milestones has no photograph, borrow a credited photo
+  // already cached for this same company until the full selector can fill the gap.
+  const fallbackPool=(data||[]).filter(p=>p.image_url&&p.photo_url&&p.photographer_url);
+  for(const [index,card] of visibleCards.entries()){
+   if(photos.has(card.dataset.eventId)||!fallbackPool.length)continue;
+   const fallback=fallbackPool[index%fallbackPool.length];
+   photos.set(card.dataset.eventId,{...fallback,temporary:true});
+  }
   const ids=visiblePhotos.map(p=>{
    try{return new URL(p.photo_url).pathname}catch{return p.image_url||''}
   });
@@ -56,7 +58,8 @@ export async function mountTimelinePhotos({sb,ticker,frame,rail,status,getUser,c
    img.dataset.photoUrl=p.image_url;img.src=p.image_url;img.alt='Illustrative photography, not the historical event';img.loading='lazy';
    img.addEventListener('error',()=>{slot.textContent=original;slot.classList.remove('orca-history-thumb')},{once:true});
    slot.replaceChildren(img);slot.classList.add('orca-history-thumb');
-   card.title='Illustrative stock photograph. Photo by '+p.photographer+' on Unsplash.';
+   card.title=(p.temporary?'Temporary company illustration · ':p.needs_review?'Illustrative photo awaiting improvement · ':'Illustrative photo · ')+
+    'Photo by '+p.photographer+' on Unsplash.';
   }
  }
  button.addEventListener('click',async()=>{
@@ -69,7 +72,7 @@ export async function mountTimelinePhotos({sb,ticker,frame,rail,status,getUser,c
    const saved=Number(data?.added||0);
    const left=Number(data?.remaining||0);
    status.textContent=saved>0?saved+' company-relevant photo'+(saved===1?'':'s')+' saved.'+(left?' '+left+' event'+(left===1?'':'s')+' still need better photos.':'')+' Research sources unchanged.':
-    data?.state==='cached'?'Photographs are already cached. No changes needed.':'No suitable replacement found; existing photographs preserved.';
+    data?.state==='cached'?'All featured milestones have cached photographs.':'No new photos selected; existing imagery kept while broader searches are considered.';
   }catch{status.textContent='Unable to select photos right now; existing timeline is unchanged.'}
   finally{actionPending=false;updatePhotoAction()}
  });
