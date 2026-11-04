@@ -120,5 +120,17 @@ check('Timeline generation checks opted-in researcher without requiring stock me
   timeline.includes(".eq('owner_id',user.id).eq('opted_in',true)") &&
   timeline.includes("canContribute:()=>historyAuthorized") &&
   timeline.includes('discoveryPending=true'));
+check('Every timeline photo stays scoped to the same stock ticker', () =>
+  photos.includes(".eq('ticker',ticker).limit(500)") &&
+  !photos.includes('const {data:shared') &&
+  !photos.includes('const {data:library}') );
+check('Photo generation rejects negative relevance and never borrows other tickers', () => {
+ const engine=read('supabase/functions/orca-timeline-photo-fill/index.ts');
+ return engine.includes('if(score<0)return null;') &&
+   engine.includes('const backups=stockCache||[];') &&
+   !engine.includes('const {data:library}');
+});
+check('Cached ten-milestone timelines can authorize their first photo generation', () =>
+  timeline.includes('await checkHistoryPermission();await maybePopulateCompanyHistory();'));
 console.log('\nShared workspace checks: ' + passed + ' passed, ' + failures.length + ' failed.');
 if (failures.length) process.exitCode = 1;
