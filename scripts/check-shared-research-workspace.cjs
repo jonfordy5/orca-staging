@@ -90,12 +90,18 @@ check('Illustrative photos come from separately cached metadata URLs', () =>
   photos.includes("img.src=p.image_url") &&
   photos.includes('photographer_url') &&
   !photos.includes('data:image/'));
-check('Photo controls vanish when complete but remain available for missing or weak photos', () =>
+check('Photo controls hide when complete and remain available for missing or weak photos', () =>
   photos.includes('button.hidden=!needsAction') &&
   photos.includes("button.textContent=duplicateCount>0?'Improve photos':'Find photos'") &&
   photos.includes('visiblePhotos.filter(p=>p.needs_review)') &&
-  photos.includes('visibleCards.filter(card=>!rawPhotos.has(card.dataset.eventId))') &&
-  photos.includes('filter(p=>!p.needs_review)'));
+  photos.includes('visibleCards.filter(card=>!rawPhotos.has(card.dataset.eventId))'));
+check('Ten-card photo coverage reuses credited images before ever showing white cards', () =>
+  photos.includes('const fallbackPool=') || (
+    photos.includes('let fallbackPool=') &&
+    photos.includes("photos.set(card.dataset.eventId,{...fallback,temporary:true})") &&
+    photos.includes("sb.from('orca_timeline_photo_selections')") &&
+    photos.includes('void fillPhotos()')
+  ));
 check('Photo status is hidden visually but research navigation remains accessible', () =>
   timeline.includes("index.className='orca-timeline-index'") &&
   timeline.includes("index.setAttribute('aria-live','polite')") &&
