@@ -31,10 +31,22 @@ export async function mountTimelinePhotos({sb,ticker,frame,rail,status,getUser,c
   remainingPhotos=visibleCards.filter(card=>!rawPhotos.has(card.dataset.eventId)).length;
   // If one of the featured milestones has no photograph, borrow a credited photo
   // already cached for this same company until the full selector can fill the gap.
-  const fallbackPool=(data||[]).filter(p=>p.image_url&&p.photo_url&&p.photographer_url);
+  let fallbackPool=(data||[]).filter(p=>p.image_url&&p.photo_url&&p.photographer_url);
+  if(visibleCards.some(card=>!photos.has(card.dataset.eventId))&&fallbackPool.length<visibleCards.length){
+   // Public cached photo references let new company pages render fully illustrated
+   // while the authenticated selector fills the company's own ten photo records.
+   const {data:shared,error:sharedError}=await sb.from('orca_timeline_photo_selections')
+    .select('event_id,image_url,full_image_url,photo_url,photographer,photographer_url,needs_review,strategy_version')
+    .limit(100);
+   if(!sharedError&&Array.isArray(shared))
+    fallbackPool=[...fallbackPool,...shared.filter(p=>p.image_url&&p.photo_url&&p.photographer_url)];
+  }
+  const fallbackIds=new Set();
   for(const [index,card] of visibleCards.entries()){
    if(photos.has(card.dataset.eventId)||!fallbackPool.length)continue;
-   const fallback=fallbackPool[index%fallbackPool.length];
+   const choices=fallbackPool.filter(p=>!fallbackIds.has(p.photo_url));
+   const fallback=(choices.length?choices:fallbackPool)[index%(choices.length||fallbackPool.length)];
+   fallbackIds.add(fallback.photo_url);
    photos.set(card.dataset.eventId,{...fallback,temporary:true});
   }
   const ids=visiblePhotos.map(p=>{
@@ -62,8 +74,8 @@ export async function mountTimelinePhotos({sb,ticker,frame,rail,status,getUser,c
     'Photo by '+p.photographer+' on Unsplash.';
   }
  }
- button.addEventListener('click',async()=>{
-  if(button.hidden||actionPending||!getUser()||!canContribute())return;
+ async function fillPhotos(){
+  if(actionPending||!getUser()||!canContribute()||!(remainingPhotos>0||duplicateCount>0))return;
   actionPending=true;button.disabled=true;button.textContent='Finding…';
   try{
    const {data,error}=await sb.functions.invoke('orca-timeline-photo-fill',{body:{ticker,improve:duplicateCount>0}});
@@ -75,7 +87,8 @@ export async function mountTimelinePhotos({sb,ticker,frame,rail,status,getUser,c
     data?.state==='cached'?'All featured milestones have cached photographs.':'No new photos selected; existing imagery kept while broader searches are considered.';
   }catch{status.textContent='Unable to select photos right now; existing timeline is unchanged.'}
   finally{actionPending=false;updatePhotoAction()}
- });
+ }
+ button.addEventListener('click',()=>void fillPhotos());
  rail.addEventListener('click',event=>{
   const card=event.target.closest?.('button[data-event-id]');
   if(!card)return;
@@ -89,5 +102,9 @@ export async function mountTimelinePhotos({sb,ticker,frame,rail,status,getUser,c
   popup.append(credit);
  },false);
  await refresh();
+ // A source-backed ten-event timeline is a finished visual experience by default.
+ // The auto-fill is attempted once per mounted page, and only with research consent.
+ if((remainingPhotos>0||duplicateCount>0)&&getUser()&&canContribute())
+  void fillPhotos();
  return {refresh};
 }
