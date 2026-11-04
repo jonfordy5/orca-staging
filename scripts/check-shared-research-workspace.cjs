@@ -16,6 +16,8 @@ const auto = read('orca-auto-company-profile.js');
 const timeline = read('orca-living-timeline.js');
 const photos = read('orca-timeline-photos.js');
 const pageStandard = read('docs/orca-company-page-standard.md');
+const mediaFunction = read('supabase/functions/orca-timeline-photo-fill/index.ts');
+const mediaStandard = read('docs/orca-timeline-media-sourcing.md');
 const failures = [];
 let passed = 0;
 function check(name, test) {
@@ -114,5 +116,24 @@ check('Timeline generation checks opted-in researcher without requiring stock me
   timeline.includes(".eq('owner_id',user.id).eq('opted_in',true)") &&
   timeline.includes("canContribute:()=>historyAuthorized") &&
   timeline.includes('discoveryPending=true'));
+check('No automatic Unsplash photo searches remain in shared server selector', () =>
+  !mediaFunction.includes('api.unsplash.com/search/photos') &&
+  mediaFunction.includes('commons.wikimedia.org/w/api.php') &&
+  mediaFunction.includes('www.wikidata.org/w/api.php'));
+check('New media requires rights and exact subject metadata, with unlicensed sources rejected', () =>
+  mediaFunction.includes('licensedCommons(meta:any)') &&
+  mediaFunction.includes('exactSubjectMatch(subject,fileName)') &&
+  mediaFunction.includes('rights_status:choice.rights_status') &&
+  mediaFunction.includes('source_type:choice.source_type') &&
+  mediaFunction.includes('source_page_url:choice.source_page_url'));
+check('Photo app shows correct source attribution and hides flagged media', () =>
+  photos.includes("p.source_type==='wikimedia_commons'") &&
+  photos.includes('link(p.license_url') &&
+  photos.includes('filter(p=>!p.needs_review)'));
+check('Source limitations are transparently documented', () =>
+  mediaStandard.includes('Flickr CC') &&
+  mediaStandard.includes('Not enabled') &&
+  mediaStandard.includes('metadata verified') &&
+  mediaStandard.includes('Unsplash'));
 console.log('\nShared workspace checks: ' + passed + ' passed, ' + failures.length + ' failed.');
 if (failures.length) process.exitCode = 1;
