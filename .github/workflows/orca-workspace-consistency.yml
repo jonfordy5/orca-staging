@@ -10,6 +10,8 @@ on:
       - 'orca-living-timeline.js'
       - 'orca-timeline-photos.js'
       - 'docs/orca-company-page-standard.md'
+      - 'supabase/functions/orca-timeline-photo-fill/**'
+      - 'docs/orca-timeline-media-sourcing.md'
       - 'scripts/check-shared-research-workspace.cjs'
       - '.github/workflows/orca-workspace-consistency.yml'
   pull_request:
