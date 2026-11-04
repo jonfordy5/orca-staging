@@ -172,8 +172,8 @@ function candidateFromUnsplash(p:any,query:string,tier:number,profile:ThemeProfi
  if(excludedBrands.test(description)&&!description.includes(profile.brand))return null;
  if(profile.theme==="auto parts retail"&&offThemeAuto.test(description))return null;
  let score=photoScore(p,{companyOnly:tier===0,minimumScore:0,keywords:profile.terms},profile);
- if(score<0&&tier<4)return null;
- if(score<0)score=0;
+ // Do not accept off-brand results at any fallback tier.
+ if(score<0)return null;
  return {id,image_url:url,full_image_url:full,photographer,photographer_url,
   photo_url,download_location:download,title:description.slice(0,300),query,tier,
   score:score+(5-tier)*8+Math.min(Number(p.likes||0)/500,2)};
@@ -288,10 +288,8 @@ Deno.serve(async(req:Request)=>{
   const {data:stockCache}=await admin.from("orca_timeline_photo_selections")
    .select("photo_id,image_url,full_image_url,photographer,photographer_url,photo_url,ticker")
    .eq("ticker",ticker).limit(100);
-  const {data:library}=await admin.from("orca_timeline_photo_selections")
-   .select("photo_id,image_url,full_image_url,photographer,photographer_url,photo_url,ticker")
-   .limit(100);
-  const backups=[...(stockCache||[]),...(library||[])];
+  // Never use another ticker's photo as a visual fallback.
+  const backups=stockCache||[];
   const already=new Set(lastResort.map(c=>c.id));
   for(const p of backups){
    if(!p.photo_id||already.has(p.photo_id)||
