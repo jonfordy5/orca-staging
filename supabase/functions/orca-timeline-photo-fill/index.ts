@@ -130,7 +130,7 @@ function plain(value:unknown):string{
  .replace(/&#(?:x[0-9a-f]+|\d+);/gi," ").replace(/\s+/g," ").trim().slice(0,1000);
 }
 function canonicalTokens(value:string):string[]{
- return value.toLowerCase().replace(/[^a-z0-9]+/g," ").split(/\s+/).filter(t=>t.length>2&&!new Set(
+ return value.toLowerCase().replace(/[^a-z0-9]+/g," ").split(/\s+/).filter(t=>t.length>=2&&!new Set(
  ["the","and","for","with","from","that","this","announces","announced","introduces","introduced","unveils","unveiled","company",
  "corp","inc","incorporated","reports","filed","annual","report","results","first","new","after","their","more","than"]).has(t));
 }
