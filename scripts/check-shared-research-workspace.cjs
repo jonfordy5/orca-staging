@@ -132,5 +132,15 @@ check('Photo generation rejects negative relevance and never borrows other ticke
 });
 check('Cached ten-milestone timelines can authorize their first photo generation', () =>
   timeline.includes('await checkHistoryPermission();await maybePopulateCompanyHistory();'));
+check('Ambiguous multiword brands remain intact, including Dollar General', () => {
+ const engine=read('supabase/functions/orca-timeline-photo-fill/index.ts');
+ return engine.includes('DG:"dollar general"') &&
+  engine.includes('.trim().toLowerCase();') &&
+  engine.includes('theme:"discount retail"') &&
+  engine.includes('profile.brand+" discount store"') &&
+  engine.includes('if(profile.theme==="discount retail")') &&
+  engine.includes('const cash=') &&
+  engine.includes('const competitor=');
+});
 console.log('\nShared workspace checks: ' + passed + ' passed, ' + failures.length + ' failed.');
 if (failures.length) process.exitCode = 1;
