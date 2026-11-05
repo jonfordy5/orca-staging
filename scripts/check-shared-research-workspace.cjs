@@ -72,7 +72,7 @@ check('All tickers mount the same source-backed Living Timeline component', () =
   workspace.includes("import('./orca-living-timeline.js?"));
 check('Living Timeline features ten milestones without removing archived events', () =>
   timeline.includes('const milestoneTarget=10') &&
-  timeline.includes('data=verified.length<=milestoneTarget?verified:Array.from(') &&
+  timeline.includes('const nextData=verified.length<=milestoneTarget?verified:Array.from(') &&
   timeline.includes("sb.from('orca_timeline_annotations')") &&
   timeline.includes("validSource(x.source_url)") &&
   timeline.includes(".is('created_by',null)"));
