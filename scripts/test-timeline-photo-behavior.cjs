@@ -21,15 +21,15 @@ const admin={auth:{getUser:async()=>({data:{user:{id:'test'}}})},from(table){
 }};
 const ctx={createClient:()=>admin,Deno:{env:{get:()=>''},serve:fn=>handler=fn},URL,Response,Request,Date,AbortSignal,fetch:async()=>{requests++;throw Error('No provider request expected')}};
 vm.createContext(ctx);
-vm.runInContext(stripTypeScriptTypes(source)+ '\nglobalThis.api={companyTheme,eventVisualPlan,eventCandidateScore,pickCandidate};',ctx);
-const {companyTheme,eventVisualPlan,eventCandidateScore,pickCandidate}=ctx.api;
+vm.runInContext(stripTypeScriptTypes(source)+ '\nglobalThis.api={companyTheme,eventVisualPlan,eventCandidateScore,pickCandidate,companyPhotoIdentity,photoVenue};',ctx);
+const {companyTheme,eventVisualPlan,eventCandidateScore,pickCandidate,companyPhotoIdentity,photoVenue}=ctx.api;
 const dg=companyTheme('DG','Dollar General','discount retailer');
 const nvda=companyTheme('NVDA','NVIDIA','semiconductors');
 const ulta=companyTheme('ULTA','Ulta Beauty','beauty retail');
 const unknown=companyTheme('NEW','New Restaurant','restaurant');
 let checks=0;
 function test(name,fn){fn();checks++;console.log('PASS '+name)}
-const candidate=(title,query='',score=40)=>({id:title,title,query,score,photographer:'Example'});
+const candidate=(title,query='',score=40)=>({id:title,title,query,score,photographer:'Example',company_match:companyPhotoIdentity(title,dg),venue:photoVenue(title)});
 const listing=eventVisualPlan({title:'Returned to public trading on NYSE'},dg);
 test('Query alone cannot approve an unrelated image',()=>assert.equal(eventCandidateScore(candidate('beach sunset',listing.queries[0],1000),listing),-Infinity));
 test('Listing chooses stock exchange over higher-scoring grocery',()=>assert.equal(pickCandidate([candidate('grocery store shelves','',1000),candidate('new york stock exchange')],new Set(),new Map(),listing).title,'new york stock exchange'));
@@ -43,6 +43,13 @@ for(const [name,profile] of [['NVDA',nvda],['ULTA',ulta],['future restaurant',un
 });
 test('DG Mexico retains grocery context',()=>assert(eventVisualPlan({title:'First Mexican store'},dg).queries[0].includes('grocery')));
 test('Cached photo without subject metadata cannot be approved',()=>assert.equal(eventCandidateScore(candidate(''),listing),-Infinity));
+for(const title of ["mercadona supermarket storefront with orange brick building","waller's market storefront with red brick building","dixie grocery store with trees and sky","yellow beach shop storefront with outdoor seating","business meeting boardroom","grocery store shelves"]){
+ test('Reject unrelated context: '+title,()=>assert.equal(pickCandidate([candidate(title)],new Set(),new Map(),eventVisualPlan({title:'DG store expansion'},dg)),null));
+}
+test('Real DG photo is an honest company fallback',()=>assert.equal(pickCandidate([candidate('dollar general store at night')],new Set(),new Map(),eventVisualPlan({title:'Todd Vasos named CEO'},dg)).company_match,true));
+test('NYSE cannot fill a grocery event',()=>assert.equal(pickCandidate([candidate('new york stock exchange')],new Set(),new Map(),eventVisualPlan({title:'DG Fresh'},dg)),null));
+test('Apple fruit does not establish company identity',()=>assert.equal(companyPhotoIdentity('apple on a table',companyTheme('AAPL','Apple Inc','consumer electronics')),false));
+test('Full company phrase prevents dollar/general token collision',()=>assert.equal(companyPhotoIdentity('dollar bills in general circulation',dg),false));
 (async()=>{
  const response=await handler(new Request('https://example.test',{method:'POST',headers:{Origin:'https://jonfordy5.github.io',Authorization:'Bearer test','Content-Type':'application/json'},body:JSON.stringify({ticker:'DG'})}));
  const payload=await response.json();

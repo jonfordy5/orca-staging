@@ -149,7 +149,7 @@ check('Milestone photo matching uses event-aware visual plans', () => {
   engine.includes('function eventCandidateScore(') &&
   engine.includes('eventVisualPlan(e,profile)') &&
   engine.includes('visualQueries(profile,featured)') &&
-  engine.includes('strategy_version:6,needs_review:false');
+  engine.includes('strategy_version:7,needs_review:false');
 });
 check('Dollar General photo queries distinguish groceries, leadership, listing and Mexico expansion', () => {
  const engine=read('supabase/functions/orca-timeline-photo-fill/index.ts');
