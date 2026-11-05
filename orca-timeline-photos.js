@@ -1,3 +1,14 @@
+// Translate provider failures into useful, nontechnical timeline status.
+export function photoFailureMessage(payload={}){
+ if(payload.state==='daily_limit'||payload.error==='Photo-selection daily safety limit reached'){
+  const date=new Date(payload.retry_at);
+  const when=payload.retry_at&&Number.isFinite(date.getTime())?' Next capacity opens '+date.toLocaleString()+'.':'';
+  return 'Photo selection paused: the shared 24-photo daily allowance is used.'+when+' Existing photos are unchanged.';
+ }
+ return payload.error==='Opted-in ORCA researcher required'?'Enable ORCA research consent to find timeline photos.':
+  payload.error==='Invalid sign-in'||payload.error==='Sign in required'?'Sign in again to find timeline photos.':
+  'Unable to select photos right now; existing timeline is unchanged.';
+}
 // Optional visual layer for ORCA's sourced company milestones. Research remains unchanged.
 export async function mountTimelinePhotos({sb,ticker,frame,rail,status,getUser,canContribute}){
  const nav=frame.querySelector('.orca-timeline-navigation');
@@ -7,6 +18,11 @@ export async function mountTimelinePhotos({sb,ticker,frame,rail,status,getUser,c
  button.title='Find company-first illustrative photos. Replace weak cached images without changing research.';
  button.hidden=!(getUser()&&canContribute());
  nav.append(button);
+ const notice=document.createElement('p');
+ notice.className='orca-photo-notice';notice.hidden=true;
+ notice.setAttribute('role','status');notice.setAttribute('aria-live','polite');
+ nav.after(notice);
+ const showNotice=text=>{notice.textContent=text;notice.hidden=!text;status.textContent=text};
  let photos=new Map();
  let duplicateCount=0;
  let remainingPhotos=0;
@@ -73,13 +89,18 @@ export async function mountTimelinePhotos({sb,ticker,frame,rail,status,getUser,c
   actionPending=true;button.disabled=true;button.textContent='Finding…';
   try{
    const {data,error}=await sb.functions.invoke('orca-timeline-photo-fill',{body:{ticker,improve:duplicateCount>0}});
-   if(error)throw error;
+   if(error){
+    let detail={};
+    try{detail=await error.context?.json()||{}}catch{}
+    showNotice(photoFailureMessage(detail));
+    return;
+   }
    await refresh();
    const saved=Number(data?.added||0);
    const left=Number(data?.remaining||0);
-   status.textContent=saved>0?saved+' company-relevant photo'+(saved===1?'':'s')+' saved.'+(left?' '+left+' event'+(left===1?'':'s')+' still need better photos.':'')+' Research sources unchanged.':
-    data?.state==='cached'?'All featured milestones have cached photographs.':'No new photos selected; existing imagery kept while broader searches are considered.';
-  }catch{status.textContent='Unable to select photos right now; existing timeline is unchanged.'}
+   showNotice(saved>0?saved+' illustrative photo'+(saved===1?'':'s')+' saved.'+(left?' '+left+' event'+(left===1?'':'s')+' still need better photos.':'')+' Research sources unchanged.':
+    data?.state==='cached'?'All featured milestones have cached photographs.':data?.state==='rate_limited'?'Photo provider limit reached. Existing imagery is unchanged.':'No sufficiently relevant photos found. Existing imagery is unchanged; photo coverage remains incomplete.');
+  }catch{showNotice(photoFailureMessage())}
   finally{actionPending=false;updatePhotoAction()}
  }
  button.addEventListener('click',()=>void fillPhotos());

@@ -145,8 +145,12 @@ type Candidate={
 type EventVisualPlan={kind:string;queries:string[];terms:string[]};
 function eventVisualPlan(event:{title:string;category?:string},profile:ThemeProfile):EventVisualPlan{
  const title=String(event.title||"").toLowerCase();
- if(/\b(mexico|mexican|international expansion|overseas)\b/.test(title))
-  return {kind:"international",queries:["mexico grocery supermarket interior","mexican retail storefront"],terms:["mexico","mexican","supermarket","grocery","market","retail","store","aisle"]};
+ if(/\b(mexico|mexican|international expansion|overseas)\b/.test(title)){
+  const mexico=/\b(mexico|mexican)\b/.test(title);
+  if(mexico&&profile.theme==="discount retail")
+   return {kind:"international",queries:["mexico grocery supermarket interior","mexican retail storefront"],terms:["supermarket","grocery","retail","store","aisle"]};
+  return {kind:"international",queries:profile.queries.slice(0,2).map(q=>(mexico?"mexico ":"")+q),terms:profile.terms};
+ }
  if(/\b(nyse|stock exchange|ipo|public trading|public listing|listed|initial public offering)\b/.test(title))
   return {kind:"listing",queries:["new york stock exchange building","wall street stock exchange"],terms:["stock exchange","wall street","nyse","trading floor","exchange","financial district"]};
  if(/\b(ceo|chief executive|leadership|management|appointments?|president|board names|chairman)\b/.test(title))
@@ -177,8 +181,9 @@ function visualQueries(profile:ThemeProfile,events:{title:string;category?:strin
 function eventCandidateScore(candidate:Candidate,plan:EventVisualPlan):number{
  const desc=candidate.title.toLowerCase();
  const hits=plan.terms.filter(term=>desc.includes(term)).length;
- const targeted=plan.queries.includes(candidate.query);
- return candidate.score+(targeted?54:0)+Math.min(hits,4)*12;
+ // Search terms are not evidence about what a returned photograph depicts.
+ if(!hits)return -Infinity;
+ return candidate.score+Math.min(hits,4)*12;
 }
 const excludedBrands=/\b(lordco|autozone|o'?reilly|napa auto|pep boys|sephora|dior|chanel|louis vuitton|gucci|prada)\b/i;
 const offThemeAuto=/\b(scrap|junkyard|salvage|wreck|factory|assembly line|welding|industrial robots|crashed)\b/i;
@@ -203,7 +208,7 @@ function candidateFromUnsplash(p:any,query:string,tier:number,profile:ThemeProfi
  if(score<0)return null;
  return {id,image_url:url,full_image_url:full,photographer,photographer_url,
   photo_url,download_location:download,title:description.slice(0,300),query,tier,
-  score:score+(5-tier)*8+Math.min(Number(p.likes||0)/500,2)};
+  score:score+Math.max(0,5-tier)*8+Math.min(Number(p.likes||0)/500,2)};
 }
 async function findUnsplashCandidates(accessKey:string,queries:string[],profile:ThemeProfile):Promise<{candidates:Candidate[],limited:boolean,queries_tried:string[]}>{
  const out:Candidate[]=[];let limited=false;
@@ -237,7 +242,7 @@ async function findUnsplashCandidates(accessKey:string,queries:string[],profile:
  return {candidates:[...byId.values()].sort((a,b)=>b.score-a.score),limited,queries_tried:q};
 }
 function pickCandidate(pool:Candidate[],reserved:Set<string>,photographerCounts:Map<string,number>,plan:EventVisualPlan):Candidate|null{
- const available=pool.filter(p=>!reserved.has(p.id));
+ const available=pool.filter(p=>!reserved.has(p.id)&&Number.isFinite(eventCandidateScore(p,plan)));
  if(!available.length)return null;
  available.sort((a,b)=>(eventCandidateScore(b,plan)-(photographerCounts.get(b.photographer)||0)*5)-
   (eventCandidateScore(a,plan)-(photographerCounts.get(a.photographer)||0)*5));
@@ -287,7 +292,13 @@ Deno.serve(async(req:Request)=>{
  const targets=featured.filter((e:any)=>!existing.has(e.id)||existing.get(e.id)?.needs_review);
  if(!targets.length)return reply(200,{state:"cached",added:0,remaining:0,photos:featured.length});
  const remainingDaily=Math.max(0,24-(count||0));
- if(!remainingDaily)return reply(429,{error:"Photo-selection daily safety limit reached"});
+ if(!remainingDaily){
+  const {data:oldest}=await admin.from("orca_timeline_photo_selections").select("created_at")
+   .gte("created_at",new Date(Date.now()-86400000).toISOString()).order("created_at").limit(1);
+  const retryAt=oldest?.[0]?.created_at?new Date(Date.parse(oldest[0].created_at)+86400000).toISOString():null;
+  return reply(429,{state:"daily_limit",error:"Photo-selection daily safety limit reached",
+   limit:24,used:count,remaining:targets.length,retry_at:retryAt});
+ }
  const todo=targets.slice(0,Math.min(10,remainingDaily));
  const accessKey=Deno.env.get("UNSPLASH_ACCESS_KEY");
  if(!accessKey)return reply(503,{error:"Unsplash access key is not configured"});
@@ -306,13 +317,13 @@ Deno.serve(async(req:Request)=>{
  }
  // If all unique candidates were exhausted, reuse the strongest relevant photo only as
  // a last resort. Repetition is suboptimal but is preferred to an unfilled timeline.
- const lastResort=search.candidates.filter(c=>c.score>=0).slice(0,10);
+ const lastResort=search.candidates.filter(c=>c.score>=0);
  // Absolute last resort: already cached, credited Unsplash photographs. This remains
  // photography rather than a blank placeholder, including during provider outages.
  // Only reuse this company's credited, non-flagged photographs.
  if(lastResort.length<todo.length){
   const {data:stockCache}=await admin.from("orca_timeline_photo_selections")
-   .select("photo_id,image_url,full_image_url,photographer,photographer_url,photo_url,ticker,needs_review")
+   .select("photo_id,image_url,full_image_url,photographer,photographer_url,photo_url,ticker,needs_review,image_title")
    .eq("ticker",ticker).limit(100);
   // Never use another ticker's photo as a visual fallback.
   const backups=stockCache||[];
@@ -326,7 +337,7 @@ Deno.serve(async(req:Request)=>{
    already.add(p.photo_id);
    lastResort.push({id:p.photo_id,image_url:p.image_url,full_image_url:p.full_image_url,
     photographer:p.photographer,photographer_url:p.photographer_url,photo_url:p.photo_url,
-    download_location:"",query:"existing credited photo cache",title:"illustrative photo",
+    download_location:"",query:"existing credited photo cache",title:p.image_title||"",
     tier:99,score:p.ticker===ticker?4:0});
   }
  }
@@ -334,10 +345,11 @@ Deno.serve(async(req:Request)=>{
   if(choices.find(c=>c.event_id===e.id))continue;
   if(!lastResort.length)continue;
   // Cycle the available photographs only if the catalog is genuinely exhausted.
-  const eventIndex=featured.findIndex((x:any)=>x.id===e.id);
   const plan=eventVisualPlan(e,profile);
-   const ranked=[...lastResort].sort((a,b)=>eventCandidateScore(b,plan)-eventCandidateScore(a,plan));
-   const pick=ranked[eventIndex%ranked.length];
+  const ranked=lastResort.filter(c=>Number.isFinite(eventCandidateScore(c,plan)))
+   .sort((a,b)=>eventCandidateScore(b,plan)-eventCandidateScore(a,plan));
+  if(!ranked.length)continue;
+  const pick=ranked[0];
   choices.push({event_id:e.id,choice:pick});
   failed=Math.max(0,failed-1);
  }
@@ -348,7 +360,8 @@ Deno.serve(async(req:Request)=>{
    photographer_url:choice.photographer_url,photo_url:choice.photo_url,illustrative:true,
    source_type:"unsplash_legacy",rights_status:"legacy_provider_terms",
    match_type:"contextual",search_query:choice.query,query_used:choice.query,
-   strategy_version:5,needs_review:false,
+   strategy_version:6,needs_review:false,
+   image_title:choice.title,
    match_score:Math.round(choice.score),relevance_score:Math.min(100,Math.round(choice.score)),
    attribution_text:"Photo by "+choice.photographer+" on Unsplash",
    source_page_url:choice.photo_url,creator:choice.photographer
