@@ -1,5 +1,5 @@
 import {createClient} from "npm:@supabase/supabase-js@2.57.0";
-// ORCA staging: opt-in Unsplash photo selection, capped to three NEW photos per user click.
+// ORCA staging: opt-in Unsplash photo selection, up to ten event-aware photos per authorized request.
 // Photos remain on Unsplash's CDN; milestone research and original sources are unchanged.
 const url=Deno.env.get("SUPABASE_URL")||"";
 const key=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")||"";
@@ -67,7 +67,7 @@ function photoScore(photo:any,plan:any,profile:ThemeProfile){
  if(profile.theme==="discount retail"){
   const cash=/\b(banknote|banknotes|dollar bills?|cash|currency|coins?|bitcoin|bank teller|forex|banking|money|financial chart)\b/i;
   const competitor=/\b(dollar tree|family dollar|walmart|target|costco|aldi|lidl|five below|walgreens|cvs)\b/i;
-  const retail=/\b(discount stores?|discount retail|grocery aisles?|grocery shelves|retail shelves|store shelves|store aisle|storefront|household essentials|household products|general merchandise|variety store|shopping aisles?)\b/i;
+  const retail=/\b(discount stores?|discount retail|grocery (?:aisles?|shelves|store|section)|supermarket|produce section|refrigerated (?:section|shelves|food)|retail shelves|store shelves|store aisles?|storefront|household essentials|household products|general merchandise|variety store|shopping aisles?)\b/i;
   const brand=/\bdollar general\b/i.test(description);
   if(cash.test(description)||competitor.test(description)||!(brand||retail.test(description)))return -100;
   if(plan.companyOnly&&!brand)return -100;
@@ -140,40 +140,45 @@ type Candidate={
  id:string;image_url:string;full_image_url:string;photographer:string;photographer_url:string;
  photo_url:string;download_location:string;title:string;query:string;tier:number;score:number;
 };
-function visualQueries(profile:ThemeProfile):string[]{
+// Illustrative scenes follow the EVENT, not just the company's general industry.
+// Never describe these images as documentary evidence of an actual milestone.
+type EventVisualPlan={kind:string;queries:string[];terms:string[]};
+function eventVisualPlan(event:{title:string;category?:string},profile:ThemeProfile):EventVisualPlan{
+ const title=String(event.title||"").toLowerCase();
+ if(/\b(mexico|mexican|international expansion|overseas)\b/.test(title))
+  return {kind:"international",queries:["mexico grocery supermarket interior","mexican retail storefront"],terms:["mexico","mexican","supermarket","grocery","market","retail","store","aisle"]};
+ if(/\b(nyse|stock exchange|ipo|public trading|public listing|listed|initial public offering)\b/.test(title))
+  return {kind:"listing",queries:["new york stock exchange building","wall street stock exchange"],terms:["stock exchange","wall street","nyse","trading floor","exchange","financial district"]};
+ if(/\b(ceo|chief executive|leadership|management|appointments?|president|board names|chairman)\b/.test(title))
+  return {kind:"leadership",queries:["business meeting boardroom","corporate office leadership"],terms:["meeting","boardroom","office","conference","team","business","corporate"]};
+ if(/\b(fresh|grocer|food|refrigerat|distribution|supply chain|cold storage)\b/.test(title))
+  return {kind:"grocery",queries:["grocery supermarket refrigerated section","supermarket fresh food shelves"],terms:["grocery","refrigerat","supermarket","food","produce","store","shelves","cold","distribution"]};
+ if(/\b(popshelf|home goods|merchandise|new product|product line)\b/.test(title))
+  return {kind:"merchandise",queries:["colorful home goods store shelves","retail home decor merchandise"],terms:["home goods","decor","merchandise","shelves","store","retail","products","colorful"]};
+ if(/\b(merger|acquisition|take.private|go private|buyout|deal)\b/.test(title))
+  return {kind:"corporate",queries:["retail storefront exterior","corporate office building"],terms:["storefront","retail","office","building","business","store","corporate"]};
+ if(/\b(closing|closures?|shrink|restructur|store opening|opened|new stores?|expansion)\b/.test(title))
+  return {kind:"stores",queries:["retail store storefront","retail shopping aisles"],terms:["storefront","store","retail","shopping","shelves","aisle"]};
+ return {kind:"general",queries:[profile.queries[0],profile.queries[1]],terms:profile.terms};
+}
+function visualQueries(profile:ThemeProfile,events:{title:string;category?:string}[]):string[]{
+ const plans=events.map(e=>eventVisualPlan(e,profile));
+ const subjects=[...new Set(plans.map(p=>p.kind))];
+ const themed=profile.theme==="discount retail"?"discount grocery store":
+  profile.theme==="beauty retail"?"beauty skincare store":
+  profile.theme==="auto parts retail"?"automotive parts shop":
+  profile.theme==="semiconductors"?"computer chip electronics":profile.queries[0];
+ // Company first; then one search per distinct milestone subject.
  const specific=photoPlans(profile);
- const theme=profile.theme;
- const primary=theme==="discount retail"?"discount store grocery shelves":
-  theme==="auto parts retail"?"automotive parts products":theme==="beauty retail"?"beauty cosmetics":
-  theme==="semiconductors"?"computer chip graphics processor":
-  theme==="aerospace"?"rocket spacecraft":
-  theme==="consumer devices"?"laptop smartphone":
-  theme==="software and cloud"?"cloud computing servers":profile.queries[0];
- const category=theme==="discount retail"?"retail shelves household essentials":
-  theme==="auto parts retail"?"automotive retail shelves brake pads":
-  theme==="beauty retail"?"cosmetics skincare editorial":
-  theme==="semiconductors"?"circuit board processor macro":
-  theme==="aerospace"?"rocket launch night":
-  theme==="consumer devices"?"desktop computers elegant":
-  theme==="software and cloud"?"data center technology":
-  profile.queries[1]||"professional business workspace";
- const thematic=theme==="discount retail"?"discount shopping store aisle":
-  theme==="auto parts retail"?"automotive parts closeup":
-  theme==="beauty retail"?"makeup skincare product photography":
-  theme==="semiconductors"?"advanced computing electronics":
-  theme==="aerospace"?"space technology stars":
-  theme==="consumer devices"?"minimalist computer setup":
-  theme==="software and cloud"?"server room technology":
-  profile.queries[2]||"business technology";
- // High relevance first; broad fallback last. This is a VISUAL, illustrative layer,
- // not an assertion that an image depicts a historical event.
- return [...new Set([specific[0]?.query,specific[1]?.query,primary,category,thematic,
-  theme==="beauty retail"?"beauty editorial still life":
-  theme==="discount retail"?"discount grocery store":
-  theme==="auto parts retail"?"car maintenance tools products":
-  theme==="semiconductors"?"technology abstract blue":
-  theme==="aerospace"?"space exploration stars":"business abstract editorial"]
-  .filter(Boolean))].slice(0,6);
+ return [...new Set([specific[0]?.query,
+  ...subjects.map(kind=>plans.find(p=>p.kind===kind)?.queries[0]),
+  specific[1]?.query,themed,...profile.queries].filter(Boolean))].slice(0,9);
+}
+function eventCandidateScore(candidate:Candidate,plan:EventVisualPlan):number{
+ const desc=candidate.title.toLowerCase();
+ const hits=plan.terms.filter(term=>desc.includes(term)).length;
+ const targeted=plan.queries.includes(candidate.query);
+ return candidate.score+(targeted?54:0)+Math.min(hits,4)*12;
 }
 const excludedBrands=/\b(lordco|autozone|o'?reilly|napa auto|pep boys|sephora|dior|chanel|louis vuitton|gucci|prada)\b/i;
 const offThemeAuto=/\b(scrap|junkyard|salvage|wreck|factory|assembly line|welding|industrial robots|crashed)\b/i;
@@ -191,6 +196,10 @@ function candidateFromUnsplash(p:any,query:string,tier:number,profile:ThemeProfi
  if(profile.theme==="auto parts retail"&&offThemeAuto.test(description))return null;
  let score=photoScore(p,{companyOnly:tier===0,minimumScore:0,keywords:profile.terms},profile);
  // Do not accept off-brand results at any fallback tier.
+ if(score<0&&profile.theme==="discount retail"&&
+  /\b(stock exchange|wall street|business meeting|corporate office)\b/i.test(query)&&
+  /\b(stock exchange|wall street|trading floor|boardroom|conference room|business meeting|office building|corporate office)\b/i.test(description)&&
+  !/\b(banknotes?|cash|dollar bills?|coins?|currency|bitcoin|money|forex|bank teller|walmart|target|dollar tree|family dollar)\b/i.test(description))score=12;
  if(score<0)return null;
  return {id,image_url:url,full_image_url:full,photographer,photographer_url,
   photo_url,download_location:download,title:description.slice(0,300),query,tier,
@@ -202,7 +211,6 @@ async function findUnsplashCandidates(accessKey:string,queries:string[],profile:
  // Four searches are usually enough to cover 10 unique images; reserve an abstract
  // query if the pool remains insufficient. A 30-photo batch costs one search call.
  for(const [tier,query] of queries.entries()){
-  if(tier>=4&&out.length>=24)break;
   q.push(query);
   const uri=new URL("https://api.unsplash.com/search/photos");
   uri.searchParams.set("query",query);
@@ -228,11 +236,11 @@ async function findUnsplashCandidates(accessKey:string,queries:string[],profile:
  }
  return {candidates:[...byId.values()].sort((a,b)=>b.score-a.score),limited,queries_tried:q};
 }
-function pickCandidate(pool:Candidate[],reserved:Set<string>,photographerCounts:Map<string,number>):Candidate|null{
+function pickCandidate(pool:Candidate[],reserved:Set<string>,photographerCounts:Map<string,number>,plan:EventVisualPlan):Candidate|null{
  const available=pool.filter(p=>!reserved.has(p.id));
  if(!available.length)return null;
- available.sort((a,b)=>(b.score-(photographerCounts.get(b.photographer)||0)*5)-
-  (a.score-(photographerCounts.get(a.photographer)||0)*5));
+ available.sort((a,b)=>(eventCandidateScore(b,plan)-(photographerCounts.get(b.photographer)||0)*5)-
+  (eventCandidateScore(a,plan)-(photographerCounts.get(a.photographer)||0)*5));
  return available[0];
 }
 
@@ -283,14 +291,14 @@ Deno.serve(async(req:Request)=>{
  const todo=targets.slice(0,Math.min(10,remainingDaily));
  const accessKey=Deno.env.get("UNSPLASH_ACCESS_KEY");
  if(!accessKey)return reply(503,{error:"Unsplash access key is not configured"});
- const search=await findUnsplashCandidates(accessKey,visualQueries(profile),profile);
+ const search=await findUnsplashCandidates(accessKey,visualQueries(profile,featured),profile);
  const reserved=new Set((cached||[]).filter((p:any)=>!p.needs_review).map((p:any)=>p.photo_id));
  const photographers=new Map<string,number>();
  for(const p of cached||[])photographers.set(p.photographer,(photographers.get(p.photographer)||0)+1);
  let added=0,failed=0;
  const choices: {event_id:string,choice:Candidate}[]=[];
  for(const e of todo){
-  const found=pickCandidate(search.candidates,reserved,photographers);
+  const found=pickCandidate(search.candidates,reserved,photographers,eventVisualPlan(e,profile));
   if(!found){failed++;continue}
   reserved.add(found.id);
   photographers.set(found.photographer,(photographers.get(found.photographer)||0)+1);
@@ -301,16 +309,16 @@ Deno.serve(async(req:Request)=>{
  const lastResort=search.candidates.filter(c=>c.score>=0).slice(0,10);
  // Absolute last resort: already cached, credited Unsplash photographs. This remains
  // photography rather than a blank placeholder, including during provider outages.
- // Prioritize this company's cached images and only then the shared staging library.
+ // Only reuse this company's credited, non-flagged photographs.
  if(lastResort.length<todo.length){
   const {data:stockCache}=await admin.from("orca_timeline_photo_selections")
-   .select("photo_id,image_url,full_image_url,photographer,photographer_url,photo_url,ticker")
+   .select("photo_id,image_url,full_image_url,photographer,photographer_url,photo_url,ticker,needs_review")
    .eq("ticker",ticker).limit(100);
   // Never use another ticker's photo as a visual fallback.
   const backups=stockCache||[];
   const already=new Set(lastResort.map(c=>c.id));
   for(const p of backups){
-   if(!p.photo_id||already.has(p.photo_id)||
+   if(p.needs_review||!p.photo_id||already.has(p.photo_id)||
      !urlAllowed(p.image_url,"images.unsplash.com")||
      !urlAllowed(p.full_image_url,"images.unsplash.com")||
      !urlAllowed(p.photo_url,"unsplash.com")||
@@ -327,7 +335,9 @@ Deno.serve(async(req:Request)=>{
   if(!lastResort.length)continue;
   // Cycle the available photographs only if the catalog is genuinely exhausted.
   const eventIndex=featured.findIndex((x:any)=>x.id===e.id);
-  const pick=lastResort[eventIndex%lastResort.length];
+  const plan=eventVisualPlan(e,profile);
+   const ranked=[...lastResort].sort((a,b)=>eventCandidateScore(b,plan)-eventCandidateScore(a,plan));
+   const pick=ranked[eventIndex%ranked.length];
   choices.push({event_id:e.id,choice:pick});
   failed=Math.max(0,failed-1);
  }
@@ -338,7 +348,7 @@ Deno.serve(async(req:Request)=>{
    photographer_url:choice.photographer_url,photo_url:choice.photo_url,illustrative:true,
    source_type:"unsplash_legacy",rights_status:"legacy_provider_terms",
    match_type:"contextual",search_query:choice.query,query_used:choice.query,
-   strategy_version:4,needs_review:false,
+   strategy_version:5,needs_review:false,
    match_score:Math.round(choice.score),relevance_score:Math.min(100,Math.round(choice.score)),
    attribution_text:"Photo by "+choice.photographer+" on Unsplash",
    source_page_url:choice.photo_url,creator:choice.photographer
@@ -355,5 +365,5 @@ Deno.serve(async(req:Request)=>{
  return reply(200,{state:search.limited?"rate_limited":"ready",added,failed,
   requested:todo.length,remaining:Math.max(0,targets.length-added),
   featured:featured.length,query_count:search.queries_tried.length,queries:search.queries_tried,
-  note:"Company and product photos with conceptual fallback. All photos illustrative; research sources unchanged."});
+  note:"Event-aware illustrative photography with same-company fallback. Research sources unchanged."});
 });

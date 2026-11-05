@@ -142,5 +142,32 @@ check('Ambiguous multiword brands remain intact, including Dollar General', () =
   engine.includes('const cash=') &&
   engine.includes('const competitor=');
 });
+
+check('Milestone photo matching uses event-aware visual plans', () => {
+ const engine=read('supabase/functions/orca-timeline-photo-fill/index.ts');
+ return engine.includes('function eventVisualPlan(') &&
+  engine.includes('function eventCandidateScore(') &&
+  engine.includes('eventVisualPlan(e,profile)') &&
+  engine.includes('visualQueries(profile,featured)') &&
+  engine.includes('strategy_version:5,needs_review:false');
+});
+check('Dollar General photo queries distinguish groceries, leadership, listing and Mexico expansion', () => {
+ const engine=read('supabase/functions/orca-timeline-photo-fill/index.ts');
+ return ['mexico grocery supermarket interior','business meeting boardroom',
+  'new york stock exchange building','grocery supermarket refrigerated section'].every(term=>engine.includes(term)) &&
+  engine.includes('const cash=') &&
+  engine.includes('const competitor=');
+});
+check('Old flagged illustrations cannot be recycled as vetted company fallback', () => {
+ const engine=read('supabase/functions/orca-timeline-photo-fill/index.ts');
+ return engine.includes('if(p.needs_review||!p.photo_id') &&
+  engine.includes('.eq("ticker",ticker).limit(100)') &&
+  !engine.includes('const {data:library}');
+});
+check('Photo-fill retries when permissions resolve and newly researched milestones render', () =>
+  photos.includes('lastAutoFillSignature!==signature') &&
+  photos.includes('getUser()&&canContribute()') &&
+  photos.includes('void fillPhotos()'));
+
 console.log('\nShared workspace checks: ' + passed + ' passed, ' + failures.length + ' failed.');
 if (failures.length) process.exitCode = 1;

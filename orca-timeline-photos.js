@@ -12,6 +12,7 @@ export async function mountTimelinePhotos({sb,ticker,frame,rail,status,getUser,c
  let remainingPhotos=0;
  let actionPending=false;
  let autoFillAttempted=false;
+ let lastAutoFillSignature='';
  function updatePhotoAction(){
   const needsAction=duplicateCount>0||remainingPhotos>0;
   // A finished timeline should show its photos, not a disabled "Photos ready" button.
@@ -29,6 +30,7 @@ export async function mountTimelinePhotos({sb,ticker,frame,rail,status,getUser,c
   photos=new Map(rawPhotos);
   const visibleCards=Array.from(rail.querySelectorAll('button[data-event-id]'));
   const visiblePhotos=visibleCards.map(card=>rawPhotos.get(card.dataset.eventId)).filter(Boolean);
+  const usablePhotos=visiblePhotos.filter(p=>!p.needs_review&&p.image_url);
   remainingPhotos=visibleCards.filter(card=>!rawPhotos.has(card.dataset.eventId)).length;
   // Temporary images may only come from THIS ticker. Cross-company fallback was
   // displaying NVIDIA graphics and auto engines on Apple historical events.
@@ -41,7 +43,7 @@ export async function mountTimelinePhotos({sb,ticker,frame,rail,status,getUser,c
    fallbackIds.add(fallback.photo_url);
    photos.set(card.dataset.eventId,{...fallback,temporary:true});
   }
-  const ids=visiblePhotos.map(p=>{
+  const ids=usablePhotos.map(p=>{
    try{return new URL(p.photo_url).pathname}catch{return p.image_url||''}
   });
   duplicateCount=ids.length-new Set(ids).size;
@@ -97,8 +99,13 @@ export async function mountTimelinePhotos({sb,ticker,frame,rail,status,getUser,c
   await refresh();
   // New history may be generated after initial mount. Run photo filling exactly once
   // per browser session when the first eligible sourced milestones appear.
-  if(!autoFillAttempted&&(remainingPhotos>0||duplicateCount>0)&&getUser()&&canContribute()){
+  // Account consent may resolve after the initial mount; retry once when it becomes
+  // authorized, and again if the displayed event IDs change after discovery.
+  const signature=Array.from(rail.querySelectorAll('button[data-event-id]')).map(card=>card.dataset.eventId).join(',');
+  if((!autoFillAttempted||lastAutoFillSignature!==signature)&&
+    (remainingPhotos>0||duplicateCount>0)&&getUser()&&canContribute()){
    autoFillAttempted=true;
+   lastAutoFillSignature=signature;
    void fillPhotos();
   }
  }
