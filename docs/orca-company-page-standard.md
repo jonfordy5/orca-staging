@@ -38,3 +38,9 @@ Also confirm manually before inviting wider external testers:
 - Responsive desktop/mobile view, keyboard popup behavior, source citations, account consent, and claim → research → publish work in a real browser.
 
 **Changes to this baseline are versioned deliberately** and should be regression-tested before they become the new default.
+
+### Photo relevance and operational status
+
+Photo search queries are retrieval hints, not evidence that a returned image matches a milestone. Accept contextual candidates only when their own metadata matches the event subject; save that metadata for future reuse. Existing photos without subject metadata may remain visible, but must not be newly approved for another event. International expansion queries retain the company sector.
+
+When the shared 24-photo rolling allowance is exhausted, show a visible explanation and next capacity time. Do not hide photo failures in the general history status. No photo change regenerates historical research. Metadata matching is not visual verification or proof of an exact event photograph.
