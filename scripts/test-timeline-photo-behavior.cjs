@@ -21,8 +21,8 @@ const admin={auth:{getUser:async()=>({data:{user:{id:'test'}}})},from(table){
 }};
 const ctx={createClient:()=>admin,Deno:{env:{get:()=>''},serve:fn=>handler=fn},URL,Response,Request,Date,AbortSignal,fetch:async()=>{requests++;throw Error('No provider request expected')}};
 vm.createContext(ctx);
-vm.runInContext(stripTypeScriptTypes(source)+ '\nglobalThis.api={companyTheme,eventVisualPlan,eventCandidateScore,pickCandidate,companyPhotoIdentity,photoVenue,eventContextMatch};',ctx);
-const {companyTheme,eventVisualPlan,eventCandidateScore,pickCandidate,companyPhotoIdentity,photoVenue,eventContextMatch}=ctx.api;
+vm.runInContext(stripTypeScriptTypes(source)+ '\nglobalThis.api={companyTheme,eventVisualPlan,visualQueries,eventCandidateScore,pickCandidate,companyPhotoIdentity,photoVenue,eventContextMatch,candidateFromUnsplash};',ctx);
+const {companyTheme,eventVisualPlan,visualQueries,eventCandidateScore,pickCandidate,companyPhotoIdentity,photoVenue,eventContextMatch,candidateFromUnsplash}=ctx.api;
 const dg=companyTheme('DG','Dollar General','discount retailer');
 const nvda=companyTheme('NVDA','NVIDIA','semiconductors');
 const ulta=companyTheme('ULTA','Ulta Beauty','beauty retail');
@@ -31,6 +31,30 @@ let checks=0;
 function test(name,fn){fn();checks++;console.log('PASS '+name)}
 const candidate=(title,query='',score=40)=>({id:title,title,query,score,photographer:'Example',company_match:companyPhotoIdentity(title,dg),venue:photoVenue(title)});
 const listing=eventVisualPlan({title:'Returned to public trading on NYSE'},dg);
+test('DG uses seven distinct short queries in deterministic order',()=>{
+ const titles=['Merger','New York stock exchange listing','Leadership CEO appointment','DG Fresh grocery distribution','pOpshelf home goods','Mexico international expansion','New stores'];
+ const q=Array.from(visualQueries(dg,titles.map(title=>({title}))));
+ assert.deepEqual(q,[
+  'dollar general','convenience store','retail storefront',
+  'new york stock exchange','meeting boardroom',
+  'grocery supermarket refrigerated','mexico grocery supermarket']);
+ assert.equal(new Set(q).size,q.length);
+});
+test('Short search phrases still map to event-appropriate subjects',()=>{
+ assert.equal(Array.from(eventVisualPlan({title:'Dollar General launches DG Fresh'},dg).queries)[0],'grocery supermarket refrigerated');
+ assert.equal(Array.from(eventVisualPlan({title:'Dollar General returns to NYSE'},dg).queries)[0],'new york stock exchange');
+ assert.equal(Array.from(eventVisualPlan({title:'First Mexican store opening'},dg).queries)[0],'mexico grocery supermarket');
+});
+test('Retail photo candidate is safely evaluated without undeclared const',()=>{
+ const fake={id:'short-query-test',urls:{small:'https://images.unsplash.com/photo-123',regular:'https://images.unsplash.com/photo-123'},
+  user:{name:'Photo Author',links:{html:'https://unsplash.com/@example'}},
+  links:{html:'https://unsplash.com/photos/example-123',download_location:'https://api.unsplash.com/photos/example-123/download'},
+  alt_description:'convenience store interior shelves',description:'',slug:'convenience-store-interior',tags:[]};
+ const plan=eventVisualPlan({title:'Dollar General launched pOpshelf'},dg);
+ const got=candidateFromUnsplash(fake,'convenience store',1,dg,[plan]);
+ assert(got);
+ assert.equal(got.retail_illustration,true);
+});
 test('Query alone cannot approve an unrelated image',()=>assert.equal(eventCandidateScore(candidate('beach sunset',listing.queries[0],1000),listing),-Infinity));
 test('Listing chooses stock exchange over higher-scoring grocery',()=>assert.equal(pickCandidate([candidate('grocery store shelves','',1000),candidate('new york stock exchange')],new Set(),new Map(),listing).title,'new york stock exchange'));
 test('Metadata, not query, determines contextual eligibility',()=>{
