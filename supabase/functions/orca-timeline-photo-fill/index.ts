@@ -250,6 +250,8 @@ function pickCandidate(pool:Candidate[],reserved:Set<string>,photographerCounts:
 }
 
 const maximumPerCall=10;
+// Shared development allowance, measured over a rolling 24-hour window.
+const dailyPhotoLimit=300;
 Deno.serve(async(req:Request)=>{
  if(req.method==="OPTIONS")return new Response(null,{status:204,headers:cors});
  if(req.method!=="POST")return reply(405,{error:"POST only"});
@@ -291,13 +293,13 @@ Deno.serve(async(req:Request)=>{
  const existing=new Map((cached||[]).map((p:any)=>[p.event_id,p]));
  const targets=featured.filter((e:any)=>!existing.has(e.id)||existing.get(e.id)?.needs_review);
  if(!targets.length)return reply(200,{state:"cached",added:0,remaining:0,photos:featured.length});
- const remainingDaily=Math.max(0,24-(count||0));
+ const remainingDaily=Math.max(0,dailyPhotoLimit-(count||0));
  if(!remainingDaily){
   const {data:oldest}=await admin.from("orca_timeline_photo_selections").select("created_at")
    .gte("created_at",new Date(Date.now()-86400000).toISOString()).order("created_at").limit(1);
   const retryAt=oldest?.[0]?.created_at?new Date(Date.parse(oldest[0].created_at)+86400000).toISOString():null;
   return reply(429,{state:"daily_limit",error:"Photo-selection daily safety limit reached",
-   limit:24,used:count,remaining:targets.length,retry_at:retryAt});
+   limit:dailyPhotoLimit,used:count,remaining:targets.length,retry_at:retryAt});
  }
  const todo=targets.slice(0,Math.min(10,remainingDaily));
  const accessKey=Deno.env.get("UNSPLASH_ACCESS_KEY");

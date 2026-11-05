@@ -3,7 +3,8 @@ export function photoFailureMessage(payload={}){
  if(payload.state==='daily_limit'||payload.error==='Photo-selection daily safety limit reached'){
   const date=new Date(payload.retry_at);
   const when=payload.retry_at&&Number.isFinite(date.getTime())?' Next capacity opens '+date.toLocaleString()+'.':'';
-  return 'Photo selection paused: the shared 24-photo daily allowance is used.'+when+' Existing photos are unchanged.';
+  const limit=Number.isInteger(payload.limit)&&payload.limit>0?payload.limit:300;
+  return 'Photo selection paused: the shared '+limit+'-photo daily allowance is used.'+when+' Existing photos are unchanged.';
  }
  return payload.error==='Opted-in ORCA researcher required'?'Enable ORCA research consent to find timeline photos.':
   payload.error==='Invalid sign-in'||payload.error==='Sign in required'?'Sign in again to find timeline photos.':

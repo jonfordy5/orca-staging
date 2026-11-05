@@ -43,4 +43,4 @@ Also confirm manually before inviting wider external testers:
 
 Photo search queries are retrieval hints, not evidence that a returned image matches a milestone. Accept contextual candidates only when their own metadata matches the event subject; save that metadata for future reuse. Existing photos without subject metadata may remain visible, but must not be newly approved for another event. International expansion queries retain the company sector.
 
-When the shared 24-photo rolling allowance is exhausted, show a visible explanation and next capacity time. Do not hide photo failures in the general history status. No photo change regenerates historical research. Metadata matching is not visual verification or proof of an exact event photograph.
+When the shared 300-photo development rolling allowance is exhausted, show a visible explanation and next capacity time. Do not hide photo failures in the general history status. No photo change regenerates historical research. Metadata matching is not visual verification or proof of an exact event photograph.
