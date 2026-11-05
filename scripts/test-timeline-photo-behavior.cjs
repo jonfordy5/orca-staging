@@ -6,11 +6,12 @@ const root=require('node:path').resolve(__dirname,'..');
 const source=fs.readFileSync(root+'/supabase/functions/orca-timeline-photo-fill/index.ts','utf8').replace(/^import .*\n/,'');
 let handler;
 let requests=0;
+let photoCount=300;
 const admin={auth:{getUser:async()=>({data:{user:{id:'test'}}})},from(table){
  let result;
  const query={select(columns,opts){
   if(table==='agent_profiles')result={data:[{id:'test'}]};
-  if(table==='orca_timeline_photo_selections')result=opts?.head?{count:24}:columns==='created_at'?{data:[{created_at:'2026-11-05T03:00:00Z'}]}:{data:[]};
+  if(table==='orca_timeline_photo_selections')result=opts?.head?{count:photoCount}:columns==='created_at'?{data:[{created_at:'2026-11-05T03:00:00Z'}]}:{data:[]};
   if(table==='orca_timeline_annotations')result={data:[{id:'event',title:'DG Fresh',ticker:'DG'}]};
   if(table==='stocks')result={data:{company_name:'Dollar General'}};
   if(table==='orca_ai_company_profiles')result={data:null};
@@ -45,11 +46,21 @@ test('Cached photo without subject metadata cannot be approved',()=>assert.equal
 (async()=>{
  const response=await handler(new Request('https://example.test',{method:'POST',headers:{Origin:'https://jonfordy5.github.io',Authorization:'Bearer test','Content-Type':'application/json'},body:JSON.stringify({ticker:'DG'})}));
  const payload=await response.json();
- test('Exhausted shared cap returns a specific state and retry time',()=>{assert.equal(response.status,429);assert.equal(payload.state,'daily_limit');assert.equal(payload.retry_at,'2026-11-06T03:00:00.000Z');assert.equal(requests,0)});
+ test('Exhausted shared cap returns a specific state and retry time',()=>{assert.equal(response.status,429);assert.equal(payload.state,'daily_limit');assert.equal(payload.limit,300);assert.equal(payload.retry_at,'2026-11-06T03:00:00.000Z');assert.equal(requests,0)});
  const client=fs.readFileSync(root+'/orca-timeline-photos.js','utf8');
  const frontend={};vm.createContext(frontend);
  vm.runInContext(client.split('// Optional visual layer')[0].replace('export function','function')+'\nglobalThis.message=photoFailureMessage;',frontend);
- test('Daily limit is explained to the user',()=>assert.match(frontend.message(payload),/shared 24-photo daily allowance/));
+ test('Daily limit is explained to the user',()=>assert.match(frontend.message(payload),/shared 300-photo daily allowance/));
  test('Sign-in error stays actionable',()=>assert.match(frontend.message({error:'Invalid sign-in'}),/Sign in again/));
+ for(const count of [24,299,300,301]){
+  photoCount=count;
+  const result=await handler(new Request('https://example.test',{method:'POST',headers:{Origin:'https://jonfordy5.github.io',Authorization:'Bearer test','Content-Type':'application/json'},body:JSON.stringify({ticker:'DG'})}));
+  const body=await result.json();
+  test('Development quota boundary at '+count,()=>{
+   if(count>=300){assert.equal(result.status,429);assert.equal(body.limit,300)}
+   else{assert.equal(result.status,503);assert.equal(body.error,'Unsplash access key is not configured')}
+  });
+ }
+ test('UI uses limit returned by server',()=>assert.match(frontend.message({state:'daily_limit',limit:450}),/shared 450-photo/));
  console.log(checks+' behavioral checks passed.');
 })().catch(error=>{console.error(error);process.exitCode=1});
