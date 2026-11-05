@@ -71,6 +71,17 @@ test('Other sectors never inherit DG convenience-store searches',()=>{
  assert(!nvda.queries.some(q=>q.includes('convenience')));
  assert(!ulta.queries.some(q=>q.includes('convenience')));
 });
+test('A generic convenience store image may fill a DG illustration, not a factual event photo',()=>{
+ const plan=eventVisualPlan({title:'Dollar General named Todd Vasos CEO'},dg);
+ const convenience={...candidate('convenience store interior shelves'),retail_illustration:true};
+ assert(Number.isFinite(eventCandidateScore(convenience,plan)));
+ assert(eventCandidateScore(candidate('dollar general company storefront'),plan)>eventCandidateScore(convenience,plan));
+});
+test('Generic convenience images do not leak into other company sectors',()=>{
+ const plan=eventVisualPlan({title:'NVIDIA named new CEO'},nvda);
+ const standalone={...candidate('convenience store interior shelves'),retail_illustration:false};
+ assert.equal(eventCandidateScore(standalone,plan),-Infinity);
+});
 test('DG Fresh selects food context',()=>assert.equal(eventVisualPlan({title:'Dollar General launches DG Fresh'},dg).kind,'grocery'));
 for(const [name,profile] of [['NVDA',nvda],['ULTA',ulta],['future restaurant',unknown]])test(name+' expansion retains sector context',()=>{
  const p=eventVisualPlan({title:'International expansion overseas'},profile);
