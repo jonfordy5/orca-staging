@@ -138,7 +138,7 @@ function similarPhotoMetadata(a:any,b:any):boolean{
 
 type Candidate={
  id:string;image_url:string;full_image_url:string;photographer:string;photographer_url:string;
- photo_url:string;download_location:string;title:string;query:string;tier:number;score:number;company_match?:boolean;venue?:string;
+ photo_url:string;download_location:string;title:string;query:string;tier:number;score:number;company_match?:boolean;venue?:string;context_kinds?:string[];
 };
 // Industry words do not establish company identity. Keep the complete brand phrase.
 function companyPhotoIdentity(title:string,profile:ThemeProfile):boolean{
@@ -192,19 +192,34 @@ function visualQueries(profile:ThemeProfile,events:{title:string;category?:strin
   ...subjects.map(kind=>plans.find(p=>p.kind===kind)?.queries[0]),
   specific[1]?.query,themed,...profile.queries].filter(Boolean))].slice(0,9);
 }
+// Search intent is not evidence. Require a matching SUBJECT in the image's metadata.
+function eventContextMatch(description:string,plan:EventVisualPlan):boolean{
+ const text=description.toLowerCase();
+ switch(plan.kind){
+  case "international":return /\b(mexico|mexican|supermercado)\b/.test(text)&&
+   /\b(grocery|groceries|supermarket|market|retail|store|shop|shopping|food)\b/.test(text);
+  case "listing":return /\b(nyse|new york stock exchange|stock exchange|wall street)\b/.test(text);
+  case "leadership":return /\b(boardroom|board meeting|conference room|business meeting|corporate meeting|office meeting|meeting room)\b/.test(text);
+  case "grocery":return /\b(grocery|supermarket|refrigerat|produce aisle|produce market|fresh food|cold storage|distribution center|food aisle)\b/.test(text);
+  case "merchandise":return /\b(home goods|home decor|homeware|household goods|decor store|merchandise shelves|retail display)\b/.test(text);
+  case "corporate":return /\b(retail storefront|storefront|corporate office|office building|company headquarters)\b/.test(text);
+  case "stores":return /\b(storefront|store front|retail store|retail shopping|shopping aisle|shopfront|retail shelves)\b/.test(text);
+  default:return false;
+ }
+}
 function eventCandidateScore(candidate:Candidate,plan:EventVisualPlan):number{
  const desc=candidate.title.toLowerCase();
  const hits=plan.terms.filter(term=>desc.includes(term)).length;
- // A named venue is relevant only to its matching event, never a general fallback.
- if(plan.kind==="listing"&&candidate.venue==="nyse")return 200+Math.min(hits,4)*12;
- if(!candidate.company_match)return -Infinity;
- // Real company photography may repeat, but is labeled as context, not the event.
- return 100+Math.min(hits,4)*12+Math.min(candidate.score,40);
-
+ const scene=Boolean(candidate.context_kinds?.includes(plan.kind));
+ if(candidate.company_match&&scene)return 250+Math.min(hits,4)*12;
+ if(plan.kind==="listing"&&candidate.venue==="nyse")return 220+Math.min(hits,4)*12;
+ if(scene)return 190+Math.min(hits,4)*12;
+ if(candidate.company_match)return 65+Math.min(hits,4)*8+Math.min(candidate.score,40);
+ return -Infinity;
 }
 const excludedBrands=/\b(lordco|autozone|o'?reilly|napa auto|pep boys|sephora|dior|chanel|louis vuitton|gucci|prada)\b/i;
 const offThemeAuto=/\b(scrap|junkyard|salvage|wreck|factory|assembly line|welding|industrial robots|crashed)\b/i;
-function candidateFromUnsplash(p:any,query:string,tier:number,profile:ThemeProfile):Candidate|null{
+function candidateFromUnsplash(p:any,query:string,tier:number,profile:ThemeProfile,plans:EventVisualPlan[]):Candidate|null{
  const url=urlAllowed(p.urls?.small,"images.unsplash.com");
  const full=urlAllowed(p.urls?.regular,"images.unsplash.com");
  const photographer=String(p.user?.name||"").trim().slice(0,120);
@@ -215,6 +230,9 @@ function candidateFromUnsplash(p:any,query:string,tier:number,profile:ThemeProfi
  const description=[p.alt_description,p.description,p.slug,(p.tags||[]).map((t:any)=>t.title).join(" ")].filter(Boolean).join(" ").toLowerCase();
  if(!id||!url||!full||!photographer||!photographer_url||!photo_url||!download)return null;
  if(excludedBrands.test(description)&&!description.includes(profile.brand))return null;
+ // Cross-company signage and cash photos never become legitimate stock context.
+ if(profile.theme==="discount retail"&&/\b(dollar tree|family dollar|walmart|target|costco|aldi|lidl|five below|walgreens|cvs|banknotes?|dollar bills?|currency|bitcoin|cash|coins|money)\b/i.test(description))return null;
+ if(profile.theme==="auto parts retail"&&/\b(lordco|autozone|o'?reilly|napa auto|carquest|pep boys)\b/i.test(description))return null;
  if(profile.theme==="auto parts retail"&&offThemeAuto.test(description))return null;
  let score=photoScore(p,{companyOnly:tier===0,minimumScore:0,keywords:profile.terms},profile);
  // Do not accept off-brand results at any fallback tier.
@@ -222,15 +240,16 @@ function candidateFromUnsplash(p:any,query:string,tier:number,profile:ThemeProfi
   /\b(stock exchange|wall street|business meeting|corporate office)\b/i.test(query)&&
   /\b(stock exchange|wall street|trading floor|boardroom|conference room|business meeting|office building|corporate office)\b/i.test(description)&&
   !/\b(banknotes?|cash|dollar bills?|coins?|currency|bitcoin|money|forex|bank teller|walmart|target|dollar tree|family dollar)\b/i.test(description))score=12;
- if(score<0)return null;
+ const context_kinds=[...new Set(plans.filter(plan=>plan.queries.includes(query)&&eventContextMatch(description,plan)).map(p=>p.kind))];
+ if(score<0&&!context_kinds.length)return null;
  const company_match=companyPhotoIdentity(description,profile);
  const venue=photoVenue(description);
- if(!company_match&&!venue)return null;
+ if(!company_match&&!venue&&!context_kinds.length)return null;
  return {id,image_url:url,full_image_url:full,photographer,photographer_url,
-  photo_url,download_location:download,title:description.slice(0,300),query,tier,company_match,venue,
-  score:score+Math.max(0,5-tier)*8+Math.min(Number(p.likes||0)/500,2)};
+  photo_url,download_location:download,title:description.slice(0,300),query,tier,company_match,venue,context_kinds,
+  score:Math.max(0,score)+Math.max(0,5-tier)*8+Math.min(Number(p.likes||0)/500,2)};
 }
-async function findUnsplashCandidates(accessKey:string,queries:string[],profile:ThemeProfile):Promise<{candidates:Candidate[],limited:boolean,queries_tried:string[]}>{
+async function findUnsplashCandidates(accessKey:string,queries:string[],profile:ThemeProfile,plans:EventVisualPlan[]):Promise<{candidates:Candidate[],limited:boolean,queries_tried:string[]}>{
  const out:Candidate[]=[];let limited=false;
  const q: string[]=[];
  // Four searches are usually enough to cover 10 unique images; reserve an abstract
@@ -249,7 +268,7 @@ async function findUnsplashCandidates(accessKey:string,queries:string[],profile:
    if(!response.ok){if([401,403,429].includes(response.status)){limited=true;break}continue}
    const json=await response.json();
    for(const p of (Array.isArray(json.results)?json.results:[])){
-    const c=candidateFromUnsplash(p,query,tier,profile);
+    const c=candidateFromUnsplash(p,query,tier,profile,plans);
     if(c)out.push(c);
    }
   }catch{}
@@ -324,7 +343,8 @@ Deno.serve(async(req:Request)=>{
  const todo=targets.slice(0,Math.min(10,remainingDaily));
  const accessKey=Deno.env.get("UNSPLASH_ACCESS_KEY");
  if(!accessKey)return reply(503,{error:"Unsplash access key is not configured"});
- const search=await findUnsplashCandidates(accessKey,visualQueries(profile,featured),profile);
+ const plans=featured.map((e:any)=>eventVisualPlan(e,profile));
+ const search=await findUnsplashCandidates(accessKey,visualQueries(profile,featured),profile,plans);
  const reserved=new Set((cached||[]).filter((p:any)=>!p.needs_review).map((p:any)=>p.photo_id));
  const photographers=new Map<string,number>();
  for(const p of cached||[])photographers.set(p.photographer,(photographers.get(p.photographer)||0)+1);
