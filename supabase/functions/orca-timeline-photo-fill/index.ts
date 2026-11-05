@@ -138,8 +138,22 @@ function similarPhotoMetadata(a:any,b:any):boolean{
 
 type Candidate={
  id:string;image_url:string;full_image_url:string;photographer:string;photographer_url:string;
- photo_url:string;download_location:string;title:string;query:string;tier:number;score:number;
+ photo_url:string;download_location:string;title:string;query:string;tier:number;score:number;company_match?:boolean;venue?:string;
 };
+// Industry words do not establish company identity. Keep the complete brand phrase.
+function companyPhotoIdentity(title:string,profile:ThemeProfile):boolean{
+ const clean=(v:string)=>v.toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
+ const description=" "+clean(title)+" ";
+ const brand=clean(profile.brand);
+ if(!brand||!description.includes(" "+brand+" "))return false;
+ // Ambiguous company names also need their industry/product context.
+ if(["apple","meta","ford","amazon","target","intel"].includes(brand))
+  return profile.terms.some(term=>clean(term)!==brand&&description.includes(" "+clean(term)+" "));
+ return true;
+}
+function photoVenue(title:string):string|undefined{
+ return /\b(new york stock exchange|nyse)\b/i.test(title)?"nyse":undefined;
+}
 // Illustrative scenes follow the EVENT, not just the company's general industry.
 // Never describe these images as documentary evidence of an actual milestone.
 type EventVisualPlan={kind:string;queries:string[];terms:string[]};
@@ -181,9 +195,12 @@ function visualQueries(profile:ThemeProfile,events:{title:string;category?:strin
 function eventCandidateScore(candidate:Candidate,plan:EventVisualPlan):number{
  const desc=candidate.title.toLowerCase();
  const hits=plan.terms.filter(term=>desc.includes(term)).length;
- // Search terms are not evidence about what a returned photograph depicts.
- if(!hits)return -Infinity;
- return candidate.score+Math.min(hits,4)*12;
+ // A named venue is relevant only to its matching event, never a general fallback.
+ if(plan.kind==="listing"&&candidate.venue==="nyse")return 200+Math.min(hits,4)*12;
+ if(!candidate.company_match)return -Infinity;
+ // Real company photography may repeat, but is labeled as context, not the event.
+ return 100+Math.min(hits,4)*12+Math.min(candidate.score,40);
+
 }
 const excludedBrands=/\b(lordco|autozone|o'?reilly|napa auto|pep boys|sephora|dior|chanel|louis vuitton|gucci|prada)\b/i;
 const offThemeAuto=/\b(scrap|junkyard|salvage|wreck|factory|assembly line|welding|industrial robots|crashed)\b/i;
@@ -206,8 +223,11 @@ function candidateFromUnsplash(p:any,query:string,tier:number,profile:ThemeProfi
   /\b(stock exchange|wall street|trading floor|boardroom|conference room|business meeting|office building|corporate office)\b/i.test(description)&&
   !/\b(banknotes?|cash|dollar bills?|coins?|currency|bitcoin|money|forex|bank teller|walmart|target|dollar tree|family dollar)\b/i.test(description))score=12;
  if(score<0)return null;
+ const company_match=companyPhotoIdentity(description,profile);
+ const venue=photoVenue(description);
+ if(!company_match&&!venue)return null;
  return {id,image_url:url,full_image_url:full,photographer,photographer_url,
-  photo_url,download_location:download,title:description.slice(0,300),query,tier,
+  photo_url,download_location:download,title:description.slice(0,300),query,tier,company_match,venue,
   score:score+Math.max(0,5-tier)*8+Math.min(Number(p.likes||0)/500,2)};
 }
 async function findUnsplashCandidates(accessKey:string,queries:string[],profile:ThemeProfile):Promise<{candidates:Candidate[],limited:boolean,queries_tried:string[]}>{
@@ -340,13 +360,14 @@ Deno.serve(async(req:Request)=>{
    lastResort.push({id:p.photo_id,image_url:p.image_url,full_image_url:p.full_image_url,
     photographer:p.photographer,photographer_url:p.photographer_url,photo_url:p.photo_url,
     download_location:"",query:"existing credited photo cache",title:p.image_title||"",
+    company_match:companyPhotoIdentity(p.image_title||"",profile),venue:photoVenue(p.image_title||""),
     tier:99,score:p.ticker===ticker?4:0});
   }
  }
  for(const e of todo){
   if(choices.find(c=>c.event_id===e.id))continue;
   if(!lastResort.length)continue;
-  // Cycle the available photographs only if the catalog is genuinely exhausted.
+  // Reuse only company-identified photography or the matching named venue.
   const plan=eventVisualPlan(e,profile);
   const ranked=lastResort.filter(c=>Number.isFinite(eventCandidateScore(c,plan)))
    .sort((a,b)=>eventCandidateScore(b,plan)-eventCandidateScore(a,plan));
@@ -361,8 +382,8 @@ Deno.serve(async(req:Request)=>{
    full_image_url:choice.full_image_url,photographer:choice.photographer,
    photographer_url:choice.photographer_url,photo_url:choice.photo_url,illustrative:true,
    source_type:"unsplash_legacy",rights_status:"legacy_provider_terms",
-   match_type:"contextual",search_query:choice.query,query_used:choice.query,
-   strategy_version:6,needs_review:false,
+   match_type:choice.company_match?"exact_subject":"contextual",search_query:choice.query,query_used:choice.query,
+   strategy_version:7,needs_review:false,
    image_title:choice.title,
    match_score:Math.round(choice.score),relevance_score:Math.min(100,Math.round(choice.score)),
    attribution_text:"Photo by "+choice.photographer+" on Unsplash",

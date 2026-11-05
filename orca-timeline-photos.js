@@ -39,7 +39,7 @@ export async function mountTimelinePhotos({sb,ticker,frame,rail,status,getUser,c
  }
  async function refresh(){
   const {data,error}=await sb.from('orca_timeline_photo_selections')
-   .select('event_id,image_url,full_image_url,photo_url,photographer,photographer_url,needs_review,strategy_version').eq('ticker',ticker).limit(500);
+   .select('event_id,image_url,full_image_url,photo_url,photographer,photographer_url,needs_review,strategy_version,match_type').eq('ticker',ticker).limit(500);
   if(error){button.hidden=true;return;}
   // Keep existing flagged illustrations visible while seeking better images:
   // never turn a completed full-photo card into a white placeholder.
@@ -60,7 +60,7 @@ export async function mountTimelinePhotos({sb,ticker,frame,rail,status,getUser,c
    fallbackIds.add(fallback.photo_url);
    photos.set(card.dataset.eventId,{...fallback,temporary:true});
   }
-  const ids=usablePhotos.map(p=>{
+  const ids=usablePhotos.filter(p=>!(p.strategy_version>=7&&p.match_type==='exact_subject')).map(p=>{
    try{return new URL(p.photo_url).pathname}catch{return p.image_url||''}
   });
   duplicateCount=ids.length-new Set(ids).size;
@@ -73,6 +73,11 @@ export async function mountTimelinePhotos({sb,ticker,frame,rail,status,getUser,c
    const p=photos.get(card.dataset.eventId);
    if(!p)continue;
    const existing=card.querySelector('.orca-photo-image');
+   let badge=card.querySelector('.orca-photo-context');
+   if(p.strategy_version>=7){
+    if(!badge){badge=document.createElement('small');badge.className='orca-photo-context';card.append(badge)}
+    badge.textContent=p.match_type==='exact_subject'?'Company photo · not event photo':'Related location · not event photo';
+   }
    if(existing&&existing.dataset.photoUrl===p.image_url)continue;
    const slot=card.querySelector('.orca-timeline-event-media');
    if(!slot||(!existing&&slot.querySelector('img')))continue;
