@@ -56,6 +56,21 @@ test('Unrelated scene does not qualify another company',()=>{
 });
 test('No eligible image produces no selection',()=>assert.equal(pickCandidate([candidate('grocery store shelves')],new Set(),new Map(),listing),null));
 test('Reserved image is not selected again',()=>assert.equal(pickCandidate([candidate('stock exchange')],new Set(['stock exchange']),new Map(),listing),null));
+test('Convenience keyword expands Dollar General retrieval',()=>{
+ const p=companyTheme('DG','Dollar General','discount retailer');
+ assert(p.queries.some(q=>q.includes('convenience store interior')));
+ assert(p.terms.includes('convenience store'));
+});
+test('Convenience interiors qualify only matching retail milestone subjects',()=>{
+ const grocery=eventVisualPlan({title:'DG Fresh grocery distribution'},dg);
+ const leadership=eventVisualPlan({title:'CEO leadership appointment'},dg);
+ assert.equal(eventContextMatch('convenience store interior shelves',grocery),true);
+ assert.equal(eventContextMatch('convenience store interior shelves',leadership),false);
+});
+test('Other sectors never inherit DG convenience-store searches',()=>{
+ assert(!nvda.queries.some(q=>q.includes('convenience')));
+ assert(!ulta.queries.some(q=>q.includes('convenience')));
+});
 test('DG Fresh selects food context',()=>assert.equal(eventVisualPlan({title:'Dollar General launches DG Fresh'},dg).kind,'grocery'));
 for(const [name,profile] of [['NVDA',nvda],['ULTA',ulta],['future restaurant',unknown]])test(name+' expansion retains sector context',()=>{
  const p=eventVisualPlan({title:'International expansion overseas'},profile);
