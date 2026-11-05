@@ -138,7 +138,7 @@ function similarPhotoMetadata(a:any,b:any):boolean{
 
 type Candidate={
  id:string;image_url:string;full_image_url:string;photographer:string;photographer_url:string;
- photo_url:string;download_location:string;title:string;query:string;tier:number;score:number;company_match?:boolean;venue?:string;context_kinds?:string[];
+ photo_url:string;download_location:string;title:string;query:string;tier:number;score:number;company_match?:boolean;venue?:string;context_kinds?:string[];retail_illustration?:boolean;
 };
 // Industry words do not establish company identity. Keep the complete brand phrase.
 function companyPhotoIdentity(title:string,profile:ThemeProfile):boolean{
@@ -189,8 +189,9 @@ function visualQueries(profile:ThemeProfile,events:{title:string;category?:strin
  // Company first; then one search per distinct milestone subject.
  const specific=photoPlans(profile);
  return [...new Set([specific[0]?.query,
+  ...(profile.theme==="discount retail"?["convenience store interior","convenience store shelves","convenience store exterior"]:[]),
   ...subjects.map(kind=>plans.find(p=>p.kind===kind)?.queries[0]),
-  ...(profile.theme==="discount retail"?["convenience store interior","convenience store shelves","convenience store exterior"]:[]),specific[1]?.query,themed,...profile.queries].filter(Boolean))].slice(0,12);
+  specific[1]?.query,themed,...profile.queries].filter(Boolean))].slice(0,12);
 }
 // Search intent is not evidence. Require a matching SUBJECT in the image's metadata.
 function eventContextMatch(description:string,plan:EventVisualPlan):boolean{
@@ -215,6 +216,9 @@ function eventCandidateScore(candidate:Candidate,plan:EventVisualPlan):number{
  if(plan.kind==="listing"&&candidate.venue==="nyse")return 220+Math.min(hits,4)*12;
  if(scene)return 190+Math.min(hits,4)*12;
  if(candidate.company_match)return 65+Math.min(hits,4)*8+Math.min(candidate.score,40);
+ // A caption-identified retail scene is an honest illustrative fallback for
+ // discount retailers; it is never represented as an event photograph.
+ if(candidate.retail_illustration)return 30+Math.min(hits,3)*5+Math.min(candidate.score,25);
  return -Infinity;
 }
 const excludedBrands=/\b(lordco|autozone|o'?reilly|napa auto|pep boys|sephora|dior|chanel|louis vuitton|gucci|prada)\b/i;
@@ -241,12 +245,15 @@ function candidateFromUnsplash(p:any,query:string,tier:number,profile:ThemeProfi
   /\b(stock exchange|wall street|trading floor|boardroom|conference room|business meeting|office building|corporate office)\b/i.test(description)&&
   !/\b(banknotes?|cash|dollar bills?|coins?|currency|bitcoin|money|forex|bank teller|walmart|target|dollar tree|family dollar)\b/i.test(description))score=12;
  const context_kinds=[...new Set(plans.filter(plan=>plan.queries.includes(query)&&eventContextMatch(description,plan)).map(p=>p.kind))];
- if(score<0&&!context_kinds.length)return null;
+ if(score<0&&!context_kinds.length&&!retail_illustration)return null;
  const company_match=companyPhotoIdentity(description,profile);
+ // Require self-describing scene metadata; never infer photo content from search alone.
+ const retail_illustration=profile.theme==="discount retail"&&
+  /\b(convenience stores?|convenience shops?|grocery stores?|supermarkets?|discount stores?|retail shelves|store shelves|shopping aisles|grocery aisles|retail storefront|storefront)\b/i.test(description);
  const venue=photoVenue(description);
- if(!company_match&&!venue&&!context_kinds.length)return null;
+ if(!company_match&&!venue&&!context_kinds.length&&!retail_illustration)return null;
  return {id,image_url:url,full_image_url:full,photographer,photographer_url,
-  photo_url,download_location:download,title:description.slice(0,300),query,tier,company_match,venue,context_kinds,
+  photo_url,download_location:download,title:description.slice(0,300),query,tier,company_match,venue,context_kinds,retail_illustration,
   score:Math.max(0,score)+Math.max(0,5-tier)*8+Math.min(Number(p.likes||0)/500,2)};
 }
 async function findUnsplashCandidates(accessKey:string,queries:string[],profile:ThemeProfile,plans:EventVisualPlan[]):Promise<{candidates:Candidate[],limited:boolean,queries_tried:string[]}>{
@@ -410,14 +417,15 @@ Deno.serve(async(req:Request)=>{
   const plan=eventVisualPlan(featured.find((e:any)=>e.id===event_id)||{title:""},profile);
   const context=Boolean(choice.context_kinds?.includes(plan.kind));
   const matchType=context&&choice.company_match?"company_event_context":
-   context?"topic_context":plan.kind==="listing"&&choice.venue==="nyse"?"venue_context":"company_context";
+   context?"topic_context":plan.kind==="listing"&&choice.venue==="nyse"?"venue_context":
+   choice.company_match?"company_context":choice.retail_illustration?"retail_illustration":"company_context";
   const {error:saveError}=await admin.from("orca_timeline_photo_selections").upsert({
    event_id,ticker,photo_id:choice.id,image_url:choice.image_url,
    full_image_url:choice.full_image_url,photographer:choice.photographer,
    photographer_url:choice.photographer_url,photo_url:choice.photo_url,illustrative:true,
    source_type:"unsplash_legacy",rights_status:"legacy_provider_terms",
    match_type:matchType,search_query:choice.query,query_used:choice.query,
-   strategy_version:8,needs_review:duplicated,created_at:new Date().toISOString(),
+   strategy_version:9,needs_review:duplicated,created_at:new Date().toISOString(),
    image_title:choice.title,
    match_score:Math.round(choice.score),relevance_score:Math.min(100,Math.round(choice.score)),
    attribution_text:"Photo by "+choice.photographer+" on Unsplash",

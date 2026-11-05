@@ -126,7 +126,7 @@ check('Every timeline photo stays scoped to the same stock ticker', () =>
   !photos.includes('const {data:library}') );
 check('Photo generation rejects negative relevance and never borrows other tickers', () => {
  const engine=read('supabase/functions/orca-timeline-photo-fill/index.ts');
- return engine.includes('if(score<0&&!context_kinds.length)return null;') &&
+ return engine.includes('if(score<0&&!context_kinds.length&&!retail_illustration)return null;') &&
    engine.includes('const backups=stockCache||[];') &&
    !engine.includes('const {data:library}');
 });
@@ -149,7 +149,7 @@ check('Milestone photo matching uses event-aware visual plans', () => {
   engine.includes('function eventCandidateScore(') &&
   engine.includes('eventVisualPlan(e,profile)') &&
   engine.includes('visualQueries(profile,featured)') &&
-  engine.includes('strategy_version:8,needs_review:duplicated') &&
+  engine.includes('strategy_version:9,needs_review:duplicated') &&
   engine.includes('duplicateEvents.has(e.id)') &&
   engine.includes('function eventContextMatch(');
 });
