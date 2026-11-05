@@ -162,24 +162,35 @@ function eventVisualPlan(event:{title:string;category?:string},profile:ThemeProf
  if(/\b(mexico|mexican|international expansion|overseas)\b/.test(title)){
   const mexico=/\b(mexico|mexican)\b/.test(title);
   if(mexico&&profile.theme==="discount retail")
-   return {kind:"international",queries:["mexico grocery supermarket interior","mexican retail storefront"],terms:["supermarket","grocery","retail","store","aisle"]};
+   return {kind:"international",queries:["mexico grocery supermarket"],terms:["supermarket","grocery","retail","store","aisle"]};
   return {kind:"international",queries:profile.queries.slice(0,2).map(q=>(mexico?"mexico ":"")+q),terms:profile.terms};
  }
  if(/\b(nyse|stock exchange|ipo|public trading|public listing|listed|initial public offering)\b/.test(title))
-  return {kind:"listing",queries:["new york stock exchange building","wall street stock exchange"],terms:["stock exchange","wall street","nyse","trading floor","exchange","financial district"]};
+  return {kind:"listing",queries:profile.brand==="dollar general"?["new york stock exchange"]:["new york stock exchange building","wall street stock exchange"],terms:["stock exchange","wall street","nyse","trading floor","exchange","financial district"]};
  if(/\b(ceo|chief executive|leadership|management|appointments?|president|board names|chairman)\b/.test(title))
-  return {kind:"leadership",queries:["business meeting boardroom","corporate office leadership"],terms:["meeting","boardroom","office","conference","team","business","corporate"]};
+  return {kind:"leadership",queries:profile.brand==="dollar general"?["meeting boardroom"]:["business meeting boardroom","corporate office leadership"],terms:["meeting","boardroom","office","conference","team","business","corporate"]};
  if(/\b(fresh|grocer|food|refrigerat|distribution|supply chain|cold storage)\b/.test(title))
-  return {kind:"grocery",queries:profile.theme==="discount retail"?["grocery supermarket refrigerated section","convenience store interior","convenience store shelves"]:["grocery supermarket refrigerated section","supermarket fresh food shelves"],terms:["grocery","refrigerat","supermarket","food","produce","store","shelves","cold","distribution"]};
+  return {kind:"grocery",queries:profile.brand==="dollar general"?["grocery supermarket refrigerated","convenience store"]:profile.theme==="discount retail"?["grocery supermarket refrigerated section","convenience store interior","convenience store shelves"]:["grocery supermarket refrigerated section","supermarket fresh food shelves"],terms:["grocery","refrigerat","supermarket","food","produce","store","shelves","cold","distribution"]};
  if(/\b(popshelf|home goods|merchandise|new product|product line)\b/.test(title))
-  return {kind:"merchandise",queries:profile.theme==="discount retail"?["convenience store shelves","colorful home goods store shelves"]:["colorful home goods store shelves","retail home decor merchandise"],terms:["home goods","decor","merchandise","shelves","store","retail","products","colorful"]};
+  return {kind:"merchandise",queries:profile.brand==="dollar general"?["convenience store","retail storefront"]:profile.theme==="discount retail"?["convenience store shelves","colorful home goods store shelves"]:["colorful home goods store shelves","retail home decor merchandise"],terms:["home goods","decor","merchandise","shelves","store","retail","products","colorful"]};
  if(/\b(merger|acquisition|take.private|go private|buyout|deal)\b/.test(title))
-  return {kind:"corporate",queries:["retail storefront exterior","corporate office building"],terms:["storefront","retail","office","building","business","store","corporate"]};
+  return {kind:"corporate",queries:profile.brand==="dollar general"?["retail storefront","convenience store"]:["retail storefront exterior","corporate office building"],terms:["storefront","retail","office","building","business","store","corporate"]};
  if(/\b(closing|closures?|shrink|restructur|store opening|opened|new stores?|expansion)\b/.test(title))
-  return {kind:"stores",queries:profile.theme==="discount retail"?["convenience store exterior","convenience store interior"]:["retail store storefront","retail shopping aisles"],terms:["storefront","store","retail","shopping","shelves","aisle"]};
- return {kind:"general",queries:[profile.queries[0],profile.queries[1]],terms:profile.terms};
+  return {kind:"stores",queries:profile.brand==="dollar general"?["retail storefront","convenience store"]:profile.theme==="discount retail"?["convenience store exterior","convenience store interior"]:["retail store storefront","retail shopping aisles"],terms:["storefront","store","retail","shopping","shelves","aisle"]};
+ return {kind:"general",queries:profile.brand==="dollar general"?["convenience store"]:[profile.queries[0],profile.queries[1]],terms:profile.terms};
 }
 function visualQueries(profile:ThemeProfile,events:{title:string;category?:string}[]):string[]{
+ // DG pilot: seven broad, distinct search phrases. Do not narrow or recombine them.
+ // Repeated convenience-store searches use different result pages, not duplicated page one.
+ if(profile.brand==="dollar general")return [
+  "dollar general",
+  "convenience store",
+  "retail storefront",
+  "new york stock exchange",
+  "meeting boardroom",
+  "grocery supermarket refrigerated",
+  "mexico grocery supermarket"
+ ];
  const plans=events.map(e=>eventVisualPlan(e,profile));
  const subjects=[...new Set(plans.map(p=>p.kind))];
  const themed=profile.theme==="discount retail"?"convenience store interior":
@@ -201,10 +212,10 @@ function eventContextMatch(description:string,plan:EventVisualPlan):boolean{
    /\b(grocery|groceries|supermarket|market|retail|store|shop|shopping|food)\b/.test(text);
   case "listing":return /\b(nyse|new york stock exchange|stock exchange|wall street)\b/.test(text);
   case "leadership":return /\b(boardroom|board meeting|conference room|business meeting|corporate meeting|office meeting|meeting room)\b/.test(text);
-  case "grocery":return /\b(grocery|supermarket|refrigerat|produce aisle|produce market|fresh food|cold storage|distribution center|food aisle|convenience store (?:interior|shelves|aisle))\b/.test(text);
-  case "merchandise":return /\b(home goods|home decor|homeware|household goods|decor store|merchandise shelves|retail display|convenience store (?:interior|shelves|aisle))\b/.test(text);
+  case "grocery":return /\b(grocery|supermarket|refrigerat\w*|produce aisle|produce market|fresh food|cold storage|distribution center|food aisle|convenience store(?: (?:interior|shelves|aisle))?)\b/.test(text);
+  case "merchandise":return /\b(home goods|home decor|homeware|household goods|decor store|merchandise shelves|retail display|convenience store(?: (?:interior|shelves|aisle))?)\b/.test(text);
   case "corporate":return /\b(retail storefront|storefront|corporate office|office building|company headquarters)\b/.test(text);
-  case "stores":return /\b(storefront|store front|retail store|retail shopping|shopping aisle|shopfront|retail shelves|convenience store (?:interior|shelves|aisle|exterior))\b/.test(text);
+  case "stores":return /\b(storefront|store front|retail store|retail shopping|shopping aisle|shopfront|retail shelves|convenience store(?: (?:interior|shelves|aisle|exterior))?)\b/.test(text);
   default:return false;
  }
 }
@@ -245,11 +256,11 @@ function candidateFromUnsplash(p:any,query:string,tier:number,profile:ThemeProfi
   /\b(stock exchange|wall street|trading floor|boardroom|conference room|business meeting|office building|corporate office)\b/i.test(description)&&
   !/\b(banknotes?|cash|dollar bills?|coins?|currency|bitcoin|money|forex|bank teller|walmart|target|dollar tree|family dollar)\b/i.test(description))score=12;
  const context_kinds=[...new Set(plans.filter(plan=>plan.queries.includes(query)&&eventContextMatch(description,plan)).map(p=>p.kind))];
- if(score<0&&!context_kinds.length&&!retail_illustration)return null;
- const company_match=companyPhotoIdentity(description,profile);
- // Require self-describing scene metadata; never infer photo content from search alone.
+ // Compute scene relevance before checking it. The previous order caused a ReferenceError.
  const retail_illustration=profile.theme==="discount retail"&&
   /\b(convenience stores?|convenience shops?|grocery stores?|supermarkets?|discount stores?|retail shelves|store shelves|shopping aisles|grocery aisles|retail storefront|storefront)\b/i.test(description);
+ if(score<0&&!context_kinds.length&&!retail_illustration)return null;
+ const company_match=companyPhotoIdentity(description,profile);
  const venue=photoVenue(description);
  if(!company_match&&!venue&&!context_kinds.length&&!retail_illustration)return null;
  return {id,image_url:url,full_image_url:full,photographer,photographer_url,
@@ -261,24 +272,29 @@ async function findUnsplashCandidates(accessKey:string,queries:string[],profile:
  const q: string[]=[];
  // Four searches are usually enough to cover 10 unique images; reserve an abstract
  // query if the pool remains insufficient. A 30-photo batch costs one search call.
- for(const [tier,query] of queries.entries()){
-  q.push(query);
-  const uri=new URL("https://api.unsplash.com/search/photos");
-  uri.searchParams.set("query",query);
-  uri.searchParams.set("per_page","30");
-  uri.searchParams.set("orientation","landscape");
-  uri.searchParams.set("order_by","relevant");
-  uri.searchParams.set("content_filter","high");
-  try{
-   const response=await fetch(uri.toString(),{headers:{"Authorization":"Client-ID "+accessKey,"Accept-Version":"v1"},
-    signal:AbortSignal.timeout(8500)});
-   if(!response.ok){if([401,403,429].includes(response.status)){limited=true;break}continue}
-   const json=await response.json();
-   for(const p of (Array.isArray(json.results)?json.results:[])){
-    const c=candidateFromUnsplash(p,query,tier,profile,plans);
-    if(c)out.push(c);
-   }
-  }catch{}
+ // Three genuinely different result pages for the repeated "convenience store" request.
+ searchLoop: for(const [tier,query] of queries.entries()){
+  const pageCount=profile.brand==="dollar general"&&query==="convenience store"?3:1;
+  for(let page=1;page<=pageCount;page++){
+   q.push(query+(pageCount>1?" (page "+page+")":""));
+   const uri=new URL("https://api.unsplash.com/search/photos");
+   uri.searchParams.set("query",query);
+   uri.searchParams.set("page",String(page));
+   uri.searchParams.set("per_page","30");
+   uri.searchParams.set("orientation","landscape");
+   uri.searchParams.set("order_by","relevant");
+   uri.searchParams.set("content_filter","high");
+   try{
+    const response=await fetch(uri.toString(),{headers:{"Authorization":"Client-ID "+accessKey,"Accept-Version":"v1"},
+     signal:AbortSignal.timeout(8500)});
+    if(!response.ok){if([401,403,429].includes(response.status)){limited=true;break searchLoop}continue}
+    const json=await response.json();
+    for(const p of (Array.isArray(json.results)?json.results:[])){
+     const c=candidateFromUnsplash(p,query,tier,profile,plans);
+     if(c)out.push(c);
+    }
+   }catch(error){console.warn("ORCA Unsplash search failed",String(error))}
+  }
  }
  const byId=new Map<string,Candidate>();
  for(const c of out){
