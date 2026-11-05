@@ -26,8 +26,8 @@ function companyTheme(ticker:string,name:string,description:string):ThemeProfile
  const themes=[
   {test:/dollar general|discount (?:retailer|retail|store)|variety store|value retailer/,
    theme:"discount retail",
-   terms:["dollar general","discount store","discount retail","grocery aisle","retail shelves","store shelves","household essentials","household products","general merchandise","groceries"],
-   queries:["discount store groceries","discount retail shelves","household essentials retail","grocery store aisle"]},
+   terms:["dollar general","discount store","discount retail","convenience store","convenience shop","grocery aisle","retail shelves","store shelves","household essentials","household products","general merchandise","groceries"],
+   queries:["convenience store interior","convenience store shelves","discount store groceries","discount retail shelves","household essentials retail","grocery store aisle"]},
   // Retail replacement parts must not inherit automotive manufacturing imagery.
   {test:/advance auto parts|auto parts (retailer|store|retail|chain)|automotive aftermarket parts|automotive parts retailer|car parts (retail|store)/,theme:"auto parts retail",
    terms:["auto parts","car parts","parts store","spare parts","auto supply","automotive accessories","car batteries","car battery","brake pads","oil filter","motor oil","store","retail","shelves"],
@@ -67,7 +67,7 @@ function photoScore(photo:any,plan:any,profile:ThemeProfile){
  if(profile.theme==="discount retail"){
   const cash=/\b(banknote|banknotes|dollar bills?|cash|currency|coins?|bitcoin|bank teller|forex|banking|money|financial chart)\b/i;
   const competitor=/\b(dollar tree|family dollar|walmart|target|costco|aldi|lidl|five below|walgreens|cvs)\b/i;
-  const retail=/\b(discount stores?|discount retail|grocery (?:aisles?|shelves|store|section)|supermarket|produce section|refrigerated (?:section|shelves|food)|retail shelves|store shelves|store aisles?|storefront|household essentials|household products|general merchandise|variety store|shopping aisles?)\b/i;
+  const retail=/\b(discount stores?|discount retail|convenience (?:stores?|shops?|retail)|grocery (?:aisles?|shelves|store|section)|supermarket|produce section|refrigerated (?:section|shelves|food)|retail shelves|store shelves|store aisles?|storefront|household essentials|household products|general merchandise|variety store|shopping aisles?)\b/i;
   const brand=/\bdollar general\b/i.test(description);
   if(cash.test(description)||competitor.test(description)||!(brand||retail.test(description)))return -100;
   if(plan.companyOnly&&!brand)return -100;
@@ -170,19 +170,19 @@ function eventVisualPlan(event:{title:string;category?:string},profile:ThemeProf
  if(/\b(ceo|chief executive|leadership|management|appointments?|president|board names|chairman)\b/.test(title))
   return {kind:"leadership",queries:["business meeting boardroom","corporate office leadership"],terms:["meeting","boardroom","office","conference","team","business","corporate"]};
  if(/\b(fresh|grocer|food|refrigerat|distribution|supply chain|cold storage)\b/.test(title))
-  return {kind:"grocery",queries:["grocery supermarket refrigerated section","supermarket fresh food shelves"],terms:["grocery","refrigerat","supermarket","food","produce","store","shelves","cold","distribution"]};
+  return {kind:"grocery",queries:profile.theme==="discount retail"?["grocery supermarket refrigerated section","convenience store interior","convenience store shelves"]:["grocery supermarket refrigerated section","supermarket fresh food shelves"],terms:["grocery","refrigerat","supermarket","food","produce","store","shelves","cold","distribution"]};
  if(/\b(popshelf|home goods|merchandise|new product|product line)\b/.test(title))
-  return {kind:"merchandise",queries:["colorful home goods store shelves","retail home decor merchandise"],terms:["home goods","decor","merchandise","shelves","store","retail","products","colorful"]};
+  return {kind:"merchandise",queries:profile.theme==="discount retail"?["convenience store shelves","colorful home goods store shelves"]:["colorful home goods store shelves","retail home decor merchandise"],terms:["home goods","decor","merchandise","shelves","store","retail","products","colorful"]};
  if(/\b(merger|acquisition|take.private|go private|buyout|deal)\b/.test(title))
   return {kind:"corporate",queries:["retail storefront exterior","corporate office building"],terms:["storefront","retail","office","building","business","store","corporate"]};
  if(/\b(closing|closures?|shrink|restructur|store opening|opened|new stores?|expansion)\b/.test(title))
-  return {kind:"stores",queries:["retail store storefront","retail shopping aisles"],terms:["storefront","store","retail","shopping","shelves","aisle"]};
+  return {kind:"stores",queries:profile.theme==="discount retail"?["convenience store exterior","convenience store interior"]:["retail store storefront","retail shopping aisles"],terms:["storefront","store","retail","shopping","shelves","aisle"]};
  return {kind:"general",queries:[profile.queries[0],profile.queries[1]],terms:profile.terms};
 }
 function visualQueries(profile:ThemeProfile,events:{title:string;category?:string}[]):string[]{
  const plans=events.map(e=>eventVisualPlan(e,profile));
  const subjects=[...new Set(plans.map(p=>p.kind))];
- const themed=profile.theme==="discount retail"?"discount grocery store":
+ const themed=profile.theme==="discount retail"?"convenience store interior":
   profile.theme==="beauty retail"?"beauty skincare store":
   profile.theme==="auto parts retail"?"automotive parts shop":
   profile.theme==="semiconductors"?"computer chip electronics":profile.queries[0];
@@ -190,7 +190,7 @@ function visualQueries(profile:ThemeProfile,events:{title:string;category?:strin
  const specific=photoPlans(profile);
  return [...new Set([specific[0]?.query,
   ...subjects.map(kind=>plans.find(p=>p.kind===kind)?.queries[0]),
-  specific[1]?.query,themed,...profile.queries].filter(Boolean))].slice(0,9);
+  ...(profile.theme==="discount retail"?["convenience store interior","convenience store shelves","convenience store exterior"]:[]),specific[1]?.query,themed,...profile.queries].filter(Boolean))].slice(0,12);
 }
 // Search intent is not evidence. Require a matching SUBJECT in the image's metadata.
 function eventContextMatch(description:string,plan:EventVisualPlan):boolean{
@@ -200,10 +200,10 @@ function eventContextMatch(description:string,plan:EventVisualPlan):boolean{
    /\b(grocery|groceries|supermarket|market|retail|store|shop|shopping|food)\b/.test(text);
   case "listing":return /\b(nyse|new york stock exchange|stock exchange|wall street)\b/.test(text);
   case "leadership":return /\b(boardroom|board meeting|conference room|business meeting|corporate meeting|office meeting|meeting room)\b/.test(text);
-  case "grocery":return /\b(grocery|supermarket|refrigerat|produce aisle|produce market|fresh food|cold storage|distribution center|food aisle)\b/.test(text);
-  case "merchandise":return /\b(home goods|home decor|homeware|household goods|decor store|merchandise shelves|retail display)\b/.test(text);
+  case "grocery":return /\b(grocery|supermarket|refrigerat|produce aisle|produce market|fresh food|cold storage|distribution center|food aisle|convenience store (?:interior|shelves|aisle))\b/.test(text);
+  case "merchandise":return /\b(home goods|home decor|homeware|household goods|decor store|merchandise shelves|retail display|convenience store (?:interior|shelves|aisle))\b/.test(text);
   case "corporate":return /\b(retail storefront|storefront|corporate office|office building|company headquarters)\b/.test(text);
-  case "stores":return /\b(storefront|store front|retail store|retail shopping|shopping aisle|shopfront|retail shelves)\b/.test(text);
+  case "stores":return /\b(storefront|store front|retail store|retail shopping|shopping aisle|shopfront|retail shelves|convenience store (?:interior|shelves|aisle|exterior))\b/.test(text);
   default:return false;
  }
 }
@@ -231,7 +231,7 @@ function candidateFromUnsplash(p:any,query:string,tier:number,profile:ThemeProfi
  if(!id||!url||!full||!photographer||!photographer_url||!photo_url||!download)return null;
  if(excludedBrands.test(description)&&!description.includes(profile.brand))return null;
  // Cross-company signage and cash photos never become legitimate stock context.
- if(profile.theme==="discount retail"&&/\b(dollar tree|family dollar|walmart|target|costco|aldi|lidl|five below|walgreens|cvs|banknotes?|dollar bills?|currency|bitcoin|cash|coins|money)\b/i.test(description))return null;
+ if(profile.theme==="discount retail"&&/\b(dollar tree|family dollar|walmart|target|costco|aldi|lidl|five below|walgreens|cvs|banknotes?|dollar bills?|currency|bitcoin|cash|coins|money|gas station|gas pump|fuel pump|petrol station|filling station|fuel dispenser)\b/i.test(description))return null;
  if(profile.theme==="auto parts retail"&&/\b(lordco|autozone|o'?reilly|napa auto|carquest|pep boys)\b/i.test(description))return null;
  if(profile.theme==="auto parts retail"&&offThemeAuto.test(description))return null;
  let score=photoScore(p,{companyOnly:tier===0,minimumScore:0,keywords:profile.terms},profile);
