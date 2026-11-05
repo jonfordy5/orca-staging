@@ -21,8 +21,8 @@ const admin={auth:{getUser:async()=>({data:{user:{id:'test'}}})},from(table){
 }};
 const ctx={createClient:()=>admin,Deno:{env:{get:()=>''},serve:fn=>handler=fn},URL,Response,Request,Date,AbortSignal,fetch:async()=>{requests++;throw Error('No provider request expected')}};
 vm.createContext(ctx);
-vm.runInContext(stripTypeScriptTypes(source)+ '\nglobalThis.api={companyTheme,eventVisualPlan,eventCandidateScore,pickCandidate,companyPhotoIdentity,photoVenue};',ctx);
-const {companyTheme,eventVisualPlan,eventCandidateScore,pickCandidate,companyPhotoIdentity,photoVenue}=ctx.api;
+vm.runInContext(stripTypeScriptTypes(source)+ '\nglobalThis.api={companyTheme,eventVisualPlan,eventCandidateScore,pickCandidate,companyPhotoIdentity,photoVenue,eventContextMatch};',ctx);
+const {companyTheme,eventVisualPlan,eventCandidateScore,pickCandidate,companyPhotoIdentity,photoVenue,eventContextMatch}=ctx.api;
 const dg=companyTheme('DG','Dollar General','discount retailer');
 const nvda=companyTheme('NVDA','NVIDIA','semiconductors');
 const ulta=companyTheme('ULTA','Ulta Beauty','beauty retail');
@@ -33,6 +33,27 @@ const candidate=(title,query='',score=40)=>({id:title,title,query,score,photogra
 const listing=eventVisualPlan({title:'Returned to public trading on NYSE'},dg);
 test('Query alone cannot approve an unrelated image',()=>assert.equal(eventCandidateScore(candidate('beach sunset',listing.queries[0],1000),listing),-Infinity));
 test('Listing chooses stock exchange over higher-scoring grocery',()=>assert.equal(pickCandidate([candidate('grocery store shelves','',1000),candidate('new york stock exchange')],new Set(),new Map(),listing).title,'new york stock exchange'));
+test('Metadata, not query, determines contextual eligibility',()=>{
+ const plan=eventVisualPlan({title:'DG Fresh'},dg);
+ assert.equal(eventContextMatch('supermarket refrigerated food section',plan),true);
+ assert.equal(eventContextMatch('dollar general storefront at night',plan),false);
+});
+const grocery=eventVisualPlan({title:'DG Fresh refrigerated distribution'},dg);
+const restaurantPlan=eventVisualPlan({title:'New Restaurant product launch'},unknown);
+test('Event captions qualify independently from search strings',()=>{
+ const contextual={...candidate('grocery supermarket refrigerated section'),context_kinds:['grocery']};
+ assert(Number.isFinite(eventCandidateScore(contextual,grocery)));
+ assert.equal(eventCandidateScore(contextual,listing),-Infinity);
+});
+test('Company image that actually matches the topic beats generic company fallback',()=>{
+ const related={...candidate('dollar general grocery refrigerated shelves'),context_kinds:['grocery']};
+ const generic=candidate('dollar general store at night');
+ assert.equal(pickCandidate([generic,related],new Set(),new Map(),grocery).id,related.id);
+});
+test('Unrelated scene does not qualify another company',()=>{
+ const wrong={...candidate('beach at sunset'),context_kinds:['merchandise']};
+ assert.equal(eventCandidateScore(wrong,restaurantPlan),-Infinity);
+});
 test('No eligible image produces no selection',()=>assert.equal(pickCandidate([candidate('grocery store shelves')],new Set(),new Map(),listing),null));
 test('Reserved image is not selected again',()=>assert.equal(pickCandidate([candidate('stock exchange')],new Set(['stock exchange']),new Map(),listing),null));
 test('DG Fresh selects food context',()=>assert.equal(eventVisualPlan({title:'Dollar General launches DG Fresh'},dg).kind,'grocery'));

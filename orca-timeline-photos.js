@@ -60,7 +60,7 @@ export async function mountTimelinePhotos({sb,ticker,frame,rail,status,getUser,c
    fallbackIds.add(fallback.photo_url);
    photos.set(card.dataset.eventId,{...fallback,temporary:true});
   }
-  const ids=usablePhotos.filter(p=>!(p.strategy_version>=7&&p.match_type==='exact_subject')).map(p=>{
+  const ids=usablePhotos.map(p=>{
    try{return new URL(p.photo_url).pathname}catch{return p.image_url||''}
   });
   duplicateCount=ids.length-new Set(ids).size;
@@ -76,7 +76,8 @@ export async function mountTimelinePhotos({sb,ticker,frame,rail,status,getUser,c
    let badge=card.querySelector('.orca-photo-context');
    if(p.strategy_version>=7){
     if(!badge){badge=document.createElement('small');badge.className='orca-photo-context';card.append(badge)}
-    badge.textContent=p.match_type==='exact_subject'?'Company photo · not event photo':'Related location · not event photo';
+    badge.textContent=p.match_type==='topic_context'||p.match_type==='venue_context'?'Related photo · not event photo':
+     p.match_type==='company_event_context'?'Company-related photo · not event photo':'Company photo · not event photo';
    }
    if(existing&&existing.dataset.photoUrl===p.image_url)continue;
    const slot=card.querySelector('.orca-timeline-event-media');
@@ -124,8 +125,8 @@ export async function mountTimelinePhotos({sb,ticker,frame,rail,status,getUser,c
  },false);
  async function refreshAndMaybeFill(){
   await refresh();
-  // New history may be generated after initial mount. Run photo filling exactly once
-  // per browser session when the first eligible sourced milestones appear.
+  // One automatic attempt per set of visible milestones and consent state;
+  // manual improvement stays available after provider failures.
   // Account consent may resolve after the initial mount; retry once when it becomes
   // authorized, and again if the displayed event IDs change after discovery.
   const signature=Array.from(rail.querySelectorAll('button[data-event-id]')).map(card=>card.dataset.eventId).join(',');

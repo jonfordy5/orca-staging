@@ -40,6 +40,7 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
  let historyPermissionPending=false;
  let prices=[];
  let photoMount=null;
+ let lastEventFingerprint='';
  function fitRailEdges(){
   const spine=rail.querySelector('.orca-history-spine');
   const stop=spine?.querySelector('.orca-history-stop');
@@ -244,9 +245,15 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
   const milestoneTarget=10;
   // Exactly ten featured events by default, spaced across the full cached chronology.
   // Preserve every extra source-backed milestone in Supabase, rather than deleting it.
-  data=verified.length<=milestoneTarget?verified:Array.from({length:milestoneTarget},(_,i)=>
+  const nextData=verified.length<=milestoneTarget?verified:Array.from({length:milestoneTarget},(_,i)=>
    verified[Math.round(i*(verified.length-1)/(milestoneTarget-1))]);
-  renderCards();
+  // Avoid destroying active modal details every 60 seconds on unchanged records.
+  const fingerprint=JSON.stringify(nextData.map(e=>[e.id,e.event_at,e.title,e.ai_summary,e.source_url,e.image_url,e.image_credit,e.quick_brief]));
+  if(fingerprint!==lastEventFingerprint){
+   data=nextData;
+   lastEventFingerprint=fingerprint;
+   renderCards();
+  }
   const extra=Math.max(0,verified.length-data.length);
   status.textContent=data.length+' sourced company milestone'+(data.length===1?'':'s')+
    (extra?' shown · '+extra+' additional verified milestone'+(extra===1?'':'s')+' retained in the archive':'')+
@@ -315,7 +322,7 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
  // Preserve the normal TradingView chart on initial load. Living Timeline is opt-in.
  await loadEvents();
  try{
-  const module=await import('./orca-timeline-photos.js?v=photo-company-identity-v7');
+  const module=await import('./orca-timeline-photos.js?v=photo-qa-v8');
   photoMount=await module.mountTimelinePhotos({sb,ticker,frame,rail,status,getUser,canContribute:()=>historyAuthorized});
  }catch(error){console.warn('Optional history photography is unavailable',error)}
  const poll=setInterval(()=>{if(document.visibilityState==='visible')loadEvents()},60000);
