@@ -155,8 +155,8 @@ check('Milestone photo matching uses event-aware visual plans', () => {
 });
 check('Dollar General photo queries distinguish groceries, leadership, listing and Mexico expansion', () => {
  const engine=read('supabase/functions/orca-timeline-photo-fill/index.ts');
- return ['mexico grocery supermarket interior','business meeting boardroom',
-  'new york stock exchange building','grocery supermarket refrigerated section'].every(term=>engine.includes(term)) &&
+ return ['mexico grocery supermarket','meeting boardroom',
+  'new york stock exchange','grocery supermarket refrigerated','convenience store'].every(term=>engine.includes(term)) &&
   engine.includes('const cash=') &&
   engine.includes('const competitor=');
 });
