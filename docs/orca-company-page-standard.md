@@ -45,4 +45,13 @@ Photo search queries are retrieval hints, not evidence that a returned image mat
 
 When the shared 300-photo development rolling allowance is exhausted, show a visible explanation and next capacity time. Do not hide photo failures in the general history status. No photo change regenerates historical research. Metadata matching is not visual verification or proof of an exact event photograph.
 
-Photo identity v7: new selections require the complete company brand in image metadata (plus sector context for ambiguous names), or a named NYSE venue for a listing event. Generic stores, anonymous leadership meetings and homes are not acceptable. When event-specific photography is unavailable, reuse company-identified photography with a visible “Company photo · not event photo” label. Intentional reuse is not an improvement loop. Existing legacy collections are not automatically purged.
+Photo identity v8: new selections require the complete company brand in image metadata (plus sector context for ambiguous names), or a named NYSE venue for a listing event. Generic stores, anonymous leadership meetings and homes are not acceptable. When event-specific photography is unavailable, reuse company-identified photography with a visible “Company photo · not event photo” label. Intentional reuse is not an improvement loop. Existing legacy collections are not automatically purged.
+
+
+## Photo QA v8
+
+- Existing image IDs repeated across multiple featured events remain unfinished and eligible for improvement. The old exact-subject exemption no longer hides duplicates.
+- Photo search accepts caption-supported event scenes (e.g., grocery refrigeration, NYSE, Mexico retail, leadership) and company-identified photos. Queries alone do not establish caption relevance.
+- Event-specific context is ranked above generic company storefront imagery. Reuse preserves a visible illustration but must not be falsely reported as a new unique photo.
+- Daily 300-photo development cap, opted-in authentication, company research cache, source links and trading behavior remain independent.
+- Do not interpret ten filled images as ten distinct, visually verified event photographs. Manual inspection is still the release gate.
