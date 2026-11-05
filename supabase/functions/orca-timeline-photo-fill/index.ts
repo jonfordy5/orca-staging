@@ -330,7 +330,14 @@ Deno.serve(async(req:Request)=>{
   .select("event_id,photo_id,needs_review,photographer").eq("ticker",ticker).limit(500);
  if(cachedError)return reply(503,{error:"Photo cache unavailable"});
  const existing=new Map((cached||[]).map((p:any)=>[p.event_id,p]));
- const targets=featured.filter((e:any)=>!existing.has(e.id)||existing.get(e.id)?.needs_review);
+ const seenIds=new Set<string>(),duplicateEvents=new Set<string>();
+ for(const e of featured){
+  const photoId=String(existing.get(e.id)?.photo_id||"");
+  if(!photoId)continue;
+  if(seenIds.has(photoId))duplicateEvents.add(e.id);
+  else seenIds.add(photoId);
+ }
+ const targets=featured.filter((e:any)=>!existing.has(e.id)||existing.get(e.id)?.needs_review||duplicateEvents.has(e.id));
  if(!targets.length)return reply(200,{state:"cached",added:0,remaining:0,photos:featured.length});
  const remainingDaily=Math.max(0,dailyPhotoLimit-(count||0));
  if(!remainingDaily){
@@ -393,17 +400,24 @@ Deno.serve(async(req:Request)=>{
    .sort((a,b)=>eventCandidateScore(b,plan)-eventCandidateScore(a,plan));
   if(!ranked.length)continue;
   const pick=ranked[0];
+  if(existing.has(e.id))continue;
   choices.push({event_id:e.id,choice:pick});
   failed=Math.max(0,failed-1);
  }
  for(const {event_id,choice} of choices){
+  const duplicated=(cached||[]).some((p:any)=>p.event_id!==event_id&&p.photo_id===choice.id)||
+   choices.some(x=>x.event_id!==event_id&&x.choice.id===choice.id);
+  const plan=eventVisualPlan(featured.find((e:any)=>e.id===event_id)||{title:""},profile);
+  const context=Boolean(choice.context_kinds?.includes(plan.kind));
+  const matchType=context&&choice.company_match?"company_event_context":
+   context?"topic_context":plan.kind==="listing"&&choice.venue==="nyse"?"venue_context":"company_context";
   const {error:saveError}=await admin.from("orca_timeline_photo_selections").upsert({
    event_id,ticker,photo_id:choice.id,image_url:choice.image_url,
    full_image_url:choice.full_image_url,photographer:choice.photographer,
    photographer_url:choice.photographer_url,photo_url:choice.photo_url,illustrative:true,
    source_type:"unsplash_legacy",rights_status:"legacy_provider_terms",
-   match_type:choice.company_match?"exact_subject":"contextual",search_query:choice.query,query_used:choice.query,
-   strategy_version:7,needs_review:false,
+   match_type:matchType,search_query:choice.query,query_used:choice.query,
+   strategy_version:8,needs_review:duplicated,created_at:new Date().toISOString(),
    image_title:choice.title,
    match_score:Math.round(choice.score),relevance_score:Math.min(100,Math.round(choice.score)),
    attribution_text:"Photo by "+choice.photographer+" on Unsplash",
