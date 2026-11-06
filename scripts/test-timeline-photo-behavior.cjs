@@ -7,6 +7,9 @@ const source=fs.readFileSync(root+'/supabase/functions/orca-timeline-photo-fill/
 let handler;
 let requests=0;
 let photoCount=300;
+let providerStatus=200;
+let providerRemaining='49';
+let providerLimit='50';
 const admin={auth:{getUser:async()=>({data:{user:{id:'test'}}})},from(table){
  let result;
  const query={select(columns,opts){
@@ -19,10 +22,10 @@ const admin={auth:{getUser:async()=>({data:{user:{id:'test'}}})},from(table){
  },eq(){return query},gte(){return query},is(){return query},order(){return query},limit(){return query},maybeSingle(){return query},then(resolve){resolve(result)}};
  return query;
 }};
-const ctx={createClient:()=>admin,Deno:{env:{get:()=>''},serve:fn=>handler=fn},URL,Response,Request,Date,AbortSignal,fetch:async()=>{requests++;throw Error('No provider request expected')}};
+const ctx={createClient:()=>admin,Deno:{env:{get:()=>''},serve:fn=>handler=fn},URL,Response,Request,Date,AbortSignal,fetch:async()=>{requests++;return new Response(providerStatus===200?JSON.stringify({results:[{id:'photo'}]}):'',{status:providerStatus,headers:{'Content-Type':'application/json','X-Ratelimit-Limit':providerLimit,'X-Ratelimit-Remaining':providerRemaining}})}};
 vm.createContext(ctx);
-vm.runInContext(stripTypeScriptTypes(source)+ '\nglobalThis.api={companyTheme,eventVisualPlan,visualQueries,eventCandidateScore,pickCandidate,companyPhotoIdentity,photoVenue,eventContextMatch,candidateFromUnsplash};',ctx);
-const {companyTheme,eventVisualPlan,visualQueries,eventCandidateScore,pickCandidate,companyPhotoIdentity,photoVenue,eventContextMatch,candidateFromUnsplash}=ctx.api;
+vm.runInContext(stripTypeScriptTypes(source)+ '\nglobalThis.api={companyTheme,eventVisualPlan,visualQueries,eventCandidateScore,pickCandidate,companyPhotoIdentity,photoVenue,eventContextMatch,candidateFromUnsplash,numericHeader,providerMeta,providerMeaning};',ctx);
+const {companyTheme,eventVisualPlan,visualQueries,eventCandidateScore,pickCandidate,companyPhotoIdentity,photoVenue,eventContextMatch,candidateFromUnsplash,numericHeader,providerMeta,providerMeaning}=ctx.api;
 const dg=companyTheme('DG','Dollar General','discount retailer');
 const nvda=companyTheme('NVDA','NVIDIA','semiconductors');
 const ulta=companyTheme('ULTA','Ulta Beauty','beauty retail');
@@ -121,6 +124,20 @@ test('Real DG photo is an honest company fallback',()=>assert.equal(pickCandidat
 test('NYSE cannot fill a grocery event',()=>assert.equal(pickCandidate([candidate('new york stock exchange')],new Set(),new Map(),eventVisualPlan({title:'DG Fresh'},dg)),null));
 test('Apple fruit does not establish company identity',()=>assert.equal(companyPhotoIdentity('apple on a table',companyTheme('AAPL','Apple Inc','consumer electronics')),false));
 test('Full company phrase prevents dollar/general token collision',()=>assert.equal(companyPhotoIdentity('dollar bills in general circulation',dg),false));
+test('Provider error codes are not conflated with rate limit',()=>{
+ assert.equal(providerMeaning(200),'ok');
+ assert.equal(providerMeaning(401),'invalid_key');
+ assert.equal(providerMeaning(402),'payment_required');
+ assert.equal(providerMeaning(403),'forbidden');
+ assert.equal(providerMeaning(429),'rate_limited');
+ assert.equal(providerMeaning(503),'provider_error');
+});
+test('Missing or malformed rate headers stay unknown',()=>{
+ assert.equal(numericHeader(null),null);
+ assert.equal(numericHeader('not a number'),null);
+ assert.equal(numericHeader('-1'),null);
+ assert.equal(numericHeader('0'),0);
+});
 (async()=>{
  const response=await handler(new Request('https://example.test',{method:'POST',headers:{Origin:'https://jonfordy5.github.io',Authorization:'Bearer test','Content-Type':'application/json'},body:JSON.stringify({ticker:'DG'})}));
  const payload=await response.json();
@@ -140,5 +157,21 @@ test('Full company phrase prevents dollar/general token collision',()=>assert.eq
   });
  }
  test('UI uses limit returned by server',()=>assert.match(frontend.message({state:'daily_limit',limit:450}),/shared 450-photo/));
+ for(const status of [200,401,402,403,429]){
+  const previous=requests;
+  providerStatus=status;
+  const result=await handler(new Request('https://example.test',{method:'POST',headers:{Origin:'https://jonfordy5.github.io',Authorization:'Bearer test','Content-Type':'application/json'},body:JSON.stringify({ticker:'DG',diagnostic:true})}));
+  const data=await result.json();
+  test('One request, no writes and distinct provider status '+status,()=>{
+   assert.equal(result.status,200);
+   assert.equal(requests-previous,1);
+   assert.equal(data.http_status,status);
+   assert.equal(data.requests_made,1);
+   assert.equal(data.rate_limit,50);
+   assert.equal(data.rate_remaining,49);
+   assert.equal(data.photo_records_changed,0);
+   assert.equal(data.meaning,providerMeaning(status));
+  });
+ }
  console.log(checks+' behavioral checks passed.');
 })().catch(error=>{console.error(error);process.exitCode=1});
