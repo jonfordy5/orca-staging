@@ -10,6 +10,7 @@ let photoCount=300;
 let providerStatus=200;
 let providerRemaining='49';
 let providerLimit='50';
+let providerKeyEnabled=false;
 const admin={auth:{getUser:async()=>({data:{user:{id:'test'}}})},from(table){
  let result;
  const query={select(columns,opts){
@@ -22,7 +23,7 @@ const admin={auth:{getUser:async()=>({data:{user:{id:'test'}}})},from(table){
  },eq(){return query},gte(){return query},is(){return query},order(){return query},limit(){return query},maybeSingle(){return query},then(resolve){resolve(result)}};
  return query;
 }};
-const ctx={createClient:()=>admin,Deno:{env:{get:()=>''},serve:fn=>handler=fn},URL,Response,Request,Date,AbortSignal,fetch:async()=>{requests++;return new Response(providerStatus===200?JSON.stringify({results:[{id:'photo'}]}):'',{status:providerStatus,headers:{'Content-Type':'application/json','X-Ratelimit-Limit':providerLimit,'X-Ratelimit-Remaining':providerRemaining}})}};
+const ctx={createClient:()=>admin,Deno:{env:{get:name=>name==='UNSPLASH_ACCESS_KEY'&&providerKeyEnabled?'test':'',},serve:fn=>handler=fn},URL,Response,Request,Date,AbortSignal,fetch:async()=>{requests++;return new Response(providerStatus===200?JSON.stringify({results:[{id:'photo'}]}):'',{status:providerStatus,headers:{'Content-Type':'application/json','X-Ratelimit-Limit':providerLimit,'X-Ratelimit-Remaining':providerRemaining}})}};
 vm.createContext(ctx);
 vm.runInContext(stripTypeScriptTypes(source)+ '\nglobalThis.api={companyTheme,eventVisualPlan,visualQueries,eventCandidateScore,pickCandidate,companyPhotoIdentity,photoVenue,eventContextMatch,candidateFromUnsplash,numericHeader,providerMeta,providerMeaning};',ctx);
 const {companyTheme,eventVisualPlan,visualQueries,eventCandidateScore,pickCandidate,companyPhotoIdentity,photoVenue,eventContextMatch,candidateFromUnsplash,numericHeader,providerMeta,providerMeaning}=ctx.api;
@@ -157,6 +158,7 @@ test('Missing or malformed rate headers stay unknown',()=>{
   });
  }
  test('UI uses limit returned by server',()=>assert.match(frontend.message({state:'daily_limit',limit:450}),/shared 450-photo/));
+ providerKeyEnabled=true;
  for(const status of [200,401,402,403,429]){
   const previous=requests;
   providerStatus=status;
