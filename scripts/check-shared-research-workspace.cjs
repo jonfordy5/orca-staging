@@ -134,7 +134,9 @@ check('Underfilled company histories offer manual, source-backed completion with
   timeline.includes("generate.textContent='Complete company history ('+data.length+'/10)'") &&
   timeline.includes("if(!data.length)await maybePopulateCompanyHistory()") &&
   timeline.includes('refresh_eligible_after') &&
-  timeline.includes('data.length<10&&getUser()'));
+  timeline.includes('data.length<10&&getUser()') &&
+  timeline.includes('frame.insertBefore(generate,rail)') &&
+  timeline.includes("frame.querySelector('.orca-history-refill-action')?.remove()"));
 const discovery=read('supabase/functions/orca-timeline-discovery/index.ts');
 check('Timeline discovery covers historical company origins with capped primary-source research', () =>
   discovery.includes("FULL HISTORY") &&

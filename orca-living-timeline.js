@@ -141,6 +141,9 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
   if(selected){centerMilestone(selected);selected.focus({preventScroll:true});}
  }
  function renderCards(){
+  // Rebuild the visible refill toolbar with the cards, never inside the
+  // horizontally scrolling event rail where it would disappear off-screen.
+  frame.querySelector('.orca-history-refill-action')?.remove();
   rail.replaceChildren();
   closeDetails();
   frame.classList.toggle('orca-history-empty',!data.length);
@@ -208,12 +211,12 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
   if(data.length<10&&getUser()){
    const generate=document.createElement('button');
    generate.type='button';
-   generate.className='orca-timeline-generate';
+   generate.className='orca-timeline-generate orca-history-refill-action';
    generate.textContent='Complete company history ('+data.length+'/10)';
    generate.title='Research additional sourced milestones, subject to the 24-hour cooldown and spending safeguards';
    generate.disabled=discoveryPending||automaticDiscoveryAttempted;
    generate.addEventListener('click',()=>void maybePopulateCompanyHistory());
-   rail.append(generate);
+   frame.insertBefore(generate,rail);
   }
   if(visible==='timeline')fitRailEdges();
   // Do not automatically display milestone details.
