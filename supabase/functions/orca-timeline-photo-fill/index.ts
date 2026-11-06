@@ -535,7 +535,7 @@ Deno.serve(async(req:Request)=>{
   headers:{"Authorization":"Client-ID "+accessKey,"Accept-Version":"v1"},
   signal:AbortSignal.timeout(4500)})));
  const upstream=search.provider_failure||search.provider_last;
- return reply(200,{state:added>0?"ready":search.provider_failure?"provider_error":search.limited?"rate_limited":"no_matches",added,failed,
+ return reply(200,{state:added>0?"ready":search.provider_failure?.http_status===429?"rate_limited":search.provider_failure?"provider_error":search.limited?"rate_limited":"no_matches",added,failed,
   requested:todo.length,remaining:Math.max(0,targets.length-added),
   featured:featured.length,query_count:search.queries_tried.length,queries:search.queries_tried,
   provider_http_status:upstream?.http_status??null,provider_meaning:providerMeaning(upstream?.http_status??null),
