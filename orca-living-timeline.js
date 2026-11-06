@@ -81,7 +81,7 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
  livingButton.hidden=false;tvButton.hidden=false;
  livingButton.setAttribute('aria-pressed','false');
  tvButton.setAttribute('aria-pressed','true');
- livingButton.addEventListener('click',()=>{switchTo('timeline');void (async()=>{await checkHistoryPermission();await maybePopulateCompanyHistory();})()});
+ livingButton.addEventListener('click',()=>{switchTo('timeline');void (async()=>{await checkHistoryPermission();if(!data.length)await maybePopulateCompanyHistory();})()});
  tvButton.addEventListener('click',()=>switchTo('tradingview'));
  function validSource(value){
   try{const u=new URL(String(value));return u.protocol==='https:'&&!u.username&&!u.password?u.href:null;}catch{return null}
@@ -204,6 +204,17 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
    spine.append(stop);
   });
   rail.append(spine);
+  // Incomplete cached timelines offer a deliberate refill, never a paid page-view retry.
+  if(data.length<10&&getUser()){
+   const generate=document.createElement('button');
+   generate.type='button';
+   generate.className='orca-timeline-generate';
+   generate.textContent='Complete company history ('+data.length+'/10)';
+   generate.title='Research additional sourced milestones, subject to the 24-hour cooldown and spending safeguards';
+   generate.disabled=discoveryPending||automaticDiscoveryAttempted;
+   generate.addEventListener('click',()=>void maybePopulateCompanyHistory());
+   rail.append(generate);
+  }
   if(visible==='timeline')fitRailEdges();
   // Do not automatically display milestone details.
   closeDetails();
@@ -282,7 +293,7 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
    return;
   }
   if(!(await checkHistoryPermission())){
-   if(!data.length)status.textContent='No company timeline cached. Enable research consent in your ORCA agent profile to create it. You do not need to join this stock to generate public company history.';
+   status.textContent='Enable research consent in your ORCA agent profile to complete this company history.';
    return;
   }
   automaticDiscoveryAttempted=true;
@@ -300,7 +311,11 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
      'Company history search finished without new verified milestones. Existing records remain unchanged.';
    }else if(result?.state==='cached'){
     await loadEvents();
-    if(!data.length)status.textContent='Company history is temporarily cached with no verified milestones; try again after the research cooldown.';
+    const next=typeof result.refresh_eligible_after==='string'&&Number.isFinite(Date.parse(result.refresh_eligible_after))
+     ?new Date(result.refresh_eligible_after).toLocaleString():null;
+    status.textContent=data.length+'/10 milestones cached.'+
+     (next?' Additional research becomes eligible after '+next+'.':' Research cooldown is active.')+
+     ' Existing sources are unchanged.';
    }else{
     const type=String(result?.state||'unavailable');
     const note=({
