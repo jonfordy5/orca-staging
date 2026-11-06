@@ -267,9 +267,62 @@ function candidateFromUnsplash(p:any,query:string,tier:number,profile:ThemeProfi
   photo_url,download_location:download,title:description.slice(0,300),query,tier,company_match,venue,context_kinds,retail_illustration,
   score:Math.max(0,score)+Math.max(0,5-tier)*8+Math.min(Number(p.likes||0)/500,2)};
 }
-async function findUnsplashCandidates(accessKey:string,queries:string[],profile:ThemeProfile,plans:EventVisualPlan[]):Promise<{candidates:Candidate[],limited:boolean,queries_tried:string[]}>{
+// Provider diagnostics: numeric metadata only; never expose application keys or user credentials.
+type ProviderMeta={http_status:number|null;rate_limit:number|null;rate_remaining:number|null;retry_after_seconds:number|null};
+function numericHeader(value:string|null):number|null{
+ if(value===null||!/^\d{1,10}$/.test(value))return null;
+ const n=Number(value);
+ return Number.isSafeInteger(n)?n:null;
+}
+function providerMeta(response:Response):ProviderMeta{
+ return {http_status:response.status,
+  rate_limit:numericHeader(response.headers.get("X-Ratelimit-Limit")),
+  rate_remaining:numericHeader(response.headers.get("X-Ratelimit-Remaining")),
+  retry_after_seconds:numericHeader(response.headers.get("Retry-After"))};
+}
+function providerMeaning(status:number|null):string{
+ return status===200?"ok":status===400?"bad_request":status===401?"invalid_key":
+  status===402?"payment_required":status===403?"forbidden":status===429?"rate_limited":
+  status===null?"network_error":status>=500?"provider_error":"unexpected_status";
+}
+function recordUnsplash(mode:string,query:string,page:number,meta:ProviderMeta,results:number|null){
+ console.info("ORCA_UNSPLASH_DIAG",JSON.stringify({
+  mode,query,page,http_status:meta.http_status,rate_limit:meta.rate_limit,
+  rate_remaining:meta.rate_remaining,retry_after_seconds:meta.retry_after_seconds,results}));
+}
+async function diagnosticUnsplash(key:string,ticker:string){
+ // Only one API GET; no photo downloads and no database writes.
+ const query=ticker==="DG"?"convenience store":ticker.toLowerCase();
+ const uri=new URL("https://api.unsplash.com/search/photos");
+ uri.searchParams.set("query",query);uri.searchParams.set("per_page","1");
+ uri.searchParams.set("orientation","landscape");uri.searchParams.set("order_by","relevant");
+ uri.searchParams.set("content_filter","high");
+ try{
+  const response=await fetch(uri.toString(),{headers:{"Authorization":"Client-ID "+key,"Accept-Version":"v1"},
+   signal:AbortSignal.timeout(8500)});
+  const health=providerMeta(response);
+  let results:number|null=null;
+  if(response.ok){
+   try{
+    const body=await response.json();
+    results=Array.isArray(body?.results)?body.results.length:null;
+   }catch{}
+  }
+  recordUnsplash("probe",query,1,health,results);
+  return {state:"diagnostic",provider:"Unsplash",query,requests_made:1,...health,
+   meaning:providerMeaning(health.http_status),results_returned:results,photo_records_changed:0};
+ }catch{
+  const health:ProviderMeta={http_status:null,rate_limit:null,rate_remaining:null,retry_after_seconds:null};
+  recordUnsplash("probe",query,1,health,null);
+  return {state:"diagnostic",provider:"Unsplash",query,requests_made:1,...health,
+   meaning:"network_error",results_returned:null,photo_records_changed:0};
+ }
+}
+async function findUnsplashCandidates(accessKey:string,queries:string[],profile:ThemeProfile,plans:EventVisualPlan[]):Promise<{candidates:Candidate[],limited:boolean,queries_tried:string[],provider_last:ProviderMeta|null,provider_failure:ProviderMeta|null,requests_made:number,results_received:number,network_failures:number}>{
  const out:Candidate[]=[];let limited=false;
- const q: string[]=[];
+ const q:string[]=[];
+ let provider_last:ProviderMeta|null=null,provider_failure:ProviderMeta|null=null;
+ let requests_made=0,results_received=0,network_failures=0;
  // Four searches are usually enough to cover 10 unique images; reserve an abstract
  // query if the pool remains insufficient. A 30-photo batch costs one search call.
  // Three genuinely different result pages for the repeated "convenience store" request.
@@ -284,16 +337,35 @@ async function findUnsplashCandidates(accessKey:string,queries:string[],profile:
    uri.searchParams.set("orientation","landscape");
    uri.searchParams.set("order_by","relevant");
    uri.searchParams.set("content_filter","high");
+   requests_made++;
    try{
     const response=await fetch(uri.toString(),{headers:{"Authorization":"Client-ID "+accessKey,"Accept-Version":"v1"},
      signal:AbortSignal.timeout(8500)});
-    if(!response.ok){if([401,403,429].includes(response.status)){limited=true;break searchLoop}continue}
-    const json=await response.json();
-    for(const p of (Array.isArray(json.results)?json.results:[])){
-     const c=candidateFromUnsplash(p,query,tier,profile,plans);
-     if(c)out.push(c);
+    const health=providerMeta(response);
+    provider_last=health;
+    if(!response.ok){
+     recordUnsplash("fill",query,page,health,null);
+     provider_failure??=health;
+     if([401,402,403,429].includes(response.status)){limited=response.status===429;break searchLoop}
+     continue;
     }
-   }catch(error){console.warn("ORCA Unsplash search failed",String(error))}
+    const json=await response.json();
+    const results=Array.isArray(json.results)?json.results:[];
+    results_received+=results.length;
+    recordUnsplash("fill",query,page,health,results.length);
+    for(const p of results){
+     try{
+      const c=candidateFromUnsplash(p,query,tier,profile,plans);
+      if(c)out.push(c);
+     }catch{console.warn("ORCA_UNSPLASH_BAD_PHOTO_METADATA")}
+    }
+    if(health.rate_remaining===0){limited=true;break searchLoop}
+   }catch{
+    network_failures++;
+    const unavailable:ProviderMeta={http_status:null,rate_limit:null,rate_remaining:null,retry_after_seconds:null};
+    provider_failure??=unavailable;
+    recordUnsplash("fill",query,page,unavailable,null);
+   }
   }
  }
  const byId=new Map<string,Candidate>();
@@ -301,7 +373,7 @@ async function findUnsplashCandidates(accessKey:string,queries:string[],profile:
   const old=byId.get(c.id);
   if(!old||c.score>old.score)byId.set(c.id,c);
  }
- return {candidates:[...byId.values()].sort((a,b)=>b.score-a.score),limited,queries_tried:q};
+ return {candidates:[...byId.values()].sort((a,b)=>b.score-a.score),limited,queries_tried:q,provider_last,provider_failure,requests_made,results_received,network_failures};
 }
 function pickCandidate(pool:Candidate[],reserved:Set<string>,photographerCounts:Map<string,number>,plan:EventVisualPlan):Candidate|null{
  const available=pool.filter(p=>!reserved.has(p.id)&&Number.isFinite(eventCandidateScore(p,plan)));
@@ -333,7 +405,13 @@ Deno.serve(async(req:Request)=>{
   .eq("owner_id",identity.user.id).eq("opted_in",true).limit(1);
  if(profileError||!profiles?.length)return reply(403,{error:"Opted-in ORCA researcher required"});
 
-
+ // The authorized diagnostic is intentionally independent of all photo caches.
+ if(body?.diagnostic===true){
+  const accessKey=Deno.env.get("UNSPLASH_ACCESS_KEY");
+  if(!accessKey)return reply(503,{state:"diagnostic",provider:"Unsplash",meaning:"missing_access_key",
+   http_status:null,rate_limit:null,rate_remaining:null,requests_made:0,photo_records_changed:0});
+  return reply(200,await diagnosticUnsplash(accessKey,ticker));
+ }
  const {count,error:countError}=await admin.from("orca_timeline_photo_selections")
    .select("event_id",{head:true,count:"exact"}).gte("created_at",new Date(Date.now()-86400000).toISOString());
  if(countError)return reply(503,{error:"Photo cache unavailable"});
@@ -456,8 +534,13 @@ Deno.serve(async(req:Request)=>{
  await Promise.allSettled(uniqueDownloads.map(c=>fetch(c.download_location,{
   headers:{"Authorization":"Client-ID "+accessKey,"Accept-Version":"v1"},
   signal:AbortSignal.timeout(4500)})));
- return reply(200,{state:search.limited?"rate_limited":"ready",added,failed,
+ const upstream=search.provider_failure||search.provider_last;
+ return reply(200,{state:added>0?"ready":search.provider_failure?.http_status===429?"rate_limited":search.provider_failure?"provider_error":search.limited?"rate_limited":"no_matches",added,failed,
   requested:todo.length,remaining:Math.max(0,targets.length-added),
   featured:featured.length,query_count:search.queries_tried.length,queries:search.queries_tried,
-  note:"Event-aware illustrative photography with same-company fallback. Research sources unchanged."});
+  provider_http_status:upstream?.http_status??null,provider_meaning:providerMeaning(upstream?.http_status??null),
+  provider_rate_limit:search.provider_last?.rate_limit??null,provider_rate_remaining:search.provider_last?.rate_remaining??null,
+  provider_requests_made:search.requests_made,provider_results_received:search.results_received,
+  provider_eligible_candidates:search.candidates.length,provider_network_failures:search.network_failures,
+  note:"Photo selections are illustrative; original research sources unchanged."});
 });

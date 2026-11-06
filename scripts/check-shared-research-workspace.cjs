@@ -166,10 +166,13 @@ check('Old flagged illustrations cannot be recycled as vetted company fallback',
   engine.includes('.eq("ticker",ticker).limit(100)') &&
   !engine.includes('const {data:library}');
 });
-check('Photo-fill retries when permissions resolve and newly researched milestones render', () =>
-  photos.includes('lastAutoFillSignature!==signature') &&
-  photos.includes('getUser()&&canContribute()') &&
-  photos.includes('void fillPhotos()'));
+check('Unsplash diagnosis uses one authorized request and disables automatic photo retries', () =>
+  photos.includes("body:{ticker,diagnostic:true}") &&
+  photos.includes("diagnosticsButton.textContent='Check Unsplash API'") &&
+  photos.includes("button.addEventListener('click',()=>void fillPhotos())") &&
+  !photos.includes('autoFillAttempted') &&
+  !photos.includes('lastAutoFillSignature') &&
+  photos.includes('await refreshAndMaybeFill()'));
 
 console.log('\nShared workspace checks: ' + passed + ' passed, ' + failures.length + ' failed.');
 if (failures.length) process.exitCode = 1;

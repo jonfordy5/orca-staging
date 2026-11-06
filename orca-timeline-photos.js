@@ -28,13 +28,20 @@ export async function mountTimelinePhotos({sb,ticker,frame,rail,status,getUser,c
  let duplicateCount=0;
  let remainingPhotos=0;
  let actionPending=false;
- let autoFillAttempted=false;
- let lastAutoFillSignature='';
+ let diagnosticPending=false;
+ const diagnosticsButton=document.createElement('button');
+ diagnosticsButton.type='button';
+ diagnosticsButton.className='orca-photo-diagnostic';
+ diagnosticsButton.textContent='Check Unsplash API';
+ diagnosticsButton.title='One API request, no photo database changes.';
+ nav.append(diagnosticsButton);
  function updatePhotoAction(){
   const needsAction=duplicateCount>0||remainingPhotos>0;
   // A finished timeline should show its photos, not a disabled "Photos ready" button.
   button.hidden=!needsAction||!(getUser()&&canContribute());
-  button.disabled=actionPending;
+  diagnosticsButton.hidden=!(getUser()&&canContribute());
+  button.disabled=actionPending||diagnosticPending;
+  diagnosticsButton.disabled=actionPending||diagnosticPending;
   if(!actionPending)button.textContent=duplicateCount>0?'Improve photos':'Find photos';
  }
  async function refresh(){
@@ -105,12 +112,38 @@ export async function mountTimelinePhotos({sb,ticker,frame,rail,status,getUser,c
    await refresh();
    const saved=Number(data?.added||0);
    const left=Number(data?.remaining||0);
-   showNotice(saved>0?saved+' illustrative photo'+(saved===1?'':'s')+' saved.'+(left?' '+left+' event'+(left===1?'':'s')+' still need better photos.':'')+' Research sources unchanged.':
-    data?.state==='cached'?'All featured milestones have cached photographs.':data?.state==='rate_limited'?'Photo provider limit reached. Existing imagery is unchanged.':'No sufficiently relevant photos found. Existing imagery is unchanged; photo coverage remains incomplete.');
+   const statusInfo=Number.isInteger(data?.provider_http_status)?
+    ' Unsplash HTTP '+data.provider_http_status+
+    (Number.isInteger(data?.provider_rate_remaining)?', remaining '+data.provider_rate_remaining:'')+'.':'';
+   showNotice(saved>0?saved+' illustrative photo'+(saved===1?'':'s')+' saved.'+(left?' '+left+' events remain.':'')+statusInfo:
+    data?.state==='cached'?'All featured milestones have cached photographs.':
+    data?.state==='provider_error'?'Unsplash provider error.'+statusInfo:
+    data?.state==='rate_limited'?'Unsplash rate limit reached.'+statusInfo:
+    'No sufficiently relevant photos found.'+statusInfo+' Existing imagery is unchanged.');
   }catch{showNotice(photoFailureMessage())}
   finally{actionPending=false;updatePhotoAction()}
  }
  button.addEventListener('click',()=>void fillPhotos());
+ diagnosticsButton.addEventListener('click',async()=>{
+  if(diagnosticPending||actionPending||!getUser()||!canContribute())return;
+  diagnosticPending=true;diagnosticsButton.disabled=true;button.disabled=true;
+  diagnosticsButton.textContent='Checking…';
+  try{
+   const {data,error}=await sb.functions.invoke('orca-timeline-photo-fill',{body:{ticker,diagnostic:true}});
+   if(error){
+    let detail={};try{detail=await error.context?.json()||{}}catch{}
+    showNotice(photoFailureMessage(detail));return;
+   }
+   const code=Number.isInteger(data?.http_status)?String(data.http_status):'not received';
+   const remaining=Number.isInteger(data?.rate_remaining)?String(data.rate_remaining):'unknown';
+   const limit=Number.isInteger(data?.rate_limit)?String(data.rate_limit):'unknown';
+   const result=Number.isInteger(data?.results_returned)?String(data.results_returned):'unknown';
+   const meaning=String(data?.meaning||'unknown').replace(/_/g,' ');
+   showNotice('Unsplash: HTTP '+code+' ('+meaning+'). Rate remaining '+remaining+
+    ' / '+limit+'. Sample results: '+result+'. One API request used; no photos changed.');
+  }catch{showNotice('Unsplash diagnostic failed to reach ORCA; no photos changed.')}
+  finally{diagnosticPending=false;diagnosticsButton.textContent='Check Unsplash API';updatePhotoAction()}
+ });
  rail.addEventListener('click',event=>{
   const card=event.target.closest?.('button[data-event-id]');
   if(!card)return;
@@ -125,17 +158,7 @@ export async function mountTimelinePhotos({sb,ticker,frame,rail,status,getUser,c
  },false);
  async function refreshAndMaybeFill(){
   await refresh();
-  // One automatic attempt per set of visible milestones and consent state;
-  // manual improvement stays available after provider failures.
-  // Account consent may resolve after the initial mount; retry once when it becomes
-  // authorized, and again if the displayed event IDs change after discovery.
-  const signature=Array.from(rail.querySelectorAll('button[data-event-id]')).map(card=>card.dataset.eventId).join(',');
-  if((!autoFillAttempted||lastAutoFillSignature!==signature)&&
-    (remainingPhotos>0||duplicateCount>0)&&getUser()&&canContribute()){
-   autoFillAttempted=true;
-   lastAutoFillSignature=signature;
-   void fillPhotos();
-  }
+  // Diagnostics-first: do not consume any provider requests automatically.
  }
  await refreshAndMaybeFill();
  return {refresh:refreshAndMaybeFill};
