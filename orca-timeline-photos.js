@@ -117,6 +117,7 @@ export async function mountTimelinePhotos({sb,ticker,frame,rail,status,getUser,c
     (Number.isInteger(data?.provider_rate_remaining)?', remaining '+data.provider_rate_remaining:'')+'.':'';
    showNotice(saved>0?saved+' illustrative photo'+(saved===1?'':'s')+' saved.'+(left?' '+left+' events remain.':'')+statusInfo:
     data?.state==='cached'?'All featured milestones have cached photographs.':
+    data?.state==='save_failed'?'ORCA found potential images, but the photo database rejected the save. No historical research changed.':
     data?.state==='provider_error'?'Unsplash provider error.'+statusInfo:
     data?.state==='rate_limited'?'Unsplash rate limit reached.'+statusInfo:
     'No sufficiently relevant photos found.'+statusInfo+' Existing imagery is unchanged.');

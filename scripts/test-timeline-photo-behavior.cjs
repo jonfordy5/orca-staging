@@ -25,8 +25,8 @@ const admin={auth:{getUser:async()=>({data:{user:{id:'test'}}})},from(table){
 }};
 const ctx={createClient:()=>admin,Deno:{env:{get:name=>name==='UNSPLASH_ACCESS_KEY'&&providerKeyEnabled?'test':'',},serve:fn=>handler=fn},URL,Response,Request,Date,AbortSignal,fetch:async()=>{requests++;return new Response(providerStatus===200?JSON.stringify({results:[{id:'photo'}]}):'',{status:providerStatus,headers:{'Content-Type':'application/json','X-Ratelimit-Limit':providerLimit,'X-Ratelimit-Remaining':providerRemaining}})}};
 vm.createContext(ctx);
-vm.runInContext(stripTypeScriptTypes(source)+ '\nglobalThis.api={companyTheme,eventVisualPlan,visualQueries,eventCandidateScore,pickCandidate,companyPhotoIdentity,photoVenue,eventContextMatch,candidateFromUnsplash,numericHeader,providerMeta,providerMeaning};',ctx);
-const {companyTheme,eventVisualPlan,visualQueries,eventCandidateScore,pickCandidate,companyPhotoIdentity,photoVenue,eventContextMatch,candidateFromUnsplash,numericHeader,providerMeta,providerMeaning}=ctx.api;
+vm.runInContext(stripTypeScriptTypes(source)+ '\nglobalThis.api={companyTheme,eventVisualPlan,visualQueries,eventCandidateScore,pickCandidate,companyPhotoIdentity,photoVenue,eventContextMatch,candidateFromUnsplash,numericHeader,providerMeta,providerMeaning,storedMatchType};',ctx);
+const {companyTheme,eventVisualPlan,visualQueries,eventCandidateScore,pickCandidate,companyPhotoIdentity,photoVenue,eventContextMatch,candidateFromUnsplash,numericHeader,providerMeta,providerMeaning,storedMatchType}=ctx.api;
 const dg=companyTheme('DG','Dollar General','discount retailer');
 const nvda=companyTheme('NVDA','NVIDIA','semiconductors');
 const ulta=companyTheme('ULTA','Ulta Beauty','beauty retail');
@@ -58,6 +58,15 @@ test('Retail photo candidate is safely evaluated without undeclared const',()=>{
  const got=candidateFromUnsplash(fake,'convenience store',1,dg,[plan]);
  assert(got);
  assert.equal(got.retail_illustration,true);
+});
+test('Database photo match types remain within the live SQL constraint',()=>{
+ const allowed=new Set(['exact_event','exact_subject','contextual','rejected']);
+ const branded=storedMatchType({...candidate('dollar general store'),company_match:true});
+ const illustrative=storedMatchType({...candidate('convenience store interior'),company_match:false,retail_illustration:true});
+ assert.equal(branded,'exact_subject');
+ assert.equal(illustrative,'contextual');
+ assert(allowed.has(branded));
+ assert(allowed.has(illustrative));
 });
 test('Query alone cannot approve an unrelated image',()=>assert.equal(eventCandidateScore(candidate('beach sunset',listing.queries[0],1000),listing),-Infinity));
 test('Listing chooses stock exchange over higher-scoring grocery',()=>assert.equal(pickCandidate([candidate('grocery store shelves','',1000),candidate('new york stock exchange')],new Set(),new Map(),listing).title,'new york stock exchange'));

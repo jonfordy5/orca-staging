@@ -375,6 +375,12 @@ async function findUnsplashCandidates(accessKey:string,queries:string[],profile:
  }
  return {candidates:[...byId.values()].sort((a,b)=>b.score-a.score),limited,queries_tried:q,provider_last,provider_failure,requests_made,results_received,network_failures};
 }
+// Database constraint "orca_timeline_photo_selections_relevance_check" only allows
+// exact_event, exact_subject, contextual and rejected. Detailed ranking stays in
+// memory, but persisted labels must obey that existing contract.
+function storedMatchType(choice:Candidate):"exact_subject"|"contextual"{
+ return choice.company_match?"exact_subject":"contextual";
+}
 function pickCandidate(pool:Candidate[],reserved:Set<string>,photographerCounts:Map<string,number>,plan:EventVisualPlan):Candidate|null{
  const available=pool.filter(p=>!reserved.has(p.id)&&Number.isFinite(eventCandidateScore(p,plan)));
  if(!available.length)return null;
@@ -456,8 +462,9 @@ Deno.serve(async(req:Request)=>{
  const reserved=new Set((cached||[]).filter((p:any)=>!p.needs_review).map((p:any)=>p.photo_id));
  const photographers=new Map<string,number>();
  for(const p of cached||[])photographers.set(p.photographer,(photographers.get(p.photographer)||0)+1);
- let added=0,failed=0;
+ let added=0,failed=0,saveFailures=0;
  const choices: {event_id:string,choice:Candidate}[]=[];
+ const savedChoices:Candidate[]=[];
  for(const e of todo){
   const found=pickCandidate(search.candidates,reserved,photographers,eventVisualPlan(e,profile));
   if(!found){failed++;continue}
@@ -508,11 +515,7 @@ Deno.serve(async(req:Request)=>{
  for(const {event_id,choice} of choices){
   const duplicated=(cached||[]).some((p:any)=>p.event_id!==event_id&&p.photo_id===choice.id)||
    choices.some(x=>x.event_id!==event_id&&x.choice.id===choice.id);
-  const plan=eventVisualPlan(featured.find((e:any)=>e.id===event_id)||{title:""},profile);
-  const context=Boolean(choice.context_kinds?.includes(plan.kind));
-  const matchType=context&&choice.company_match?"company_event_context":
-   context?"topic_context":plan.kind==="listing"&&choice.venue==="nyse"?"venue_context":
-   choice.company_match?"company_context":choice.retail_illustration?"retail_illustration":"company_context";
+  const matchType=storedMatchType(choice);
   const {error:saveError}=await admin.from("orca_timeline_photo_selections").upsert({
    event_id,ticker,photo_id:choice.id,image_url:choice.image_url,
    full_image_url:choice.full_image_url,photographer:choice.photographer,
@@ -525,22 +528,31 @@ Deno.serve(async(req:Request)=>{
    attribution_text:"Photo by "+choice.photographer+" on Unsplash",
    source_page_url:choice.photo_url,creator:choice.photographer
   },{onConflict:"event_id"});
-  if(saveError){failed++;continue}
+  if(saveError){
+   failed++;saveFailures++;
+   // Don't silently reinterpret a SQL check violation as an irrelevant photo.
+   // Log only the SQLSTATE and public ticker, never credentials or photo URLs.
+   console.error("ORCA_TIMELINE_PHOTO_SAVE_FAILED",JSON.stringify({
+    ticker,code:String(saveError.code||"unknown").slice(0,16)}));
+   continue;
+  }
+  savedChoices.push(choice);
   added++;
  }
  // Every accepted photo is counted as an Unsplash selection/download event.
  // This remains a user-initiated operation, and the browser hotlinks the CDN URL.
- const uniqueDownloads=[...new Map(choices.filter(x=>x.choice.download_location).map(x=>[x.choice.id,x.choice])).values()];
+ const uniqueDownloads=[...new Map(savedChoices.filter(x=>x.download_location).map(x=>[x.id,x])).values()];
  await Promise.allSettled(uniqueDownloads.map(c=>fetch(c.download_location,{
   headers:{"Authorization":"Client-ID "+accessKey,"Accept-Version":"v1"},
   signal:AbortSignal.timeout(4500)})));
  const upstream=search.provider_failure||search.provider_last;
- return reply(200,{state:added>0?"ready":search.provider_failure?.http_status===429?"rate_limited":search.provider_failure?"provider_error":search.limited?"rate_limited":"no_matches",added,failed,
+ return reply(200,{state:added>0?"ready":saveFailures>0?"save_failed":search.provider_failure?.http_status===429?"rate_limited":search.provider_failure?"provider_error":search.limited?"rate_limited":"no_matches",added,failed,save_failures:saveFailures,
   requested:todo.length,remaining:Math.max(0,targets.length-added),
   featured:featured.length,query_count:search.queries_tried.length,queries:search.queries_tried,
   provider_http_status:upstream?.http_status??null,provider_meaning:providerMeaning(upstream?.http_status??null),
   provider_rate_limit:search.provider_last?.rate_limit??null,provider_rate_remaining:search.provider_last?.rate_remaining??null,
   provider_requests_made:search.requests_made,provider_results_received:search.results_received,
-  provider_eligible_candidates:search.candidates.length,provider_network_failures:search.network_failures,
+  provider_eligible_candidates:search.candidates.length,photo_choices:choices.length,
+  provider_network_failures:search.network_failures,
   note:"Photo selections are illustrative; original research sources unchanged."});
 });
