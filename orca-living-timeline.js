@@ -322,7 +322,7 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
  // Preserve the normal TradingView chart on initial load. Living Timeline is opt-in.
  await loadEvents();
  try{
-  const module=await import('./orca-timeline-photos.js?v=photo-qa-v8');
+  const module=await import('./orca-timeline-photos.js?v=unsplash-diag-v10');
   photoMount=await module.mountTimelinePhotos({sb,ticker,frame,rail,status,getUser,canContribute:()=>historyAuthorized});
  }catch(error){console.warn('Optional history photography is unavailable',error)}
  const poll=setInterval(()=>{if(document.visibilityState==='visible')loadEvents()},60000);
