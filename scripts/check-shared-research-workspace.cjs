@@ -130,8 +130,21 @@ check('Photo generation rejects negative relevance and never borrows other ticke
    engine.includes('const backups=stockCache||[];') &&
    !engine.includes('const {data:library}');
 });
+check('Underfilled company histories offer manual, source-backed completion without page-view spending', () =>
+  timeline.includes("generate.textContent='Complete company history ('+data.length+'/10)'") &&
+  timeline.includes("if(!data.length)await maybePopulateCompanyHistory()") &&
+  timeline.includes('refresh_eligible_after') &&
+  timeline.includes('data.length<10&&getUser()'));
+const discovery=read('supabase/functions/orca-timeline-discovery/index.ts');
+check('Timeline discovery covers historical company origins with capped primary-source research', () =>
+  discovery.includes("FULL HISTORY") &&
+  discovery.includes('Date.parse("1900-01-01")') &&
+  discovery.includes('max_tool_calls:5,max_output_tokens:6500') &&
+  discovery.includes('if(cost>.15)') &&
+  discovery.includes('target_total:10') &&
+  discovery.includes('refresh_eligible_after:reservation?.refresh_eligible_after||null'));
 check('Cached ten-milestone timelines can authorize their first photo generation', () =>
-  timeline.includes('await checkHistoryPermission();await maybePopulateCompanyHistory();'));
+  timeline.includes('await checkHistoryPermission();if(!data.length)await maybePopulateCompanyHistory();'));
 check('Ambiguous multiword brands remain intact, including Dollar General', () => {
  const engine=read('supabase/functions/orca-timeline-photo-fill/index.ts');
  return engine.includes('DG:"dollar general"') &&
