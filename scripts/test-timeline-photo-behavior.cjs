@@ -32,6 +32,8 @@ const nvda=companyTheme('NVDA','NVIDIA','semiconductors');
 const ulta=companyTheme('ULTA','Ulta Beauty','beauty retail');
 const unknown=companyTheme('NEW','New Restaurant','restaurant');
 
+let checks=0;
+function test(name,fn){fn();checks++;console.log('PASS '+name)}
 const amazon=companyTheme('AMZN','Amazon.com Inc. Common Stock','online stores, AWS cloud');
 const wholeFoodsPlan=eventVisualPlan({title:'Amazon completes Whole Foods acquisition'},amazon);
 const souqPlan=eventVisualPlan({title:'Amazon closes Souq Group acquisition'},amazon);
@@ -101,8 +103,6 @@ function testFordSource(){
  console.log('PASS Ford search accepts multiple car models and rejects non-car Ford names');
 }
 
-let checks=0;
-function test(name,fn){fn();checks++;console.log('PASS '+name)}
 const candidate=(title,query='',score=40)=>({id:title,title,query,score,photographer:'Example',company_match:companyPhotoIdentity(title,dg),venue:photoVenue(title)});
 const listing=eventVisualPlan({title:'Returned to public trading on NYSE'},dg);
 test('DG uses seven distinct short queries in deterministic order',()=>{
