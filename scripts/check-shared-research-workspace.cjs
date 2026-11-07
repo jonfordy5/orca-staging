@@ -220,6 +220,13 @@ check('Old flagged illustrations cannot be recycled as vetted company fallback',
   engine.includes('if(duplicated){failed++;continue}') &&
   !engine.includes('const {data:library}');
 });
+check('Timeline photo cards omit contextual banners but preserve source attribution', () =>
+  !photos.includes("badge.textContent=") &&
+  !photos.includes("card.append(badge)") &&
+  photos.includes("card.querySelector('.orca-photo-context')?.remove()") &&
+  photos.includes("const credit=document.createElement('small')") &&
+  photos.includes("popup.append(credit)"));
+
 check('Photo repair remains available without the Unsplash diagnostic button', () =>
   !photos.includes('Check Unsplash API') &&
   !photos.includes('diagnosticsButton') &&
