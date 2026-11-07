@@ -560,9 +560,6 @@ main{max-width:1020px;margin:0 auto;padding:27px 16px 55px}
 .orca-timeline-frame .orca-history-stop.orca-history-activated .orca-history-stem::after{
  animation:orca-connector-arrival 1.4s ease-out both;
 }
-.orca-timeline-frame .orca-history-stop.orca-history-activated .orca-history-dot{
- animation:orca-dot-arrival 1.4s ease-out both;
-}
 .orca-timeline-frame .orca-history-stop.orca-history-activated .orca-timeline-event{
  animation:orca-photo-arrival 1.4s ease-out both;
 }
@@ -572,24 +569,14 @@ main{max-width:1020px;margin:0 auto;padding:27px 16px 55px}
  65%{opacity:.9;transform:scaleY(1)}
  100%{opacity:0;transform:scaleY(1)}
 }
-@keyframes orca-dot-arrival{
- 0%,100%{box-shadow:0 0 0 3px #247be944}
- 25%,65%{box-shadow:0 0 0 5px #76caffbb,0 0 13px 4px #c7f5ff}
-}
 @keyframes orca-photo-arrival{
  0%,100%{filter:none}
  32%,68%{filter:drop-shadow(0 0 10px #89ddffcc)}
 }
 @media(prefers-reduced-motion:reduce){
  .orca-timeline-frame .orca-history-stop.orca-history-activated .orca-history-stem::after,
- .orca-timeline-frame .orca-history-stop.orca-history-activated .orca-history-dot,
  .orca-timeline-frame .orca-history-stop.orca-history-activated .orca-timeline-event{animation:none!important}
 }
-.orca-timeline-frame .orca-history-dot{
- top:209px!important;left:50%!important;transform:translateX(-50%)!important;
- z-index:4!important;
-}
-.orca-timeline-frame .orca-history-stop:nth-child(even) .orca-history-dot{top:259px!important}
 .orca-timeline-frame .orca-history-stop .orca-history-stem,
 .orca-timeline-frame .orca-history-stop:nth-child(even) .orca-history-stem,
 .orca-timeline-frame .orca-history-stop:has(.orca-history-thumb img) .orca-history-stem,
@@ -1557,7 +1544,7 @@ document.addEventListener('visibilitychange',()=>{if(document.visibilityState===
  void loadWorkspaceCompanyName();
  const {data}=await sb.auth.getUser();user=data?.user||null;await renderCompanyProfile(ticker,sb);await refresh();
  mountStockSearch({sb,root:$('workspace-stock-search'),activeTicker:ticker}).catch(()=>{$('workspace-stock-search').textContent='Stock lookup unavailable. The requested stock workspace can still be used.';});
- if(isOrcaStaging)import('./orca-living-timeline.js?v=connected-pulse-photo-v25').then(({mountLivingTimeline})=>
+ if(isOrcaStaging)import('./orca-living-timeline.js?v=direct-stem-connection-v26').then(({mountLivingTimeline})=>
   mountLivingTimeline({sb,ticker,getUser:()=>user,canContribute:()=>ready,getFindings:()=>findings})
  ).catch(err=>{console.error('ORCA Living Timeline isolated error:',err);$('living-status').textContent='Timeline unavailable; TradingView remains available.';});
   // Passive monitor for the HUMAN observer's browser; no autonomous research or API requests.
