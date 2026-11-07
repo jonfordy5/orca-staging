@@ -185,11 +185,14 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
    // A continuous valley-peak-valley path places each milestone at a peak.
    const zigzag=document.createElementNS('http://www.w3.org/2000/svg','svg');
    zigzag.classList.add('orca-history-zigzag');
-   zigzag.setAttribute('viewBox','0 0 240 104');
+   zigzag.classList.add(i%2===0?'orca-zigzag-peak':'orca-zigzag-valley');
+   zigzag.setAttribute('viewBox','0 0 240 132');
    zigzag.setAttribute('preserveAspectRatio','none');
    zigzag.setAttribute('aria-hidden','true');
    const path=document.createElementNS('http://www.w3.org/2000/svg','polyline');
-   path.setAttribute('points','0,92 120,10 240,92');
+   // Each milestone is a vertex: peaks hold top cards and valleys hold
+   // bottom cards. Edge heights match, forming one continuous zigzag.
+   path.setAttribute('points',i%2===0?'0,66 120,18 240,66':'0,66 120,114 240,66');
    path.setAttribute('fill','none');
    path.setAttribute('stroke','currentColor');
    path.setAttribute('stroke-width','3.5');

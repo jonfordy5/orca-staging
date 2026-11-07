@@ -93,13 +93,16 @@ check('TradingView remains fully visible above an independent timeline', () =>
   !workspace.includes('id="living-tradingview"') &&
   !workspace.includes('id="living-show"') &&
   workspace.includes('createMarketChart();createMarketQuote()'));
-check('Zigzag desktop anchors every photo card to a peak', () =>
-  timeline.includes("path.setAttribute('points','0,92 120,10 240,92')") &&
+check('Desktop sketch has alternating peak and valley cards with two clear rows', () =>
+  timeline.includes("i%2===0?'0,66 120,18 240,66':'0,66 120,114 240,66'") &&
   timeline.includes("stop.append(zigzag,stem,dot,card)") &&
-  workspace.includes('.orca-timeline-frame .orca-history-zigzag') &&
-  workspace.includes('.orca-timeline-frame .orca-history-stop .orca-history-stem') &&
-  workspace.includes('height:360px') &&
-  workspace.includes('top:79px!important'));
+  workspace.includes('height:680px') &&
+  workspace.includes('height:585px') &&
+  workspace.includes('top:226px') &&
+  workspace.includes('top:12px!important') &&
+  workspace.includes('top:396px!important') &&
+  workspace.includes('top:190px!important;height:54px!important') &&
+  workspace.includes('top:340px!important;height:56px!important'));
 
 check('Mobile history is a swipeable photo carousel without any line', () =>
   timeline.includes("window.matchMedia('(max-width:700px)').matches") &&
