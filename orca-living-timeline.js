@@ -52,6 +52,40 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
  let prices=[];
  let photoMount=null;
  let lastEventFingerprint='';
+ // One continuous path avoids restarting the traveling light at each node.
+ function drawHistoryTrack(){
+  const spine=rail.querySelector('.orca-history-spine');
+  if(!spine)return;
+  const stops=[...spine.querySelectorAll('.orca-history-stop')];
+  spine.querySelector('.orca-history-track')?.remove();
+  if(!stops.length)return;
+  const svgNS='http://www.w3.org/2000/svg';
+  const width=Math.max(1,Math.ceil(stops[stops.length-1].offsetLeft+stops[stops.length-1].offsetWidth));
+  const points=stops.map((stop,i)=>[Math.round(stop.offsetLeft+stop.offsetWidth/2),i%2===0?216:266]);
+  const pathData='M '+points.map(([x,y])=>x+' '+y).join(' L ');
+  const svg=document.createElementNS(svgNS,'svg');
+  svg.classList.add('orca-history-track');
+  svg.setAttribute('viewBox','0 0 '+width+' 480');
+  svg.setAttribute('width',String(width));
+  svg.setAttribute('height','480');
+  svg.setAttribute('aria-hidden','true');
+  svg.style.width=width+'px';
+  const makePath=className=>{
+   const p=document.createElementNS(svgNS,'path');
+   p.classList.add(className);
+   p.setAttribute('d',pathData);
+   p.setAttribute('pathLength','100');
+   p.setAttribute('fill','none');
+   p.setAttribute('vector-effect','non-scaling-stroke');
+   p.setAttribute('stroke-linecap','round');
+   p.setAttribute('stroke-linejoin','round');
+   return p;
+  };
+  svg.append(makePath('orca-history-track-base'),
+   makePath('orca-history-track-glow'),
+   makePath('orca-history-track-beam'));
+  spine.prepend(svg);
+ }
  function fitRailEdges(){
   const spine=rail.querySelector('.orca-history-spine');
   const stop=spine?.querySelector('.orca-history-stop');
@@ -69,7 +103,7 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
   const left=stop.offsetLeft+stop.offsetWidth/2-rail.clientWidth/2;
   rail.scrollTo({left:Math.max(0,left),behavior});
  }
- window.addEventListener('resize',fitRailEdges);
+ window.addEventListener('resize',()=>{fitRailEdges();drawHistoryTrack()});
  // The history section is permanently visible beneath the market chart.
  host.hidden=false;
  host.append(frame);
@@ -183,41 +217,16 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
    summary.textContent=String(event.ai_summary||'').trim();
    card.setAttribute('aria-label',eventDate(event)+': '+event.title+'. Select to read sourced details.');
    card.append(icon,date,title,summary);
-   // A continuous valley-peak-valley path places each milestone at a peak.
-   const zigzag=document.createElementNS('http://www.w3.org/2000/svg','svg');
-   zigzag.classList.add('orca-history-zigzag');
-   zigzag.classList.add(i%2===0?'orca-zigzag-peak':'orca-zigzag-valley');
-   zigzag.setAttribute('viewBox','0 0 240 132');
-   zigzag.setAttribute('preserveAspectRatio','none');
-   zigzag.setAttribute('aria-hidden','true');
-   const path=document.createElementNS('http://www.w3.org/2000/svg','polyline');
-   // Each milestone is a vertex: peaks hold top cards and valleys hold
-   // bottom cards. Edge heights match, forming one continuous zigzag.
-   // Begin at the first milestone node: no orphaned segment to its left.
-   path.setAttribute('points',i===0?'120,18 240,66':
-    i%2===0?'0,66 120,18 240,66':'0,66 120,114 240,66');
-   path.setAttribute('fill','none');
-   path.setAttribute('stroke','currentColor');
-   path.setAttribute('stroke-width','3.5');
-   path.setAttribute('vector-effect','non-scaling-stroke');
-   path.setAttribute('stroke-linecap','round');
-   path.setAttribute('stroke-linejoin','round');
-   zigzag.append(path);
+   // The single continuous SVG track is mounted after cards are laid out.
    const stem=document.createElement('span');stem.className='orca-history-stem';
    const dot=document.createElement('span');dot.className='orca-history-dot';
-   // Render exactly one distinct year badge, anchored to the middle event of that year.
-   // Legacy .orca-history-year labels are hidden by CSS as a cache-safe fallback.
+   // Repeat the year on every node, including neighboring same-year events.
    const eventYear=new Date(event.event_at).getUTCFullYear();
-   const sameYearIndices=data.map((item,index)=>new Date(item.event_at).getUTCFullYear()===eventYear?index:-1).filter(index=>index>=0);
-   const yearLabelIndex=sameYearIndices[Math.floor((sameYearIndices.length-1)/2)];
-   stop.append(zigzag,stem,dot,card);
-   if(i===yearLabelIndex){
-    const year=document.createElement('span');
-    year.className='orca-history-year-once';
-    year.textContent=String(eventYear);
-    year.setAttribute('aria-label','Year '+eventYear);
-    stop.append(year);
-   }
+   const year=document.createElement('span');
+   year.className='orca-history-year-once';
+   year.textContent=String(eventYear);
+   year.setAttribute('aria-label','Year '+eventYear);
+   stop.append(stem,dot,card,year);
    card.addEventListener('click',()=>selectMilestone(i));
    stop.addEventListener('keydown',e=>{if(e.key==='ArrowRight'){e.preventDefault();selectMilestone(Math.min(i+1,data.length-1));}if(e.key==='ArrowLeft'){e.preventDefault();selectMilestone(Math.max(i-1,0));}});
    spine.append(stop);
@@ -237,6 +246,7 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
    frame.insertBefore(generate,rail);
   }
   fitRailEdges();
+  drawHistoryTrack();
   // Do not automatically display milestone details.
   closeDetails();
   index.textContent=data.length+' company milestones';
@@ -375,7 +385,13 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
  // Cached histories and existing photo repairs should work immediately
  // without relying on the old manual Living Timeline toggle.
  await checkHistoryPermission();
- requestAnimationFrame(()=>{fitRailEdges();rail.scrollLeft=0});
+ requestAnimationFrame(()=>{
+  fitRailEdges();
+  drawHistoryTrack();
+  const middle=Math.floor((data.length-1)/2);
+  const card=rail.querySelector('.orca-timeline-event[data-index="'+middle+'"]');
+  if(card)centerMilestone(card,'auto');
+ });
  try{
   const module=await import('./orca-timeline-photos.js?v=hide-unsplash-diagnostic-v15');
   photoMount=await module.mountTimelinePhotos({sb,ticker,frame,rail,status,getUser,canContribute:()=>historyAuthorized});
