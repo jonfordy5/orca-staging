@@ -33,9 +33,8 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
  frame.append(heading,navigation,rail,backdrop,details);
  details.classList.add('orca-history-popover');details.setAttribute('role','dialog');details.setAttribute('aria-label','Milestone details');details.setAttribute('tabindex','-1');
  let visible='tradingview',data=[],chart=null,series=null,chartLibrary=null,activeIndex=0;
- const milestoneTarget=11;
- let historyRequestsThisSession=0;
- let targetedCompletionRequestedThisSession=false;
+ const initialHistoryGoal=10; // Starter goal, never a display limit.
+ const attemptedScopesThisSession=new Set();
  let allVerified=[];
  const year=()=>new Date().getUTCFullYear();
  const halfYearStart=()=>new Date(Date.UTC(year(),new Date().getUTCMonth()<6?0:6,1));
@@ -44,10 +43,10 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
  const hasOrigin=()=>allVerified.some(isOrigin);
  const hasCurrentYear=()=>allVerified.some(e=>new Date(e.event_at).getUTCFullYear()===year());
  const hasCurrentHalf=()=>allVerified.some(e=>new Date(e.event_at)>=halfYearStart());
- const researchNeed=()=>!hasOrigin()?'origin':!hasCurrentYear()?'current':
-  allVerified.length<milestoneTarget?'history':!hasCurrentHalf()?'current':'none';
- const mayRequestHistory=()=>!discoveryPending&&researchNeed()!=='none'&&
-  (historyRequestsThisSession===0||(historyRequestsThisSession===1&&allVerified.length>=8&&!targetedCompletionRequestedThisSession));
+ const researchNeed=()=>!hasOrigin()?'origin':
+  (!hasCurrentYear()||!hasCurrentHalf())?'current':
+  allVerified.length<initialHistoryGoal?'history':'none';
+ const mayRequestHistory=()=>!discoveryPending&&researchNeed()!=='none'&&!attemptedScopesThisSession.has(researchNeed());
  let discoveryPending=false;
  let historyAuthorized=false;
  let historyPermissionKnownFor=null;
@@ -234,7 +233,7 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
    generate.className='orca-timeline-generate orca-history-refill-action';
    const scope=researchNeed();
    generate.textContent=scope==='current'?'Research '+year()+' milestone':
-    scope==='origin'?'Research company beginnings':'Complete history ('+allVerified.length+'/'+milestoneTarget+')';
+    scope==='origin'?'Research company beginnings':'Add historical milestones';
    generate.title='Source-backed research. Current-year refreshes are eligible twice yearly and require authorization.';
    generate.disabled=!mayRequestHistory();
    generate.addEventListener('click',()=>void maybePopulateCompanyHistory());
@@ -278,10 +277,10 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
   if(error){status.textContent='Company milestone data unavailable; TradingView is unaffected.';return}
   const verified=(rows||[]).filter(x=>validSource(x.source_url))
    .map(x=>({...x,image_url:validImage(x.image_url)}));
-  // Always feature the oldest and newest sourced event. Retain extras in Supabase.
+  // Open-ended: render EVERY source-backed milestone in chronological order.
+  // The first and last events remain visible even as the history grows.
   allVerified=verified;
-  const nextData=verified.length<=milestoneTarget?verified:Array.from({length:milestoneTarget},(_,i)=>
-   verified[Math.round(i*(verified.length-1)/(milestoneTarget-1))]);
+  const nextData=verified;
   // Avoid destroying active modal details every 60 seconds on unchanged records.
   const fingerprint=JSON.stringify(nextData.map(e=>[e.id,e.event_at,e.title,e.ai_summary,e.source_url,e.image_url,e.image_credit,e.quick_brief]));
   if(fingerprint!==lastEventFingerprint){
@@ -323,8 +322,7 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
    return;
   }
   const researchScope=researchNeed();
-  if(researchScope!=='history'||allVerified.length>=9)targetedCompletionRequestedThisSession=true;
-  historyRequestsThisSession++;
+  attemptedScopesThisSession.add(researchScope);
   discoveryPending=true;
   const generateButton=frame.querySelector('.orca-history-refill-action')||rail.querySelector('.orca-timeline-generate');
   if(generateButton){generateButton.disabled=true;generateButton.textContent='Researching company history…';}
@@ -341,7 +339,7 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
     await loadEvents();
     const next=typeof result.refresh_eligible_after==='string'&&Number.isFinite(Date.parse(result.refresh_eligible_after))
      ?new Date(result.refresh_eligible_after).toLocaleString():null;
-    status.textContent=allVerified.length+'/'+milestoneTarget+' milestones cached.'+
+    status.textContent=allVerified.length+' historical milestones cached.'+
      (next?' Additional research becomes eligible after '+next+'.':' Research cooldown is active.')+
      ' Existing sources are unchanged.';
    }else{
@@ -363,7 +361,7 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
     generateButton.disabled=!mayRequestHistory();
     generateButton.textContent=researchNeed()==='current'?'Research '+year()+' milestone':
       researchNeed()==='origin'?'Research company beginnings':
-      allVerified.length?'Complete history ('+allVerified.length+'/'+milestoneTarget+')':'Generate company history';
+      allVerified.length?'Add historical milestones':'Generate company history';
    }
   }
  }
