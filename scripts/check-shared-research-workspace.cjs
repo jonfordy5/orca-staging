@@ -82,10 +82,39 @@ check('Milestone popup supports meaningful short briefs and source links', () =>
   timeline.includes("const points=document.createElement('ul')") &&
   timeline.includes("const takeaway=document.createElement('p')") &&
   timeline.includes("link.href=event.source_url"));
-check('Historical source data stays independent of the TradingView chart', () =>
+check('TradingView remains fully visible above an independent timeline', () =>
   timeline.includes("mountLivingTimeline({sb,") &&
-  timeline.includes("switchTo('tradingview')") &&
-  workspace.includes("id=\"living-tradingview\""));
+  timeline.includes("document.getElementById('timeline-frame')") &&
+  timeline.includes('host.append(frame)') &&
+  !timeline.includes("switchTo('tradingview')") &&
+  !timeline.includes('tvBackup') &&
+  workspace.includes('id="chart-frame"') &&
+  workspace.includes('id="timeline-frame"') &&
+  !workspace.includes('id="living-tradingview"') &&
+  !workspace.includes('id="living-show"') &&
+  workspace.includes('createMarketChart();createMarketQuote()'));
+check('Zigzag desktop anchors every photo card to a peak', () =>
+  timeline.includes("path.setAttribute('points','0,92 120,10 240,92')") &&
+  timeline.includes("stop.append(zigzag,stem,dot,card)") &&
+  workspace.includes('.orca-timeline-frame .orca-history-zigzag') &&
+  workspace.includes('.orca-timeline-frame .orca-history-stop .orca-history-stem') &&
+  workspace.includes('height:360px') &&
+  workspace.includes('top:79px!important'));
+
+check('Mobile history is a swipeable photo carousel without any line', () =>
+  timeline.includes("window.matchMedia('(max-width:700px)').matches") &&
+  workspace.includes('touch-action:pan-x!important') &&
+  workspace.includes('scroll-snap-type:x mandatory!important') &&
+  workspace.includes('.orca-timeline-frame .orca-history-zigzag,') &&
+  workspace.includes('height:245px') &&
+  workspace.includes('display:none!important'));
+
+check('Company timelines remain open-ended with sourced history and credited photographs', () =>
+  timeline.includes('const nextData=verified;') &&
+  timeline.includes("link.href=event.source_url") &&
+  timeline.includes("checkHistoryPermission();") &&
+  timeline.includes("orca-timeline-photos.js?v="));
+
 check('Illustrative photos come from separately cached metadata URLs', () =>
   photos.includes("sb.from('orca_timeline_photo_selections')") &&
   photos.includes("img.src=p.image_url") &&
