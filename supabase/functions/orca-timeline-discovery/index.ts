@@ -59,7 +59,7 @@ Deno.serve(async req=>{
  const user=identity.user;
  // Cached public history is free to read without generating anything.
  const {data:existing,error:readError}=await admin.from("orca_timeline_annotations")
-  .select("id,title,source_url").eq("ticker",ticker).neq("category","custom_note").is("created_by",null).limit(500);
+  .select("id,title,event_at,source_url").eq("ticker",ticker).neq("category","custom_note").is("created_by",null).limit(500);
  if(readError)return reply(503,{error:"milestone_cache_unavailable"});
  const {data:last}=await admin.from("orca_timeline_generation_runs")
   .select("state,attempted_at").eq("ticker",ticker).eq("state","ready")
@@ -92,7 +92,55 @@ Deno.serve(async req=>{
   if(!official.startsWith("https://"))throw Error("official_website_not_verified");
   const apiKey=Deno.env.get("OPENAI_API_KEY");
   if(!apiKey)throw Error("openai_unconfigured");
-  const instructions=[
+  // Existing verified-source rows always stay intact. A near-complete history uses
+  // a small focused search instead of repeating an expensive broad research pass.
+  const existingRows=existing||[];
+  const remainingAtStart=Math.max(0,10-existingRows.length);
+  const existingEvents=existingRows.map((e:any)=>({
+   date:String(e.event_at||"").slice(0,10),title:String(e.title||""),
+   source_url:String(e.source_url||"")
+  }));
+  const accepted:any[]=[];
+  let rejected=0,briefIncomplete=0;
+  const sourceKeys=new Set(existingRows.map((e:any)=>String(e.source_url||"")));
+  const titleKeys=new Set(existingRows.map((e:any)=>String(e.title||"").trim().toLowerCase()));
+  let targetedAttempted=false,targetedAccepted=0,targetedStatus="not_needed";
+
+  function shouldTargetFollowup(existingCount:number,newCount:number,estimated:number):boolean{
+   const count=existingCount+newCount;
+   // Extra research only happens when a general pass left one or two gaps.
+   // Keep a conservative $0.065 estimated headroom for ONE smaller web search.
+   return existingCount<8&&(count===8||count===9)&&estimated<=0.085;
+  }
+  function acceptCandidateMilestones(items:any[]):number{
+   let newAccepted=0;
+   for(const e of items){
+    if(accepted.length>=remainingAtStart)break;
+    const when=String(e?.date||"");
+    const parsedDate=Date.parse(when+"T12:00:00Z");
+    const primary=safeSource(String(e?.source_url||""),official);
+    const title=String(e?.title||"").trim(),summary=String(e?.summary||"").trim();
+    const points=Array.isArray(e?.points)?e.points.map((p:any)=>String(p||"").trim()):[];
+    const why=String(e?.why||"").trim();
+    if((primary&&sourceKeys.has(primary))||titleKeys.has(title.toLowerCase()))continue;
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(when)||!Number.isFinite(parsedDate)
+     ||parsedDate>Date.now()||parsedDate<Date.parse("1900-01-01")
+     ||!categories.includes(e?.category)||title.length<4||title.length>100
+     ||summary.length<60||summary.length>500||!primary||sourceKeys.has(primary)){
+     rejected++;continue;
+    }
+    const goodBrief=points.length===2&&!points.some((p:string)=>p.length<20||p.length>200)
+     &&why.length>=20&&why.length<=200;
+    if(!goodBrief)briefIncomplete++;
+    sourceKeys.add(primary);titleKeys.add(title.toLowerCase());
+    accepted.push({date:when,category:e.category,title,summary,source_url:primary,
+     points:goodBrief?points:null,why:goodBrief?why:null,image_url:null,image_credit:null});
+    newAccepted++;
+   }
+   return newAccepted;
+  }
+
+  const baseInstructions=[
    "Research factual, important historical milestones for the specified PUBLIC COMPANY. This is an illustrated company history, not investor advice or a rating.",
    "Use live web search and PRIMARY sources only: official company history or heritage pages, company newsroom or investor relations, and SEC EDGAR. Start with the company's official historical timeline if one exists, particularly for companies founded before 2006. Verify original event dates; no blogs, social opinions or invented events.",
    "Aim for ten distinct sourced milestones across the company's FULL HISTORY, from founding (not before 1900) through today. For long-established companies spread milestones across early history, middle decades and recent decades. If earlier milestones exist, research only those missing. Prioritize founding, foundational products, manufacturing innovations, international expansion, acquisitions, financial turning points, leadership changes and legal events.",
@@ -101,65 +149,85 @@ Deno.serve(async req=>{
    "Treat each timeline milestone like a major sourced news item: clear and compelling, not sensational. Headlines must be 6–90 characters, describe WHAT happened and why it is significant, and lead with a concrete fact when available. Never inflate results or imply outcomes that are only plans.",
    "Write a 90–330 character plain-English summary that gives who, what, and one concrete verified detail. Supply exactly two concise informative points, 35–160 characters each, that add facts not already repeated in the summary. Add one short why-it-matters sentence, 40–160 characters, explaining the business or technological significance. Every detail must be supported by the original source.",
    "Numbers, performance claims, and comparisons must be attributed to their announcement when not independently established. Clearly differentiate projections, announced plans, launches, and completed deals. Do not fabricate figures or rely on marketing hype.",
-   "Return enough distinct events to bring the total toward TEN, in chronological order, no more than ten new events. Never repeat existing milestone titles or source URLs. Find an original-source page directly supporting each new event, with distinct URLs for distinct events. Avoid concentrating events in just one decade. If original-source evidence is insufficient, return fewer rather than fabricating.",
+   "Return enough distinct events to bring the total toward TEN, in chronological order, no more than ten new events. Never repeat existing milestone titles or original source URLs. Find an original-source page directly supporting each new event. Avoid concentrating events in just one decade. If original-source evidence is insufficient, return fewer rather than fabricating.",
    "Output structured JSON only. Do not generate image URLs. Timeline photography is selected separately."
   ].join(" ");
-  const providerBody={
-   model,store:false,reasoning:{effort:"low"},instructions,
-   input:JSON.stringify({ticker,company_name:stock.company_name,official_website:official,
-    target_total:10,missing_milestones:Math.max(0,10-(existing?.length||0)),
-    research_period:"From founding (1900+) through today, across several eras",
-    existing_titles:(existing||[]).map((e:any)=>e.title),existing_sources:(existing||[]).map((e:any)=>e.source_url)}),
-   tools:[{type:"web_search",search_context_size:"medium"}],
-   max_tool_calls:5,max_output_tokens:6500,
-   text:{format:{type:"json_schema",name:"orca_company_history_v1",strict:true,schema}}
-  };
-  const controller=new AbortController();
-  const timer=setTimeout(()=>controller.abort(),85000);
-  let provider:Response;
-  try{provider=await fetch("https://api.openai.com/v1/responses",{
-   method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+apiKey},
-   body:JSON.stringify(providerBody),signal:controller.signal
-  })}finally{clearTimeout(timer)}
-  if(!provider.ok)throw Error("provider_"+provider.status);
-  const result=await provider.json();
-  tokensIn=Number(result.usage?.input_tokens||0);
-  tokensOut=Number(result.usage?.output_tokens||0);
-  searchCalls=(result.output||[]).filter((x:any)=>x.type==="web_search_call"&&x.status==="completed").length;
-  // Planning estimate, not a guaranteed hard dollar limit on the external provider.
-  cost=Number(((tokensIn*.75+tokensOut*4.5)/1000000+searchCalls*.01).toFixed(5));
-  if(cost>.15)throw Error("cost_envelope_exceeded");
-  const parsed=parseOutput(result);
-  if(!Array.isArray(parsed.milestones))throw Error("invalid_provider_output");
-  const accepted:any[]=[];
-  let rejected=0;
-  let briefIncomplete=0;
-  const sources=new Set<string>();
-  for(const e of parsed.milestones){
-   const when=String(e?.date||"");
-   const parsedDate=Date.parse(when+"T12:00:00Z");
-   const primary=safeSource(String(e?.source_url||""),official);
-   const title=String(e?.title||"").trim(),summary=String(e?.summary||"").trim();
-   const points=Array.isArray(e?.points)?e.points.map((p:any)=>String(p||"").trim()):[];
-   const why=String(e?.why||"").trim();
-   if((existing||[]).some((prior:any)=>prior.source_url===primary||String(prior.title||'').trim().toLowerCase()===title.toLowerCase()))continue;
-   if(!/^\d{4}-\d{2}-\d{2}$/.test(when)||!Number.isFinite(parsedDate)
-    ||parsedDate>Date.now()||parsedDate<Date.parse("1900-01-01")
-    ||!categories.includes(e?.category)||title.length<4||title.length>100
-    ||summary.length<60||summary.length>500||!primary||sources.has(primary)){
-    rejected++;continue;
+  const targetedInstructions=[
+   "TARGETED FINAL-MILESTONE SEARCH. Find ONLY the missing one or two important, independently sourced company-history events.",
+   "Review the existing event titles, years, and original-source URLs. Focus on an unrepresented major historical era, not another recent minor update.",
+   "Find dated evidence on the company's OFFICIAL corporate history, heritage, press release or investor pages, or SEC EDGAR. Each candidate needs its OWN direct HTTPS source that supports the actual event and date.",
+   "Do not reuse any supplied title or source URL; do not invent an event, year, original company source, or direct link.",
+   "Return no more events than the requested missing_milestones number. If there is no substantiated new event, return an empty milestones array.",
+   "Return structured JSON only. Provide summary, two source-backed facts and a short why-it-matters note. No photos, stock ratings or forecasts."
+  ].join(" ");
+
+  async function researchBatch(targeted:boolean,alreadySaved:any[]):Promise<any[]>{
+   const missing=Math.max(0,10-existingRows.length-accepted.length);
+   if(!missing)return [];
+   const input=JSON.stringify({
+    ticker,company_name:stock.company_name,official_website:official,
+    target_total:10,missing_milestones:missing,
+    research_period:"1900 onward, across the full company history",
+    existing_events:[...existingEvents,...alreadySaved.map((e:any)=>({
+     date:e.date,title:e.title,source_url:e.source_url
+    }))],
+    excluded_titles:[...titleKeys],excluded_source_urls:[...sourceKeys]
+   });
+   const providerBody={
+    model,store:false,reasoning:{effort:"low"},
+    instructions:targeted?baseInstructions+" "+targetedInstructions:baseInstructions,
+    input,
+    tools:[{type:"web_search",search_context_size:targeted?"low":"medium"}],
+    max_tool_calls:targeted?1:5,max_output_tokens:targeted?2100:6500,
+    text:{format:{type:"json_schema",name:"orca_company_history_v1",strict:true,schema}}
+   };
+   const controller=new AbortController();
+   const timer=setTimeout(()=>controller.abort(),targeted?30000:85000);
+   let response:Response;
+   try{
+    response=await fetch("https://api.openai.com/v1/responses",{
+     method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+apiKey},
+     body:JSON.stringify(providerBody),signal:controller.signal
+    });
+   }finally{clearTimeout(timer)}
+   if(!response.ok)throw Error("provider_"+response.status);
+   const result=await response.json();
+   tokensIn+=Number(result.usage?.input_tokens||0);
+   tokensOut+=Number(result.usage?.output_tokens||0);
+   searchCalls+=(result.output||[]).filter((x:any)=>x.type==="web_search_call"&&x.status==="completed").length;
+   cost=Number(((tokensIn*.75+tokensOut*4.5)/1000000+searchCalls*.01).toFixed(5));
+   if(cost>.15)throw Error("cost_envelope_exceeded");
+   const parsed=parseOutput(result);
+   if(!Array.isArray(parsed.milestones))throw Error("invalid_provider_output");
+   return parsed.milestones;
+  }
+
+  const initiallyTargeted=remainingAtStart<=2;
+  if(initiallyTargeted){targetedAttempted=true;targetedStatus="started";}
+  const first=await researchBatch(initiallyTargeted,[]);
+  const firstAdded=acceptCandidateMilestones(first);
+  if(initiallyTargeted){targetedAccepted=firstAdded;targetedStatus=firstAdded?"accepted":"no_new_primary_sources";}
+
+  if(shouldTargetFollowup(existingRows.length,accepted.length,cost)){
+   targetedAttempted=true;targetedStatus="started";
+   try{
+    const additional=await researchBatch(true,accepted);
+    targetedAccepted=acceptCandidateMilestones(additional);
+    targetedStatus=targetedAccepted?"accepted":"no_new_primary_sources";
+   }catch(error){
+    // Never discard already validated milestones because a SECOND, optional
+    // near-completion search failed. Keep the cost tally truthful.
+    targetedStatus=String(error instanceof Error?error.message:"targeted_search_failed").slice(0,65);
    }
-   const goodBrief=points.length===2&&!points.some((p:string)=>p.length<20||p.length>200)
-    &&why.length>=20&&why.length<=200;
-   if(!goodBrief)briefIncomplete++;
-   sources.add(primary);
-   accepted.push({date:when,category:e.category,title,summary,source_url:primary,
-    points:goodBrief?points:null,why:goodBrief?why:null,image_url:null,image_credit:null});
+  }else if(!initiallyTargeted&&existingRows.length+accepted.length>=8&&existingRows.length+accepted.length<10){
+   targetedStatus="deferred_budget_or_not_eligible";
   }
   if(!accepted.length)throw Error("no_acceptable_primary_source_milestones");
   const saved=await finish(accepted.slice(0,10),null);
   return reply(200,{state:saved?.state||"unknown",added:saved?.added||0,
    total_cached:(existing?.length||0)+(saved?.added||0),target_total:10,
+   targeted_search_attempted:targetedAttempted,targeted_added:targetedAccepted,
+   targeted_status:targetedStatus,web_search_calls:searchCalls,
    missing_after_run:Math.max(0,10-((existing?.length||0)+(saved?.added||0))),estimated_usd:cost,
    rejected,reduced_briefs:briefIncomplete,milestone_sources:"company_and_sec_originals"});
  }catch(e){
