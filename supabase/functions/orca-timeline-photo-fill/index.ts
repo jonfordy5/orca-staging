@@ -421,11 +421,16 @@ Deno.serve(async(req:Request)=>{
  const {count,error:countError}=await admin.from("orca_timeline_photo_selections")
    .select("event_id",{head:true,count:"exact"}).gte("created_at",new Date(Date.now()-86400000).toISOString());
  if(countError)return reply(503,{error:"Photo cache unavailable"});
- const {data:events,error:eventError}=await admin.from("orca_timeline_annotations")
-  .select("id,ticker,title,event_at,category").eq("ticker",ticker).is("created_by",null)
-  .order("event_at",{ascending:true}).limit(100);
- if(eventError)return reply(503,{error:"Milestone lookup unavailable"});
- const all=events||[];
+ // Page all saved events; photo requests stay limited to ten new matches.
+ const all:any[]=[];
+ for(let offset=0;;offset+=250){
+  const {data:page,error:eventError}=await admin.from("orca_timeline_annotations")
+   .select("id,ticker,title,event_at,category").eq("ticker",ticker).is("created_by",null)
+   .order("event_at",{ascending:true}).range(offset,offset+249);
+  if(eventError)return reply(503,{error:"Milestone lookup unavailable"});
+  all.push(...(page||[]));
+  if(!page||page.length<250)break;
+ }
  // Photo work is batched, but the underlying timeline has no maximum length.
  // Process up to ten missing images per click across ALL saved events.
  const featured=all;
@@ -435,10 +440,16 @@ Deno.serve(async(req:Request)=>{
   .eq("ticker",ticker).maybeSingle();
  const profile=companyTheme(ticker,String(stock.company_name),
   String(companyProfile?.content?.what_they_do||companyProfile?.content?.overview||""));
- const {data:cached,error:cachedError}=await admin.from("orca_timeline_photo_selections")
-  .select("event_id,photo_id,needs_review,photographer").eq("ticker",ticker).limit(500);
- if(cachedError)return reply(503,{error:"Photo cache unavailable"});
- const existing=new Map((cached||[]).map((p:any)=>[p.event_id,p]));
+ const cached:any[]=[];
+ for(let offset=0;;offset+=250){
+  const {data:page,error:cachedError}=await admin.from("orca_timeline_photo_selections")
+   .select("event_id,photo_id,needs_review,photographer").eq("ticker",ticker)
+   .range(offset,offset+249);
+  if(cachedError)return reply(503,{error:"Photo cache unavailable"});
+  cached.push(...(page||[]));
+  if(!page||page.length<250)break;
+ }
+ const existing=new Map(cached.map((p:any)=>[p.event_id,p]));
  const seenIds=new Set<string>(),duplicateEvents=new Set<string>();
  for(const e of featured){
   const photoId=String(existing.get(e.id)?.photo_id||"");
