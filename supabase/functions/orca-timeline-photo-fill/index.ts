@@ -87,13 +87,14 @@ function photoScore(photo:any,plan:any,profile:ThemeProfile){
  // Require strong evidence of a RETAIL parts scene or identifiable products.
  // Anything confusing, industrial, scrap-related, or belonging to a competing chain is rejected.
  if(profile.theme==="auto parts retail"){
-  const competitor=/\b(lordco|autozone|o'?reilly|napa auto|carquest|pep boys|repco|autobarn|autodoc|autoparts24|europarts)\b/i;
-  const nonRetail=/\b(scrap|scrapyard|junk|junkyard|wreck|wreckage|salvage|dismantl|damaged|crash|collision|repair|mechanic|garage|workshop|warehouse|factory|factories|robot|weld|assembly|industrial|manufactur|car wash|auto show|race|racing|vehicle lift|engine bay|car dealership|car dealer|machinery|production|machining)\b/i;
+  const competitor=/\b(lordco|autozone|o'?reilly|napa auto|pep boys|repco|autobarn|autodoc|autoparts24|europarts)\b/i;
+  const nonRetail=/\b(scrap|scrapyard|junk|junkyard|wreck|wreckage|salvage|dismantl|damaged|crash|collision|mechanic|garage|workshop|factory|factories|robot|weld|assembly|industrial|manufactur|car wash|auto show|race|racing|vehicle lift|engine bay|car dealership|car dealer|machinery|production|machining)\b/i;
   const genuineBrand=/\badvance auto parts\b/i.test(description);
   const retailer=/(?:\b(auto|car|automotive|spare) parts?\b.{0,30}\b(store|retail|aisle|shelves|shelf|counter|storefront)\b|\bparts? (store|retailer|retail|aisle|shelves|shelf|counter)\b|\bauto supply (store|shop)\b)/i.test(description);
   const products=/\b(oil filters?|brake pads?|spark plugs?|car batter(?:y|ies)|motor oil|windshield wipers?|air filters?)\b/i.test(description);
-  if(competitor.test(description)||nonRetail.test(description)||!(genuineBrand||retailer||products))return -100;
-  return (genuineBrand?18:0)+(retailer?12:0)+(products?7:0);
+  const acquired=/\b(carquest|worldpac|diehard)\b/i.test(description)&&/\b(auto|automotive|parts?|batter(?:y|ies)|store|retail|brand|logo|products?|distribution)\b/i.test(description);
+   if(competitor.test(description)||nonRetail.test(description)||!(genuineBrand||retailer||products||acquired))return -100;
+  return (genuineBrand?18:0)+(retailer?12:0)+(products?7:0)+(acquired?15:0);
  }
  const competingBrand=/\b(nvidia|intel|amd|apple|microsoft|samsung|qualcomm|tesla|ulta|sephora)\b/g;
  const otherNames=(description.match(competingBrand)||[]).filter((name:string)=>!profile.brand.toLowerCase().split(/\s+/).includes(name));
@@ -308,7 +309,7 @@ function candidateFromUnsplash(p:any,query:string,tier:number,profile:ThemeProfi
  if(excludedBrands.test(description)&&!description.includes(profile.brand))return null;
  // Cross-company signage and cash photos never become legitimate stock context.
  if(profile.theme==="discount retail"&&/\b(dollar tree|family dollar|walmart|target|costco|aldi|lidl|five below|walgreens|cvs|banknotes?|dollar bills?|currency|bitcoin|cash|coins|money|gas station|gas pump|fuel pump|petrol station|filling station|fuel dispenser)\b/i.test(description))return null;
- if(profile.theme==="auto parts retail"&&/\b(lordco|autozone|o'?reilly|napa auto|carquest|pep boys)\b/i.test(description))return null;
+ if(profile.theme==="auto parts retail"&&/\b(lordco|autozone|o'?reilly|napa auto|pep boys)\b/i.test(description))return null;
  if(profile.theme==="auto parts retail"&&offThemeAuto.test(description))return null;
  let score=photoScore(p,{companyOnly:tier===0,minimumScore:0,keywords:profile.terms},profile);
  // Do not accept off-brand results at any fallback tier.
