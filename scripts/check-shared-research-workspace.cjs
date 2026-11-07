@@ -145,6 +145,22 @@ check('Timeline discovery covers historical company origins with capped primary-
   discovery.includes('if(cost>.15)') &&
   discovery.includes('target_total:10') &&
   discovery.includes('refresh_eligible_after:reservation?.refresh_eligible_after||null'));
+const retrySql=read('sql/orca_timeline_immediate_targeted_completion.sql');
+check('Immediate one-time targeted completion retains spending, authorization and throttle controls', () =>
+  retrySql.includes('v_recent_count IN (8,9)') &&
+  retrySql.includes('v_targeted_attempt_at IS NOT NULL') &&
+  retrySql.includes("v_targeted_attempt_at+interval '24 hours'") &&
+  retrySql.includes("v_recent_count NOT IN (8,9)") &&
+  retrySql.includes('is_targeted_completion') &&
+  retrySql.includes('v_user_recent>=10') &&
+  retrySql.includes('IF v_used+0.15>15') &&
+  retrySql.includes('p.opted_in IS TRUE') &&
+  retrySql.includes('pg_advisory_xact_lock') &&
+  retrySql.includes("state='failed'") &&
+  retrySql.includes('REVOKE')===false &&
+  timeline.includes('historyRequestsThisSession') &&
+  timeline.includes('targetedCompletionRequestedThisSession') &&
+  timeline.includes('generate.disabled=!mayRequestHistory()'));
 check('Cached ten-milestone timelines can authorize their first photo generation', () =>
   timeline.includes('await checkHistoryPermission();if(!data.length)await maybePopulateCompanyHistory();'));
 check('Ambiguous multiword brands remain intact, including Dollar General', () => {
