@@ -82,6 +82,33 @@ check('Milestone popup supports meaningful short briefs and source links', () =>
   timeline.includes("const points=document.createElement('ul')") &&
   timeline.includes("const takeaway=document.createElement('p')") &&
   timeline.includes("link.href=event.source_url"));
+check('Approved timeline design is locked in the universal stock-page standard', () =>
+  pageStandard.includes('## Approved timeline design — locked baseline') &&
+  pageStandard.includes('**Always-visible stacked charts:**') &&
+  pageStandard.includes('**Direct connectors:**') &&
+  pageStandard.includes('**Traveling light:**') &&
+  pageStandard.includes('**Open-ended company history:**') &&
+  pageStandard.includes('**Initial and subsequent navigation:**') &&
+  pageStandard.includes('**Mobile (700px and narrower):**') &&
+  pageStandard.includes('**Photo interface:**'));
+
+check('Locked design keeps the current rendering unchanged', () =>
+  workspace.includes('id="chart-frame"') &&
+  workspace.includes('id="timeline-frame"') &&
+  !workspace.includes('id="living-show"') &&
+  !workspace.includes('id="living-tradingview"') &&
+  workspace.includes('height:570px') &&
+  workspace.includes('flex:0 0 210px') &&
+  timeline.includes('stop.append(stem,card,year)') &&
+  !timeline.includes("dot.className='orca-history-dot'") &&
+  timeline.includes("spine.append(svg)") &&
+  timeline.includes('const futureStep=190;') &&
+  timeline.includes("const tailFadeStart=Math.max(0,futurePoints[1][0]-150)") &&
+  timeline.includes("centerMilestone(card,'auto')") &&
+  workspace.includes('touch-action:pan-x!important') &&
+  !photos.includes('Check Unsplash API') &&
+  !photos.includes("badge.textContent="));
+
 check('TradingView remains fully visible above an independent timeline', () =>
   timeline.includes("mountLivingTimeline({sb,") &&
   timeline.includes("document.getElementById('timeline-frame')") &&
