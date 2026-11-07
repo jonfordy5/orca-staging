@@ -45,9 +45,15 @@ export async function mountTimelinePhotos({sb,ticker,frame,rail,status,getUser,c
   if(!actionPending)button.textContent=duplicateCount>0?'Improve photos':'Find photos';
  }
  async function refresh(){
-  const {data,error}=await sb.from('orca_timeline_photo_selections')
-   .select('event_id,image_url,full_image_url,photo_url,photographer,photographer_url,needs_review,strategy_version,match_type').eq('ticker',ticker).limit(500);
-  if(error){button.hidden=true;return;}
+  const data=[];
+  for(let offset=0;;offset+=250){
+   const {data:page,error}=await sb.from('orca_timeline_photo_selections')
+    .select('event_id,image_url,full_image_url,photo_url,photographer,photographer_url,needs_review,strategy_version,match_type')
+    .eq('ticker',ticker).range(offset,offset+249);
+   if(error){button.hidden=true;return}
+   data.push(...(page||[]));
+   if(!page||page.length<250)break;
+  }
   // Keep existing flagged illustrations visible while seeking better images:
   // never turn a completed full-photo card into a white placeholder.
   const rawPhotos=new Map((data||[]).map(p=>[p.event_id,p]));
