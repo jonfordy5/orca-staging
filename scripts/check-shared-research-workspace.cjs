@@ -107,7 +107,7 @@ check('Locked design keeps the current rendering unchanged', () =>
   timeline.includes("centerMilestone(card,'auto')") &&
   workspace.includes('touch-action:pan-x!important') &&
   !photos.includes('Check Unsplash API') &&
-  !photos.includes("badge.textContent="));
+  workspace.includes('.orca-company-timeline .orca-photo-context{display:none!important}'));
 
 check('TradingView remains fully visible above an independent timeline', () =>
   timeline.includes("mountLivingTimeline({sb,") &&
