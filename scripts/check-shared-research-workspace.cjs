@@ -111,6 +111,25 @@ check('Every event retains its own year label and clickable sourced photo', () =
   workspace.includes('top:187px!important') &&
   workspace.includes('top:277px!important'));
 
+check('Timeline extends beyond the newest milestone and fades into the future', () =>
+  timeline.includes('const futureStep=190;') &&
+  timeline.includes('const futurePoints=[') &&
+  timeline.includes('const entireLine=[...points,...futurePoints]') &&
+  timeline.includes("const tailFadeStart=Math.max(0,futurePoints[1][0]-150)") &&
+  timeline.includes("tailGradient.setAttribute('gradientUnits','userSpaceOnUse')") &&
+  timeline.includes("base.setAttribute('mask','url(#'+tailId+')')") &&
+  timeline.includes("beam.setAttribute('mask','url(#'+tailId+')')") &&
+  timeline.includes('Math.max(420,Math.round') &&
+  workspace.includes('v=open-ended-fade-v27'));
+
+check('Open-ended timeline preserves milestones and beam arrival effects', () =>
+  timeline.includes('const nodeDistances=[0]') &&
+  timeline.includes('for(let i=1;i<points.length;i++)') &&
+  timeline.includes('const length=base.getTotalLength()') &&
+  timeline.includes("stops[i].classList.add('orca-history-activated')") &&
+  !timeline.includes('futureStop') &&
+  workspace.includes('animation:orca-photo-arrival 1.4s'));
+
 check('A single tapered beam replaces the former two-tone segment', () =>
   timeline.includes("gradient.setAttribute('id',gradientId)") &&
   timeline.includes("beam.setAttribute('stroke','url(#'+gradientId+')')") &&
@@ -133,7 +152,7 @@ check('Timeline initially centers the middle milestone while navigation remains 
   timeline.includes("centerMilestone(card,'auto')") &&
   timeline.includes("prev.addEventListener('click',()=>jumpTo(0))") &&
   timeline.includes("next.addEventListener('click',()=>jumpTo(data.length-1))") &&
-  workspace.includes('v=direct-stem-connection-v26'));
+  workspace.includes('v=open-ended-fade-v27'));
 
 check('Mobile history stays a swipe carousel without zigzag or glowing track', () =>
   workspace.includes('touch-action:pan-x!important') &&
