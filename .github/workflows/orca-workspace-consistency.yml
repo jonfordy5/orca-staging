@@ -13,6 +13,7 @@ on:
       - 'supabase/functions/orca-timeline-discovery/**'
       - 'sql/orca_timeline_immediate_targeted_completion.sql'
       - 'sql/orca_timeline_open_ended_periodic_updates.sql'
+      - 'sql/orca_timeline_unique_approved_photos.sql'
       - 'scripts/test-timeline-history-backfill.cjs'
       - 'scripts/test-timeline-photo-behavior.cjs'
       - 'docs/orca-company-page-standard.md'
