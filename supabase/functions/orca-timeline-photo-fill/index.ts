@@ -69,6 +69,15 @@ function photoPlans(profile:ThemeProfile){
   ...profile.queries.filter((query,index)=>!(profile.theme==="auto parts retail"&&index===0)).map(query=>({query,keywords:profile.terms,minimumScore:3,companyOnly:false}))
  ];
 }
+// AAP photos may show distinct auto parts or automotive components even when
+// their metadata lacks the company name. Do not confuse car photos with parts.
+function aapPartsSubject(text:string):boolean{
+ const competitor=/\b(autozone|o'?reilly|napa auto|pep boys|lordco|repco|autobarn|autodoc|autoparts24|europarts)\b/i;
+ const unrelated=/\b(scrap(?:yard)?|junk(?:yard)?|salvage|wreck(?:age)?|crash(?:ed)?|collision|racing?|car show|car wash|dealership|factory|assembly line|welding|industrial robots|aircraft|airplane|marine engine)\b/i;
+ const parts=/\b(auto parts?|car parts?|automotive parts?|spare parts?|parts store|auto supply|auto accessories|engine(?: bay| block| compartment| parts?| components?)?|car batteries|car battery|automotive batter(?:y|ies)|brake(?:s| pads?| discs?| rotors?| calipers?)?|oil filters?|air filters?|fuel filters?|spark plugs?|alternators?|radiators?|pistons?|camshafts?|crankshafts?|timing belts?|serpentine belts?|transmissions?|carburetors?|vehicle parts?|car components?|wheel bearings?|suspensions?|windshield wipers?|motor oil|car motor)\b/i;
+ const acquired=/\b(carquest|worldpac|diehard)\b/i.test(text)&&/\b(auto|car|automotive|part|store|retail|battery|batteries|brand|product|logo)\b/i.test(text);
+ return !competitor.test(text)&&!unrelated.test(text)&&(parts.test(text)||acquired||/\badvance auto parts\b/i.test(text));
+}
 function photoScore(photo:any,plan:any,profile:ThemeProfile){
  const tags=(photo.tags||[]).map((t:any)=>String(t.title||"")).join(" ");
  const description=(String(photo.alt_description||"")+" "+String(photo.description||"")+" "+tags+" "+String(photo.slug||"")).toLowerCase();
@@ -87,14 +96,12 @@ function photoScore(photo:any,plan:any,profile:ThemeProfile){
  // Require strong evidence of a RETAIL parts scene or identifiable products.
  // Anything confusing, industrial, scrap-related, or belonging to a competing chain is rejected.
  if(profile.theme==="auto parts retail"){
-  const competitor=/\b(lordco|autozone|o'?reilly|napa auto|pep boys|repco|autobarn|autodoc|autoparts24|europarts)\b/i;
-  const nonRetail=/\b(scrap|scrapyard|junk|junkyard|wreck|wreckage|salvage|dismantl|damaged|crash|collision|mechanic|garage|workshop|factory|factories|robot|weld|assembly|industrial|manufactur|car wash|auto show|race|racing|vehicle lift|engine bay|car dealership|car dealer|machinery|production|machining)\b/i;
   const genuineBrand=/\badvance auto parts\b/i.test(description);
-  const retailer=/(?:\b(auto|car|automotive|spare) parts?\b.{0,30}\b(store|retail|aisle|shelves|shelf|counter|storefront)\b|\bparts? (store|retailer|retail|aisle|shelves|shelf|counter)\b|\bauto supply (store|shop)\b)/i.test(description);
-  const products=/\b(oil filters?|brake pads?|spark plugs?|car batter(?:y|ies)|motor oil|windshield wipers?|air filters?)\b/i.test(description);
-  const acquired=/\b(carquest|worldpac|diehard)\b/i.test(description)&&/\b(auto|automotive|parts?|batter(?:y|ies)|store|retail|brand|logo|products?|distribution)\b/i.test(description);
-   if(competitor.test(description)||nonRetail.test(description)||!(genuineBrand||retailer||products||acquired))return -100;
-  return (genuineBrand?18:0)+(retailer?12:0)+(products?7:0)+(acquired?15:0);
+  const acquired=/\b(carquest|worldpac|diehard)\b/i.test(description);
+  if(!aapPartsSubject(description))return -100;
+  return (genuineBrand?25:0)+(acquired?18:0)+
+   (/\b(auto parts|car parts|parts store|auto supply|shelves|retail)\b/i.test(description)?12:0)+
+   (/\b(engine|brake|battery|spark plug|filter|alternator|radiator)\b/i.test(description)?9:0)+8;
  }
  const competingBrand=/\b(nvidia|intel|amd|apple|microsoft|samsung|qualcomm|tesla|ulta|sephora)\b/g;
  const otherNames=(description.match(competingBrand)||[]).filter((name:string)=>!profile.brand.toLowerCase().split(/\s+/).includes(name));
@@ -236,8 +243,9 @@ function visualQueries(profile:ThemeProfile,events:{title:string;category?:strin
   "amazon kindle","amazon prime","amazon warehouse","zappos","souq amazon"
  ];
  if(profile.brand==="advance auto parts")return [
-  "advance auto parts store","auto parts store","car battery",
-  "carquest auto parts","diehard car battery","automotive parts shelves"
+  "advance auto parts store","car engine","car parts",
+  "automotive brake pads","car battery","oil filter",
+  "alternator car part","spare auto parts","carquest auto parts","diehard car battery"
  ];
  // DG pilot: seven broad, distinct search phrases. Do not narrow or recombine them.
  // Repeated convenience-store searches use different result pages, not duplicated page one.
@@ -269,7 +277,7 @@ function eventContextMatch(description:string,plan:EventVisualPlan):boolean{
  switch(plan.kind){
   case "aap_carquest":return /\b(carquest|worldpac)\b/.test(text)&&/\b(auto|automotive|parts?|store|retail|distribution)\b/.test(text);
   case "aap_diehard":return /\bdiehard\b/.test(text)&&/\b(battery|batteries|car|auto|automotive)\b/.test(text);
-  case "aap_general":return /\b(advance auto parts|auto parts|car parts|parts store|automotive parts|car battery|car batteries|brake pads|oil filter|automotive accessories)\b/.test(text);
+  case "aap_general":return aapPartsSubject(text);
   case "amazon_whole_foods":return /\bwhole foods(?: market)?\b/.test(text);
   case "amazon_zappos":return /\bzappos\b/.test(text);
   case "amazon_souq":return /\bsouq\b/.test(text);
@@ -302,7 +310,8 @@ function eventCandidateScore(candidate:Candidate,plan:EventVisualPlan):number{
  if(plan.kind==="corporate"&&!candidate.company_match)return -Infinity;
  // Acquired-brand subjects are reserved for their matching AAP event.
  if(plan.kind==="aap_general"&&/\b(carquest|worldpac|diehard)\b/.test(desc))return -Infinity;
- if((plan.kind==="aap_carquest"||plan.kind==="aap_diehard")&&!scene&&!candidate.company_match)return -Infinity;
+ if(plan.kind==="aap_carquest"&&/\bdiehard\b/.test(desc))return -Infinity;
+ if(plan.kind==="aap_diehard"&&/\b(carquest|worldpac)\b/.test(desc))return -Infinity;
  if(scene)return 190+Math.min(hits,4)*12;
  if(candidate.company_match)return 65+Math.min(hits,4)*8+Math.min(candidate.score,40);
  // A caption-identified retail scene is an honest illustrative fallback for
@@ -327,7 +336,7 @@ function candidateFromUnsplash(p:any,query:string,tier:number,profile:ThemeProfi
  if(profile.theme==="discount retail"&&/\b(dollar tree|family dollar|walmart|target|costco|aldi|lidl|five below|walgreens|cvs|banknotes?|dollar bills?|currency|bitcoin|cash|coins|money|gas station|gas pump|fuel pump|petrol station|filling station|fuel dispenser)\b/i.test(description))return null;
  if(profile.theme==="auto parts retail"&&/\b(lordco|autozone|o'?reilly|napa auto|pep boys)\b/i.test(description))return null;
  if(profile.theme==="auto parts retail"&&offThemeAuto.test(description))return null;
- let score=photoScore(p,{companyOnly:tier===0,minimumScore:0,keywords:profile.terms},profile);
+ let score=photoScore(p,{companyOnly:tier===0&&profile.theme!=="auto parts retail",minimumScore:0,keywords:profile.terms},profile);
  // Do not accept off-brand results at any fallback tier.
  if(score<0&&profile.theme==="discount retail"&&
   /\b(stock exchange|wall street|business meeting|corporate office)\b/i.test(query)&&
@@ -335,8 +344,9 @@ function candidateFromUnsplash(p:any,query:string,tier:number,profile:ThemeProfi
   !/\b(banknotes?|cash|dollar bills?|coins?|currency|bitcoin|money|forex|bank teller|walmart|target|dollar tree|family dollar)\b/i.test(description))score=12;
  const context_kinds=[...new Set(plans.filter(plan=>(plan.queries.includes(query)||profile.brand==="advance auto parts")&&eventContextMatch(description,plan)).map(p=>p.kind))];
  // Compute scene relevance before checking it. The previous order caused a ReferenceError.
- const retail_illustration=profile.theme==="discount retail"&&
-  /\b(convenience stores?|convenience shops?|grocery stores?|supermarkets?|discount stores?|retail shelves|store shelves|shopping aisles|grocery aisles|retail storefront|storefront)\b/i.test(description);
+ const retail_illustration=(profile.theme==="discount retail"&&
+   /\b(convenience stores?|convenience shops?|grocery stores?|supermarkets?|discount stores?|retail shelves|store shelves|shopping aisles|grocery aisles|retail storefront|storefront)\b/i.test(description))||
+   (profile.theme==="auto parts retail"&&aapPartsSubject(description));
  if(score<0&&!context_kinds.length&&!retail_illustration)return null;
  const company_match=companyPhotoIdentity(description,profile);
  // A named acquired business may be shown for its own event, but a random
@@ -425,7 +435,8 @@ async function findUnsplashCandidates(accessKey:string,queries:string[],profile:
  let requests_made=0,results_received=0,network_failures=0;
  const brandQuery=queries[0]||profile.brand;
  let nextQuery:string|null=brandQuery;
- while(nextQuery&&requests_made<maxSearchRequestsPerFill){
+ const requestBudget=profile.brand==="advance auto parts"?8:maxSearchRequestsPerFill;
+ while(nextQuery&&requests_made<requestBudget){
   const query=nextQuery;tried.add(query);triedList.push(query);
   const uri=new URL("https://api.unsplash.com/search/photos");
   uri.searchParams.set("query",query);
@@ -468,14 +479,11 @@ async function findUnsplashCandidates(accessKey:string,queries:string[],profile:
   if(!missing.length)break; // One call is enough when every event has a unique image.
   // Search only for still-unmatched milestones; prefer the actual company,
   // model or acquired-brand phrase from those events over generic categories.
-  const priority=profile.brand==="advance auto parts"?
-   missing.filter(e=>/\b(carquest|worldpac|diehard)\b/i.test(String(e.title||""))):[];
-  const possible=[
-   ...priority.flatMap(e=>eventVisualPlan(e,profile).queries),
-   ...missing.flatMap(e=>eventVisualPlan(e,profile).queries),
-   ...queries
-  ];
-  nextQuery=possible.find(q=>q&&!tried.has(q))||null;
+  // AAP explicitly prefers different generic car-parts images rather than blanks.
+   const possible=profile.brand==="advance auto parts"?
+    [...queries,...missing.flatMap(e=>eventVisualPlan(e,profile).queries)]:
+    [...missing.flatMap(e=>eventVisualPlan(e,profile).queries),...queries];
+   nextQuery=possible.find(q=>q&&!tried.has(q))||null;
  }
  return {candidates:[...byId.values()].sort((a,b)=>b.score-a.score),limited,
   queries_tried:triedList,provider_last,provider_failure,requests_made,results_received,network_failures};
