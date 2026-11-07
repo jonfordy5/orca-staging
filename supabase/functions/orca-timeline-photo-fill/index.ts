@@ -188,6 +188,12 @@ function eventVisualPlan(event:{title:string;category?:string},profile:ThemeProf
    return {kind:"amazon_prime",queries:["amazon prime","amazon delivery","amazon"],terms:["prime","delivery","packages","amazon"]};
   return {kind:"amazon_company",queries:["amazon","amazon delivery","amazon warehouse"],terms:["amazon","delivery","warehouse","logo","fulfillment","aws"]};
  }
+ // Named acquired AAP brands qualify for their own historical milestones.
+ if(profile.brand==="advance auto parts"){
+  if(/\b(carquest|worldpac)\b/.test(title))return {kind:"aap_carquest",queries:["carquest auto parts","worldpac automotive parts","advance auto parts store"],terms:["carquest","worldpac","auto parts"]};
+  if(/\bdiehard\b/.test(title))return {kind:"aap_diehard",queries:["diehard car battery","diehard automotive batteries","advance auto parts store"],terms:["diehard","car battery","automotive battery"]};
+  return {kind:"aap_general",queries:["advance auto parts store","auto parts store","car battery"],terms:["advance auto parts","auto parts","car battery","brake pads"]};
+ }
  // Ford photos should represent the named vehicle or company era. Other
  // companies still use their existing event-specific plans.
  if(profile.brand==="ford"){
@@ -229,6 +235,10 @@ function visualQueries(profile:ThemeProfile,events:{title:string;category?:strin
   "amazon","amazon delivery","whole foods market","amazon whole foods",
   "amazon kindle","amazon prime","amazon warehouse","zappos","souq amazon"
  ];
+ if(profile.brand==="advance auto parts")return [
+  "advance auto parts store","auto parts store","car battery",
+  "carquest auto parts","diehard car battery","automotive parts shelves"
+ ];
  // DG pilot: seven broad, distinct search phrases. Do not narrow or recombine them.
  // Repeated convenience-store searches use different result pages, not duplicated page one.
  if(profile.brand==="dollar general")return [
@@ -257,6 +267,9 @@ function visualQueries(profile:ThemeProfile,events:{title:string;category?:strin
 function eventContextMatch(description:string,plan:EventVisualPlan):boolean{
  const text=description.toLowerCase();
  switch(plan.kind){
+  case "aap_carquest":return /\b(carquest|worldpac)\b/.test(text)&&/\b(auto|automotive|parts?|store|retail|distribution)\b/.test(text);
+  case "aap_diehard":return /\bdiehard\b/.test(text)&&/\b(battery|batteries|car|auto|automotive)\b/.test(text);
+  case "aap_general":return /\b(advance auto parts|auto parts|car parts|parts store|automotive parts|car battery|car batteries|brake pads|oil filter|automotive accessories)\b/.test(text);
   case "amazon_whole_foods":return /\bwhole foods(?: market)?\b/.test(text);
   case "amazon_zappos":return /\bzappos\b/.test(text);
   case "amazon_souq":return /\bsouq\b/.test(text);
@@ -287,6 +300,9 @@ function eventCandidateScore(candidate:Candidate,plan:EventVisualPlan):number{
  if(plan.kind==="listing"&&candidate.venue==="nyse")return 220+Math.min(hits,4)*12;
  // A generic storefront is not a company's M&A announcement.
  if(plan.kind==="corporate"&&!candidate.company_match)return -Infinity;
+ // Acquired-brand subjects are reserved for their matching AAP event.
+ if(plan.kind==="aap_general"&&/\b(carquest|worldpac|diehard)\b/.test(desc))return -Infinity;
+ if((plan.kind==="aap_carquest"||plan.kind==="aap_diehard")&&!scene&&!candidate.company_match)return -Infinity;
  if(scene)return 190+Math.min(hits,4)*12;
  if(candidate.company_match)return 65+Math.min(hits,4)*8+Math.min(candidate.score,40);
  // A caption-identified retail scene is an honest illustrative fallback for
@@ -317,7 +333,7 @@ function candidateFromUnsplash(p:any,query:string,tier:number,profile:ThemeProfi
   /\b(stock exchange|wall street|business meeting|corporate office)\b/i.test(query)&&
   /\b(stock exchange|wall street|trading floor|boardroom|conference room|business meeting|office building|corporate office)\b/i.test(description)&&
   !/\b(banknotes?|cash|dollar bills?|coins?|currency|bitcoin|money|forex|bank teller|walmart|target|dollar tree|family dollar)\b/i.test(description))score=12;
- const context_kinds=[...new Set(plans.filter(plan=>plan.queries.includes(query)&&eventContextMatch(description,plan)).map(p=>p.kind))];
+ const context_kinds=[...new Set(plans.filter(plan=>(plan.queries.includes(query)||profile.brand==="advance auto parts")&&eventContextMatch(description,plan)).map(p=>p.kind))];
  // Compute scene relevance before checking it. The previous order caused a ReferenceError.
  const retail_illustration=profile.theme==="discount retail"&&
   /\b(convenience stores?|convenience shops?|grocery stores?|supermarkets?|discount stores?|retail shelves|store shelves|shopping aisles|grocery aisles|retail storefront|storefront)\b/i.test(description);
@@ -452,7 +468,10 @@ async function findUnsplashCandidates(accessKey:string,queries:string[],profile:
   if(!missing.length)break; // One call is enough when every event has a unique image.
   // Search only for still-unmatched milestones; prefer the actual company,
   // model or acquired-brand phrase from those events over generic categories.
+  const priority=profile.brand==="advance auto parts"?
+   missing.filter(e=>/\b(carquest|worldpac|diehard)\b/i.test(String(e.title||""))):[];
   const possible=[
+   ...priority.flatMap(e=>eventVisualPlan(e,profile).queries),
    ...missing.flatMap(e=>eventVisualPlan(e,profile).queries),
    ...queries
   ];
