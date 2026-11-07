@@ -52,8 +52,8 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
  let prices=[];
  let photoMount=null;
  let lastEventFingerprint='';
- // Render one continuous line through the ACTUAL circle centers. Reading
- // DOM coordinates eliminates browser rounding gaps between dots and track.
+ // Render the zigzag directly through measured photo connector endpoints.
+ // No circles, no gaps, and no hard-coded node coordinates.
  let beamFrame=0;
  function stopBeam(){
   if(beamFrame)cancelAnimationFrame(beamFrame);
@@ -67,10 +67,10 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
   const stops=[...spine.querySelectorAll('.orca-history-stop')];
   if(!stops.length)return;
   const spineRect=spine.getBoundingClientRect();
-  const points=stops.map(stop=>{
-   const rect=stop.querySelector('.orca-history-dot').getBoundingClientRect();
+  const points=stops.map((stop,i)=>{
+   const rect=stop.querySelector('.orca-history-stem').getBoundingClientRect();
    return [Math.round(rect.left+rect.width/2-spineRect.left),
-    Math.round(rect.top+rect.height/2-spineRect.top)];
+    Math.round((i%2===0?rect.bottom:rect.top)-spineRect.top)];
   });
   const width=Math.max(1,Math.ceil(spine.scrollWidth),points[points.length-1][0]+10);
   const height=Math.max(1,Math.ceil(spine.clientHeight));
@@ -114,7 +114,9 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
   beam.setAttribute('stroke-linecap','butt');
   beam.setAttribute('stroke-linejoin','round');
   svg.append(defs,base,beam);
-  spine.prepend(svg);
+  // Append to keep :nth-child parity of alternating milestone cards stable.
+  // The track is absolutely positioned behind photos and stems by z-index.
+  spine.append(svg);
   if(stops.length<2||window.matchMedia('(max-width:700px)').matches||
      window.matchMedia('(prefers-reduced-motion: reduce)').matches||
      document.visibilityState==='hidden')return;
@@ -292,14 +294,13 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
    card.append(icon,date,title,summary);
    // The single continuous SVG track is mounted after cards are laid out.
    const stem=document.createElement('span');stem.className='orca-history-stem';
-   const dot=document.createElement('span');dot.className='orca-history-dot';
    // Repeat the year on every node, including neighboring same-year events.
    const eventYear=new Date(event.event_at).getUTCFullYear();
    const year=document.createElement('span');
    year.className='orca-history-year-once';
    year.textContent=String(eventYear);
    year.setAttribute('aria-label','Year '+eventYear);
-   stop.append(stem,dot,card,year);
+   stop.append(stem,card,year);
    card.addEventListener('animationend',e=>{
     if(e.animationName==='orca-photo-arrival')
      stop.classList.remove('orca-history-activated');
