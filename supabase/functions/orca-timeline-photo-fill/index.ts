@@ -426,7 +426,9 @@ Deno.serve(async(req:Request)=>{
   .order("event_at",{ascending:true}).limit(100);
  if(eventError)return reply(503,{error:"Milestone lookup unavailable"});
  const all=events||[];
- const featured=all.length<=10?all:Array.from({length:10},(_,i)=>all[Math.round(i*(all.length-1)/9)]);
+ // Photo work is batched, but the underlying timeline has no maximum length.
+ // Process up to ten missing images per click across ALL saved events.
+ const featured=all;
  const {data:stock,error:stockError}=await admin.from("stocks").select("company_name").eq("ticker",ticker).maybeSingle();
  if(stockError||!stock?.company_name)return reply(404,{error:"Unknown company"});
  const {data:companyProfile}=await admin.from("orca_ai_company_profiles").select("content")
