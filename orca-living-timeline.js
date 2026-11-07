@@ -72,9 +72,22 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
    return [Math.round(rect.left+rect.width/2-spineRect.left),
     Math.round((i%2===0?rect.bottom:rect.top)-spineRect.top)];
   });
-  const width=Math.max(1,Math.ceil(spine.scrollWidth),points[points.length-1][0]+10);
+  // The history has no permanent endpoint. Extend two more zigzag legs
+  // (~380px total) beyond the newest milestone, without inventing an event.
+  // Once a new milestone arrives, the continuation grows from that event.
+  const futureStep=190;
+  const last=points[points.length-1];
+  const prior=points[points.length-2]||[last[0]-210,last[1]+50];
+  const originalStep=Math.max(1,last[0]-prior[0]);
+  const nextRise=-(last[1]-prior[1])*futureStep/originalStep;
+  const futurePoints=[
+   [last[0]+futureStep,last[1]+nextRise],
+   [last[0]+futureStep*2,last[1]]
+  ];
+  const entireLine=[...points,...futurePoints];
+  const width=Math.ceil(futurePoints[1][0])+1;
   const height=Math.max(1,Math.ceil(spine.clientHeight));
-  const pathData='M '+points.map(([x,y])=>x+' '+y).join(' L ');
+  const pathData='M '+entireLine.map(([x,y])=>Math.round(x)+' '+Math.round(y)).join(' L ');
   const ns='http://www.w3.org/2000/svg';
   const svg=document.createElementNS(ns,'svg');
   svg.classList.add('orca-history-track');
@@ -162,10 +175,10 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
   const stop=spine?.querySelector('.orca-history-stop');
   if(!spine||!stop||!rail.clientWidth)return;
   const mobile=window.matchMedia('(max-width:700px)').matches;
-  // Keep the founding milestone near the left edge on first load.
-  // Preserve the larger right margin for "jump to latest" navigation.
+  // Desktop gets enough room to reveal the future continuation beyond
+  // the last company event. Mobile remains a normal swipe-only photo strip.
   spine.style.paddingLeft=(mobile?12:20)+'px';
-  spine.style.paddingRight=(mobile?12:Math.max(28,Math.round((rail.clientWidth-stop.getBoundingClientRect().width)/2)))+'px';
+  spine.style.paddingRight=(mobile?12:Math.max(420,Math.round((rail.clientWidth-stop.getBoundingClientRect().width)/2)))+'px';
  }
  function centerMilestone(element,behavior='smooth'){
   const stop=element?.closest('.orca-history-stop');
