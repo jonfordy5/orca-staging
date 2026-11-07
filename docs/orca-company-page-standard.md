@@ -13,7 +13,7 @@
 ## What to display
 
 1. **Company** — source-backed business profile, operations, official metrics when available; cache the results and their source links.
-2. **Living Timeline** — feature **10 distinct, dated, verified milestones** when there are enough primary sources. Fewer is acceptable; never invent filler. Preserve all verified events in Supabase, even when more than 10 exist. Use the shared timeline layout, alternating full-photo cards, accessible arrows, and concise sourced popups (brief overview, two key facts, why it matters).
+2. **Living Timeline** — feature an **open-ended, chronological, sourced history** with the authentic company beginning at the first card, the newest source-backed milestone last, and no fixed maximum. Initial research may aim for ten events but never truncate the archive. Fewer is acceptable; never invent filler. Keep every verified milestone in Supabase. Use the shared timeline layout, alternating full-photo cards, accessible arrows, and concise sourced popups (brief overview, two key facts, why it matters).
 3. **Media** — search company name first (except disambiguation cases such as `apple computers`), then products/industry. Store photo **URLs, IDs, licensing/credit links and relevance metadata**, not image binaries. Images are delivered from Unsplash's CDN. Do not mislabel illustrative photos as photographs of an actual milestone. Exclude duplicates and review poor matches.
 4. **Charts** — TradingView remains a separate, optional market chart; do not copy stock price history into each company profile just to render TradingView.
 5. **Research collaboration** — agent identities, research tasks, submissions, previous findings, and majority summaries live in shared per-ticker tables. Never overwrite archived findings when updating the company page.
@@ -22,19 +22,19 @@
 
 - A cached page is **read-only and inexpensive to revisit**: visiting it must not regenerate company text or pay for another photo search.
 - Uncached company research and milestone generation require the existing authorized, opted-in contributor flow and Supabase budget safeguards; this is **not** permission to run AI jobs automatically for every visitor.
-- **Photo coverage is mandatory for every featured event:** automatically try to fill up to ten milestone cards with Unsplash photography when an opted-in researcher opens the timeline. Query and rank by **milestone subject** (e.g., listing, grocery distribution, leadership, store opening, international expansion) as well as the company/industry. Company-specific visuals are preferred; contextual scenes must remain visibly illustrative, not misrepresented as actual event documentation. Preserve cached credits and allow only **same-ticker, non-flagged** cached-photo fallback. Duplicates are acceptable only as a last resort; if no lawful/relevant image is available, do not claim the card is photo-complete. Retain existing daily/API safeguards. Show **Find photos** or **Improve photos** while a company still needs better images; hide the completed control.
-- Keep the ten-event display limit independent from cached event count. Do not delete the eleventh event or truncate archived research when rendering ten cards.
+- **Photo coverage extends to every displayed event:** support batches of up to ten outstanding photos per authorized request as the history grows, preserving provenance and credit links. Query and rank by **milestone subject** (e.g., listing, grocery distribution, leadership, store opening, international expansion) as well as the company/industry. Company-specific visuals are preferred; contextual scenes must remain visibly illustrative, not misrepresented as actual event documentation. Preserve cached credits and allow only **same-ticker, non-flagged** cached-photo fallback. Duplicates are acceptable only as a last resort; if no lawful/relevant image is available, do not claim the card is photo-complete. Retain existing daily/API safeguards. Show **Find photos** or **Improve photos** while a company still needs better images; hide the completed control.
+- Never impose a fixed ten- or eleven-card display limit. Keep all source-backed events in date order and load larger histories in batches. Support optional researcher-initiated current-year bulletins in each January–June and July–December window, not unbounded automatic spending. For founding events with only a verified year, display the year alone; do not imply the day is known.
 - Target lightweight metadata storage. The measured core-row baseline was **19.6 KiB for NVDA** (10 events/10 photos) and **20.4 KiB for ULTA** (11 saved events/photos). This is a measurement, **not a hard 20 KiB ceiling**: reliable sourcing and useful descriptions take precedence.
 - Database indexes, internal storage overhead, backup/replication, hosted image bytes, download bandwidth, chart resources and ongoing agent submissions are **not included** in those row-size figures.
 
 ## Tests and release criteria
 
-The `orca-workspace-consistency.yml` workflow runs `scripts/check-shared-research-workspace.cjs` on changes to page modules. It must verify the shared ticker route, company profile and research controls, ten-featured-milestone standard, preservation of source links, archived history, separate photo metadata, accessible date/navigation, and no completed-photo button.
+The `orca-workspace-consistency.yml` workflow runs `scripts/check-shared-research-workspace.cjs` on changes to page modules. It must verify the shared ticker route, company profile and research controls, open-ended timeline, founding/current-year endpoints, preservation of source links, archived history, separate photo metadata, accessible date/navigation, and no completed-photo button.
 
 Also confirm manually before inviting wider external testers:
-- NVDA: ten sourced events, ten photos, complete brief popups, no photo button.
-- ULTA: eleven sourced events cached, ten featured, original source links and photos intact.
-- A company with fewer than ten events: the verified events remain visible and the generation flow is available only to authorized researchers.
+- NVDA: existing sourced events and photo records are retained; future events and photos append to the chronology.
+- ULTA: all eleven previously sourced events are displayed; new dated bulletins append without deleting prior records.
+- Companies with sparse histories: saved events remain visible, initial history discovery remains authorized, and founding/current-year research requests are separate scoped operations.
 - Responsive desktop/mobile view, keyboard popup behavior, source citations, account consent, and claim → research → publish work in a real browser.
 
 **Changes to this baseline are versioned deliberately** and should be regression-tested before they become the new default.
@@ -54,4 +54,4 @@ Photo identity v8: new selections require the complete company brand in image me
 - Photo search accepts caption-supported event scenes (e.g., grocery refrigeration, NYSE, Mexico retail, leadership) and company-identified photos. Queries alone do not establish caption relevance.
 - Event-specific context is ranked above generic company storefront imagery. Reuse preserves a visible illustration but must not be falsely reported as a new unique photo.
 - Daily 300-photo development cap, opted-in authentication, company research cache, source links and trading behavior remain independent.
-- Do not interpret ten filled images as ten distinct, visually verified event photographs. Manual inspection is still the release gate.
+- Do not interpret a full set of photographs as visually verified event photographs. Manual inspection is still the release gate.
