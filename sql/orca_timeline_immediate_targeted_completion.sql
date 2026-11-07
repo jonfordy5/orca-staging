@@ -101,6 +101,6 @@ BEGIN
  VALUES(v_ticker,p_user,v_month,0.15,v_recent_count IN (8,9)) RETURNING id INTO v_run;
  RETURN jsonb_build_object('state','reserved','run_id',v_run,'reserve_usd',0.15);
 END;
-$function$
+$function$;
 
 COMMIT;
