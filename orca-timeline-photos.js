@@ -18,12 +18,15 @@ export async function mountTimelinePhotos({sb,ticker,frame,rail,status,getUser,c
  button.type='button';button.textContent='Find photos';button.className='orca-photo-fill';
  button.title='Find company-first illustrative photos. Replace weak cached images without changing research.';
  button.hidden=!(getUser()&&canContribute());
- nav.append(button);
+ // Keep the timeline's next arrow at the right edge.
+ const latest=nav.querySelector('button[aria-label="Jump to latest event"]');
+ if(latest)nav.insertBefore(button,latest);else nav.append(button);
  const notice=document.createElement('p');
  notice.className='orca-photo-notice';notice.hidden=true;
  notice.setAttribute('role','status');notice.setAttribute('aria-live','polite');
  nav.after(notice);
- const showNotice=text=>{notice.textContent=text;notice.hidden=!text;status.textContent=text};
+ // Render photo feedback once, within the timeline; keep history status separate.
+ const showNotice=text=>{notice.textContent=text;notice.hidden=!text};
  let photos=new Map();
  let autoRepairAttempted=false;
  let duplicateCount=0;
