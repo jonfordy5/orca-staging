@@ -122,7 +122,7 @@ check('Timeline generation checks opted-in researcher without requiring stock me
   timeline.includes("canContribute:()=>historyAuthorized") &&
   timeline.includes('discoveryPending=true'));
 check('Every timeline photo stays scoped to the same stock ticker', () =>
-  photos.includes(".eq('ticker',ticker).limit(500)") &&
+  photos.includes(".eq('ticker',ticker).range(offset,offset+249)") &&
   !photos.includes('const {data:shared') &&
   !photos.includes('const {data:library}') );
 check('Photo generation rejects negative relevance and never borrows other tickers', () => {
