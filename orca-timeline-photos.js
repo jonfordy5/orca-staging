@@ -96,12 +96,8 @@ export async function mountTimelinePhotos({sb,ticker,frame,rail,status,getUser,c
     continue;
    }
    const existing=card.querySelector('.orca-photo-image');
-   let badge=card.querySelector('.orca-photo-context');
-   if(p.strategy_version>=7){
-    if(!badge){badge=document.createElement('small');badge.className='orca-photo-context';card.append(badge)}
-    badge.textContent=p.match_type==='topic_context'||p.match_type==='venue_context'?'Related photo · not event photo':
-     p.match_type==='company_event_context'?'Company-related photo · not event photo':'Company photo · not event photo';
-   }
+   // Clear old photo context label; the image credit is retained in details.
+   card.querySelector('.orca-photo-context')?.remove();
    if(existing&&existing.dataset.photoUrl===p.image_url)continue;
    const slot=card.querySelector('.orca-timeline-event-media');
    if(!slot||(!existing&&slot.querySelector('img')))continue;
