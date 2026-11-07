@@ -278,9 +278,8 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
   if(error){status.textContent='Company milestone data unavailable; TradingView is unaffected.';return}
   const verified=(rows||[]).filter(x=>validSource(x.source_url))
    .map(x=>({...x,image_url:validImage(x.image_url)}));
-  const milestoneTarget=10;
-  // Exactly ten featured events by default, spaced across the full cached chronology.
-  // Preserve every extra source-backed milestone in Supabase, rather than deleting it.
+  // Always feature the oldest and newest sourced event. Retain extras in Supabase.
+  allVerified=verified;
   const nextData=verified.length<=milestoneTarget?verified:Array.from({length:milestoneTarget},(_,i)=>
    verified[Math.round(i*(verified.length-1)/(milestoneTarget-1))]);
   // Avoid destroying active modal details every 60 seconds on unchanged records.
@@ -291,8 +290,10 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
    renderCards();
   }
   const extra=Math.max(0,verified.length-data.length);
-  status.textContent=data.length+' sourced company milestone'+(data.length===1?'':'s')+
-   (extra?' shown · '+extra+' additional verified milestone'+(extra===1?'':'s')+' retained in the archive':'')+
+  status.textContent=data.length+' featured company milestone'+(data.length===1?'':'s')+
+   (extra?' · '+extra+' source-backed milestones archived':'')+
+   (!hasOrigin()?' · founding history missing':'')+
+   (!hasCurrentYear()?' · '+year()+' bulletin needed':(!hasCurrentHalf()?' · half-year bulletin eligible':''))+
    ' · explore company history';
  }
  async function checkHistoryPermission(){
@@ -321,14 +322,15 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
    status.textContent='Enable research consent in your ORCA agent profile to complete this company history.';
    return;
   }
-  if(data.length>=8)targetedCompletionRequestedThisSession=true;
+  const researchScope=researchNeed();
+  if(researchScope!=='history'||allVerified.length>=9)targetedCompletionRequestedThisSession=true;
   historyRequestsThisSession++;
   discoveryPending=true;
-  const generateButton=rail.querySelector('.orca-timeline-generate');
+  const generateButton=frame.querySelector('.orca-history-refill-action')||rail.querySelector('.orca-timeline-generate');
   if(generateButton){generateButton.disabled=true;generateButton.textContent='Researching company history…';}
   status.textContent='Researching and caching sourced company milestones for '+ticker+'. This does not claim an agent research assignment.';
   try{
-   const {data:result,error}=await sb.functions.invoke('orca-timeline-discovery',{body:{ticker}});
+   const {data:result,error}=await sb.functions.invoke('orca-timeline-discovery',{body:{ticker,scope:researchScope}});
    if(error)throw error;
    if(result?.state==='ready'){
     await loadEvents();
@@ -339,7 +341,7 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
     await loadEvents();
     const next=typeof result.refresh_eligible_after==='string'&&Number.isFinite(Date.parse(result.refresh_eligible_after))
      ?new Date(result.refresh_eligible_after).toLocaleString():null;
-    status.textContent=data.length+'/10 milestones cached.'+
+    status.textContent=allVerified.length+'/'+milestoneTarget+' milestones cached.'+
      (next?' Additional research becomes eligible after '+next+'.':' Research cooldown is active.')+
      ' Existing sources are unchanged.';
    }else{
@@ -359,7 +361,9 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
    const generateButton=frame.querySelector('.orca-history-refill-action')||rail.querySelector('.orca-timeline-generate');
    if(generateButton){
     generateButton.disabled=!mayRequestHistory();
-    generateButton.textContent=data.length?'Complete company history ('+data.length+'/10)':'Generate company history';
+    generateButton.textContent=researchNeed()==='current'?'Research '+year()+' milestone':
+      researchNeed()==='origin'?'Research company beginnings':
+      allVerified.length?'Complete history ('+allVerified.length+'/'+milestoneTarget+')':'Generate company history';
    }
   }
  }
