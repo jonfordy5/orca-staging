@@ -49,7 +49,7 @@ export async function mountTimelinePhotos({sb,ticker,frame,rail,status,getUser,c
   const data=[];
   for(let offset=0;;offset+=250){
    const {data:page,error}=await sb.from('orca_timeline_photo_selections')
-    .select('event_id,image_url,full_image_url,photo_url,photographer,photographer_url,needs_review,strategy_version,match_type')
+    .select('event_id,photo_id,image_url,full_image_url,photo_url,photographer,photographer_url,needs_review,strategy_version,match_type')
     .eq('ticker',ticker).range(offset,offset+249);
    if(error){button.hidden=true;return}
    data.push(...(page||[]));
