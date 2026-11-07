@@ -384,62 +384,81 @@ async function diagnosticUnsplash(key:string,ticker:string){
    meaning:"network_error",results_returned:null,photo_records_changed:0};
  }
 }
-async function findUnsplashCandidates(accessKey:string,queries:string[],profile:ThemeProfile,plans:EventVisualPlan[]):Promise<{candidates:Candidate[],limited:boolean,queries_tried:string[],provider_last:ProviderMeta|null,provider_failure:ProviderMeta|null,requests_made:number,results_received:number,network_failures:number}>{
- const out:Candidate[]=[];let limited=false;
- const q:string[]=[];
- let provider_last:ProviderMeta|null=null,provider_failure:ProviderMeta|null=null;
+// A single brand search usually provides many possible images. Do not spend
+// nine requests upfront: assess actual milestone coverage after EACH result.
+const maxSearchRequestsPerFill=3;
+function unfilledAfterPreview(events:any[],pool:Candidate[],alreadyUsed:Set<string>,
+ profile:ThemeProfile,existingPhotographers:Map<string,number>):any[]{
+ const used=new Set(alreadyUsed),photographers=new Map(existingPhotographers);
+ const missing:any[]=[];
+ for(const event of events){
+  const match=pickCandidate(pool,used,photographers,eventVisualPlan(event,profile));
+  if(!match){missing.push(event);continue}
+  used.add(match.id);
+  photographers.set(match.photographer,(photographers.get(match.photographer)||0)+1);
+ }
+ return missing;
+}
+async function findUnsplashCandidates(accessKey:string,queries:string[],profile:ThemeProfile,
+ plans:EventVisualPlan[],events:any[]=[],alreadyUsed=new Set<string>(),
+ existingPhotographers=new Map<string,number>()):Promise<{candidates:Candidate[],limited:boolean,queries_tried:string[],provider_last:ProviderMeta|null,provider_failure:ProviderMeta|null,requests_made:number,results_received:number,network_failures:number}>{
+ const byId=new Map<string,Candidate>(),tried=new Set<string>();
+ const triedList:string[]=[];
+ let limited=false,provider_last:ProviderMeta|null=null,provider_failure:ProviderMeta|null=null;
  let requests_made=0,results_received=0,network_failures=0;
- // Four searches are usually enough to cover 10 unique images; reserve an abstract
- // query if the pool remains insufficient. A 30-photo batch costs one search call.
- // Three genuinely different result pages for the repeated "convenience store" request.
- searchLoop: for(const [tier,query] of queries.entries()){
-  const pageCount=profile.brand==="dollar general"&&query==="convenience store"?3:1;
-  for(let page=1;page<=pageCount;page++){
-   q.push(query+(pageCount>1?" (page "+page+")":""));
-   const uri=new URL("https://api.unsplash.com/search/photos");
-   uri.searchParams.set("query",query);
-   uri.searchParams.set("page",String(page));
-   uri.searchParams.set("per_page","30");
-   uri.searchParams.set("orientation","landscape");
-   uri.searchParams.set("order_by","relevant");
-   uri.searchParams.set("content_filter","high");
-   requests_made++;
-   try{
-    const response=await fetch(uri.toString(),{headers:{"Authorization":"Client-ID "+accessKey,"Accept-Version":"v1"},
-     signal:AbortSignal.timeout(8500)});
-    const health=providerMeta(response);
-    provider_last=health;
-    if(!response.ok){
-     recordUnsplash("fill",query,page,health,null);
-     provider_failure??=health;
-     if([401,402,403,429].includes(response.status)){limited=response.status===429;break searchLoop}
-     continue;
-    }
+ const brandQuery=queries[0]||profile.brand;
+ let nextQuery:string|null=brandQuery;
+ while(nextQuery&&requests_made<maxSearchRequestsPerFill){
+  const query=nextQuery;tried.add(query);triedList.push(query);
+  const uri=new URL("https://api.unsplash.com/search/photos");
+  uri.searchParams.set("query",query);
+  uri.searchParams.set("page","1");
+  uri.searchParams.set("per_page","30");
+  uri.searchParams.set("orientation","landscape");
+  uri.searchParams.set("order_by","relevant");
+  uri.searchParams.set("content_filter","high");
+  requests_made++;
+  try{
+   const response=await fetch(uri.toString(),{headers:{"Authorization":"Client-ID "+accessKey,"Accept-Version":"v1"},
+    signal:AbortSignal.timeout(8500)});
+   const health=providerMeta(response);
+   provider_last=health;
+   if(!response.ok){
+    recordUnsplash("fill",query,1,health,null);
+    provider_failure??=health;
+    if([401,402,403,429].includes(response.status)){limited=response.status===429;break}
+   }else{
     const json=await response.json();
     const results=Array.isArray(json.results)?json.results:[];
     results_received+=results.length;
-    recordUnsplash("fill",query,page,health,results.length);
+    recordUnsplash("fill",query,1,health,results.length);
     for(const p of results){
      try{
-      const c=candidateFromUnsplash(p,query,tier,profile,plans);
-      if(c)out.push(c);
+      const c=candidateFromUnsplash(p,query,triedList.length-1,profile,plans);
+      if(c&&(!byId.has(c.id)||c.score>(byId.get(c.id)?.score||0)))byId.set(c.id,c);
      }catch{console.warn("ORCA_UNSPLASH_BAD_PHOTO_METADATA")}
     }
-    if(health.rate_remaining===0){limited=true;break searchLoop}
-   }catch{
-    network_failures++;
-    const unavailable:ProviderMeta={http_status:null,rate_limit:null,rate_remaining:null,retry_after_seconds:null};
-    provider_failure??=unavailable;
-    recordUnsplash("fill",query,page,unavailable,null);
+    if(health.rate_remaining===0){limited=true;break}
    }
+  }catch{
+   network_failures++;
+   const unavailable:ProviderMeta={http_status:null,rate_limit:null,rate_remaining:null,retry_after_seconds:null};
+   provider_failure??=unavailable;
+   recordUnsplash("fill",query,1,unavailable,null);
   }
+  const pool=[...byId.values()].sort((a,b)=>b.score-a.score);
+  const missing=unfilledAfterPreview(events,pool,alreadyUsed,profile,existingPhotographers);
+  if(!missing.length)break; // One call is enough when every event has a unique image.
+  // Search only for still-unmatched milestones; prefer the actual company,
+  // model or acquired-brand phrase from those events over generic categories.
+  const possible=[
+   ...missing.flatMap(e=>eventVisualPlan(e,profile).queries),
+   ...queries
+  ];
+  nextQuery=possible.find(q=>q&&!tried.has(q))||null;
  }
- const byId=new Map<string,Candidate>();
- for(const c of out){
-  const old=byId.get(c.id);
-  if(!old||c.score>old.score)byId.set(c.id,c);
- }
- return {candidates:[...byId.values()].sort((a,b)=>b.score-a.score),limited,queries_tried:q,provider_last,provider_failure,requests_made,results_received,network_failures};
+ return {candidates:[...byId.values()].sort((a,b)=>b.score-a.score),limited,
+  queries_tried:triedList,provider_last,provider_failure,requests_made,results_received,network_failures};
 }
 // Database constraint "orca_timeline_photo_selections_relevance_check" only allows
 // exact_event, exact_subject, contextual and rejected. Detailed ranking stays in
@@ -537,10 +556,11 @@ Deno.serve(async(req:Request)=>{
  const accessKey=Deno.env.get("UNSPLASH_ACCESS_KEY");
  if(!accessKey)return reply(503,{error:"Unsplash access key is not configured"});
  const plans=featured.map((e:any)=>eventVisualPlan(e,profile));
- const search=await findUnsplashCandidates(accessKey,visualQueries(profile,featured),profile,plans);
  const reserved=new Set((cached||[]).filter((p:any)=>!p.needs_review&&p.photo_id).map((p:any)=>p.photo_id));
  const photographers=new Map<string,number>();
  for(const p of cached||[])photographers.set(p.photographer,(photographers.get(p.photographer)||0)+1);
+ const search=await findUnsplashCandidates(accessKey,visualQueries(profile,featured),profile,
+  plans,todo,reserved,photographers);
  let added=0,failed=0,saveFailures=0;
  const choices: {event_id:string,choice:Candidate}[]=[];
  const savedChoices:Candidate[]=[];
