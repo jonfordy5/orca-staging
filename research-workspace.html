@@ -540,23 +540,50 @@ main{max-width:1020px;margin:0 auto;padding:27px 16px 55px}
  stroke:#70b8ff;stroke-width:3;opacity:.88;
  filter:drop-shadow(0 0 3px #55a6ffaa);
 }
-.orca-timeline-frame .orca-history-track-glow{
- stroke:#82d9ff;stroke-width:12;opacity:.48;stroke-dasharray:3.8 96.2;
- filter:drop-shadow(0 0 8px #7ad9ff);
- animation:orca-trailing-beam 18s linear infinite;
-}
+/* One narrow, white beam. The ends fade along the line itself; there
+   is no second wider cyan segment to create the two-tone effect. */
 .orca-timeline-frame .orca-history-track-beam{
- stroke:#efffff;stroke-width:4;stroke-dasharray:1.5 98.5;
- filter:drop-shadow(0 0 5px #baf7ff);
- animation:orca-trailing-beam 18s linear infinite;
+ stroke-width:3.4;opacity:1;
+ filter:drop-shadow(0 0 3px #c8f6ff88);
 }
-@keyframes orca-trailing-beam{
- from{stroke-dashoffset:0}
- to{stroke-dashoffset:-100}
+/* A pulse reaching the circular node climbs the connector into the photo. */
+.orca-timeline-frame .orca-history-stop .orca-history-stem{z-index:4!important}
+.orca-timeline-frame .orca-history-stop .orca-history-stem::after{
+ content:"";position:absolute;inset:0;background:#e8fdff;
+ opacity:0;transform:scaleY(0);transform-origin:bottom center;
+ box-shadow:0 0 6px #8ddfff;
+ pointer-events:none;
+}
+.orca-timeline-frame .orca-history-stop:nth-child(even) .orca-history-stem::after{
+ transform-origin:top center;
+}
+.orca-timeline-frame .orca-history-stop.orca-history-activated .orca-history-stem::after{
+ animation:orca-connector-arrival 1.4s ease-out both;
+}
+.orca-timeline-frame .orca-history-stop.orca-history-activated .orca-history-dot{
+ animation:orca-dot-arrival 1.4s ease-out both;
+}
+.orca-timeline-frame .orca-history-stop.orca-history-activated .orca-timeline-event{
+ animation:orca-photo-arrival 1.4s ease-out both;
+}
+@keyframes orca-connector-arrival{
+ 0%{opacity:.12;transform:scaleY(0)}
+ 30%{opacity:1;transform:scaleY(1)}
+ 65%{opacity:.9;transform:scaleY(1)}
+ 100%{opacity:0;transform:scaleY(1)}
+}
+@keyframes orca-dot-arrival{
+ 0%,100%{box-shadow:0 0 0 3px #247be944}
+ 25%,65%{box-shadow:0 0 0 5px #76caffbb,0 0 13px 4px #c7f5ff}
+}
+@keyframes orca-photo-arrival{
+ 0%,100%{filter:none}
+ 32%,68%{filter:drop-shadow(0 0 10px #89ddffcc)}
 }
 @media(prefers-reduced-motion:reduce){
- .orca-timeline-frame .orca-history-track-glow,
- .orca-timeline-frame .orca-history-track-beam{animation:none}
+ .orca-timeline-frame .orca-history-stop.orca-history-activated .orca-history-stem::after,
+ .orca-timeline-frame .orca-history-stop.orca-history-activated .orca-history-dot,
+ .orca-timeline-frame .orca-history-stop.orca-history-activated .orca-timeline-event{animation:none!important}
 }
 .orca-timeline-frame .orca-history-dot{
  top:209px!important;left:50%!important;transform:translateX(-50%)!important;
@@ -574,7 +601,7 @@ main{max-width:1020px;margin:0 auto;padding:27px 16px 55px}
 .orca-timeline-frame .orca-history-stop:nth-child(even) .orca-history-stem,
 .orca-timeline-frame .orca-history-stop:nth-child(even):has(.orca-history-thumb img) .orca-history-stem,
 .orca-timeline-frame .orca-history-stop:nth-child(even):not(:has(.orca-history-thumb img)) .orca-history-stem{
- top:272px!important;height:20px!important;
+ top:266px!important;height:26px!important;
 }
 .orca-timeline-frame .orca-history-stop .orca-timeline-event,
 .orca-timeline-frame .orca-history-stop:nth-child(odd) .orca-timeline-event,
@@ -1530,7 +1557,7 @@ document.addEventListener('visibilitychange',()=>{if(document.visibilityState===
  void loadWorkspaceCompanyName();
  const {data}=await sb.auth.getUser();user=data?.user||null;await renderCompanyProfile(ticker,sb);await refresh();
  mountStockSearch({sb,root:$('workspace-stock-search'),activeTicker:ticker}).catch(()=>{$('workspace-stock-search').textContent='Stock lookup unavailable. The requested stock workspace can still be used.';});
- if(isOrcaStaging)import('./orca-living-timeline.js?v=compact-beam-midpoint-v24').then(({mountLivingTimeline})=>
+ if(isOrcaStaging)import('./orca-living-timeline.js?v=connected-pulse-photo-v25').then(({mountLivingTimeline})=>
   mountLivingTimeline({sb,ticker,getUser:()=>user,canContribute:()=>ready,getFindings:()=>findings})
  ).catch(err=>{console.error('ORCA Living Timeline isolated error:',err);$('living-status').textContent='Timeline unavailable; TradingView remains available.';});
   // Passive monitor for the HUMAN observer's browser; no autonomous research or API requests.

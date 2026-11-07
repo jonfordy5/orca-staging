@@ -52,39 +52,108 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
  let prices=[];
  let photoMount=null;
  let lastEventFingerprint='';
- // One continuous path avoids restarting the traveling light at each node.
+ // Render one continuous line through the ACTUAL circle centers. Reading
+ // DOM coordinates eliminates browser rounding gaps between dots and track.
+ let beamFrame=0;
+ function stopBeam(){
+  if(beamFrame)cancelAnimationFrame(beamFrame);
+  beamFrame=0;
+ }
  function drawHistoryTrack(){
+  stopBeam();
   const spine=rail.querySelector('.orca-history-spine');
   if(!spine)return;
-  const stops=[...spine.querySelectorAll('.orca-history-stop')];
   spine.querySelector('.orca-history-track')?.remove();
+  const stops=[...spine.querySelectorAll('.orca-history-stop')];
   if(!stops.length)return;
-  const svgNS='http://www.w3.org/2000/svg';
-  const width=Math.max(1,Math.ceil(stops[stops.length-1].offsetLeft+stops[stops.length-1].offsetWidth));
-  const points=stops.map((stop,i)=>[Math.round(stop.offsetLeft+stop.offsetWidth/2),i%2===0?216:266]);
+  const spineRect=spine.getBoundingClientRect();
+  const points=stops.map(stop=>{
+   const rect=stop.querySelector('.orca-history-dot').getBoundingClientRect();
+   return [Math.round(rect.left+rect.width/2-spineRect.left),
+    Math.round(rect.top+rect.height/2-spineRect.top)];
+  });
+  const width=Math.max(1,Math.ceil(spine.scrollWidth),points[points.length-1][0]+10);
+  const height=Math.max(1,Math.ceil(spine.clientHeight));
   const pathData='M '+points.map(([x,y])=>x+' '+y).join(' L ');
-  const svg=document.createElementNS(svgNS,'svg');
+  const ns='http://www.w3.org/2000/svg';
+  const svg=document.createElementNS(ns,'svg');
   svg.classList.add('orca-history-track');
-  svg.setAttribute('viewBox','0 0 '+width+' 480');
+  svg.setAttribute('viewBox','0 0 '+width+' '+height);
   svg.setAttribute('width',String(width));
-  svg.setAttribute('height','480');
+  svg.setAttribute('height',String(height));
   svg.setAttribute('aria-hidden','true');
   svg.style.width=width+'px';
-  const makePath=className=>{
-   const p=document.createElementNS(svgNS,'path');
-   p.classList.add(className);
-   p.setAttribute('d',pathData);
-   p.setAttribute('pathLength','100');
-   p.setAttribute('fill','none');
-   p.setAttribute('vector-effect','non-scaling-stroke');
-   p.setAttribute('stroke-linecap','round');
-   p.setAttribute('stroke-linejoin','round');
-   return p;
-  };
-  svg.append(makePath('orca-history-track-base'),
-   makePath('orca-history-track-glow'),
-   makePath('orca-history-track-beam'));
+  const base=document.createElementNS(ns,'path');
+  base.classList.add('orca-history-track-base');
+  base.setAttribute('d',pathData);
+  base.setAttribute('fill','none');
+  base.setAttribute('vector-effect','non-scaling-stroke');
+  base.setAttribute('stroke-linejoin','round');
+  const gradientId='orca-beam-fade-'+ticker.toLowerCase().replace(/[^a-z0-9]/g,'');
+  const defs=document.createElementNS(ns,'defs');
+  const gradient=document.createElementNS(ns,'linearGradient');
+  gradient.setAttribute('id',gradientId);
+  gradient.setAttribute('x1','0%');gradient.setAttribute('y1','0%');
+  gradient.setAttribute('x2','100%');gradient.setAttribute('y2','0%');
+  for(const [offset,opacity] of [
+   ['0%','0'],['22%','0.82'],['42%','1'],
+   ['62%','1'],['82%','0.82'],['100%','0']
+  ]){
+   const stop=document.createElementNS(ns,'stop');
+   stop.setAttribute('offset',offset);
+   stop.setAttribute('stop-color','#f5ffff');
+   stop.setAttribute('stop-opacity',opacity);
+   gradient.append(stop);
+  }
+  defs.append(gradient);
+  const beam=document.createElementNS(ns,'path');
+  beam.classList.add('orca-history-track-beam');
+  beam.setAttribute('fill','none');
+  beam.setAttribute('stroke','url(#'+gradientId+')');
+  beam.setAttribute('vector-effect','non-scaling-stroke');
+  beam.setAttribute('stroke-linecap','butt');
+  beam.setAttribute('stroke-linejoin','round');
+  svg.append(defs,base,beam);
   spine.prepend(svg);
+  if(stops.length<2||window.matchMedia('(max-width:700px)').matches||
+     window.matchMedia('(prefers-reduced-motion: reduce)').matches||
+     document.visibilityState==='hidden')return;
+  const length=base.getTotalLength();
+  if(!length)return;
+  const travelMs=18000;
+  const beamLength=Math.min(115,Math.max(60,length*0.06));
+  const nodeDistances=[0];
+  for(let i=1;i<points.length;i++){
+   const [x0,y0]=points[i-1], [x1,y1]=points[i];
+   nodeDistances.push(nodeDistances[i-1]+Math.hypot(x1-x0,y1-y0));
+  }
+  let startTime=0,previousHead=-1;
+  const animate=now=>{
+   if(document.visibilityState==='hidden'||!svg.isConnected){beamFrame=0;return}
+   if(!startTime)startTime=now;
+   const head=((now-startTime)%travelMs)/travelMs*(length+beamLength);
+   if(head<previousHead)previousHead=-1;
+   const from=Math.max(0,head-beamLength),to=Math.min(length,head);
+   if(to>from){
+    const samples=Math.max(5,Math.ceil((to-from)/5));
+    const coords=[];
+    for(let j=0;j<=samples;j++){
+     const p=base.getPointAtLength(from+(to-from)*j/samples);
+     coords.push((j?'L ':'M ')+p.x.toFixed(1)+' '+p.y.toFixed(1));
+    }
+    beam.setAttribute('d',coords.join(' '));
+   }else beam.setAttribute('d','');
+   for(let i=0;i<stops.length;i++){
+    if(nodeDistances[i]>previousHead&&nodeDistances[i]<=head){
+     stops[i].classList.remove('orca-history-activated');
+     void stops[i].offsetWidth;
+     stops[i].classList.add('orca-history-activated');
+    }
+   }
+   previousHead=head;
+   beamFrame=requestAnimationFrame(animate);
+  };
+  beamFrame=requestAnimationFrame(animate);
  }
  function fitRailEdges(){
   const spine=rail.querySelector('.orca-history-spine');
@@ -104,6 +173,10 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
   rail.scrollTo({left:Math.max(0,left),behavior});
  }
  window.addEventListener('resize',()=>{fitRailEdges();drawHistoryTrack()});
+ document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='hidden')stopBeam();
+  else drawHistoryTrack();
+ });
  // The history section is permanently visible beneath the market chart.
  host.hidden=false;
  host.append(frame);
@@ -227,6 +300,10 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
    year.textContent=String(eventYear);
    year.setAttribute('aria-label','Year '+eventYear);
    stop.append(stem,dot,card,year);
+   card.addEventListener('animationend',e=>{
+    if(e.animationName==='orca-photo-arrival')
+     stop.classList.remove('orca-history-activated');
+   });
    card.addEventListener('click',()=>selectMilestone(i));
    stop.addEventListener('keydown',e=>{if(e.key==='ArrowRight'){e.preventDefault();selectMilestone(Math.min(i+1,data.length-1));}if(e.key==='ArrowLeft'){e.preventDefault();selectMilestone(Math.max(i-1,0));}});
    spine.append(stop);
@@ -397,5 +474,5 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
   photoMount=await module.mountTimelinePhotos({sb,ticker,frame,rail,status,getUser,canContribute:()=>historyAuthorized});
  }catch(error){console.warn('Optional history photography is unavailable',error)}
  const poll=setInterval(()=>{if(document.visibilityState==='visible')loadEvents()},60000);
- window.addEventListener('pagehide',()=>clearInterval(poll),{once:true});
+ window.addEventListener('pagehide',()=>{stopBeam();clearInterval(poll)},{once:true});
 }
