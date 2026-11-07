@@ -29,20 +29,11 @@ export async function mountTimelinePhotos({sb,ticker,frame,rail,status,getUser,c
  let duplicateCount=0;
  let remainingPhotos=0;
  let actionPending=false;
- let diagnosticPending=false;
- const diagnosticsButton=document.createElement('button');
- diagnosticsButton.type='button';
- diagnosticsButton.className='orca-photo-diagnostic';
- diagnosticsButton.textContent='Check Unsplash API';
- diagnosticsButton.title='One API request, no photo database changes.';
- nav.append(diagnosticsButton);
  function updatePhotoAction(){
   const needsAction=duplicateCount>0||remainingPhotos>0;
   // A finished timeline should show its photos, not a disabled "Photos ready" button.
   button.hidden=!needsAction||!(getUser()&&canContribute());
-  diagnosticsButton.hidden=!(getUser()&&canContribute());
-  button.disabled=actionPending||diagnosticPending;
-  diagnosticsButton.disabled=actionPending||diagnosticPending;
+  button.disabled=actionPending;
   if(!actionPending)button.textContent=duplicateCount>0?'Improve photos':'Find photos';
  }
  async function refresh(){
@@ -150,26 +141,6 @@ export async function mountTimelinePhotos({sb,ticker,frame,rail,status,getUser,c
   finally{actionPending=false;updatePhotoAction()}
  }
  button.addEventListener('click',()=>void fillPhotos());
- diagnosticsButton.addEventListener('click',async()=>{
-  if(diagnosticPending||actionPending||!getUser()||!canContribute())return;
-  diagnosticPending=true;diagnosticsButton.disabled=true;button.disabled=true;
-  diagnosticsButton.textContent='Checking…';
-  try{
-   const {data,error}=await sb.functions.invoke('orca-timeline-photo-fill',{body:{ticker,diagnostic:true}});
-   if(error){
-    let detail={};try{detail=await error.context?.json()||{}}catch{}
-    showNotice(photoFailureMessage(detail));return;
-   }
-   const code=Number.isInteger(data?.http_status)?String(data.http_status):'not received';
-   const remaining=Number.isInteger(data?.rate_remaining)?String(data.rate_remaining):'unknown';
-   const limit=Number.isInteger(data?.rate_limit)?String(data.rate_limit):'unknown';
-   const result=Number.isInteger(data?.results_returned)?String(data.results_returned):'unknown';
-   const meaning=String(data?.meaning||'unknown').replace(/_/g,' ');
-   showNotice('Unsplash: HTTP '+code+' ('+meaning+'). Rate remaining '+remaining+
-    ' / '+limit+'. Sample results: '+result+'. One API request used; no photos changed.');
-  }catch{showNotice('Unsplash diagnostic failed to reach ORCA; no photos changed.')}
-  finally{diagnosticPending=false;diagnosticsButton.textContent='Check Unsplash API';updatePhotoAction()}
- });
  rail.addEventListener('click',event=>{
   const card=event.target.closest?.('button[data-event-id]');
   if(!card)return;
