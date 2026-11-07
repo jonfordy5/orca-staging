@@ -166,6 +166,17 @@ function photoVenue(title:string):string|undefined{
 type EventVisualPlan={kind:string;queries:string[];terms:string[]};
 function eventVisualPlan(event:{title:string;category?:string},profile:ThemeProfile):EventVisualPlan{
  const title=String(event.title||"").toLowerCase();
+ // Ford photos should represent the named vehicle or company era. Other
+ // companies still use their existing event-specific plans.
+ if(profile.brand==="ford"){
+  if(/\b(mustang|mach[- ]?e)\b/.test(title))
+   return {kind:"ford_mustang",queries:["ford","ford mustang","ford mustang mach e"],terms:["ford","mustang","mach e","mach-e","coupe"]};
+  if(/\b(f[- ]?150|lightning|pickup|truck)\b/.test(title))
+   return {kind:"ford_truck",queries:["ford","ford truck","ford f150"],terms:["ford","truck","pickup","f150","f-150","lightning"]};
+  if(/\b(found|model t|assembly line|highland park|1949 ford|vintage|original)\b/.test(title))
+   return {kind:"ford_vintage",queries:["ford","ford model t","vintage ford car"],terms:["ford","model t","vintage","classic","antique","old car"]};
+  return {kind:"ford_brand",queries:["ford","ford car","ford truck"],terms:["ford","car","truck","vehicle","logo"]};
+ }
  if(/\b(mexico|mexican|international expansion|overseas)\b/.test(title)){
   const mexico=/\b(mexico|mexican)\b/.test(title);
   if(mexico&&profile.theme==="discount retail")
@@ -187,6 +198,11 @@ function eventVisualPlan(event:{title:string;category?:string},profile:ThemeProf
  return {kind:"general",queries:profile.brand==="dollar general"?["convenience store"]:[profile.queries[0],profile.queries[1]],terms:profile.terms};
 }
 function visualQueries(profile:ThemeProfile,events:{title:string;category?:string}[]):string[]{
+ // The high-coverage primary query is simply "ford", just as a person
+ // would type into Unsplash, followed by model/era variants for diversity.
+ if(profile.brand==="ford")return [
+  "ford","ford mustang","ford truck","ford model t","ford f150","ford bronco"
+ ];
  // DG pilot: seven broad, distinct search phrases. Do not narrow or recombine them.
  // Repeated convenience-store searches use different result pages, not duplicated page one.
  if(profile.brand==="dollar general")return [
@@ -215,6 +231,10 @@ function visualQueries(profile:ThemeProfile,events:{title:string;category?:strin
 function eventContextMatch(description:string,plan:EventVisualPlan):boolean{
  const text=description.toLowerCase();
  switch(plan.kind){
+  case "ford_mustang":return /\b(mustang|mach[- ]?e)\b/.test(text);
+  case "ford_truck":return /\b(truck|pickup|f[- ]?150|lightning|raptor)\b/.test(text);
+  case "ford_vintage":return /\b(model t|vintage|classic|antique|old car|191\d|192\d|1949)\b/.test(text);
+  case "ford_brand":return /\b(ford|mustang|bronco|f[- ]?150|car|truck|automotive)\b/.test(text);
   case "international":return /\b(mexico|mexican|supermercado)\b/.test(text)&&
    /\b(grocery|groceries|supermarket|market|retail|store|shop|shopping|food)\b/.test(text);
   case "listing":return /\b(nyse|new york stock exchange|stock exchange|wall street)\b/.test(text);
