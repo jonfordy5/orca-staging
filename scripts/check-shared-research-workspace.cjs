@@ -95,14 +95,13 @@ check('Photo controls hide when complete and remain available for missing or wea
   photos.includes('button.hidden=!needsAction') &&
   photos.includes("button.textContent=duplicateCount>0?'Improve photos':'Find photos'") &&
   photos.includes('visiblePhotos.filter(p=>p.needs_review)') &&
-  photos.includes('visibleCards.filter(card=>!rawPhotos.has(card.dataset.eventId))'));
-check('Open-ended photo coverage reuses credited images before white cards', () =>
-  photos.includes('const fallbackPool=') || (
-    photos.includes('let fallbackPool=') &&
-    photos.includes("photos.set(card.dataset.eventId,{...fallback,temporary:true})") &&
-    photos.includes("sb.from('orca_timeline_photo_selections')") &&
-    photos.includes('void fillPhotos()')
-  ));
+  photos.includes('visibleCards.filter(card=>!photos.has(card.dataset.eventId))'));
+check('Open-ended photo coverage never repeats an old saved image', () =>
+  photos.includes('seen.has(p.photo_id)') &&
+  photos.includes('seen.add(p.photo_id)') &&
+  photos.includes('if(!fallback)continue;') &&
+  photos.includes("photos.set(card.dataset.eventId,{...fallback,temporary:true})") &&
+  photos.includes("sb.from('orca_timeline_photo_selections')"));
 check('Photo status is hidden visually but research navigation remains accessible', () =>
   timeline.includes("index.className='orca-timeline-index'") &&
   timeline.includes("index.setAttribute('aria-live','polite')") &&
@@ -128,7 +127,7 @@ check('Every timeline photo stays scoped to the same stock ticker', () =>
 check('Photo generation rejects negative relevance and never borrows other tickers', () => {
  const engine=read('supabase/functions/orca-timeline-photo-fill/index.ts');
  return engine.includes('if(score<0&&!context_kinds.length&&!retail_illustration)return null;') &&
-   engine.includes('const backups=stockCache||[];') &&
+   engine.includes('if(duplicated){failed++;continue}') &&
    !engine.includes('const {data:library}');
 });
 check('Open-ended histories provide opt-in founding and current-year refreshes', () =>
@@ -196,9 +195,17 @@ check('Milestone photo matching uses event-aware visual plans', () => {
   engine.includes('function eventCandidateScore(') &&
   engine.includes('eventVisualPlan(e,profile)') &&
   engine.includes('visualQueries(profile,featured)') &&
-  engine.includes('strategy_version:9,needs_review:duplicated') &&
+  engine.includes('strategy_version:10,needs_review:false') &&
   engine.includes('duplicateEvents.has(e.id)') &&
   engine.includes('function eventContextMatch(');
+});
+check('Ford searches by brand and refuses repeated database images', () => {
+ const engine=read('supabase/functions/orca-timeline-photo-fill/index.ts');
+ return engine.includes('if(profile.brand==="ford")return [') &&
+  engine.includes('F:"ford"') &&
+  engine.includes('if(duplicated){failed++;continue}') &&
+  engine.includes('const maximumPerCall=15;') &&
+  !engine.includes('const lastResort=');
 });
 check('Dollar General photo queries distinguish groceries, leadership, listing and Mexico expansion', () => {
  const engine=read('supabase/functions/orca-timeline-photo-fill/index.ts');
@@ -209,16 +216,16 @@ check('Dollar General photo queries distinguish groceries, leadership, listing a
 });
 check('Old flagged illustrations cannot be recycled as vetted company fallback', () => {
  const engine=read('supabase/functions/orca-timeline-photo-fill/index.ts');
- return engine.includes('if(p.needs_review||!p.photo_id') &&
-  engine.includes('.eq("ticker",ticker).limit(100)') &&
+ return !engine.includes('const lastResort=') &&
+  engine.includes('if(duplicated){failed++;continue}') &&
   !engine.includes('const {data:library}');
 });
-check('Unsplash diagnosis uses one authorized request and disables automatic photo retries', () =>
+check('Unsplash diagnosis and consent-based photo repair are guarded', () =>
   photos.includes("body:{ticker,diagnostic:true}") &&
   photos.includes("diagnosticsButton.textContent='Check Unsplash API'") &&
   photos.includes("button.addEventListener('click',()=>void fillPhotos())") &&
-  !photos.includes('autoFillAttempted') &&
-  !photos.includes('lastAutoFillSignature') &&
+  photos.includes('autoRepairAttempted') &&
+  photos.includes('sessionStorage.setItem(key,String(Date.now()))') &&
   photos.includes('await refreshAndMaybeFill()'));
 
 console.log('\nShared workspace checks: ' + passed + ' passed, ' + failures.length + ' failed.');

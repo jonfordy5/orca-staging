@@ -31,6 +31,31 @@ const dg=companyTheme('DG','Dollar General','discount retailer');
 const nvda=companyTheme('NVDA','NVIDIA','semiconductors');
 const ulta=companyTheme('ULTA','Ulta Beauty','beauty retail');
 const unknown=companyTheme('NEW','New Restaurant','restaurant');
+
+const ford=companyTheme('F','Ford Motor Company Common Stock','automotive manufacturer');
+assert.equal(ford.brand,'ford');
+assert.equal(ford.theme,'automotive');
+assert.equal(Array.from(visualQueries(ford,[]))[0],'ford');
+testFordSource();
+function testFordSource(){
+ const scenic={id:'ford-test-001',
+  urls:{small:'https://images.unsplash.com/photo-001',regular:'https://images.unsplash.com/photo-001'},
+  user:{name:'Automotive Author',links:{html:'https://unsplash.com/@author'}},
+  links:{html:'https://unsplash.com/photos/ford-mustang-test',download_location:'https://api.unsplash.com/photos/ford-test-001/download'},
+  alt_description:'Ford Mustang sports car on highway',description:'',slug:'ford-mustang-sports-car',tags:[]};
+ const model=eventVisualPlan({title:"Mustang debuts at New York World's Fair"},ford);
+ const company=candidateFromUnsplash(scenic,'ford',0,ford,[model]);
+ assert(company,'Plain Ford search should accept a real photographed Mustang');
+ assert.equal(company.company_match,true);
+ const old=eventVisualPlan({title:'Ford Model T reaches its first customer'},ford);
+ assert.equal(old.kind,'ford_vintage');
+ assert.equal(model.kind,'ford_mustang');
+ assert(eventCandidateScore(company,model)>eventCandidateScore(company,old));
+ const unrelated={...scenic,id:'ford-failure',alt_description:'Ford theater with people in a hallway',description:'',slug:'ford-theater-building'};
+ assert.equal(candidateFromUnsplash(unrelated,'ford',0,ford,[model]),null);
+ console.log('PASS Ford search accepts multiple car models and rejects non-car Ford names');
+}
+
 let checks=0;
 function test(name,fn){fn();checks++;console.log('PASS '+name)}
 const candidate=(title,query='',score=40)=>({id:title,title,query,score,photographer:'Example',company_match:companyPhotoIdentity(title,dg),venue:photoVenue(title)});

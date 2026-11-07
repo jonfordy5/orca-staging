@@ -21,7 +21,7 @@ function withUtm(value:unknown){
 type ThemeProfile={brand:string,theme:string,terms:string[],queries:string[]};
 function companyTheme(ticker:string,name:string,description:string):ThemeProfile{
  const short=name.replace(/\b(common stock|class [a-z] stock|corporation|incorporated|inc\.?|corp\.?|company|limited|ltd\.?|plc)\b/ig,"").replace(/[.,]/g,"").trim().toLowerCase();
- const brand=({DG:"dollar general",AAP:"advance auto parts",NVDA:"nvidia",ULTA:"ulta",AAPL:"apple",MSFT:"microsoft",INTC:"intel",META:"meta",RKLB:"rocket lab",AMZN:"amazon",WMT:"walmart",TSLA:"tesla"} as Record<string,string>)[ticker]||short||ticker.toLowerCase();
+ const brand=({F:"ford",DG:"dollar general",AAP:"advance auto parts",NVDA:"nvidia",ULTA:"ulta",AAPL:"apple",MSFT:"microsoft",INTC:"intel",META:"meta",RKLB:"rocket lab",AMZN:"amazon",WMT:"walmart",TSLA:"tesla"} as Record<string,string>)[ticker]||short||ticker.toLowerCase();
  const info=(name+" "+description).toLowerCase();
  const themes=[
   {test:/dollar general|discount (?:retailer|retail|store)|variety store|value retailer/,
@@ -43,6 +43,10 @@ function companyTheme(ticker:string,name:string,description:string):ThemeProfile
   {test:/energy|oil|petroleum|gas exploration/,theme:"energy",terms:["energy","oil","gas","refinery","industrial","pipeline"],queries:["oil refinery","energy industry","industrial pipeline"]}
  ];
  const selected=themes.find(t=>t.test.test(info))||{theme:"business technology",terms:["technology","business","office","building"],queries:["technology infrastructure","business workplace","corporate headquarters"]};
+ // "Ford" returns real cars and models; "Ford Motor" unnecessarily loses results.
+ if(ticker==="F")return {brand:"ford",theme:"automotive",
+  terms:["car","cars","truck","pickup","vehicle","automotive","mustang","bronco","f150","f-150","model t","classic car","logo","electric"],
+  queries:["ford","ford mustang","ford truck","ford model t"]};
  return {brand,theme:selected.theme,terms:selected.terms,queries:selected.queries};
 }
 function photoPlans(profile:ThemeProfile){
@@ -146,6 +150,9 @@ function companyPhotoIdentity(title:string,profile:ThemeProfile):boolean{
  const description=" "+clean(title)+" ";
  const brand=clean(profile.brand);
  if(!brand||!description.includes(" "+brand+" "))return false;
+ // A Ford vehicle, named model or Ford logo is company imagery; a Ford
+ // bridge, town or surname without automotive context is not.
+ if(brand==="ford")return /\b(car|cars|automobile|automotive|vehicle|vehicles|truck|trucks|pickup|mustang|bronco|f150|f 150|f250|f 250|model t|engine|grille|logo|badge|classic|raptor|ranger|fiesta|focus|explorer|gt|suv|factory)\b/.test(description);
  // Ambiguous company names also need their industry/product context.
  if(["apple","meta","ford","amazon","target","intel"].includes(brand))
   return profile.terms.some(term=>clean(term)!==brand&&description.includes(" "+clean(term)+" "));
@@ -159,6 +166,17 @@ function photoVenue(title:string):string|undefined{
 type EventVisualPlan={kind:string;queries:string[];terms:string[]};
 function eventVisualPlan(event:{title:string;category?:string},profile:ThemeProfile):EventVisualPlan{
  const title=String(event.title||"").toLowerCase();
+ // Ford photos should represent the named vehicle or company era. Other
+ // companies still use their existing event-specific plans.
+ if(profile.brand==="ford"){
+  if(/\b(mustang|mach[- ]?e)\b/.test(title))
+   return {kind:"ford_mustang",queries:["ford","ford mustang","ford mustang mach e"],terms:["ford","mustang","mach e","mach-e","coupe"]};
+  if(/\b(f[- ]?150|lightning|pickup|truck)\b/.test(title))
+   return {kind:"ford_truck",queries:["ford","ford truck","ford f150"],terms:["ford","truck","pickup","f150","f-150","lightning"]};
+  if(/\b(found|model t|assembly line|highland park|1949 ford|vintage|original)\b/.test(title))
+   return {kind:"ford_vintage",queries:["ford","ford model t","vintage ford car"],terms:["ford","model t","vintage","classic","antique","old car"]};
+  return {kind:"ford_brand",queries:["ford","ford car","ford truck"],terms:["ford","car","truck","vehicle","logo"]};
+ }
  if(/\b(mexico|mexican|international expansion|overseas)\b/.test(title)){
   const mexico=/\b(mexico|mexican)\b/.test(title);
   if(mexico&&profile.theme==="discount retail")
@@ -180,6 +198,11 @@ function eventVisualPlan(event:{title:string;category?:string},profile:ThemeProf
  return {kind:"general",queries:profile.brand==="dollar general"?["convenience store"]:[profile.queries[0],profile.queries[1]],terms:profile.terms};
 }
 function visualQueries(profile:ThemeProfile,events:{title:string;category?:string}[]):string[]{
+ // The high-coverage primary query is simply "ford", just as a person
+ // would type into Unsplash, followed by model/era variants for diversity.
+ if(profile.brand==="ford")return [
+  "ford","ford mustang","ford truck","ford model t","ford f150","ford bronco"
+ ];
  // DG pilot: seven broad, distinct search phrases. Do not narrow or recombine them.
  // Repeated convenience-store searches use different result pages, not duplicated page one.
  if(profile.brand==="dollar general")return [
@@ -208,6 +231,10 @@ function visualQueries(profile:ThemeProfile,events:{title:string;category?:strin
 function eventContextMatch(description:string,plan:EventVisualPlan):boolean{
  const text=description.toLowerCase();
  switch(plan.kind){
+  case "ford_mustang":return /\b(mustang|mach[- ]?e)\b/.test(text);
+  case "ford_truck":return /\b(truck|pickup|f[- ]?150|lightning|raptor)\b/.test(text);
+  case "ford_vintage":return /\b(model t|vintage|classic|antique|old car|191\d|192\d|1949)\b/.test(text);
+  case "ford_brand":return /\b(ford|mustang|bronco|f[- ]?150|car|truck|automotive)\b/.test(text);
   case "international":return /\b(mexico|mexican|supermercado)\b/.test(text)&&
    /\b(grocery|groceries|supermarket|market|retail|store|shop|shopping|food)\b/.test(text);
   case "listing":return /\b(nyse|new york stock exchange|stock exchange|wall street)\b/.test(text);
@@ -389,7 +416,7 @@ function pickCandidate(pool:Candidate[],reserved:Set<string>,photographerCounts:
  return available[0];
 }
 
-const maximumPerCall=10;
+const maximumPerCall=15;
 // Shared development allowance, measured over a rolling 24-hour window.
 const dailyPhotoLimit=300;
 Deno.serve(async(req:Request)=>{
@@ -467,12 +494,12 @@ Deno.serve(async(req:Request)=>{
   return reply(429,{state:"daily_limit",error:"Photo-selection daily safety limit reached",
    limit:dailyPhotoLimit,used:count,remaining:targets.length,retry_at:retryAt});
  }
- const todo=targets.slice(0,Math.min(10,remainingDaily));
+ const todo=targets.slice(0,Math.min(maximumPerCall,remainingDaily));
  const accessKey=Deno.env.get("UNSPLASH_ACCESS_KEY");
  if(!accessKey)return reply(503,{error:"Unsplash access key is not configured"});
  const plans=featured.map((e:any)=>eventVisualPlan(e,profile));
  const search=await findUnsplashCandidates(accessKey,visualQueries(profile,featured),profile,plans);
- const reserved=new Set((cached||[]).filter((p:any)=>!p.needs_review).map((p:any)=>p.photo_id));
+ const reserved=new Set((cached||[]).filter((p:any)=>!p.needs_review&&p.photo_id).map((p:any)=>p.photo_id));
  const photographers=new Map<string,number>();
  for(const p of cached||[])photographers.set(p.photographer,(photographers.get(p.photographer)||0)+1);
  let added=0,failed=0,saveFailures=0;
@@ -485,49 +512,13 @@ Deno.serve(async(req:Request)=>{
   photographers.set(found.photographer,(photographers.get(found.photographer)||0)+1);
   choices.push({event_id:e.id,choice:found});
  }
- // If all unique candidates were exhausted, reuse the strongest relevant photo only as
- // a last resort. Repetition is suboptimal but is preferred to an unfilled timeline.
- const lastResort=search.candidates.filter(c=>c.score>=0);
- // Absolute last resort: already cached, credited Unsplash photographs. This remains
- // photography rather than a blank placeholder, including during provider outages.
- // Only reuse this company's credited, non-flagged photographs.
- if(lastResort.length<todo.length){
-  const {data:stockCache}=await admin.from("orca_timeline_photo_selections")
-   .select("photo_id,image_url,full_image_url,photographer,photographer_url,photo_url,ticker,needs_review,image_title")
-   .eq("ticker",ticker).limit(100);
-  // Never use another ticker's photo as a visual fallback.
-  const backups=stockCache||[];
-  const already=new Set(lastResort.map(c=>c.id));
-  for(const p of backups){
-   if(p.needs_review||!p.photo_id||already.has(p.photo_id)||
-     !urlAllowed(p.image_url,"images.unsplash.com")||
-     !urlAllowed(p.full_image_url,"images.unsplash.com")||
-     !urlAllowed(p.photo_url,"unsplash.com")||
-     !urlAllowed(p.photographer_url,"unsplash.com"))continue;
-   already.add(p.photo_id);
-   lastResort.push({id:p.photo_id,image_url:p.image_url,full_image_url:p.full_image_url,
-    photographer:p.photographer,photographer_url:p.photographer_url,photo_url:p.photo_url,
-    download_location:"",query:"existing credited photo cache",title:p.image_title||"",
-    company_match:companyPhotoIdentity(p.image_title||"",profile),venue:photoVenue(p.image_title||""),
-    tier:99,score:p.ticker===ticker?4:0});
-  }
- }
- for(const e of todo){
-  if(choices.find(c=>c.event_id===e.id))continue;
-  if(!lastResort.length)continue;
-  // Reuse only company-identified photography or the matching named venue.
-  const plan=eventVisualPlan(e,profile);
-  const ranked=lastResort.filter(c=>Number.isFinite(eventCandidateScore(c,plan)))
-   .sort((a,b)=>eventCandidateScore(b,plan)-eventCandidateScore(a,plan));
-  if(!ranked.length)continue;
-  const pick=ranked[0];
-  if(existing.has(e.id))continue;
-  choices.push({event_id:e.id,choice:pick});
-  failed=Math.max(0,failed-1);
- }
+ // Never recycle one photo across different milestones.
+ // Unmatched events stay pending so another broad company-first search can
+ // supply a distinct photo. Ten duplicate cards are NOT a successful result.
  for(const {event_id,choice} of choices){
-  const duplicated=(cached||[]).some((p:any)=>p.event_id!==event_id&&p.photo_id===choice.id)||
-   choices.some(x=>x.event_id!==event_id&&x.choice.id===choice.id);
+  const duplicated=choices.some(x=>x.event_id!==event_id&&x.choice.id===choice.id)||
+   (cached||[]).some((p:any)=>p.event_id!==event_id&&p.photo_id===choice.id&&!p.needs_review);
+  if(duplicated){failed++;continue}
   const matchType=storedMatchType(choice);
   const {error:saveError}=await admin.from("orca_timeline_photo_selections").upsert({
    event_id,ticker,photo_id:choice.id,image_url:choice.image_url,
@@ -535,7 +526,7 @@ Deno.serve(async(req:Request)=>{
    photographer_url:choice.photographer_url,photo_url:choice.photo_url,illustrative:true,
    source_type:"unsplash_legacy",rights_status:"legacy_provider_terms",
    match_type:matchType,search_query:choice.query,query_used:choice.query,
-   strategy_version:9,needs_review:duplicated,created_at:new Date().toISOString(),
+   strategy_version:10,needs_review:false,created_at:new Date().toISOString(),
    image_title:choice.title,
    match_score:Math.round(choice.score),relevance_score:Math.min(100,Math.round(choice.score)),
    attribution_text:"Photo by "+choice.photographer+" on Unsplash",

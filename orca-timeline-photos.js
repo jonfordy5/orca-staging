@@ -25,6 +25,7 @@ export async function mountTimelinePhotos({sb,ticker,frame,rail,status,getUser,c
  nav.after(notice);
  const showNotice=text=>{notice.textContent=text;notice.hidden=!text;status.textContent=text};
  let photos=new Map();
+ let autoRepairAttempted=false;
  let duplicateCount=0;
  let remainingPhotos=0;
  let actionPending=false;
@@ -48,7 +49,7 @@ export async function mountTimelinePhotos({sb,ticker,frame,rail,status,getUser,c
   const data=[];
   for(let offset=0;;offset+=250){
    const {data:page,error}=await sb.from('orca_timeline_photo_selections')
-    .select('event_id,image_url,full_image_url,photo_url,photographer,photographer_url,needs_review,strategy_version,match_type')
+    .select('event_id,photo_id,image_url,full_image_url,photo_url,photographer,photographer_url,needs_review,strategy_version,match_type')
     .eq('ticker',ticker).range(offset,offset+249);
    if(error){button.hidden=true;return}
    data.push(...(page||[]));
@@ -57,20 +58,28 @@ export async function mountTimelinePhotos({sb,ticker,frame,rail,status,getUser,c
   // Keep existing flagged illustrations visible while seeking better images:
   // never turn a completed full-photo card into a white placeholder.
   const rawPhotos=new Map((data||[]).map(p=>[p.event_id,p]));
-  photos=new Map(rawPhotos);
-  const visibleCards=Array.from(rail.querySelectorAll('button[data-event-id]'));
+  // Do not visually reproduce the same image across many event cards.
+  // Old flagged duplicates remain available for repair, but are not
+  // misrepresented as ten different photographs to public visitors.
+  const seen=new Set(),visibleCards=Array.from(rail.querySelectorAll('button[data-event-id]'));
+  photos=new Map();
+  for(const card of visibleCards){
+   const p=rawPhotos.get(card.dataset.eventId);
+   if(!p?.image_url||!p.photo_id||seen.has(p.photo_id))continue;
+   seen.add(p.photo_id);
+   photos.set(card.dataset.eventId,p);
+  }
   const visiblePhotos=visibleCards.map(card=>rawPhotos.get(card.dataset.eventId)).filter(Boolean);
   const usablePhotos=visiblePhotos.filter(p=>!p.needs_review&&p.image_url);
-  remainingPhotos=visibleCards.filter(card=>!rawPhotos.has(card.dataset.eventId)).length;
-  // Temporary images may only come from THIS ticker. Cross-company fallback was
-  // displaying NVIDIA graphics and auto engines on Apple historical events.
-  const fallbackPool=(data||[]).filter(p=>p.image_url&&p.photo_url&&p.photographer_url&&!p.needs_review);
-  const fallbackIds=new Set();
-  for(const [index,card] of visibleCards.entries()){
-   if(photos.has(card.dataset.eventId)||!fallbackPool.length)continue;
-   const choices=fallbackPool.filter(p=>!fallbackIds.has(p.photo_url));
-   const fallback=(choices.length?choices:fallbackPool)[index%(choices.length||fallbackPool.length)];
-   fallbackIds.add(fallback.photo_url);
+  remainingPhotos=visibleCards.filter(card=>!photos.has(card.dataset.eventId)).length;
+  // A temporary fallback can only use a DIFFERENT, verified photo
+  // from this ticker. Never recycle the same image to fill empty cards.
+  const fallbackPool=(data||[]).filter(p=>p.photo_id&&p.image_url&&p.photo_url&&p.photographer_url&&!p.needs_review);
+  for(const card of visibleCards){
+   if(photos.has(card.dataset.eventId))continue;
+   const fallback=fallbackPool.find(p=>!seen.has(p.photo_id));
+   if(!fallback)continue;
+   seen.add(fallback.photo_id);
    photos.set(card.dataset.eventId,{...fallback,temporary:true});
   }
   const ids=usablePhotos.map(p=>{
@@ -84,7 +93,17 @@ export async function mountTimelinePhotos({sb,ticker,frame,rail,status,getUser,c
   updatePhotoAction();
   for(const card of rail.querySelectorAll('button[data-event-id]')){
    const p=photos.get(card.dataset.eventId);
-   if(!p)continue;
+   if(!p){
+    // Previously duplicated images must disappear when a better candidate
+    // has not yet been retrieved; the existing dark card remains readable.
+    const slot=card.querySelector('.orca-timeline-event-media');
+    if(slot?.querySelector('img')){
+     slot.replaceChildren(document.createTextNode('◆'));
+     slot.classList.remove('orca-history-thumb');
+    }
+    card.querySelector('.orca-photo-context')?.remove();
+    continue;
+   }
    const existing=card.querySelector('.orca-photo-image');
    let badge=card.querySelector('.orca-photo-context');
    if(p.strategy_version>=7){
@@ -165,7 +184,18 @@ export async function mountTimelinePhotos({sb,ticker,frame,rail,status,getUser,c
  },false);
  async function refreshAndMaybeFill(){
   await refresh();
-  // Diagnostics-first: do not consume any provider requests automatically.
+  // With an opted-in researcher present, repair a stock page once per
+  // browser session. Public anonymous visits NEVER spend API quota.
+  if(autoRepairAttempted||!getUser()||!canContribute()||
+     !(duplicateCount>0||remainingPhotos>0))return;
+  autoRepairAttempted=true;
+  try{
+   const key='orca-auto-photo-repair-v10:'+ticker;
+   const previous=Number(sessionStorage.getItem(key)||0);
+   if(Date.now()-previous<6*60*60*1000)return;
+   sessionStorage.setItem(key,String(Date.now()));
+  }catch{ /* Session storage is optional; the in-memory guard still applies. */ }
+  await fillPhotos();
  }
  await refreshAndMaybeFill();
  return {refresh:refreshAndMaybeFill};
