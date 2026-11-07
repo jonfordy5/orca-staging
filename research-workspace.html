@@ -495,67 +495,86 @@ main{max-width:1020px;margin:0 auto;padding:27px 16px 55px}
  top:50%!important;height:calc(50% - 180px)!important;
 }
 
-/* ORCA always-visible double chart. TradingView stays its original size.
-   Desktop matches the supplied sketch: peak / valley, alternating photo
-   cards above and below the zigzag, connected by short vertical stems. */
+/* TradingView stays full-size. Timeline uses a lower-amplitude zigzag
+   and closer, alternating photo cards. Every milestone shows its year. */
 #chart-section .chart-frame{height:clamp(320px,58vw,520px)!important}
 #chart-section .orca-timeline-frame{
- position:relative;width:100%;height:680px;margin:14px 0 0;
+ position:relative;width:100%;height:570px;margin:12px 0 0;
  border:1px solid #303b4d;border-radius:14px;overflow:hidden;
  background:#141922;
 }
 #chart-section .orca-timeline-frame .orca-company-timeline{
  height:100%!important;min-height:0!important;overflow:hidden!important;
- padding:12px 12px!important;gap:5px!important;
+ padding:10px 12px!important;gap:4px!important;
 }
 .orca-timeline-frame .orca-timeline-heading strong{font-size:19px!important}
 .orca-timeline-frame .orca-timeline-heading span{font-size:11px}
-.orca-timeline-frame .orca-timeline-navigation{flex:0 0 30px!important}
+.orca-timeline-frame .orca-timeline-navigation{flex:0 0 28px!important}
 .orca-timeline-frame .orca-timeline-navigation button{
- width:30px!important;height:29px!important;font-size:21px!important;
+ width:30px!important;height:28px!important;font-size:21px!important;
 }
 .orca-timeline-frame .orca-timeline-events,
 .orca-timeline-frame .orca-timeline-events:has(.orca-history-thumb img){
  flex:1 1 auto!important;height:auto!important;min-height:0!important;
- overflow-x:auto!important;overflow-y:hidden!important;padding:3px 0 4px!important;
+ overflow-x:auto!important;overflow-y:hidden!important;padding:2px 0 4px!important;
  scroll-snap-type:x proximity;
 }
 .orca-timeline-frame .orca-history-spine,
 .orca-timeline-frame .orca-timeline-events:has(.orca-history-thumb img) .orca-history-spine{
- height:585px!important;min-height:585px!important;
+ height:480px!important;min-height:480px!important;position:relative!important;
  display:flex!important;gap:0!important;align-items:flex-start!important;
 }
 .orca-timeline-frame .orca-history-spine::before{display:none!important}
 .orca-timeline-frame .orca-history-stop,
 .orca-timeline-frame .orca-timeline-events:has(.orca-history-thumb img) .orca-history-stop{
- flex:0 0 clamp(210px,21vw,245px)!important;
- height:585px!important;min-height:585px!important;
+ flex:0 0 210px!important;width:210px!important;
+ height:480px!important;min-height:480px!important;
  display:block!important;position:relative!important;
 }
-.orca-timeline-frame .orca-history-zigzag{
- position:absolute;top:226px;left:0;width:100%;height:132px;
- color:#68bbff;overflow:visible;pointer-events:none;
- filter:drop-shadow(0 0 4px #3a9bff88);
+.orca-timeline-frame .orca-history-zigzag{display:none!important}
+.orca-timeline-frame .orca-history-track{
+ position:absolute;left:0;top:0;height:480px;width:auto;max-width:none;
+ overflow:visible;pointer-events:none;z-index:1;
+}
+.orca-timeline-frame .orca-history-track-base{
+ stroke:#70b8ff;stroke-width:3;opacity:.88;
+ filter:drop-shadow(0 0 3px #55a6ffaa);
+}
+.orca-timeline-frame .orca-history-track-glow{
+ stroke:#82d9ff;stroke-width:12;opacity:.48;stroke-dasharray:3.8 96.2;
+ filter:drop-shadow(0 0 8px #7ad9ff);
+ animation:orca-trailing-beam 18s linear infinite;
+}
+.orca-timeline-frame .orca-history-track-beam{
+ stroke:#efffff;stroke-width:4;stroke-dasharray:1.5 98.5;
+ filter:drop-shadow(0 0 5px #baf7ff);
+ animation:orca-trailing-beam 18s linear infinite;
+}
+@keyframes orca-trailing-beam{
+ from{stroke-dashoffset:0}
+ to{stroke-dashoffset:-100}
+}
+@media(prefers-reduced-motion:reduce){
+ .orca-timeline-frame .orca-history-track-glow,
+ .orca-timeline-frame .orca-history-track-beam{animation:none}
 }
 .orca-timeline-frame .orca-history-dot{
- top:237px!important;left:50%!important;transform:translateX(-50%)!important;
+ top:209px!important;left:50%!important;transform:translateX(-50%)!important;
  z-index:4!important;
 }
-.orca-timeline-frame .orca-history-stop:nth-child(even) .orca-history-dot{
- top:333px!important;
-}
+.orca-timeline-frame .orca-history-stop:nth-child(even) .orca-history-dot{top:259px!important}
 .orca-timeline-frame .orca-history-stop .orca-history-stem,
 .orca-timeline-frame .orca-history-stop:nth-child(even) .orca-history-stem,
 .orca-timeline-frame .orca-history-stop:has(.orca-history-thumb img) .orca-history-stem,
 .orca-timeline-frame .orca-history-stop:not(:has(.orca-history-thumb img)) .orca-history-stem{
- display:block!important;top:190px!important;height:54px!important;
+ display:block!important;top:182px!important;height:34px!important;
  bottom:auto!important;left:50%!important;width:2px!important;
  transform:translateX(-50%)!important;background:#55abff!important;
 }
 .orca-timeline-frame .orca-history-stop:nth-child(even) .orca-history-stem,
 .orca-timeline-frame .orca-history-stop:nth-child(even):has(.orca-history-thumb img) .orca-history-stem,
 .orca-timeline-frame .orca-history-stop:nth-child(even):not(:has(.orca-history-thumb img)) .orca-history-stem{
- top:340px!important;height:56px!important;
+ top:272px!important;height:20px!important;
 }
 .orca-timeline-frame .orca-history-stop .orca-timeline-event,
 .orca-timeline-frame .orca-history-stop:nth-child(odd) .orca-timeline-event,
@@ -563,24 +582,23 @@ main{max-width:1020px;margin:0 auto;padding:27px 16px 55px}
 .orca-timeline-frame .orca-history-stop .orca-timeline-event:has(.orca-photo-image),
 .orca-timeline-frame .orca-history-stop .orca-timeline-event:has(.orca-history-thumb img),
 .orca-timeline-frame .orca-history-stop .orca-timeline-event:not(:has(.orca-history-thumb img)){
- position:absolute!important;top:12px!important;bottom:auto!important;
+ position:absolute!important;top:4px!important;bottom:auto!important;
  left:4px!important;width:calc(100% - 8px)!important;
  height:178px!important;min-height:178px!important;max-height:178px!important;
+ z-index:3!important;
 }
 .orca-timeline-frame .orca-history-stop:nth-child(even) .orca-timeline-event,
 .orca-timeline-frame .orca-history-stop:nth-child(even) .orca-timeline-event:has(.orca-photo-image),
 .orca-timeline-frame .orca-history-stop:nth-child(even) .orca-timeline-event:has(.orca-history-thumb img),
 .orca-timeline-frame .orca-history-stop:nth-child(even) .orca-timeline-event:not(:has(.orca-history-thumb img)){
- top:396px!important;bottom:auto!important;
+ top:292px!important;bottom:auto!important;
 }
-/* Dates sit beside the vertical card connector, not on top of the
-   glowing zigzag. Peak dates are above the peak; valley dates below. */
 .orca-timeline-frame .orca-history-stop .orca-history-year-once{
- top:208px!important;left:calc(50% + 19px)!important;
- transform:none!important;font-size:12px!important;
+ top:187px!important;left:calc(50% + 13px)!important;
+ transform:none!important;font-size:12px!important;z-index:5!important;
 }
 .orca-timeline-frame .orca-history-stop:nth-child(even) .orca-history-year-once{
- top:365px!important;left:calc(50% + 19px)!important;
+ top:277px!important;left:calc(50% + 13px)!important;
  transform:none!important;font-size:12px!important;
 }
 /* Touch devices: no zigzag, stems or markers. Swipe photo cards horizontally. */
