@@ -21,7 +21,7 @@ function withUtm(value:unknown){
 type ThemeProfile={brand:string,theme:string,terms:string[],queries:string[]};
 function companyTheme(ticker:string,name:string,description:string):ThemeProfile{
  const short=name.replace(/\b(common stock|class [a-z] stock|corporation|incorporated|inc\.?|corp\.?|company|limited|ltd\.?|plc)\b/ig,"").replace(/[.,]/g,"").trim().toLowerCase();
- const brand=({DG:"dollar general",AAP:"advance auto parts",NVDA:"nvidia",ULTA:"ulta",AAPL:"apple",MSFT:"microsoft",INTC:"intel",META:"meta",RKLB:"rocket lab",AMZN:"amazon",WMT:"walmart",TSLA:"tesla"} as Record<string,string>)[ticker]||short||ticker.toLowerCase();
+ const brand=({F:"ford",DG:"dollar general",AAP:"advance auto parts",NVDA:"nvidia",ULTA:"ulta",AAPL:"apple",MSFT:"microsoft",INTC:"intel",META:"meta",RKLB:"rocket lab",AMZN:"amazon",WMT:"walmart",TSLA:"tesla"} as Record<string,string>)[ticker]||short||ticker.toLowerCase();
  const info=(name+" "+description).toLowerCase();
  const themes=[
   {test:/dollar general|discount (?:retailer|retail|store)|variety store|value retailer/,
@@ -43,6 +43,10 @@ function companyTheme(ticker:string,name:string,description:string):ThemeProfile
   {test:/energy|oil|petroleum|gas exploration/,theme:"energy",terms:["energy","oil","gas","refinery","industrial","pipeline"],queries:["oil refinery","energy industry","industrial pipeline"]}
  ];
  const selected=themes.find(t=>t.test.test(info))||{theme:"business technology",terms:["technology","business","office","building"],queries:["technology infrastructure","business workplace","corporate headquarters"]};
+ // "Ford" returns real cars and models; "Ford Motor" unnecessarily loses results.
+ if(ticker==="F")return {brand:"ford",theme:"automotive",
+  terms:["car","cars","truck","pickup","vehicle","automotive","mustang","bronco","f150","f-150","model t","classic car","logo","electric"],
+  queries:["ford","ford mustang","ford truck","ford model t"]};
  return {brand,theme:selected.theme,terms:selected.terms,queries:selected.queries};
 }
 function photoPlans(profile:ThemeProfile){
@@ -146,6 +150,9 @@ function companyPhotoIdentity(title:string,profile:ThemeProfile):boolean{
  const description=" "+clean(title)+" ";
  const brand=clean(profile.brand);
  if(!brand||!description.includes(" "+brand+" "))return false;
+ // A Ford vehicle, named model or Ford logo is company imagery; a Ford
+ // bridge, town or surname without automotive context is not.
+ if(brand==="ford")return /\b(car|cars|automobile|automotive|vehicle|vehicles|truck|trucks|pickup|mustang|bronco|f150|f 150|f250|f 250|model t|engine|grille|logo|badge|classic|raptor|ranger|fiesta|focus|explorer|gt|suv|factory)\b/.test(description);
  // Ambiguous company names also need their industry/product context.
  if(["apple","meta","ford","amazon","target","intel"].includes(brand))
   return profile.terms.some(term=>clean(term)!==brand&&description.includes(" "+clean(term)+" "));
