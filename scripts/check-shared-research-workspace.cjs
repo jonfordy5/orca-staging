@@ -93,29 +93,36 @@ check('TradingView remains fully visible above an independent timeline', () =>
   !workspace.includes('id="living-tradingview"') &&
   !workspace.includes('id="living-show"') &&
   workspace.includes('createMarketChart();createMarketQuote()'));
-check('Desktop uses one flatter, continuous glowing zigzag and tighter milestone cards', () =>
-  timeline.includes('function drawHistoryTrack()') &&
-  timeline.includes('svg.append(makePath(\'orca-history-track-base\')') &&
-  timeline.includes('i%2===0?216:266') &&
-  workspace.includes('height:570px') &&
-  workspace.includes('height:480px') &&
-  workspace.includes('flex:0 0 210px') &&
-  workspace.includes('top:292px!important') &&
-  workspace.includes('top:4px!important'));
+check('Timeline follows actual DOM node centers and connects every dot', () =>
+  timeline.includes("stop.querySelector('.orca-history-dot').getBoundingClientRect()") &&
+  timeline.includes('rect.left+rect.width/2-spineRect.left') &&
+  timeline.includes('rect.top+rect.height/2-spineRect.top') &&
+  timeline.includes("svg.append(defs,base,beam)") &&
+  workspace.includes('top:182px!important;height:34px!important') &&
+  workspace.includes('top:266px!important;height:26px!important'));
 
-check('Every event has its own year, including adjacent same-year milestones', () =>
+check('Every event retains its own year label and clickable sourced photo', () =>
   timeline.includes("stop.append(stem,dot,card,year)") &&
-  !timeline.includes('sameYearIndices') &&
   !timeline.includes('yearLabelIndex') &&
+  timeline.includes("card.addEventListener('click',()=>selectMilestone(i))") &&
   workspace.includes('top:187px!important') &&
   workspace.includes('top:277px!important'));
 
-check('Bright short pulse travels the whole history and honors reduced motion', () =>
-  timeline.includes("makePath('orca-history-track-glow')") &&
-  timeline.includes("makePath('orca-history-track-beam')") &&
-  timeline.includes("p.setAttribute('pathLength','100')") &&
-  workspace.includes('stroke-dasharray:1.5 98.5') &&
-  workspace.includes('animation:orca-trailing-beam 18s linear infinite') &&
+check('A single tapered beam replaces the former two-tone segment', () =>
+  timeline.includes("gradient.setAttribute('id',gradientId)") &&
+  timeline.includes("beam.setAttribute('stroke','url(#'+gradientId+')')") &&
+  timeline.includes("const beamLength=Math.min(115,Math.max(60,length*0.06))") &&
+  workspace.includes('.orca-history-track-beam') &&
+  !workspace.includes('.orca-history-track-glow{') &&
+  !timeline.includes("makePath('orca-history-track-glow')"));
+
+check('Beam touches milestone and lights connector up to the photo', () =>
+  timeline.includes("nodeDistances[i]>previousHead&&nodeDistances[i]<=head") &&
+  timeline.includes("stops[i].classList.add('orca-history-activated')") &&
+  timeline.includes("e.animationName==='orca-photo-arrival'") &&
+  workspace.includes('animation:orca-connector-arrival 1.4s') &&
+  workspace.includes('animation:orca-dot-arrival 1.4s') &&
+  workspace.includes('animation:orca-photo-arrival 1.4s') &&
   workspace.includes('prefers-reduced-motion:reduce'));
 
 check('Timeline initially centers the middle milestone while navigation remains intact', () =>
@@ -123,7 +130,7 @@ check('Timeline initially centers the middle milestone while navigation remains 
   timeline.includes("centerMilestone(card,'auto')") &&
   timeline.includes("prev.addEventListener('click',()=>jumpTo(0))") &&
   timeline.includes("next.addEventListener('click',()=>jumpTo(data.length-1))") &&
-  workspace.includes('v=compact-beam-midpoint-v24'));
+  workspace.includes('v=connected-pulse-photo-v25'));
 
 check('Mobile history stays a swipe carousel without zigzag or glowing track', () =>
   workspace.includes('touch-action:pan-x!important') &&
