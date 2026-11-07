@@ -57,9 +57,10 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
   const stop=spine?.querySelector('.orca-history-stop');
   if(!spine||!stop||!rail.clientWidth)return;
   const mobile=window.matchMedia('(max-width:700px)').matches;
-  const padding=mobile?12:Math.max(28,Math.round((rail.clientWidth-stop.getBoundingClientRect().width)/2));
-  spine.style.paddingLeft=padding+'px';
-  spine.style.paddingRight=padding+'px';
+  // Keep the founding milestone near the left edge on first load.
+  // Preserve the larger right margin for "jump to latest" navigation.
+  spine.style.paddingLeft=(mobile?12:20)+'px';
+  spine.style.paddingRight=(mobile?12:Math.max(28,Math.round((rail.clientWidth-stop.getBoundingClientRect().width)/2)))+'px';
  }
  function centerMilestone(element,behavior='smooth'){
   const stop=element?.closest('.orca-history-stop');
@@ -192,7 +193,9 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
    const path=document.createElementNS('http://www.w3.org/2000/svg','polyline');
    // Each milestone is a vertex: peaks hold top cards and valleys hold
    // bottom cards. Edge heights match, forming one continuous zigzag.
-   path.setAttribute('points',i%2===0?'0,66 120,18 240,66':'0,66 120,114 240,66');
+   // Begin at the first milestone node: no orphaned segment to its left.
+   path.setAttribute('points',i===0?'120,18 240,66':
+    i%2===0?'0,66 120,18 240,66':'0,66 120,114 240,66');
    path.setAttribute('fill','none');
    path.setAttribute('stroke','currentColor');
    path.setAttribute('stroke-width','3.5');
