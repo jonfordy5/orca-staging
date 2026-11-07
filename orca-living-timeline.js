@@ -337,8 +337,11 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
    status.textContent='Could not generate sourced company milestones now. Existing research stays safe; TradingView remains available.';
   }finally{
    discoveryPending=false;
-   const generateButton=rail.querySelector('.orca-timeline-generate');
-   if(generateButton){generateButton.disabled=false;generateButton.textContent='Generate company history';}
+   const generateButton=frame.querySelector('.orca-history-refill-action')||rail.querySelector('.orca-timeline-generate');
+   if(generateButton){
+    generateButton.disabled=!mayRequestHistory();
+    generateButton.textContent=data.length?'Complete company history ('+data.length+'/10)':'Generate company history';
+   }
   }
  }
  // Preserve the normal TradingView chart on initial load. Living Timeline is opt-in.
