@@ -6,7 +6,7 @@ const path=require('node:path');
 const source=fs.readFileSync(path.resolve(__dirname,'../supabase/functions/orca-timeline-discovery/index.ts'),'utf8')
   .replace(/^import .*\n/,'');
 function event(i,override={}){
- return {date:'19'+String(20+i).padStart(2,'0')+'-06-15',category:'product',title:'Verified Ford milestone '+i,
+ return {date:String(1900+i)+'-06-15',category:'product',title:'Verified Ford milestone '+i,
   summary:'Ford Motor Company announced a documented historical event with evidence from its official corporate heritage records and dated materials.',
   source_url:'https://corporate.ford.com/articles/history/verified-event-'+i+'/',
   points:['A detailed original source supports this historical milestone','The specific development changed the company during this era'],
