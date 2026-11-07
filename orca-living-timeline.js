@@ -118,11 +118,45 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
    stop.setAttribute('stop-opacity',opacity);
    gradient.append(stop);
   }
-  defs.append(gradient);
+  // Only the final 150px fades, so a new future milestone can extend
+  // the same continuous line. The beam fades with the line at its endpoint.
+  const tailFadeStart=Math.max(0,futurePoints[1][0]-150);
+  const tailId='orca-future-tail-'+ticker.toLowerCase().replace(/[^a-z0-9]/g,'');
+  const tailGradient=document.createElementNS(ns,'linearGradient');
+  tailGradient.setAttribute('id',tailId+'-gradient');
+  tailGradient.setAttribute('gradientUnits','userSpaceOnUse');
+  tailGradient.setAttribute('x1',String(tailFadeStart));
+  tailGradient.setAttribute('y1','0');
+  tailGradient.setAttribute('x2',String(futurePoints[1][0]));
+  tailGradient.setAttribute('y2','0');
+  for(const [offset,opacity] of [['0%','1'],['100%','0']]){
+   const step=document.createElementNS(ns,'stop');
+   step.setAttribute('offset',offset);
+   step.setAttribute('stop-color','white');
+   step.setAttribute('stop-opacity',opacity);
+   tailGradient.append(step);
+  }
+  const tailMask=document.createElementNS(ns,'mask');
+  tailMask.setAttribute('id',tailId);
+  tailMask.setAttribute('maskUnits','userSpaceOnUse');
+  tailMask.setAttribute('x','0');
+  tailMask.setAttribute('y','0');
+  tailMask.setAttribute('width',String(width));
+  tailMask.setAttribute('height',String(height));
+  const maskFill=document.createElementNS(ns,'rect');
+  maskFill.setAttribute('x','0');
+  maskFill.setAttribute('y','0');
+  maskFill.setAttribute('width',String(width));
+  maskFill.setAttribute('height',String(height));
+  maskFill.setAttribute('fill','url(#'+tailId+'-gradient)');
+  tailMask.append(maskFill);
+  defs.append(gradient,tailGradient,tailMask);
+  base.setAttribute('mask','url(#'+tailId+')');
   const beam=document.createElementNS(ns,'path');
   beam.classList.add('orca-history-track-beam');
   beam.setAttribute('fill','none');
   beam.setAttribute('stroke','url(#'+gradientId+')');
+  beam.setAttribute('mask','url(#'+tailId+')');
   beam.setAttribute('vector-effect','non-scaling-stroke');
   beam.setAttribute('stroke-linecap','butt');
   beam.setAttribute('stroke-linejoin','round');
