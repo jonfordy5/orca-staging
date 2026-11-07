@@ -366,6 +366,9 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
  }
  // Display cached history immediately; paid history research remains opt-in.
  await loadEvents();
+ // Cached histories and existing photo repairs should work immediately
+ // without relying on the old manual Living Timeline toggle.
+ await checkHistoryPermission();
  requestAnimationFrame(()=>{fitRailEdges();rail.scrollLeft=0});
  try{
   const module=await import('./orca-timeline-photos.js?v=hide-unsplash-diagnostic-v15');
