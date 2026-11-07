@@ -97,12 +97,11 @@ check('Photo controls hide when complete and remain available for missing or wea
   photos.includes('visiblePhotos.filter(p=>p.needs_review)') &&
   photos.includes('visibleCards.filter(card=>!photos.has(card.dataset.eventId))'));
 check('Open-ended photo coverage never repeats an old saved image', () =>
-  photos.includes('seen.has(p.photo_id)') && (
-    photos.includes('let fallbackPool=') &&
-    photos.includes("photos.set(card.dataset.eventId,{...fallback,temporary:true})") &&
-    photos.includes("sb.from('orca_timeline_photo_selections')") &&
-    photos.includes('void fillPhotos()')
-  ));
+  photos.includes('seen.has(p.photo_id)') &&
+  photos.includes('seen.add(p.photo_id)') &&
+  photos.includes('if(!fallback)continue;') &&
+  photos.includes("photos.set(card.dataset.eventId,{...fallback,temporary:true})") &&
+  photos.includes("sb.from('orca_timeline_photo_selections')"));
 check('Photo status is hidden visually but research navigation remains accessible', () =>
   timeline.includes("index.className='orca-timeline-index'") &&
   timeline.includes("index.setAttribute('aria-live','polite')") &&
@@ -128,7 +127,7 @@ check('Every timeline photo stays scoped to the same stock ticker', () =>
 check('Photo generation rejects negative relevance and never borrows other tickers', () => {
  const engine=read('supabase/functions/orca-timeline-photo-fill/index.ts');
  return engine.includes('if(score<0&&!context_kinds.length&&!retail_illustration)return null;') &&
-   engine.includes('const backups=stockCache||[];') &&
+   engine.includes('if(duplicated){failed++;continue}') &&
    !engine.includes('const {data:library}');
 });
 check('Open-ended histories provide opt-in founding and current-year refreshes', () =>
