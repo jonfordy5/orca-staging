@@ -11,6 +11,7 @@ on:
       - 'orca-timeline-photos.js'
       - 'supabase/functions/orca-timeline-photo-fill/**'
       - 'supabase/functions/orca-timeline-discovery/**'
+      - 'sql/orca_timeline_immediate_targeted_completion.sql'
       - 'scripts/test-timeline-history-backfill.cjs'
       - 'scripts/test-timeline-photo-behavior.cjs'
       - 'docs/orca-company-page-standard.md'
