@@ -70,9 +70,10 @@ check('All profiles share the same mission/method and company size headings', ()
 check('All tickers mount the same source-backed Living Timeline component', () =>
   workspace.includes("mountLivingTimeline({sb,ticker,") &&
   workspace.includes("import('./orca-living-timeline.js?"));
-check('Living Timeline features ten milestones without removing archived events', () =>
-  timeline.includes('const milestoneTarget=10') &&
-  timeline.includes('const nextData=verified.length<=milestoneTarget?verified:Array.from(') &&
+check('Living Timeline renders all sourced milestones in chronological order without a fixed card count', () =>
+  timeline.includes('const nextData=verified;') &&
+  !timeline.includes('const milestoneTarget=') &&
+  timeline.includes('allVerified=verified') &&
   timeline.includes("sb.from('orca_timeline_annotations')") &&
   timeline.includes("validSource(x.source_url)") &&
   timeline.includes(".is('created_by',null)"));
@@ -95,7 +96,7 @@ check('Photo controls hide when complete and remain available for missing or wea
   photos.includes("button.textContent=duplicateCount>0?'Improve photos':'Find photos'") &&
   photos.includes('visiblePhotos.filter(p=>p.needs_review)') &&
   photos.includes('visibleCards.filter(card=>!rawPhotos.has(card.dataset.eventId))'));
-check('Ten-card photo coverage reuses credited images before ever showing white cards', () =>
+check('Open-ended photo coverage reuses credited images before white cards', () =>
   photos.includes('const fallbackPool=') || (
     photos.includes('let fallbackPool=') &&
     photos.includes("photos.set(card.dataset.eventId,{...fallback,temporary:true})") &&
@@ -121,7 +122,7 @@ check('Timeline generation checks opted-in researcher without requiring stock me
   timeline.includes("canContribute:()=>historyAuthorized") &&
   timeline.includes('discoveryPending=true'));
 check('Every timeline photo stays scoped to the same stock ticker', () =>
-  photos.includes(".eq('ticker',ticker).limit(500)") &&
+  photos.includes(".eq('ticker',ticker).range(offset,offset+249)") &&
   !photos.includes('const {data:shared') &&
   !photos.includes('const {data:library}') );
 check('Photo generation rejects negative relevance and never borrows other tickers', () => {
@@ -130,20 +131,26 @@ check('Photo generation rejects negative relevance and never borrows other ticke
    engine.includes('const backups=stockCache||[];') &&
    !engine.includes('const {data:library}');
 });
-check('Underfilled company histories offer manual, source-backed completion without page-view spending', () =>
-  timeline.includes("generate.textContent='Complete company history ('+data.length+'/10)'") &&
+check('Open-ended histories provide opt-in founding and current-year refreshes', () =>
+  timeline.includes("scope==='current'?'Research '+year()+' milestone'") &&
+  timeline.includes("scope==='origin'?'Research company beginnings'") &&
+  timeline.includes('const nextData=verified;') &&
+  timeline.includes('halfYearStart') &&
+  timeline.includes('attemptedScopesThisSession') &&
   timeline.includes("if(!data.length)await maybePopulateCompanyHistory()") &&
   timeline.includes('refresh_eligible_after') &&
-  timeline.includes('data.length<10&&getUser()') &&
   timeline.includes('frame.insertBefore(generate,rail)') &&
   timeline.includes("frame.querySelector('.orca-history-refill-action')?.remove()"));
 const discovery=read('supabase/functions/orca-timeline-discovery/index.ts');
 check('Timeline discovery covers historical company origins with capped primary-source research', () =>
   discovery.includes("FULL HISTORY") &&
-  discovery.includes('Date.parse("1900-01-01")') &&
+  discovery.includes('Date.parse("1800-01-01")') &&
   discovery.includes('max_tool_calls:targeted?1:5,max_output_tokens:targeted?2100:6500') &&
   discovery.includes('if(cost>.15)') &&
-  discovery.includes('target_total:10') &&
+  discovery.includes('scope==="current"') &&
+  discovery.includes('scope==="origin"') &&
+  discovery.includes('remainingAtStart') &&
+  discovery.includes('if(cost>.15)') &&
   discovery.includes('refresh_eligible_after:reservation?.refresh_eligible_after||null'));
 const retrySql=read('sql/orca_timeline_immediate_targeted_completion.sql');
 check('Immediate one-time targeted completion retains spending, authorization and throttle controls', () =>
@@ -158,9 +165,18 @@ check('Immediate one-time targeted completion retains spending, authorization an
   retrySql.includes('pg_advisory_xact_lock') &&
   retrySql.includes("state='failed'") &&
   retrySql.includes('REVOKE')===false &&
-  timeline.includes('historyRequestsThisSession') &&
-  timeline.includes('targetedCompletionRequestedThisSession') &&
+  timeline.includes('attemptedScopesThisSession') &&
   timeline.includes('generate.disabled=!mayRequestHistory()'));
+const updatesSql=read('sql/orca_timeline_open_ended_periodic_updates.sql');
+check('Semiannual update gate is shared and preserves cost and consent protections', () =>
+  updatesSql.includes("v_scope NOT IN ('origin','current')") &&
+  updatesSql.includes("reason','current_half_year_covered'") &&
+  updatesSql.includes("reason','scope_retry_limit'") &&
+  updatesSql.includes("v_used+0.15>15") &&
+  updatesSql.includes('p.opted_in IS TRUE') &&
+  updatesSql.includes('v_recent_user>=10') &&
+  updatesSql.includes("GRANT EXECUTE ON FUNCTION public.orca_timeline_reserve_scoped_generation") &&
+  updatesSql.includes('pg_advisory_xact_lock'));
 check('Cached ten-milestone timelines can authorize their first photo generation', () =>
   timeline.includes('await checkHistoryPermission();if(!data.length)await maybePopulateCompanyHistory();'));
 check('Ambiguous multiword brands remain intact, including Dollar General', () => {
