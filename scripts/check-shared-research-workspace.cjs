@@ -144,7 +144,7 @@ check('Open-ended histories provide opt-in founding and current-year refreshes',
 const discovery=read('supabase/functions/orca-timeline-discovery/index.ts');
 check('Timeline discovery covers historical company origins with capped primary-source research', () =>
   discovery.includes("FULL HISTORY") &&
-  discovery.includes('Date.parse("1900-01-01")') &&
+  discovery.includes('Date.parse("1800-01-01")') &&
   discovery.includes('max_tool_calls:targeted?1:5,max_output_tokens:targeted?2100:6500') &&
   discovery.includes('if(cost>.15)') &&
   discovery.includes('scope==="current"') &&
