@@ -83,12 +83,26 @@ const aap=companyTheme('AAP','Advance Auto Parts Inc.','automotive aftermarket p
 const aapAcquisition=eventVisualPlan({title:'Advance acquires Carquest and Worldpac parent in 2014'},aap);
 const aapDiehard=eventVisualPlan({title:'Advance acquires the DieHard brand for $200 million'},aap);
 const aapOrdinary=eventVisualPlan({title:'Advance Auto Parts filed its 2005 annual report'},aap);
-test('AAP searches its own stores and acquired brands without spending more than three calls',()=>{
+test('AAP searches branded and broad automotive component photos',()=>{
  assert.equal(aap.theme,'auto parts retail');
  assert.equal(aapAcquisition.kind,'aap_carquest');
  assert.equal(aapDiehard.kind,'aap_diehard');
  assert.deepEqual(Array.from(visualQueries(aap,[])).slice(0,5),
-  ['advance auto parts store','auto parts store','car battery','carquest auto parts','diehard car battery']);
+  ['advance auto parts store','car engine','car parts','automotive brake pads','car battery']);
+});
+test('AAP generic engine and component photos fill every milestone without duplicates',()=>{
+ const subjects=['car engine bay','automotive brake pads','car alternator','car oil filter','car battery','car piston','spark plugs','radiator car part','vehicle transmission','car wheel bearings'];
+ const pool=subjects.map((subject,i)=>candidateFromUnsplash(photoMock('aap-'+i,subject),'car parts',1,aap,
+  [aapOrdinary,aapAcquisition,aapDiehard])).filter(Boolean);
+ assert.equal(pool.length,10);
+ const used=new Set();
+ for(const event of [aapOrdinary,aapAcquisition,aapDiehard,...Array.from({length:7},()=>aapOrdinary)]){
+  const candidate=pickCandidate(pool,used,new Map(),event);
+  assert(candidate,'Every AAP event should have a parts photo');
+  assert(!used.has(candidate.id),'Photo reused across events');
+  used.add(candidate.id);
+ }
+ assert.equal(used.size,10);
 });
 test('AAP acquired brands qualify only for their own events',()=>{
  const parts=candidateFromUnsplash(photoMock('parts','auto parts store shelves and car batteries'),'auto parts store',1,aap,[aapOrdinary,aapAcquisition,aapDiehard]);
