@@ -220,9 +220,10 @@ check('Old flagged illustrations cannot be recycled as vetted company fallback',
   engine.includes('if(duplicated){failed++;continue}') &&
   !engine.includes('const {data:library}');
 });
-check('Unsplash diagnosis and consent-based photo repair are guarded', () =>
-  photos.includes("body:{ticker,diagnostic:true}") &&
-  photos.includes("diagnosticsButton.textContent='Check Unsplash API'") &&
+check('Photo repair remains available without the Unsplash diagnostic button', () =>
+  !photos.includes('Check Unsplash API') &&
+  !photos.includes('diagnosticsButton') &&
+  !photos.includes('diagnostic:true') &&
   photos.includes("button.addEventListener('click',()=>void fillPhotos())") &&
   photos.includes('autoRepairAttempted') &&
   photos.includes('sessionStorage.setItem(key,String(Date.now()))') &&
