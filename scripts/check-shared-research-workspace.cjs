@@ -93,33 +93,42 @@ check('TradingView remains fully visible above an independent timeline', () =>
   !workspace.includes('id="living-tradingview"') &&
   !workspace.includes('id="living-show"') &&
   workspace.includes('createMarketChart();createMarketQuote()'));
-check('Desktop sketch has alternating peak and valley cards with two clear rows', () =>
-  timeline.includes("i===0?'120,18 240,66'") &&
-  timeline.includes("i%2===0?'0,66 120,18 240,66':'0,66 120,114 240,66'") &&
-  timeline.includes("stop.append(zigzag,stem,dot,card)") &&
-  workspace.includes('height:680px') &&
-  workspace.includes('height:585px') &&
-  workspace.includes('top:226px') &&
-  workspace.includes('top:12px!important') &&
-  workspace.includes('top:396px!important') &&
-  workspace.includes('top:190px!important;height:54px!important') &&
-  workspace.includes('top:340px!important;height:56px!important'));
+check('Desktop uses one flatter, continuous glowing zigzag and tighter milestone cards', () =>
+  timeline.includes('function drawHistoryTrack()') &&
+  timeline.includes('svg.append(makePath(\'orca-history-track-base\')') &&
+  timeline.includes('i%2===0?216:266') &&
+  workspace.includes('height:570px') &&
+  workspace.includes('height:480px') &&
+  workspace.includes('flex:0 0 210px') &&
+  workspace.includes('top:292px!important') &&
+  workspace.includes('top:4px!important'));
 
-check('First milestone starts timeline without a lead-in and initially aligns left', () =>
-  timeline.includes("i===0?'120,18 240,66'") &&
-  timeline.includes("spine.style.paddingLeft=(mobile?12:20)+'px'") &&
-  timeline.includes('rail.scrollLeft=0') &&
-  workspace.includes("v=left-start-clear-years-v23"));
+check('Every event has its own year, including adjacent same-year milestones', () =>
+  timeline.includes("stop.append(stem,dot,card,year)") &&
+  !timeline.includes('sameYearIndices') &&
+  !timeline.includes('yearLabelIndex') &&
+  workspace.includes('top:187px!important') &&
+  workspace.includes('top:277px!important'));
 
-check('Year labels sit off the zigzag and beside milestone connectors', () =>
-  workspace.includes('top:208px!important;left:calc(50% + 19px)!important') &&
-  workspace.includes('top:365px!important;left:calc(50% + 19px)!important'));
+check('Bright short pulse travels the whole history and honors reduced motion', () =>
+  timeline.includes("makePath('orca-history-track-glow')") &&
+  timeline.includes("makePath('orca-history-track-beam')") &&
+  timeline.includes("p.setAttribute('pathLength','100')") &&
+  workspace.includes('stroke-dasharray:1.5 98.5') &&
+  workspace.includes('animation:orca-trailing-beam 18s linear infinite') &&
+  workspace.includes('prefers-reduced-motion:reduce'));
 
-check('Mobile history is a swipeable photo carousel without any line', () =>
-  timeline.includes("window.matchMedia('(max-width:700px)').matches") &&
+check('Timeline initially centers the middle milestone while navigation remains intact', () =>
+  timeline.includes('const middle=Math.floor((data.length-1)/2)') &&
+  timeline.includes("centerMilestone(card,'auto')") &&
+  timeline.includes("prev.addEventListener('click',()=>jumpTo(0))") &&
+  timeline.includes("next.addEventListener('click',()=>jumpTo(data.length-1))") &&
+  workspace.includes('v=compact-beam-midpoint-v24'));
+
+check('Mobile history stays a swipe carousel without zigzag or glowing track', () =>
   workspace.includes('touch-action:pan-x!important') &&
   workspace.includes('scroll-snap-type:x mandatory!important') &&
-  workspace.includes('.orca-timeline-frame .orca-history-zigzag,') &&
+  workspace.includes('.orca-timeline-frame .orca-history-track,') &&
   workspace.includes('height:245px') &&
   workspace.includes('display:none!important'));
 
