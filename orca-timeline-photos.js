@@ -190,7 +190,7 @@ export async function mountTimelinePhotos({sb,ticker,frame,rail,status,getUser,c
      !(duplicateCount>0||remainingPhotos>0))return;
   autoRepairAttempted=true;
   try{
-   const key='orca-auto-photo-repair-v10:'+ticker;
+   const key='orca-auto-photo-repair-v11:'+ticker;
    const previous=Number(sessionStorage.getItem(key)||0);
    if(Date.now()-previous<6*60*60*1000)return;
    sessionStorage.setItem(key,String(Date.now()));
