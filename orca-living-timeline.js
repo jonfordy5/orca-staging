@@ -271,11 +271,19 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
   }
  },{passive:false});
  async function loadEvents(){
-  const {data:rows,error}=await sb.from('orca_timeline_annotations')
-   .select('id,event_at,category,title,ai_summary,quick_brief,source_url,image_url,image_credit')
-   .eq('ticker',ticker).is('created_by',null).order('event_at',{ascending:true}).limit(500);
-  if(error){status.textContent='Company milestone data unavailable; TradingView is unaffected.';return}
-  const verified=(rows||[]).filter(x=>validSource(x.source_url))
+  // Paginate to keep the archive genuinely open-ended; Supabase returns
+  // up to the configured page size per request.
+  const rows=[];
+  for(let offset=0;;offset+=250){
+   const {data:page,error}=await sb.from('orca_timeline_annotations')
+    .select('id,event_at,category,title,ai_summary,quick_brief,source_url,image_url,image_credit')
+    .eq('ticker',ticker).is('created_by',null)
+    .order('event_at',{ascending:true}).range(offset,offset+249);
+   if(error){status.textContent='Company milestone data unavailable; TradingView is unaffected.';return}
+   rows.push(...(page||[]));
+   if(!page||page.length<250)break;
+  }
+  const verified=rows.filter(x=>validSource(x.source_url))
    .map(x=>({...x,image_url:validImage(x.image_url)}));
   // Open-ended: render EVERY source-backed milestone in chronological order.
   // The first and last events remain visible even as the history grows.
