@@ -165,7 +165,8 @@ check('Open-ended histories provide opt-in founding and current-year refreshes',
   timeline.includes('const nextData=verified;') &&
   timeline.includes('halfYearStart') &&
   timeline.includes('attemptedScopesThisSession') &&
-  timeline.includes("if(!data.length)await maybePopulateCompanyHistory()") &&
+  timeline.includes('await checkHistoryPermission();') &&
+  !timeline.includes('if(!data.length)await maybePopulateCompanyHistory()') &&
   timeline.includes('refresh_eligible_after') &&
   timeline.includes('frame.insertBefore(generate,rail)') &&
   timeline.includes("frame.querySelector('.orca-history-refill-action')?.remove()"));
@@ -205,8 +206,11 @@ check('Semiannual update gate is shared and preserves cost and consent protectio
   updatesSql.includes('v_recent_user>=10') &&
   updatesSql.includes("GRANT EXECUTE ON FUNCTION public.orca_timeline_reserve_scoped_generation") &&
   updatesSql.includes('pg_advisory_xact_lock'));
-check('Cached ten-milestone timelines can authorize their first photo generation', () =>
-  timeline.includes('await checkHistoryPermission();if(!data.length)await maybePopulateCompanyHistory();'));
+check('Cached timelines check research consent on load without starting paid generation', () =>
+  timeline.includes('await loadEvents();') &&
+  timeline.includes('await checkHistoryPermission();') &&
+  timeline.includes("canContribute:()=>historyAuthorized") &&
+  !timeline.includes('if(!data.length)await maybePopulateCompanyHistory()'));
 check('Ambiguous multiword brands remain intact, including Dollar General', () => {
  const engine=read('supabase/functions/orca-timeline-photo-fill/index.ts');
  return engine.includes('DG:"dollar general"') &&
