@@ -16,6 +16,7 @@ on:
       - 'sql/orca_timeline_unique_approved_photos.sql'
       - 'scripts/test-timeline-history-backfill.cjs'
       - 'scripts/test-timeline-photo-behavior.cjs'
+      - 'scripts/test-unsplash-progressive-search.cjs'
       - 'docs/orca-company-page-standard.md'
       - 'scripts/check-shared-research-workspace.cjs'
       - '.github/workflows/orca-workspace-consistency.yml'
@@ -35,5 +36,7 @@ jobs:
         run: node scripts/check-shared-research-workspace.cjs
       - name: Exercise photo relevance and daily-limit behavior
         run: node scripts/test-timeline-photo-behavior.cjs
+      - name: Verify progressive Unsplash searches without provider calls
+        run: node scripts/test-unsplash-progressive-search.cjs
       - name: Exercise near-completion timeline research safeguards
         run: node scripts/test-timeline-history-backfill.cjs
