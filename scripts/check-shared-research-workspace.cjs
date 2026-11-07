@@ -82,10 +82,39 @@ check('Milestone popup supports meaningful short briefs and source links', () =>
   timeline.includes("const points=document.createElement('ul')") &&
   timeline.includes("const takeaway=document.createElement('p')") &&
   timeline.includes("link.href=event.source_url"));
-check('Historical source data stays independent of the TradingView chart', () =>
+check('TradingView remains fully visible above an independent timeline', () =>
   timeline.includes("mountLivingTimeline({sb,") &&
-  timeline.includes("switchTo('tradingview')") &&
-  workspace.includes("id=\"living-tradingview\""));
+  timeline.includes("document.getElementById('timeline-frame')") &&
+  timeline.includes('host.append(frame)') &&
+  !timeline.includes("switchTo('tradingview')") &&
+  !timeline.includes('tvBackup') &&
+  workspace.includes('id="chart-frame"') &&
+  workspace.includes('id="timeline-frame"') &&
+  !workspace.includes('id="living-tradingview"') &&
+  !workspace.includes('id="living-show"') &&
+  workspace.includes('createMarketChart();createMarketQuote()'));
+check('Zigzag desktop anchors every photo card to a peak', () =>
+  timeline.includes("path.setAttribute('points','0,92 120,10 240,92')") &&
+  timeline.includes("stop.append(zigzag,stem,dot,card)") &&
+  workspace.includes('.orca-timeline-frame .orca-history-zigzag') &&
+  workspace.includes('.orca-timeline-frame .orca-history-stop .orca-history-stem') &&
+  workspace.includes('height:360px') &&
+  workspace.includes('top:79px!important'));
+
+check('Mobile history is a swipeable photo carousel without any line', () =>
+  timeline.includes("window.matchMedia('(max-width:700px)').matches") &&
+  workspace.includes('touch-action:pan-x!important') &&
+  workspace.includes('scroll-snap-type:x mandatory!important') &&
+  workspace.includes('.orca-timeline-frame .orca-history-zigzag,') &&
+  workspace.includes('height:245px') &&
+  workspace.includes('display:none!important'));
+
+check('Company timelines remain open-ended with sourced history and credited photographs', () =>
+  timeline.includes('const nextData=verified;') &&
+  timeline.includes("link.href=event.source_url") &&
+  timeline.includes("checkHistoryPermission();") &&
+  timeline.includes("orca-timeline-photos.js?v="));
+
 check('Illustrative photos come from separately cached metadata URLs', () =>
   photos.includes("sb.from('orca_timeline_photo_selections')") &&
   photos.includes("img.src=p.image_url") &&
@@ -136,7 +165,8 @@ check('Open-ended histories provide opt-in founding and current-year refreshes',
   timeline.includes('const nextData=verified;') &&
   timeline.includes('halfYearStart') &&
   timeline.includes('attemptedScopesThisSession') &&
-  timeline.includes("if(!data.length)await maybePopulateCompanyHistory()") &&
+  timeline.includes('await checkHistoryPermission();') &&
+  !timeline.includes('if(!data.length)await maybePopulateCompanyHistory()') &&
   timeline.includes('refresh_eligible_after') &&
   timeline.includes('frame.insertBefore(generate,rail)') &&
   timeline.includes("frame.querySelector('.orca-history-refill-action')?.remove()"));
@@ -176,8 +206,11 @@ check('Semiannual update gate is shared and preserves cost and consent protectio
   updatesSql.includes('v_recent_user>=10') &&
   updatesSql.includes("GRANT EXECUTE ON FUNCTION public.orca_timeline_reserve_scoped_generation") &&
   updatesSql.includes('pg_advisory_xact_lock'));
-check('Cached ten-milestone timelines can authorize their first photo generation', () =>
-  timeline.includes('await checkHistoryPermission();if(!data.length)await maybePopulateCompanyHistory();'));
+check('Cached timelines check research consent on load without starting paid generation', () =>
+  timeline.includes('await loadEvents();') &&
+  timeline.includes('await checkHistoryPermission();') &&
+  timeline.includes("canContribute:()=>historyAuthorized") &&
+  !timeline.includes('if(!data.length)await maybePopulateCompanyHistory()'));
 check('Ambiguous multiword brands remain intact, including Dollar General', () => {
  const engine=read('supabase/functions/orca-timeline-photo-fill/index.ts');
  return engine.includes('DG:"dollar general"') &&

@@ -1,12 +1,10 @@
 // ORCA Living Timeline: sourced company milestones only, separate from TradingView.
 // Images are optional and must be licensed/authorized. No agent-research chart markers.
 export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContribute=()=>false}){
- const host=document.getElementById('chart-frame');
+ // Keep TradingView mounted; this module owns only the timeline panel.
+ const host=document.getElementById('timeline-frame');
  const status=document.getElementById('living-status');
- const livingButton=document.getElementById('living-show');
- const tvButton=document.getElementById('living-tradingview');
  if(!host||!status||!sb)return;
- const tvBackup=document.createDocumentFragment();
  const frame=document.createElement('section');
  frame.className='orca-company-timeline';
  frame.setAttribute('aria-label',ticker+' company history');
@@ -32,7 +30,7 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
  backdrop.setAttribute('aria-hidden','true');
  frame.append(heading,navigation,rail,backdrop,details);
  details.classList.add('orca-history-popover');details.setAttribute('role','dialog');details.setAttribute('aria-label','Milestone details');details.setAttribute('tabindex','-1');
- let visible='tradingview',data=[],chart=null,series=null,chartLibrary=null,activeIndex=0;
+ let data=[],activeIndex=0;
  const initialHistoryGoal=10; // Starter goal, never a display limit.
  const attemptedScopesThisSession=new Set();
  let allVerified=[];
@@ -58,7 +56,8 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
   const spine=rail.querySelector('.orca-history-spine');
   const stop=spine?.querySelector('.orca-history-stop');
   if(!spine||!stop||!rail.clientWidth)return;
-  const padding=Math.max(30,Math.round((rail.clientWidth-stop.getBoundingClientRect().width)/2));
+  const mobile=window.matchMedia('(max-width:700px)').matches;
+  const padding=mobile?12:Math.max(28,Math.round((rail.clientWidth-stop.getBoundingClientRect().width)/2));
   spine.style.paddingLeft=padding+'px';
   spine.style.paddingRight=padding+'px';
  }
@@ -69,33 +68,10 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
   const left=stop.offsetLeft+stop.offsetWidth/2-rail.clientWidth/2;
   rail.scrollTo({left:Math.max(0,left),behavior});
  }
- window.addEventListener('resize',()=>{
-  if(visible==='timeline')fitRailEdges();
- });
- function switchTo(which){
-  if(which===visible)return;
-  if(which==='timeline'){
-   while(host.firstChild)tvBackup.append(host.firstChild);
-   host.append(frame);
-   visible='timeline';
-   requestAnimationFrame(()=>{fitRailEdges();if(rail.scrollLeft===0)centerMilestone(rail.querySelector('.orca-timeline-event[data-index="0"]'),'instant')});
-   livingButton?.setAttribute('aria-pressed','true');
-   tvButton?.setAttribute('aria-pressed','false');
-   // History uses its own event spine; TradingView remains a separate chart mode.
-  }else{
-   while(host.firstChild)host.removeChild(host.firstChild);
-   host.append(tvBackup);
-   visible='tradingview';
-   closeDetails();
-   livingButton?.setAttribute('aria-pressed','false');
-   tvButton?.setAttribute('aria-pressed','true');
-  }
- }
- livingButton.hidden=false;tvButton.hidden=false;
- livingButton.setAttribute('aria-pressed','false');
- tvButton.setAttribute('aria-pressed','true');
- livingButton.addEventListener('click',()=>{switchTo('timeline');void (async()=>{await checkHistoryPermission();if(!data.length)await maybePopulateCompanyHistory();})()});
- tvButton.addEventListener('click',()=>switchTo('tradingview'));
+ window.addEventListener('resize',fitRailEdges);
+ // The history section is permanently visible beneath the market chart.
+ host.hidden=false;
+ host.append(frame);
  function validSource(value){
   try{const u=new URL(String(value));return u.protocol==='https:'&&!u.username&&!u.password?u.href:null;}catch{return null}
  }
@@ -206,6 +182,21 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
    summary.textContent=String(event.ai_summary||'').trim();
    card.setAttribute('aria-label',eventDate(event)+': '+event.title+'. Select to read sourced details.');
    card.append(icon,date,title,summary);
+   // A continuous valley-peak-valley path places each milestone at a peak.
+   const zigzag=document.createElementNS('http://www.w3.org/2000/svg','svg');
+   zigzag.classList.add('orca-history-zigzag');
+   zigzag.setAttribute('viewBox','0 0 240 104');
+   zigzag.setAttribute('preserveAspectRatio','none');
+   zigzag.setAttribute('aria-hidden','true');
+   const path=document.createElementNS('http://www.w3.org/2000/svg','polyline');
+   path.setAttribute('points','0,92 120,10 240,92');
+   path.setAttribute('fill','none');
+   path.setAttribute('stroke','currentColor');
+   path.setAttribute('stroke-width','3.5');
+   path.setAttribute('vector-effect','non-scaling-stroke');
+   path.setAttribute('stroke-linecap','round');
+   path.setAttribute('stroke-linejoin','round');
+   zigzag.append(path);
    const stem=document.createElement('span');stem.className='orca-history-stem';
    const dot=document.createElement('span');dot.className='orca-history-dot';
    // Render exactly one distinct year badge, anchored to the middle event of that year.
@@ -213,7 +204,7 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
    const eventYear=new Date(event.event_at).getUTCFullYear();
    const sameYearIndices=data.map((item,index)=>new Date(item.event_at).getUTCFullYear()===eventYear?index:-1).filter(index=>index>=0);
    const yearLabelIndex=sameYearIndices[Math.floor((sameYearIndices.length-1)/2)];
-   stop.append(card,stem,dot);
+   stop.append(zigzag,stem,dot,card);
    if(i===yearLabelIndex){
     const year=document.createElement('span');
     year.className='orca-history-year-once';
@@ -239,7 +230,7 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
    generate.addEventListener('click',()=>void maybePopulateCompanyHistory());
    frame.insertBefore(generate,rail);
   }
-  if(visible==='timeline')fitRailEdges();
+  fitRailEdges();
   // Do not automatically display milestone details.
   closeDetails();
   index.textContent=data.length+' company milestones';
@@ -260,7 +251,7 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
  next.addEventListener('click',()=>jumpTo(data.length-1));
  // Capture outside clicks, including clicks elsewhere on the page.
  document.addEventListener('pointerdown',event=>{
-  if(visible!=='timeline'||details.hidden)return;
+  if(details.hidden)return;
   if(!details.contains(event.target)&&!event.target.closest?.('.orca-timeline-event'))closeDetails();
  },true);
  document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!details.hidden)closeDetails();});
@@ -373,8 +364,12 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
    }
   }
  }
- // Preserve the normal TradingView chart on initial load. Living Timeline is opt-in.
+ // Display cached history immediately; paid history research remains opt-in.
  await loadEvents();
+ // Cached histories and existing photo repairs should work immediately
+ // without relying on the old manual Living Timeline toggle.
+ await checkHistoryPermission();
+ requestAnimationFrame(()=>{fitRailEdges();rail.scrollLeft=0});
  try{
   const module=await import('./orca-timeline-photos.js?v=hide-unsplash-diagnostic-v15');
   photoMount=await module.mountTimelinePhotos({sb,ticker,frame,rail,status,getUser,canContribute:()=>historyAuthorized});
