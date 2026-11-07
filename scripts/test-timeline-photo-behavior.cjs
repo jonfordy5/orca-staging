@@ -79,6 +79,32 @@ test('Amazon accepts a recognizable corporate photo but not false company identi
 });
 
 
+const aap=companyTheme('AAP','Advance Auto Parts Inc.','automotive aftermarket parts retailer');
+const aapAcquisition=eventVisualPlan({title:'Advance acquires Carquest and Worldpac parent in 2014'},aap);
+const aapDiehard=eventVisualPlan({title:'Advance acquires the DieHard brand for $200 million'},aap);
+const aapOrdinary=eventVisualPlan({title:'Advance Auto Parts filed its 2005 annual report'},aap);
+test('AAP searches its own stores and acquired brands without spending more than three calls',()=>{
+ assert.equal(aap.theme,'auto parts retail');
+ assert.equal(aapAcquisition.kind,'aap_carquest');
+ assert.equal(aapDiehard.kind,'aap_diehard');
+ assert.deepEqual(Array.from(visualQueries(aap,[])).slice(0,5),
+  ['advance auto parts store','auto parts store','car battery','carquest auto parts','diehard car battery']);
+});
+test('AAP acquired brands qualify only for their own events',()=>{
+ const parts=candidateFromUnsplash(photoMock('parts','auto parts store shelves and car batteries'),'auto parts store',1,aap,[aapOrdinary,aapAcquisition,aapDiehard]);
+ const carquest=candidateFromUnsplash(photoMock('carquest','Carquest auto parts retail storefront'),'carquest auto parts',1,aap,[aapOrdinary,aapAcquisition,aapDiehard]);
+ const diehard=candidateFromUnsplash(photoMock('diehard','DieHard automotive battery on shelf'),'diehard car battery',1,aap,[aapOrdinary,aapAcquisition,aapDiehard]);
+ assert(parts);
+ assert(carquest);
+ assert(diehard);
+ assert(Number.isFinite(eventCandidateScore(carquest,aapAcquisition)));
+ assert(Number.isFinite(eventCandidateScore(diehard,aapDiehard)));
+ assert.equal(eventCandidateScore(carquest,aapOrdinary),-Infinity);
+ assert.equal(eventCandidateScore(diehard,aapOrdinary),-Infinity);
+ assert.equal(candidateFromUnsplash(photoMock('competitor','AutoZone retail parts store'),'auto parts store',1,aap,[aapOrdinary]),null);
+ assert.equal(candidateFromUnsplash(photoMock('scrap','scrapyard car wreckage and spare parts'),'auto parts store',1,aap,[aapOrdinary]),null);
+});
+
 const ford=companyTheme('F','Ford Motor Company Common Stock','automotive manufacturer');
 assert.equal(ford.brand,'ford');
 assert.equal(ford.theme,'automotive');
