@@ -47,6 +47,13 @@ function companyTheme(ticker:string,name:string,description:string):ThemeProfile
  if(ticker==="F")return {brand:"ford",theme:"automotive",
   terms:["car","cars","truck","pickup","vehicle","automotive","mustang","bronco","f150","f-150","model t","classic car","logo","electric"],
   queries:["ford","ford mustang","ford truck","ford model t"]};
+ // Branded company/brand searches before generic visual context.
+ if(ticker==="AMZN")return {brand:"amazon",theme:"amazon commerce",
+  terms:["amazon","prime","kindle","aws","whole foods","zappos","souq",
+   "warehouse","delivery","pickup","returns","fulfillment","logo",
+   "packages","e-commerce","online","truck","cloud","bookstore"],
+  queries:["amazon","amazon delivery","whole foods market",
+   "amazon kindle","amazon prime","amazon warehouse"]};
  return {brand,theme:selected.theme,terms:selected.terms,queries:selected.queries};
 }
 function photoPlans(profile:ThemeProfile){
@@ -166,6 +173,20 @@ function photoVenue(title:string):string|undefined{
 type EventVisualPlan={kind:string;queries:string[];terms:string[]};
 function eventVisualPlan(event:{title:string;category?:string},profile:ThemeProfile):EventVisualPlan{
  const title=String(event.title||"").toLowerCase();
+ // For a named acquired business, use THAT brand, not unrelated storefronts.
+ if(profile.brand==="amazon"){
+  if(/\bwhole foods\b/.test(title))
+   return {kind:"amazon_whole_foods",queries:["whole foods market","amazon whole foods","amazon"],terms:["whole foods","amazon","market","grocery"]};
+  if(/\bzappos\b/.test(title))
+   return {kind:"amazon_zappos",queries:["zappos","amazon zappos","amazon"],terms:["zappos","amazon","shoes"]};
+  if(/\bsouq\b/.test(title))
+   return {kind:"amazon_souq",queries:["souq amazon","amazon","souq"],terms:["souq","amazon","marketplace"]};
+  if(/\bkindle\b/.test(title))
+   return {kind:"amazon_kindle",queries:["amazon kindle","kindle e-reader","amazon"],terms:["kindle","e-reader","ebook","amazon"]};
+  if(/\bprime\b/.test(title))
+   return {kind:"amazon_prime",queries:["amazon prime","amazon delivery","amazon"],terms:["prime","delivery","packages","amazon"]};
+  return {kind:"amazon_company",queries:["amazon","amazon delivery","amazon warehouse"],terms:["amazon","delivery","warehouse","logo","fulfillment","aws"]};
+ }
  // Ford photos should represent the named vehicle or company era. Other
  // companies still use their existing event-specific plans.
  if(profile.brand==="ford"){
@@ -203,6 +224,10 @@ function visualQueries(profile:ThemeProfile,events:{title:string;category?:strin
  if(profile.brand==="ford")return [
   "ford","ford mustang","ford truck","ford model t","ford f150","ford bronco"
  ];
+ if(profile.brand==="amazon")return [
+  "amazon","amazon delivery","whole foods market","amazon whole foods",
+  "amazon kindle","amazon prime","amazon warehouse","zappos","souq amazon"
+ ];
  // DG pilot: seven broad, distinct search phrases. Do not narrow or recombine them.
  // Repeated convenience-store searches use different result pages, not duplicated page one.
  if(profile.brand==="dollar general")return [
@@ -231,6 +256,13 @@ function visualQueries(profile:ThemeProfile,events:{title:string;category?:strin
 function eventContextMatch(description:string,plan:EventVisualPlan):boolean{
  const text=description.toLowerCase();
  switch(plan.kind){
+  case "amazon_whole_foods":return /\bwhole foods(?: market)?\b/.test(text);
+  case "amazon_zappos":return /\bzappos\b/.test(text);
+  case "amazon_souq":return /\bsouq\b/.test(text);
+  case "amazon_kindle":return /\b(kindle|e[- ]reader)\b/.test(text);
+  case "amazon_prime":return /\bamazon prime\b/.test(text);
+  case "amazon_company":return /\bamazon\b/.test(text)&&
+   /\b(delivery|warehouse|logo|building|headquarters|pickup|returns|fulfillment|aws|packages?|cloud|store|truck)\b/.test(text);
   case "ford_mustang":return /\b(mustang|mach[- ]?e)\b/.test(text);
   case "ford_truck":return /\b(truck|pickup|f[- ]?150|lightning|raptor)\b/.test(text);
   case "ford_vintage":return /\b(model t|vintage|classic|antique|old car|191\d|192\d|1949)\b/.test(text);
@@ -252,6 +284,8 @@ function eventCandidateScore(candidate:Candidate,plan:EventVisualPlan):number{
  const scene=Boolean(candidate.context_kinds?.includes(plan.kind));
  if(candidate.company_match&&scene)return 250+Math.min(hits,4)*12;
  if(plan.kind==="listing"&&candidate.venue==="nyse")return 220+Math.min(hits,4)*12;
+ // A generic storefront is not a company's M&A announcement.
+ if(plan.kind==="corporate"&&!candidate.company_match)return -Infinity;
  if(scene)return 190+Math.min(hits,4)*12;
  if(candidate.company_match)return 65+Math.min(hits,4)*8+Math.min(candidate.score,40);
  // A caption-identified retail scene is an honest illustrative fallback for
@@ -288,6 +322,11 @@ function candidateFromUnsplash(p:any,query:string,tier:number,profile:ThemeProfi
   /\b(convenience stores?|convenience shops?|grocery stores?|supermarkets?|discount stores?|retail shelves|store shelves|shopping aisles|grocery aisles|retail storefront|storefront)\b/i.test(description);
  if(score<0&&!context_kinds.length&&!retail_illustration)return null;
  const company_match=companyPhotoIdentity(description,profile);
+ // A named acquired business may be shown for its own event, but a random
+ // store or market is not a legitimate Amazon photograph.
+ if(profile.brand==="amazon"&&!company_match&&
+    !context_kinds.some(kind=>["amazon_whole_foods","amazon_zappos","amazon_souq","amazon_kindle","amazon_prime"].includes(kind)))
+  return null;
  const venue=photoVenue(description);
  if(!company_match&&!venue&&!context_kinds.length&&!retail_illustration)return null;
  return {id,image_url:url,full_image_url:full,photographer,photographer_url,

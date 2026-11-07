@@ -32,6 +32,53 @@ const nvda=companyTheme('NVDA','NVIDIA','semiconductors');
 const ulta=companyTheme('ULTA','Ulta Beauty','beauty retail');
 const unknown=companyTheme('NEW','New Restaurant','restaurant');
 
+let checks=0;
+function test(name,fn){fn();checks++;console.log('PASS '+name)}
+const amazon=companyTheme('AMZN','Amazon.com Inc. Common Stock','online stores, AWS cloud');
+const wholeFoodsPlan=eventVisualPlan({title:'Amazon completes Whole Foods acquisition'},amazon);
+const souqPlan=eventVisualPlan({title:'Amazon closes Souq Group acquisition'},amazon);
+const amazonCompanyPlan=eventVisualPlan({title:'Amazon reports third-quarter revenue'},amazon);
+test('Amazon searches its own company and acquired brand names',()=>{
+ assert.equal(amazon.brand,'amazon');
+ assert.equal(amazon.theme,'amazon commerce');
+ assert.equal(wholeFoodsPlan.kind,'amazon_whole_foods');
+ assert.equal(souqPlan.kind,'amazon_souq');
+ assert.deepEqual(Array.from(visualQueries(amazon,[])).slice(0,4),[
+  'amazon','amazon delivery','whole foods market','amazon whole foods']);
+});
+const photoMock=(id,description)=>({
+ id,urls:{small:'https://images.unsplash.com/photo-'+id,regular:'https://images.unsplash.com/photo-'+id},
+ user:{name:'Mock Photographer',links:{html:'https://unsplash.com/@mock'}},
+ links:{html:'https://unsplash.com/photos/mock-'+id,download_location:'https://api.unsplash.com/photos/'+id+'/download'},
+ alt_description:description,description:'',slug:description.toLowerCase().replace(/\s+/g,'-'),tags:[]
+});
+test('Amazon rejects unrelated store brands even with storefront query',()=>{
+ for(const d of ['Waller’s Market storefront red brick building',
+                 'Mercadona supermarket storefront orange brick building',
+                 'Acme Maison storefront wooden beams']){
+  const c=candidateFromUnsplash(photoMock('bad',d),'retail storefront exterior',4,amazon,[wholeFoodsPlan]);
+  assert.equal(c,null,d);
+ }
+});
+test('Amazon accepts a Whole Foods photo on its acquisition event',()=>{
+ const c=candidateFromUnsplash(photoMock('wholefoods','Whole Foods Market grocery store sign'),
+  'whole foods market',2,amazon,[wholeFoodsPlan]);
+ assert(c,'Actual Whole Foods Market photo should qualify');
+ assert(Number.isFinite(eventCandidateScore(c,wholeFoodsPlan)));
+ assert.equal(c.company_match,false);
+ assert.equal(eventCandidateScore(c,amazonCompanyPlan),-Infinity);
+});
+test('Amazon accepts a recognizable corporate photo but not false company identity',()=>{
+ const c=candidateFromUnsplash(photoMock('amazonlogo','Amazon logo on delivery warehouse building'),
+  'amazon',0,amazon,[amazonCompanyPlan]);
+ assert(c);
+ assert.equal(c.company_match,true);
+ const bad=candidateFromUnsplash(photoMock('forest','Amazon rainforest canopy in Brazil'),
+  'amazon',0,amazon,[amazonCompanyPlan]);
+ assert.equal(bad,null);
+});
+
+
 const ford=companyTheme('F','Ford Motor Company Common Stock','automotive manufacturer');
 assert.equal(ford.brand,'ford');
 assert.equal(ford.theme,'automotive');
@@ -56,8 +103,6 @@ function testFordSource(){
  console.log('PASS Ford search accepts multiple car models and rejects non-car Ford names');
 }
 
-let checks=0;
-function test(name,fn){fn();checks++;console.log('PASS '+name)}
 const candidate=(title,query='',score=40)=>({id:title,title,query,score,photographer:'Example',company_match:companyPhotoIdentity(title,dg),venue:photoVenue(title)});
 const listing=eventVisualPlan({title:'Returned to public trading on NYSE'},dg);
 test('DG uses seven distinct short queries in deterministic order',()=>{
