@@ -416,7 +416,7 @@ function pickCandidate(pool:Candidate[],reserved:Set<string>,photographerCounts:
  return available[0];
 }
 
-const maximumPerCall=10;
+const maximumPerCall=15;
 // Shared development allowance, measured over a rolling 24-hour window.
 const dailyPhotoLimit=300;
 Deno.serve(async(req:Request)=>{
@@ -494,7 +494,7 @@ Deno.serve(async(req:Request)=>{
   return reply(429,{state:"daily_limit",error:"Photo-selection daily safety limit reached",
    limit:dailyPhotoLimit,used:count,remaining:targets.length,retry_at:retryAt});
  }
- const todo=targets.slice(0,Math.min(10,remainingDaily));
+ const todo=targets.slice(0,Math.min(maximumPerCall,remainingDaily));
  const accessKey=Deno.env.get("UNSPLASH_ACCESS_KEY");
  if(!accessKey)return reply(503,{error:"Unsplash access key is not configured"});
  const plans=featured.map((e:any)=>eventVisualPlan(e,profile));
