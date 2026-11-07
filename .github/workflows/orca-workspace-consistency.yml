@@ -10,6 +10,8 @@ on:
       - 'orca-living-timeline.js'
       - 'orca-timeline-photos.js'
       - 'supabase/functions/orca-timeline-photo-fill/**'
+      - 'supabase/functions/orca-timeline-discovery/**'
+      - 'scripts/test-timeline-history-backfill.cjs'
       - 'scripts/test-timeline-photo-behavior.cjs'
       - 'docs/orca-company-page-standard.md'
       - 'scripts/check-shared-research-workspace.cjs'
@@ -30,3 +32,5 @@ jobs:
         run: node scripts/check-shared-research-workspace.cjs
       - name: Exercise photo relevance and daily-limit behavior
         run: node scripts/test-timeline-photo-behavior.cjs
+      - name: Exercise near-completion timeline research safeguards
+        run: node scripts/test-timeline-history-backfill.cjs

@@ -141,7 +141,7 @@ const discovery=read('supabase/functions/orca-timeline-discovery/index.ts');
 check('Timeline discovery covers historical company origins with capped primary-source research', () =>
   discovery.includes("FULL HISTORY") &&
   discovery.includes('Date.parse("1900-01-01")') &&
-  discovery.includes('max_tool_calls:5,max_output_tokens:6500') &&
+  discovery.includes('max_tool_calls:targeted?1:5,max_output_tokens:targeted?2100:6500') &&
   discovery.includes('if(cost>.15)') &&
   discovery.includes('target_total:10') &&
   discovery.includes('refresh_eligible_after:reservation?.refresh_eligible_after||null'));
