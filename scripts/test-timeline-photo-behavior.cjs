@@ -20,7 +20,7 @@ const admin={auth:{getUser:async()=>({data:{user:{id:'test'}}})},from(table){
   if(table==='stocks')result={data:{company_name:'Dollar General'}};
   if(table==='orca_ai_company_profiles')result={data:null};
   return query;
- },eq(){return query},gte(){return query},is(){return query},order(){return query},limit(){return query},maybeSingle(){return query},then(resolve){resolve(result)}};
+ },eq(){return query},gte(){return query},is(){return query},order(){return query},limit(){return query},range(){return query},maybeSingle(){return query},then(resolve){resolve(result)}};
  return query;
 }};
 const ctx={createClient:()=>admin,Deno:{env:{get:name=>name==='UNSPLASH_ACCESS_KEY'&&providerKeyEnabled?'test':'',},serve:fn=>handler=fn},URL,Response,Request,Date,AbortSignal,fetch:async()=>{requests++;return new Response(providerStatus===200?JSON.stringify({results:[{id:'photo'}]}):'',{status:providerStatus,headers:{'Content-Type':'application/json','X-Ratelimit-Limit':providerLimit,'X-Ratelimit-Remaining':providerRemaining}})}};
