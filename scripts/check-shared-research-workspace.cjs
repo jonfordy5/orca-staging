@@ -94,6 +94,7 @@ check('TradingView remains fully visible above an independent timeline', () =>
   !workspace.includes('id="living-show"') &&
   workspace.includes('createMarketChart();createMarketQuote()'));
 check('Desktop sketch has alternating peak and valley cards with two clear rows', () =>
+  timeline.includes("i===0?'120,18 240,66'") &&
   timeline.includes("i%2===0?'0,66 120,18 240,66':'0,66 120,114 240,66'") &&
   timeline.includes("stop.append(zigzag,stem,dot,card)") &&
   workspace.includes('height:680px') &&
@@ -103,6 +104,16 @@ check('Desktop sketch has alternating peak and valley cards with two clear rows'
   workspace.includes('top:396px!important') &&
   workspace.includes('top:190px!important;height:54px!important') &&
   workspace.includes('top:340px!important;height:56px!important'));
+
+check('First milestone starts timeline without a lead-in and initially aligns left', () =>
+  timeline.includes("i===0?'120,18 240,66'") &&
+  timeline.includes("spine.style.paddingLeft=(mobile?12:20)+'px'") &&
+  timeline.includes('rail.scrollLeft=0') &&
+  workspace.includes("v=left-start-clear-years-v23"));
+
+check('Year labels sit off the zigzag and beside milestone connectors', () =>
+  workspace.includes('top:208px!important;left:calc(50% + 19px)!important') &&
+  workspace.includes('top:365px!important;left:calc(50% + 19px)!important'));
 
 check('Mobile history is a swipeable photo carousel without any line', () =>
   timeline.includes("window.matchMedia('(max-width:700px)').matches") &&
