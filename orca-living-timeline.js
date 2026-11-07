@@ -72,9 +72,22 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
    return [Math.round(rect.left+rect.width/2-spineRect.left),
     Math.round((i%2===0?rect.bottom:rect.top)-spineRect.top)];
   });
-  const width=Math.max(1,Math.ceil(spine.scrollWidth),points[points.length-1][0]+10);
+  // The history has no permanent endpoint. Extend two more zigzag legs
+  // (~380px total) beyond the newest milestone, without inventing an event.
+  // Once a new milestone arrives, the continuation grows from that event.
+  const futureStep=190;
+  const last=points[points.length-1];
+  const prior=points[points.length-2]||[last[0]-210,last[1]+50];
+  const originalStep=Math.max(1,last[0]-prior[0]);
+  const nextRise=-(last[1]-prior[1])*futureStep/originalStep;
+  const futurePoints=[
+   [last[0]+futureStep,last[1]+nextRise],
+   [last[0]+futureStep*2,last[1]]
+  ];
+  const entireLine=[...points,...futurePoints];
+  const width=Math.ceil(futurePoints[1][0])+1;
   const height=Math.max(1,Math.ceil(spine.clientHeight));
-  const pathData='M '+points.map(([x,y])=>x+' '+y).join(' L ');
+  const pathData='M '+entireLine.map(([x,y])=>Math.round(x)+' '+Math.round(y)).join(' L ');
   const ns='http://www.w3.org/2000/svg';
   const svg=document.createElementNS(ns,'svg');
   svg.classList.add('orca-history-track');
@@ -105,11 +118,45 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
    stop.setAttribute('stop-opacity',opacity);
    gradient.append(stop);
   }
-  defs.append(gradient);
+  // Only the final 150px fades, so a new future milestone can extend
+  // the same continuous line. The beam fades with the line at its endpoint.
+  const tailFadeStart=Math.max(0,futurePoints[1][0]-150);
+  const tailId='orca-future-tail-'+ticker.toLowerCase().replace(/[^a-z0-9]/g,'');
+  const tailGradient=document.createElementNS(ns,'linearGradient');
+  tailGradient.setAttribute('id',tailId+'-gradient');
+  tailGradient.setAttribute('gradientUnits','userSpaceOnUse');
+  tailGradient.setAttribute('x1',String(tailFadeStart));
+  tailGradient.setAttribute('y1','0');
+  tailGradient.setAttribute('x2',String(futurePoints[1][0]));
+  tailGradient.setAttribute('y2','0');
+  for(const [offset,opacity] of [['0%','1'],['100%','0']]){
+   const step=document.createElementNS(ns,'stop');
+   step.setAttribute('offset',offset);
+   step.setAttribute('stop-color','white');
+   step.setAttribute('stop-opacity',opacity);
+   tailGradient.append(step);
+  }
+  const tailMask=document.createElementNS(ns,'mask');
+  tailMask.setAttribute('id',tailId);
+  tailMask.setAttribute('maskUnits','userSpaceOnUse');
+  tailMask.setAttribute('x','0');
+  tailMask.setAttribute('y','0');
+  tailMask.setAttribute('width',String(width));
+  tailMask.setAttribute('height',String(height));
+  const maskFill=document.createElementNS(ns,'rect');
+  maskFill.setAttribute('x','0');
+  maskFill.setAttribute('y','0');
+  maskFill.setAttribute('width',String(width));
+  maskFill.setAttribute('height',String(height));
+  maskFill.setAttribute('fill','url(#'+tailId+'-gradient)');
+  tailMask.append(maskFill);
+  defs.append(gradient,tailGradient,tailMask);
+  base.setAttribute('mask','url(#'+tailId+')');
   const beam=document.createElementNS(ns,'path');
   beam.classList.add('orca-history-track-beam');
   beam.setAttribute('fill','none');
   beam.setAttribute('stroke','url(#'+gradientId+')');
+  beam.setAttribute('mask','url(#'+tailId+')');
   beam.setAttribute('vector-effect','non-scaling-stroke');
   beam.setAttribute('stroke-linecap','butt');
   beam.setAttribute('stroke-linejoin','round');
@@ -162,10 +209,10 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
   const stop=spine?.querySelector('.orca-history-stop');
   if(!spine||!stop||!rail.clientWidth)return;
   const mobile=window.matchMedia('(max-width:700px)').matches;
-  // Keep the founding milestone near the left edge on first load.
-  // Preserve the larger right margin for "jump to latest" navigation.
+  // Desktop gets enough room to reveal the future continuation beyond
+  // the last company event. Mobile remains a normal swipe-only photo strip.
   spine.style.paddingLeft=(mobile?12:20)+'px';
-  spine.style.paddingRight=(mobile?12:Math.max(28,Math.round((rail.clientWidth-stop.getBoundingClientRect().width)/2)))+'px';
+  spine.style.paddingRight=(mobile?12:Math.max(420,Math.round((rail.clientWidth-stop.getBoundingClientRect().width)/2)))+'px';
  }
  function centerMilestone(element,behavior='smooth'){
   const stop=element?.closest('.orca-history-stop');
