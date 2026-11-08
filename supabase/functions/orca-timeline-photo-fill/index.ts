@@ -512,7 +512,12 @@ async function findUnsplashCandidates(accessKey:string,queries:string[],profile:
  let requests_made=0,results_received=0,network_failures=0;
  const brandQuery=queries[0]||profile.brand;
  let nextQuery:string|null=brandQuery;
- const requestBudget=["advance auto parts","rocket lab"].includes(profile.brand)?8:maxSearchRequestsPerFill;
+ // First three searches are the normal path. New sectors can spend up to
+ // three additional distinct queries only while cards remain unfilled.
+ // The per-account daily quota and provider rate limit remain unchanged.
+ const provenBrands=new Set(["ford","amazon","nvidia","apple","microsoft","ulta","dollar general"]);
+ const requestBudget=["advance auto parts","rocket lab"].includes(profile.brand)?8:
+  provenBrands.has(profile.brand)?maxSearchRequestsPerFill:6;
  while(nextQuery&&requests_made<requestBudget){
   const query=nextQuery;tried.add(query);triedList.push(query);
   const uri=new URL("https://api.unsplash.com/search/photos");
