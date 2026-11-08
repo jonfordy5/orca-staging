@@ -288,12 +288,14 @@ check('Timeline discovery covers historical company origins with capped primary-
   discovery.includes("FULL HISTORY") &&
   discovery.includes('Date.parse("1800-01-01")') &&
   discovery.includes('max_tool_calls:targeted?1:5,max_output_tokens:targeted?2100:6500') &&
-  discovery.includes('if(cost>.15)') &&
+  discovery.includes('if(cost>costCeiling)') &&
   discovery.includes('scope==="current"') &&
   discovery.includes('scope==="origin"') &&
   discovery.includes('remainingAtStart') &&
-  discovery.includes('if(cost>.15)') &&
-  discovery.includes('refresh_eligible_after:reservation?.refresh_eligible_after||null'));
+  discovery.includes('if(cost>costCeiling)') &&
+  discovery.includes('refresh_eligible_after:reservation?.refresh_eligible_after||null') &&
+  discovery.includes('max_budget_usd') &&
+  discovery.includes('Math.min(0.15,requestedBudget)'));
 const retrySql=read('supabase/migrations/20261108_timeline_development_per_run_budget.sql');
 check('Development retries retain authorization, duplicate-request lock and per-run reservation',()=>
  retrySql.includes('p.opted_in IS TRUE')&&retrySql.includes('pg_advisory_xact_lock')&&
