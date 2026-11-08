@@ -79,6 +79,26 @@ test('Amazon accepts a recognizable corporate photo but not false company identi
 });
 
 
+const rklb=companyTheme('RKLB','Rocket Lab Corporation','launch vehicles and satellite services');
+const rklbEvents=Array.from({length:11},(_,i)=>({title:'Rocket Lab mission '+i}));
+const rklbPlan=eventVisualPlan(rklbEvents[0],rklb);
+test('Rocket Lab searches rocket first and accepts unique generic rocket launches',()=>{
+ assert.equal(visualQueries(rklb,rklbEvents)[0],'rocket');
+ assert.equal(rklbPlan.kind,'rocket_illustration');
+ const pool=Array.from({length:11},(_,i)=>candidateFromUnsplash(
+  photoMock('rocket-'+i,'A rocket launch lifting off from launchpad '+i),
+  'rocket',0,rklb,[rklbPlan]));
+ assert(pool.every(Boolean),'Generic rocket photos should not require Rocket Lab branding');
+ const reserved=new Set();
+ for(let i=0;i<11;i++){
+  const picked=pickCandidate(pool,reserved,new Map(),rklbPlan);
+  assert(picked&&!reserved.has(picked.id));
+  reserved.add(picked.id);
+ }
+ assert.equal(reserved.size,11);
+ assert.equal(candidateFromUnsplash(photoMock('toy','Toy rocket illustration graphic'),'rocket',0,rklb,[rklbPlan]),null);
+ assert.equal(candidateFromUnsplash(photoMock('salad','Rocket salad arugula leaves'),'rocket',0,rklb,[rklbPlan]),null);
+});
 const aap=companyTheme('AAP','Advance Auto Parts Inc.','automotive aftermarket parts retailer');
 const aapAcquisition=eventVisualPlan({title:'Advance acquires Carquest and Worldpac parent in 2014'},aap);
 const aapDiehard=eventVisualPlan({title:'Advance acquires the DieHard brand for $200 million'},aap);
