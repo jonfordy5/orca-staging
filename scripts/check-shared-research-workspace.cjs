@@ -164,7 +164,7 @@ check('Timeline extends beyond the newest milestone and fades into the future', 
   timeline.includes("base.setAttribute('mask','url(#'+tailId+')')") &&
   timeline.includes("beam.setAttribute('mask','url(#'+tailId+')')") &&
   timeline.includes('Math.max(420,Math.round') &&
-  workspace.includes('v=history-start-v33'));
+  workspace.includes('v=kiss-history-v34'));
 
 check('Open-ended timeline preserves milestones and beam arrival effects', () =>
   timeline.includes('const nodeDistances=[0]') &&
@@ -196,7 +196,7 @@ check('Timeline initially centers the middle milestone while navigation remains 
   timeline.includes("centerMilestone(card,'auto')") &&
   timeline.includes("prev.addEventListener('click',()=>jumpTo(0))") &&
   timeline.includes("next.addEventListener('click',()=>jumpTo(data.length-1))") &&
-  workspace.includes('v=history-start-v33'));
+  workspace.includes('v=kiss-history-v34'));
 
 check('Mobile history stays a swipe carousel without zigzag or glowing track', () =>
   workspace.includes('touch-action:pan-x!important') &&
@@ -221,7 +221,7 @@ check('Real photos come from cached metadata while original fallback art is clea
 check('Photo controls hide when complete and remain available for missing or weak photos', () =>
   photos.includes('button.hidden=!needsAction') &&
   photos.includes("button.textContent=duplicateCount>0?'Improve photos':'Find photos'") &&
-  photos.includes('visiblePhotos.filter(p=>p.needs_review)') &&
+  photos.includes('seenUrls.has(originalKey(p))') &&
   photos.includes('visibleCards.filter(card=>!photos.has(card.dataset.eventId))'));
 check('Open-ended photo coverage never repeats an old saved image', () =>
   photos.includes('seen.has(p.photo_id)') &&
@@ -239,11 +239,11 @@ check('Universal page standard is documented without a hard metadata cap', () =>
   pageStandard.includes('Never overwrite archived findings'));
 
 check('Brand new stocks request full ten-event history, not a single origin event', () =>
-  timeline.includes("const researchNeed=()=>!allVerified.length?'history':!hasOrigin()?'origin':") &&
+  timeline.includes("const researchNeed=()=>allVerified.length<initialHistoryGoal?'history':!hasOrigin()?'origin':") &&
   timeline.includes("const initialHistoryGoal=10;") &&
   timeline.includes("showResearchFeedback(message+' Nothing was invented or saved.") &&
   timeline.includes("researchFeedback&&!data.length") &&
-  timeline.includes("attemptedScopesThisSession.add(researchScope)"));
+  !timeline.includes('attemptedScopesThisSession'));
 check('Empty registered timelines explain consent and offer a generate action', () =>
   timeline.includes("empty.textContent='No sourced company milestones cached") &&
   timeline.includes("generate.textContent='Generate company history'") &&
@@ -257,20 +257,16 @@ check('Every timeline photo stays scoped to the same stock ticker', () =>
   photos.includes(".eq('ticker',ticker).range(offset,offset+249)") &&
   !photos.includes('const {data:shared') &&
   !photos.includes('const {data:library}') );
-check('Photo generation rejects negative relevance and never borrows other tickers', () => {
+check('Photo generation checks licensed URLs and never borrows other tickers',()=>{
  const engine=read('supabase/functions/orca-timeline-photo-fill/index.ts');
- return engine.includes('if(score<0&&!context_kinds.length&&!retail_illustration&&!universal_illustration)return null;') &&
-   engine.includes('if(!company_match&&!venue&&!context_kinds.length&&!retail_illustration&&!universal_illustration)return null;') &&
-   engine.includes('const universal_illustration=universalMatch(description,profile);') &&
-   engine.includes('if(duplicated){failed++;continue}') &&
-   !engine.includes('const {data:library}');
+ return engine.includes('usedUrls.has(originalUrl(p.full_image_url))')&&engine.includes('.eq("ticker",ticker)')&&engine.includes('photo.premium||photo.plus');
 });
 check('Open-ended histories provide opt-in founding and current-year refreshes', () =>
   timeline.includes("scope==='current'?'Research '+year()+' milestone'") &&
   timeline.includes("scope==='origin'?'Research company beginnings'") &&
   timeline.includes('const nextData=verified;') &&
   timeline.includes('halfYearStart') &&
-  timeline.includes('attemptedScopesThisSession') &&
+  !timeline.includes('attemptedScopesThisSession') &&
   timeline.includes('await checkHistoryPermission();') &&
   !timeline.includes('if(!data.length)await maybePopulateCompanyHistory()') &&
   timeline.includes('refresh_eligible_after') &&
@@ -287,77 +283,21 @@ check('Timeline discovery covers historical company origins with capped primary-
   discovery.includes('remainingAtStart') &&
   discovery.includes('if(cost>.15)') &&
   discovery.includes('refresh_eligible_after:reservation?.refresh_eligible_after||null'));
-const retrySql=read('sql/orca_timeline_immediate_targeted_completion.sql');
-check('Immediate one-time targeted completion retains spending, authorization and throttle controls', () =>
-  retrySql.includes('v_recent_count IN (8,9)') &&
-  retrySql.includes('v_targeted_attempt_at IS NOT NULL') &&
-  retrySql.includes("v_targeted_attempt_at+interval '24 hours'") &&
-  retrySql.includes("v_recent_count NOT IN (8,9)") &&
-  retrySql.includes('is_targeted_completion') &&
-  retrySql.includes('v_user_recent>=10') &&
-  retrySql.includes('IF v_used+0.15>15') &&
-  retrySql.includes('p.opted_in IS TRUE') &&
-  retrySql.includes('pg_advisory_xact_lock') &&
-  retrySql.includes("state='failed'") &&
-  retrySql.includes('REVOKE')===false &&
-  timeline.includes('attemptedScopesThisSession') &&
-  timeline.includes('generate.disabled=!mayRequestHistory()'));
-const updatesSql=read('sql/orca_timeline_open_ended_periodic_updates.sql');
-check('Semiannual update gate is shared and preserves cost and consent protections', () =>
-  updatesSql.includes("v_scope NOT IN ('origin','current')") &&
-  updatesSql.includes("reason','current_half_year_covered'") &&
-  updatesSql.includes("reason','scope_retry_limit'") &&
-  updatesSql.includes("v_used+0.15>15") &&
-  updatesSql.includes('p.opted_in IS TRUE') &&
-  updatesSql.includes('v_recent_user>=10') &&
-  updatesSql.includes("GRANT EXECUTE ON FUNCTION public.orca_timeline_reserve_scoped_generation") &&
-  updatesSql.includes('pg_advisory_xact_lock'));
+const retrySql=read('supabase/migrations/20261108_timeline_development_per_run_budget.sql');
+check('Development retries retain authorization, duplicate-request lock and per-run reservation',()=>
+ retrySql.includes('p.opted_in IS TRUE')&&retrySql.includes('pg_advisory_xact_lock')&&
+ retrySql.includes('0.15')&&!retrySql.includes("state','cooldown")&&
+ !timeline.includes('attemptedScopesThisSession'));
 check('Cached timelines check research consent on load without starting paid generation', () =>
   timeline.includes('await loadEvents();') &&
   timeline.includes('await checkHistoryPermission();') &&
   timeline.includes("canContribute:()=>historyAuthorized") &&
   !timeline.includes('if(!data.length)await maybePopulateCompanyHistory()'));
-check('Ambiguous multiword brands remain intact, including Dollar General', () => {
+check('Photos depend on business descriptions, never events or ticker-specific rules',()=>{
  const engine=read('supabase/functions/orca-timeline-photo-fill/index.ts');
- return engine.includes('DG:"dollar general"') &&
-  engine.includes('.trim().toLowerCase();') &&
-  engine.includes('theme:"discount retail"') &&
-  engine.includes('profile.brand+" discount store"') &&
-  engine.includes('if(profile.theme==="discount retail")') &&
-  engine.includes('const cash=') &&
-  engine.includes('const competitor=');
-});
-
-check('Milestone photo matching uses event-aware visual plans', () => {
- const engine=read('supabase/functions/orca-timeline-photo-fill/index.ts');
- return engine.includes('function eventVisualPlan(') &&
-  engine.includes('function eventCandidateScore(') &&
-  engine.includes('eventVisualPlan(e,profile)') &&
-  engine.includes('visualQueries(profile,featured)') &&
-  engine.includes('strategy_version:10,needs_review:false') &&
-  engine.includes('duplicateEvents.has(e.id)') &&
-  engine.includes('function eventContextMatch(');
-});
-check('Ford searches by brand and refuses repeated database images', () => {
- const engine=read('supabase/functions/orca-timeline-photo-fill/index.ts');
- return engine.includes('if(profile.brand==="ford")return [') &&
-  engine.includes('F:"ford"') &&
-  engine.includes('if(duplicated){failed++;continue}') &&
-  engine.includes('const maximumPerCall=15;') &&
-  !engine.includes('const lastResort=');
-});
-check('Dollar General photo queries distinguish groceries, leadership, listing and Mexico expansion', () => {
- const engine=read('supabase/functions/orca-timeline-photo-fill/index.ts');
- return ['mexico grocery supermarket','meeting boardroom',
-  'new york stock exchange','grocery supermarket refrigerated','convenience store'].every(term=>engine.includes(term)) &&
-  engine.includes('const cash=') &&
-  engine.includes('const competitor=');
-});
-check('Old flagged illustrations cannot be recycled as vetted company fallback', () => {
- const engine=read('supabase/functions/orca-timeline-photo-fill/index.ts');
- return !engine.includes('const lastResort=') &&
-  engine.includes('if(duplicated){failed++;continue}') &&
-  !engine.includes('const {data:library}');
+ return engine.includes('async function businessQueries(')&&!engine.includes('eventVisualPlan')&&
+ !engine.includes('eventCandidateScore')&&!engine.includes('ticker===')&&
+ engine.includes('originalUrl(p.full_image_url)')&&engine.includes('if(added>=needed)break;');
 });
 check('Photo repair remains available without the Unsplash diagnostic button', () =>
   !photos.includes('Check Unsplash API') &&
@@ -365,7 +305,7 @@ check('Photo repair remains available without the Unsplash diagnostic button', (
   !photos.includes('diagnostic:true') &&
   photos.includes("button.addEventListener('click',()=>void fillPhotos())") &&
   photos.includes('autoRepairAttempted') &&
-  photos.includes('sessionStorage.setItem(key,String(Date.now()))') &&
+  !photos.includes('sessionStorage.setItem') &&
   photos.includes('await refreshAndMaybeFill()'));
 
 console.log('\nShared workspace checks: ' + passed + ' passed, ' + failures.length + ' failed.');

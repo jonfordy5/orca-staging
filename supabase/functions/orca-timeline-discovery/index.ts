@@ -26,7 +26,9 @@ const schema={
 const validTicker=(t:string)=>/^[A-Z][A-Z0-9.]{0,9}$/.test(t);
 function safeSource(source:string,site:string){
  try{
-  const raw=new URL(source),official=new URL(site);
+  const raw=new URL(source);
+  if(raw.protocol==="https:"&&(raw.hostname==="sec.gov"||raw.hostname.endsWith(".sec.gov")))return raw.href;
+  const official=new URL(site);
   if(raw.protocol!=="https:"||raw.username||raw.password||raw.port)return null;
   if(official.protocol!=="https:")return null;
   const host=raw.hostname.toLowerCase().replace(/^www\./,"");
@@ -94,7 +96,7 @@ Deno.serve(async req=>{
   const {data:profile}=await admin.from("orca_ai_company_profiles")
    .select("state,usage").eq("ticker",ticker).maybeSingle();
   const official=profile?.state==="ready"?String(profile?.usage?.official_website||""):"";
-  if(!official.startsWith("https://"))throw Error("official_website_not_verified");
+  // SEC-backed profiles can research SEC originals even when no corporate site is cached.
   const apiKey=Deno.env.get("OPENAI_API_KEY");
   if(!apiKey)throw Error("openai_unconfigured");
   // Existing verified-source rows always stay intact. A near-complete history uses
@@ -109,6 +111,7 @@ Deno.serve(async req=>{
   }));
   const accepted:any[]=[];
   let rejected=0,briefIncomplete=0;
+  const observedSources=new Set<string>();
   const sourceKeys=new Set(existingRows.map((e:any)=>String(e.source_url||"")));
   const titleKeys=new Set(existingRows.map((e:any)=>String(e.title||"").trim().toLowerCase()));
   let targetedAttempted=false,targetedAccepted=0,targetedStatus="not_needed";
@@ -129,7 +132,7 @@ Deno.serve(async req=>{
     const title=String(e?.title||"").trim(),summary=String(e?.summary||"").trim();
     const points=Array.isArray(e?.points)?e.points.map((p:any)=>String(p||"").trim()):[];
     const why=String(e?.why||"").trim();
-    if((primary&&sourceKeys.has(primary))||titleKeys.has(title.toLowerCase()))continue;
+    if(titleKeys.has(title.toLowerCase()))continue;
     if(!/^\d{4}-\d{2}-\d{2}$/.test(when)||!Number.isFinite(parsedDate)
      ||parsedDate>Date.now()||parsedDate<Date.parse("1800-01-01")
      ||(scope==="current"&&(!when.startsWith(String(new Date().getUTCFullYear()))
@@ -137,7 +140,7 @@ Deno.serve(async req=>{
      ||(scope==="origin"&&(!/\b(found(?:ed|ing)?|incorporat(?:ed|ion)|establish(?:ed|ment)|began as|begins as)\b/i.test(title)
        ||(existingRows.length>0&&parsedDate>=Math.min(...existingRows.map((row:any)=>Date.parse(String(row.event_at||"")))))))
      ||!categories.includes(e?.category)||title.length<4||title.length>100
-     ||summary.length<60||summary.length>500||!primary||sourceKeys.has(primary)){
+     ||summary.length<60||summary.length>500||!primary||!observedSources.has(primary)){
      rejected++;continue;
     }
     const goodBrief=points.length===2&&!points.some((p:string)=>p.length<20||p.length>200)
@@ -154,20 +157,20 @@ Deno.serve(async req=>{
   const baseInstructions=[
    "Research factual, important historical milestones for the specified PUBLIC COMPANY. This is an illustrated company history, not investor advice or a rating.",
    "Use live web search and PRIMARY sources only: official company history or heritage pages, company newsroom or investor relations, and SEC EDGAR. Start with the company's official historical timeline if one exists, particularly for companies founded before 2006. Verify original event dates; no blogs, social opinions or invented events.",
-   "Aim for ten distinct sourced milestones across the company's FULL HISTORY, from founding (not before 1900) through today. For long-established companies spread milestones across early history, middle decades and recent decades. If earlier milestones exist, research only those missing. Prioritize founding, foundational products, manufacturing innovations, international expansion, acquisitions, financial turning points, leadership changes and legal events.",
+   "Aim for ten distinct sourced milestones across the company's FULL HISTORY, from founding (not before 1800) through today. For long-established companies spread milestones across early history, middle decades and recent decades. If earlier milestones exist, research only those missing. Prioritize founding, foundational products, manufacturing innovations, international expansion, acquisitions, financial turning points, leadership changes and legal events.",
    "Do not claim an announcement is realized revenue, and distinguish announcements from completion. Use each event's actual date (YYYY-MM-DD), not the article access date.",
    "Include a genuine direct HTTPS URL from an original source supporting EACH item. Do not guess URLs or copy sources from a different company. Do not reuse an unverified link.",
    "Treat each timeline milestone like a major sourced news item: clear and compelling, not sensational. Headlines must be 6–90 characters, describe WHAT happened and why it is significant, and lead with a concrete fact when available. Never inflate results or imply outcomes that are only plans.",
    "Write a 90–330 character plain-English summary that gives who, what, and one concrete verified detail. Supply exactly two concise informative points, 35–160 characters each, that add facts not already repeated in the summary. Add one short why-it-matters sentence, 40–160 characters, explaining the business or technological significance. Every detail must be supported by the original source.",
    "Numbers, performance claims, and comparisons must be attributed to their announcement when not independently established. Clearly differentiate projections, announced plans, launches, and completed deals. Do not fabricate figures or rely on marketing hype.",
-   "Return enough distinct events to bring the total toward TEN, in chronological order, no more than ten new events. Never repeat existing milestone titles or original source URLs. Find an original-source page directly supporting each new event. Avoid concentrating events in just one decade. If original-source evidence is insufficient, return fewer rather than fabricating.",
+   "Return enough distinct events to bring the total toward TEN, in chronological order, no more than ten new events. Never repeat existing milestone titles. A verified company history page can support multiple distinct dated events. Find an original-source page directly supporting each new event. Avoid concentrating events in just one decade. If original-source evidence is insufficient, return fewer rather than fabricating.",
    "Output structured JSON only. Do not generate image URLs. Timeline photography is selected separately."
   ].join(" ");
   const targetedInstructions=[
    "TARGETED COMPANY HISTORY SEARCH. If scope is origin, find the company's authentic founding or incorporation date before the earliest saved event. If scope is current, find one material, ORIGINAL-SOURCE corporate announcement whose event ACTUALLY HAPPENED within the current UTC January-June or July-December period. If scope is history, fill the missing one or two historical events.",
    "Review the existing event titles, years, and original-source URLs. Focus on an unrepresented major historical era, not another recent minor update.",
-   "Find dated evidence on the company's OFFICIAL corporate history, heritage, press release or investor pages, or SEC EDGAR. Each candidate needs its OWN direct HTTPS source that supports the actual event and date.",
-   "Do not reuse any supplied title or source URL; do not invent an event, year, original company source, or direct link.",
+   "Find dated evidence on the company's OFFICIAL corporate history, heritage, press release or investor pages, or SEC EDGAR. Each candidate needs a direct HTTPS source that supports the actual event and date.",
+   "Do not reuse any supplied title; do not invent an event, year, original company source, or direct link.",
    "Return no more events than the requested missing_milestones number. Do not substitute an old event for a current-year request. If there is no substantiated new event, return an empty milestones array.",
    "Return structured JSON only. Provide summary, two source-backed facts and a short why-it-matters note. No photos, stock ratings or forecasts."
   ].join(" ");
@@ -182,16 +185,17 @@ Deno.serve(async req=>{
      scope==="current"?"Find a material corporate event actually occurring in the current UTC half-year":
      "Find material events across company history",
     target_total:scope==="history"?10:null,missing_milestones:missing,
-    research_period:"1900 onward, across the full company history",
+    research_period:"1800 onward, across the full company history",
     existing_events:[...existingEvents,...alreadySaved.map((e:any)=>({
      date:e.date,title:e.title,source_url:e.source_url
     }))],
-    excluded_titles:[...titleKeys],excluded_source_urls:[...sourceKeys]
+    excluded_titles:[...titleKeys]
    });
    const providerBody={
     model,store:false,reasoning:{effort:"low"},
     instructions:targeted?baseInstructions+" "+targetedInstructions:baseInstructions,
     input,
+    include:["web_search_call.action.sources"],
     tools:[{type:"web_search",search_context_size:targeted?"low":"medium"}],
     max_tool_calls:targeted?1:5,max_output_tokens:targeted?2100:6500,
     text:{format:{type:"json_schema",name:"orca_company_history_v1",strict:true,schema}}
@@ -212,6 +216,14 @@ Deno.serve(async req=>{
    searchCalls+=(result.output||[]).filter((x:any)=>x.type==="web_search_call"&&x.status==="completed").length;
    cost=Number(((tokensIn*.75+tokensOut*4.5)/1000000+searchCalls*.01).toFixed(5));
    if(cost>.15)throw Error("cost_envelope_exceeded");
+   for(const item of result.output||[]){
+    for(const source of item.action?.sources||[]){
+     const verified=safeSource(String(source.url||""),official);if(verified)observedSources.add(verified);
+    }
+    for(const part of item.content||[])for(const citation of part.annotations||[]){
+     const verified=safeSource(String(citation.url||""),official);if(verified)observedSources.add(verified);
+    }
+   }
    const parsed=parseOutput(result);
    if(!Array.isArray(parsed.milestones))throw Error("invalid_provider_output");
    return parsed.milestones;

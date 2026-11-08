@@ -34,7 +34,7 @@ jobs:
           node-version: '24'
       - name: Validate common stock research layout and controls
         run: node scripts/check-shared-research-workspace.cjs
-      - name: Exercise photo relevance and daily-limit behavior
+      - name: Exercise business illustrations, authorization and cache preservation
         run: node scripts/test-timeline-photo-behavior.cjs
       - name: Verify progressive Unsplash searches without provider calls
         run: node scripts/test-unsplash-progressive-search.cjs

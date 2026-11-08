@@ -54,7 +54,7 @@ async function run({existing=9,batches=[[event(90)]],usage=[{input_tokens:1000,o
    return new Response(JSON.stringify({
     output_text:JSON.stringify({milestones:batches[i]||[]}),
     usage:{input_tokens:v.input_tokens,output_tokens:v.output_tokens},
-    output:Array.from({length:v.searches},()=>({type:'web_search_call',status:'completed'}))
+    output:Array.from({length:v.searches},()=>({type:'web_search_call',status:'completed',action:{sources:(batches[i]||[]).filter(e=>!e.unobserved).map(e=>({url:e.source_url}))}}))
    }),{status:postStatus,headers:{'Content-Type':'application/json'}});
   }
  };
@@ -81,10 +81,10 @@ async function run({existing=9,batches=[[event(90)]],usage=[{input_tokens:1000,o
  assert.equal(t.body.targeted_added,1);
  console.log('PASS 7/10: broad run at 8 followed by one targeted completion attempt');
 
- t=await run({existing:7,batches:[[event(90)],[event(90,{title:'Different words, same source'})]]});
+ t=await run({existing:7,batches:[[event(90)],[event(90)]]});
  assert.equal(t.status,200);assert.equal(t.requests.length,2);assert.equal(t.body.total_cached,8);
  assert.equal(t.finished[0].p_events.length,1);
- console.log('PASS duplicate source is rejected and first accepted event is preserved');
+ console.log('PASS duplicate milestone is rejected and first accepted event is preserved');
 
  t=await run({existing:7,batches:[[event(90)],[event(91,{source_url:'https://example.org/forged'})]]});
  assert.equal(t.status,200);assert.equal(t.body.total_cached,8);
@@ -101,5 +101,14 @@ async function run({existing=9,batches=[[event(90)]],usage=[{input_tokens:1000,o
  assert.equal(t.body.state,'cached');
  console.log('PASS full timeline does not reserve or spend');
 
+ t=await run({existing:0,batches:[[event(1),event(2,{source_url:event(1).source_url})]]});
+ assert.equal(t.body.total_cached,2);
+ console.log('PASS one primary history page may support distinct milestones');
+ t=await run({existing:0,batches:[[event(1,{unobserved:true})]]});
+ assert.equal(t.status,503);assert.equal(t.finished[0].p_events.length,0);
+ console.log('PASS invented or unobserved source URLs are rejected');
+ t=await run({existing:0,batches:[[event(1)]],usage:[{input_tokens:200000,output_tokens:3000,searches:5}]});
+ assert.equal(t.status,503);assert.equal(t.finished[0].p_error_code,'cost_envelope_exceeded');
+ console.log('PASS over-budget run cannot publish events');
  console.log('ALL TARGETED TIMELINE TESTS PASSED');
 })().catch(e=>{console.error(e);process.exitCode=1});

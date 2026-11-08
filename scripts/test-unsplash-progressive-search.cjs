@@ -1,58 +1,34 @@
-const assert=require('node:assert/strict');
-const fs=require('node:fs');
-const vm=require('node:vm');
-const path=require('node:path');
+const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const {stripTypeScriptTypes}=require('node:module');
-const src=fs.readFileSync(path.join(__dirname,'../supabase/functions/orca-timeline-photo-fill/index.ts'),'utf8').replace(/^import .*\n/,'');
-const calls=[],responses=new Map();
-const photo=(id,label)=>({
- id,urls:{small:'https://images.unsplash.com/photo-'+id,regular:'https://images.unsplash.com/photo-'+id},
- user:{name:'Test photographer',links:{html:'https://unsplash.com/@test'}},
- links:{html:'https://unsplash.com/photos/test-'+id,download_location:'https://api.unsplash.com/photos/'+id+'/download'},
- alt_description:label,description:'',slug:label.toLowerCase().replace(/[^a-z0-9]+/g,'-'),tags:[]
-});
-const ctx={
- createClient:()=>({}),Deno:{env:{get:()=>''},serve:()=>{}},
- URL,Response,Date,AbortSignal,console,
- fetch:async url=>{
-  const query=new URL(url).searchParams.get('query');
-  calls.push(query);
-  return new Response(JSON.stringify({results:responses.get(query)||[]}),{status:200,
-   headers:{'Content-Type':'application/json','X-Ratelimit-Limit':'50','X-Ratelimit-Remaining':'11'}});
- }
-};
-vm.createContext(ctx);
-vm.runInContext(stripTypeScriptTypes(src)+'\nglobalThis.testAPI={companyTheme,eventVisualPlan,visualQueries,findUnsplashCandidates,maxSearchRequestsPerFill,unfilledAfterPreview};',ctx);
-const {companyTheme,eventVisualPlan,visualQueries,findUnsplashCandidates,maxSearchRequestsPerFill,unfilledAfterPreview}=ctx.testAPI;
-const ford=companyTheme('F','Ford Motor Company','automotive manufacturer');
-const events=[{id:'a',title:'Ford launches the Mustang'},{id:'b',title:'Ford launches F-150 pickup truck'}];
-const plans=events.map(e=>eventVisualPlan(e,ford));
-const queries=visualQueries(ford,events);
-async function search(data){
- calls.length=0;responses.clear();
- for(const [k,v] of data)responses.set(k,v);
- const r=await findUnsplashCandidates('unused',queries,ford,plans,events,new Set(),new Map());
- assert(r.requests_made<=3,'Three-search ceiling must hold');
- assert.deepEqual(Array.from(r.queries_tried),calls);
- assert.equal(calls[0],'ford','Brand must be searched first');
- return r;
+const src=fs.readFileSync(__dirname+'/../supabase/functions/orca-timeline-photo-fill/index.ts','utf8').replace(/^import .*\n/,'');
+const make=(id)=>({id,width:1500,height:1000,urls:{regular:'https://images.unsplash.com/photo-'+id,raw:'https://images.unsplash.com/photo-'+id},links:{html:'https://unsplash.com/photos/'+id,download_location:'https://api.unsplash.com/photos/'+id+'/download'},user:{name:'Creator',links:{html:'https://unsplash.com/@creator'}}});
+const queries=['oil refinery','oil rig','pipeline','pumpjack'];
+async function run(pools,needed,{usedIds=[],usedUrls=[],broken=[],status=200}={}){
+ const searches=[],downloads=[],saves=[];
+ const context={createClient:()=>({}),Deno:{env:{get:()=>''},serve:()=>{}},URL,URLSearchParams,Response,AbortSignal,console,
+ fetch:async(url,opts)=>{
+  const u=new URL(url);
+  if(opts?.method==='HEAD')return new Response(null,{status:broken.includes(u.pathname)?404:200,headers:{'content-type':'image/jpeg'}});
+  if(u.pathname.endsWith('/download')){downloads.push(u.pathname);return new Response('{}')}
+  const q=u.searchParams.get('query');searches.push(q);
+  return new Response(JSON.stringify({results:(pools[q]||[])}),{status,headers:{'X-Ratelimit-Remaining':'40'}});
+ }};
+ vm.createContext(context);vm.runInContext(stripTypeScriptTypes(src)+'\nglobalThis.select=selectPhotos;',context);
+ const result=await context.select('test',queries,needed,new Set(usedIds),new Set(usedUrls),async p=>{saves.push(p);return true});
+ return {result,searches,downloads,saves};
 }
 (async()=>{
- assert.equal(maxSearchRequestsPerFill,3);
- let r=await search([['ford',[photo('mustang','Ford Mustang sports car'),photo('pickup','Ford F150 pickup truck')]]]);
- assert.equal(r.requests_made,1);
- assert.equal(unfilledAfterPreview(events,r.candidates,new Set(),ford,new Map()).length,0);
- console.log('PASS one company search covers all with no extra calls');
- r=await search([['ford',[photo('mustang','Ford Mustang sports car')]],['ford truck',[photo('pickup','Ford F150 pickup truck')]]]);
- assert.equal(r.requests_made,2);
- assert.equal(unfilledAfterPreview(events,r.candidates,new Set(),ford,new Map()).length,0);
- console.log('PASS one missing event triggers one extra targeted search');
- r=await search([['ford',[photo('mustang','Ford Mustang sports car')]],['ford truck',[]],['ford f150',[photo('pickup','Ford F150 pickup truck')]]]);
- assert.equal(r.requests_made,3);
- assert.equal(unfilledAfterPreview(events,r.candidates,new Set(),ford,new Map()).length,0);
- console.log('PASS three-call maximum and targeted rescue');
- r=await search([['ford',[]]]);
- assert.equal(r.requests_made,3);
- console.log('PASS no fabrication when three allowed searches fail');
- console.log('All progressive Unsplash tests passed without a live API call.');
+ let r=await run({'oil refinery':Array.from({length:30},(_,i)=>make(i))},10);
+ assert.equal(r.searches.length,1);assert.equal(r.saves.length,10);assert.equal(r.downloads.length,10);
+ console.log('PASS first broad search stops immediately at ten unique covers and tracks downloads');
+ r=await run({'oil refinery':[make('a'),make('a')],'oil rig':[make('b'),make('c')]},3);
+ assert.equal(r.searches.length,2);assert.equal(r.saves.length,3);
+ console.log('PASS only missing covers trigger related search; repeated IDs never selected');
+ const variant={...make('different-id'),urls:make('a').urls};
+ r=await run({'oil refinery':[make('a'),variant,make('b'),make('c')]},2,{usedUrls:['https://images.unsplash.com/photo-a'],broken:['/photo-b']});
+ assert.equal(r.saves.length,1);assert.equal(r.saves[0].id,'c');assert.equal(r.searches.length,4);
+ console.log('PASS existing original URLs, alternate IDs and broken CDN images are skipped');
+ r=await run({},5,{status:429});assert.equal(r.searches.length,1);assert.equal(r.result.provider_http_status,429);
+ r=await run({},5);assert.equal(r.searches.length,4);assert.equal(r.saves.length,0);
+ console.log('PASS provider rate limit stops immediately; four broad searches maximum');
 })().catch(e=>{console.error(e);process.exitCode=1});

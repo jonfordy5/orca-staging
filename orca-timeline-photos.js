@@ -37,7 +37,7 @@ export async function mountTimelinePhotos({sb,ticker,frame,rail,status,getUser,c
  if(!nav)return;
  const button=document.createElement('button');
  button.type='button';button.textContent='Find photos';button.className='orca-photo-fill';
- button.title='Find company-first illustrative photos. Replace weak cached images without changing research.';
+ button.title='Find distinct business illustrations for missing milestone covers.';
  button.hidden=!(getUser()&&canContribute());
  // Keep the timeline's next arrow at the right edge.
  const latest=nav.querySelector('button[aria-label="Jump to latest event"]');
@@ -87,12 +87,13 @@ export async function mountTimelinePhotos({sb,ticker,frame,rail,status,getUser,c
   // Do not visually reproduce the same image across many event cards.
   // Old flagged duplicates remain available for repair, but are not
   // misrepresented as ten different photographs to public visitors.
-  const seen=new Set(),visibleCards=Array.from(rail.querySelectorAll('button[data-event-id]'));
+  const originalKey=p=>{try{const u=new URL(p.full_image_url||p.image_url);return u.origin+u.pathname}catch{return p.image_url}};
+  const seen=new Set(),seenUrls=new Set(),visibleCards=Array.from(rail.querySelectorAll('button[data-event-id]'));
   photos=new Map();
   for(const card of visibleCards){
    const p=rawPhotos.get(card.dataset.eventId);
-   if(!p?.image_url||!p.photo_id||seen.has(p.photo_id))continue;
-   seen.add(p.photo_id);
+   if(!p?.image_url||!p.photo_id||seen.has(p.photo_id)||seenUrls.has(originalKey(p)))continue;
+   seen.add(p.photo_id);seenUrls.add(originalKey(p));
    photos.set(card.dataset.eventId,p);
   }
   const visiblePhotos=visibleCards.map(card=>rawPhotos.get(card.dataset.eventId)).filter(Boolean);
@@ -103,19 +104,12 @@ export async function mountTimelinePhotos({sb,ticker,frame,rail,status,getUser,c
   const fallbackPool=(data||[]).filter(p=>p.photo_id&&p.image_url&&p.photo_url&&p.photographer_url&&!p.needs_review);
   for(const card of visibleCards){
    if(photos.has(card.dataset.eventId))continue;
-   const fallback=fallbackPool.find(p=>!seen.has(p.photo_id));
+   const fallback=fallbackPool.find(p=>!seen.has(p.photo_id)&&!seenUrls.has(originalKey(p)));
    if(!fallback)continue;
-   seen.add(fallback.photo_id);
+   seen.add(fallback.photo_id);seenUrls.add(originalKey(fallback));
    photos.set(card.dataset.eventId,{...fallback,temporary:true});
   }
-  const ids=usablePhotos.map(p=>{
-   try{return new URL(p.photo_url).pathname}catch{return p.image_url||''}
-  });
-  duplicateCount=ids.length-new Set(ids).size;
-  duplicateCount+=visiblePhotos.filter(p=>p.needs_review).length;
-  const related=visiblePhotos.filter(p=>/woman-holding.*product.*store|woman-holding.*skincare.*beauty-store/.test(p.photo_url||''));
-  if(related.length>1&&new Set(related.map(p=>p.photographer)).size===1)duplicateCount=Math.max(1,duplicateCount);
-  if(ticker==='ULTA'&&visiblePhotos.some(p=>(p.photo_url||'').includes('SeKYOXD_Jac')))duplicateCount=Math.max(1,duplicateCount);
+  duplicateCount=visiblePhotos.length-photos.size;
   updatePhotoAction();
   for(const card of rail.querySelectorAll('button[data-event-id]')){
    const p=photos.get(card.dataset.eventId);
@@ -130,9 +124,7 @@ export async function mountTimelinePhotos({sb,ticker,frame,rail,status,getUser,c
    let badge=card.querySelector('.orca-photo-context');
    if(p.strategy_version>=7){
     if(!badge){badge=document.createElement('small');badge.className='orca-photo-context';card.append(badge)}
-    badge.textContent=p.source_type==='wikimedia_commons'?'Illustrative photo · not the event':
-     p.match_type==='topic_context'||p.match_type==='venue_context'?'Related photo · not event photo':
-     p.match_type==='company_event_context'?'Company-related photo · not event photo':'Company photo · not event photo';
+    badge.textContent='Illustrative photo · not the event';
    }
    if(existing&&existing.dataset.photoUrl===p.image_url)continue;
    const slot=card.querySelector('.orca-timeline-event-media');
@@ -167,6 +159,8 @@ export async function mountTimelinePhotos({sb,ticker,frame,rail,status,getUser,c
      ' Unsplash HTTP '+data.provider_http_status+
      (Number.isInteger(data?.provider_rate_remaining)?', remaining '+data.provider_rate_remaining:'')+'.':'');
    showNotice(saved>0?saved+' illustrative photo'+(saved===1?'':'s')+' saved.'+(left?' '+left+' events remain.':'')+statusInfo:
+    data?.state==='building'?'Photo selection is already underway.':
+    data?.state==='history_required'?'Generate company history first.':
     data?.state==='cached'?'All featured milestones have cached photographs.':
     data?.state==='save_failed'?'ORCA found potential images, but the photo database rejected the save. No historical research changed.':
     data?.state==='provider_error'?'Unsplash provider error.'+statusInfo:
@@ -199,14 +193,6 @@ export async function mountTimelinePhotos({sb,ticker,frame,rail,status,getUser,c
   if(autoRepairAttempted||!getUser()||!canContribute()||
      !(duplicateCount>0||remainingPhotos>0))return;
   autoRepairAttempted=true;
-  try{
-   const key=(ticker==='AAP'?'orca-auto-photo-repair-aap-v12:':
-    ticker==='RKLB'?'orca-rocket-search-v2:':
-    ['DG','MSFT','ULTA'].includes(ticker)?'orca-licensed-photo-rescue-v1:':'orca-universal-subject-v1:')+ticker;
-   const previous=Number(sessionStorage.getItem(key)||0);
-   if(Date.now()-previous<6*60*60*1000)return;
-   sessionStorage.setItem(key,String(Date.now()));
-  }catch{ /* Session storage is optional; the in-memory guard still applies. */ }
   await fillPhotos();
  }
  await refreshAndMaybeFill();

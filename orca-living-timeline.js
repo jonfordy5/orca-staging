@@ -32,7 +32,6 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
  details.classList.add('orca-history-popover');details.setAttribute('role','dialog');details.setAttribute('aria-label','Milestone details');details.setAttribute('tabindex','-1');
  let data=[],activeIndex=0;
  const initialHistoryGoal=10; // Starter goal, never a display limit.
- const attemptedScopesThisSession=new Set();
  let allVerified=[];
  const year=()=>new Date().getUTCFullYear();
  const halfYearStart=()=>new Date(Date.UTC(year(),new Date().getUTCMonth()<6?0:6,1));
@@ -42,10 +41,9 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
  const hasCurrentYear=()=>allVerified.some(e=>new Date(e.event_at).getUTCFullYear()===year());
  const hasCurrentHalf=()=>allVerified.some(e=>new Date(e.event_at)>=halfYearStart());
  // A first-ever stock timeline needs the full multi-event history pass.
- const researchNeed=()=>!allVerified.length?'history':!hasOrigin()?'origin':
-  (!hasCurrentYear()||!hasCurrentHalf())?'current':
-  allVerified.length<initialHistoryGoal?'history':'none';
- const mayRequestHistory=()=>!discoveryPending&&researchNeed()!=='none'&&!attemptedScopesThisSession.has(researchNeed());
+ const researchNeed=()=>allVerified.length<initialHistoryGoal?'history':!hasOrigin()?'origin':
+  (!hasCurrentYear()||!hasCurrentHalf())?'current':'none';
+ const mayRequestHistory=()=>!discoveryPending&&researchNeed()!=='none';
  let discoveryPending=false;
  let researchFeedback='';
  let historyAuthorized=false;
@@ -477,7 +475,6 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
    return;
   }
   const researchScope=researchNeed();
-  attemptedScopesThisSession.add(researchScope);
   discoveryPending=true;
   researchFeedback='';
   rail.querySelector('.orca-timeline-research-feedback')?.remove();
@@ -498,7 +495,7 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
     const next=typeof result.refresh_eligible_after==='string'&&Number.isFinite(Date.parse(result.refresh_eligible_after))
      ?new Date(result.refresh_eligible_after).toLocaleString():null;
     showResearchFeedback(allVerified.length+' historical milestones cached.'+
-     (next?' Additional research becomes eligible after '+next+'.':' Research cooldown is active.')+
+     (next?' Additional research becomes eligible after '+next+'.':' This research is already cached.')+
      ' Existing sources are unchanged.');
    }else{
     const type=String(result?.state||'unavailable');
@@ -522,7 +519,7 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
     code==='official_website_not_verified'?
     'ORCA has not verified the company website needed for research.':
     'The research request could not finish.';
-   showResearchFeedback(message+' Nothing was invented or saved. Refresh later to retry within ORCA research limits.');
+   showResearchFeedback(message+' Nothing was invented or saved. You can retry now.');
   }finally{
    discoveryPending=false;
    const generateButton=frame.querySelector('.orca-history-refill-action')||rail.querySelector('.orca-timeline-generate');
@@ -549,7 +546,7 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
   if(card)centerMilestone(card,'auto');
  });
  try{
-  const module=await import('./orca-timeline-photos.js?v=universal-photo-v20');
+  const module=await import('./orca-timeline-photos.js?v=kiss-photo-v21');
   photoMount=await module.mountTimelinePhotos({sb,ticker,frame,rail,status,getUser,canContribute:()=>historyAuthorized});
  }catch(error){console.warn('Optional history photography is unavailable',error)}
  const poll=setInterval(()=>{if(document.visibilityState==='visible')loadEvents()},60000);
