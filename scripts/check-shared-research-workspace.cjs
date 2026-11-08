@@ -272,7 +272,7 @@ check('Company incorporation founding milestone suppresses unnecessary paid orig
 });
 check('Open-ended histories provide opt-in founding and current-year refreshes', () =>
   timeline.includes("generate.textContent='Complete company timeline'") &&
-  timeline.includes("const nextScope=()=>allVerified.length<initialHistoryGoal?'history':") &&
+  timeline.includes("const nextScope=()=>allVerified.length<initialHistoryGoal&&!attempted.has('history')?'history':") &&
   timeline.includes('const nextData=verified;') &&
   timeline.includes('halfYearStart') &&
   !timeline.includes('attemptedScopesThisSession') &&
