@@ -29,7 +29,7 @@
 
 1. **Company** — source-backed business profile, operations, official metrics when available; cache the results and their source links.
 2. **Living Timeline** — feature an **open-ended, chronological, sourced history** with the authentic company beginning at the first card, the newest source-backed milestone last, and no fixed maximum. Initial research may aim for ten events but never truncate the archive. Fewer is acceptable; never invent filler. Keep every verified milestone in Supabase. Use the shared timeline layout, alternating full-photo cards, accessible arrows, and concise sourced popups (brief overview, two key facts, why it matters).
-3. **Media** — search short recognizable visual subjects by verified company sector and brand; prioritize company/event imagery when available and accept properly labeled generic illustrations when exact photos do not exist. Store sourced photo **URLs, IDs, licensing/credit links and relevance metadata**, not image binaries. Real photos can be served via Unsplash or properly licensed Wikimedia Commons; original deterministic local vector fallback art is not a sourced photo and is never cached as one. Do not mislabel illustrative imagery as photographs of an actual milestone. Exclude duplicates and review poor matches.
+3. **Media** — automatically derive a simple physical subject from the company's business description. Search Unsplash broadly for that business, independent of event titles, dates and branding. Cache unique photograph IDs and original URLs with credits and license links; use distinctive original artwork for uncovered milestones. All photography is illustrative.
 4. **Charts** — TradingView remains **always visible above** the always-visible company Living Timeline, each with its own renderer. Do not copy stock price history into company profiles just to render TradingView.
 5. **Research collaboration** — agent identities, research tasks, submissions, previous findings, and majority summaries live in shared per-ticker tables. Never overwrite archived findings when updating the company page.
 
@@ -37,9 +37,9 @@
 
 - A cached page is **read-only and inexpensive to revisit**: visiting it must not regenerate company text or pay for another photo search.
 - Uncached company research and milestone generation require the existing authorized, opted-in contributor flow and Supabase budget safeguards; this is **not** permission to run AI jobs automatically for every visitor.
-- **Photo search efficiency:** start with a short, recognizable subject or genuine company brand depending on sector (for example, `rocket`, `car engine`, `ford`, `convenience store`). Evaluate each retrieved result against all missing milestones before making another request. The ordinary legacy path retains a three-request maximum; new industry sectors may use up to six progressive queries, while the previously validated AAP/RKLB rescues permit eight. Stop as soon as distinct eligible images cover the events. Preserve authenticated opt-in, the shared 300-photo daily development allowance, provider limits, attribution and uniqueness.
-
-**Photo coverage extends to every displayed event:** support batches of up to ten outstanding photos per authorized request as the history grows, preserving provenance and credit links. Query and rank by **milestone subject** (e.g., listing, grocery distribution, leadership, store opening, international expansion) as well as the company/industry. Company-specific visuals are preferred; contextual scenes must remain visibly illustrative, not misrepresented as actual event documentation. Preserve cached credits and allow only **same-ticker, non-flagged** cached-photo fallback. Never repeat an identical photo across milestone cards; if insufficient distinct lawful/relevant photos are available, leave **real-photo records** pending for the next authorized search while displaying a unique, dark, original vector illustration in each pending card. The artwork must never count as a saved photo or as documentary evidence. Retain existing daily/API safeguards. Show **Find photos** or **Improve photos** while a company still needs better images; hide the completed control.
+- **Photo search efficiency:** derive and cache four short business-subject queries without web research. Start with one broad Unsplash search; use up to three related searches only while covers are missing. Stop immediately once there are enough unique photographs. Preserve provider limits, authentication, opt-in consent, attribution and a per-company concurrent-request lease. No ticker-specific rules or event matching.
+- **Development history budget:** each authorized run reserves at most $0.15 estimated research cost. Failed requests can be retried manually immediately. Running requests are deduplicated, complete starter histories reuse cached events, and public visits never initiate paid history research.
+- **Photo coverage:** preserve existing distinct cached photos. Reject duplicate IDs/original URLs, broken covers, unusable images and improperly licensed assets. Missing covers receive distinct original SVG artwork; artwork does not count as a photograph. Hide the photo button when complete. Images illustrate the business and are never evidence of a historical event.
 - Never impose a fixed ten- or eleven-card display limit. Keep all source-backed events in date order and load larger histories in batches. Support optional researcher-initiated current-year bulletins in each January–June and July–December window, not unbounded automatic spending. For founding events with only a verified year, display the year alone; do not imply the day is known.
 - Target lightweight metadata storage. The measured core-row baseline was **19.6 KiB for NVDA** (10 events/10 photos) and **20.4 KiB for ULTA** (11 saved events/photos). This is a measurement, **not a hard 20 KiB ceiling**: reliable sourcing and useful descriptions take precedence.
 - Database indexes, internal storage overhead, backup/replication, hosted image bytes, download bandwidth, chart resources and ongoing agent submissions are **not included** in those row-size figures.
@@ -56,30 +56,16 @@ Also confirm manually before inviting wider external testers:
 
 **Changes to this baseline are versioned deliberately** and should be regression-tested before they become the new default.
 
-### Photo relevance and operational status
+## KISS business illustrations — November 8, 2026
 
-Photo search queries are retrieval hints, not evidence that a returned image matches a milestone. Accept contextual candidates only when their own metadata matches the event subject; save that metadata for future reuse. Existing photos without subject metadata may remain visible, but must not be newly approved for another event. International expansion queries retain the company sector.
+This replaces all previous v8/v10 brand, event, venue, era, relevance-score and daily-photo-quota rules. Historical audit documents describe earlier implementations, not the current selection policy.
 
-When the shared 300-photo development rolling allowance is exhausted, show a visible explanation and next capacity time. Do not hide photo failures in the general history status. No photo change regenerates historical research. Metadata matching is not visual verification or proof of an exact event photograph.
+- No company name or historical-event match is required in photo metadata. Sparse captions are acceptable.
+- Business descriptions supply recognizable search subjects; Unsplash's ranked search supplies candidates. No per-event model calls or manually curated ticker mappings.
+- Retain existing 102 photographs across AAP, AAPL, AMZN, DG, F, MSFT, NVDA, RKLB and ULTA. Database integrity checks confirmed every existing milestone has a unique photo ID and original URL.
+- Company histories generate before photographs. Underfilled histories take priority over founding/current-period supplements. A primary history page can support several distinct events; new source URLs must appear in the research provider's returned sources/citations.
+- The desktop/mobile design, beam, connectors and future extension are unchanged.
 
-Photo identity v8: new selections require the complete company brand in image metadata (plus sector context for ambiguous names), or a named NYSE venue for a listing event. Generic stores, anonymous leadership meetings and homes are not acceptable. When event-specific photography is unavailable, accurately identify illustrative company images in stored provenance and the detailed attribution (not in a large banner on the photo card). Intentional reuse is not an improvement loop. Existing legacy collections are not automatically purged.
+Deployment and validation: Supabase photo-fill v43, discovery v11, migration `kiss_timeline_photos`; GitHub code commit `a188aedb781c39525879ef9269d412dcccd47350`. All four automated suites and GitHub Pages deployment passed. The 102-row photo-content checksum remained `e8db4f7dda4abfad0336283c89ad4510` before and after deployment.
 
-
-## Photo QA v8
-
-- Existing image IDs repeated across multiple featured events remain unfinished and eligible for improvement. The old exact-subject exemption no longer hides duplicates.
-- Photo search accepts caption-supported event scenes (e.g., grocery refrigeration, NYSE, Mexico retail, leadership) and company-identified photos. Queries alone do not establish caption relevance.
-- Event-specific context is ranked above generic company storefront imagery. Reuse preserves a visible illustration but must not be falsely reported as a new unique photo.
-- Daily 300-photo development cap, opted-in authentication, company research cache, source links and trading behavior remain independent.
-- Do not interpret a full set of photographs as visually verified event photographs. Manual inspection is still the release gate.
-
-## Universal illustrative-media release policy — November 8, 2026
-
-The nine-board reverse-engineering audit is in [`orca-nine-board-universal-image-audit.md`](./orca-nine-board-universal-image-audit.md). This policy supersedes older photo-v8 restrictions wherever the older text would reject a genuinely relevant industry-subject illustration or leave a visibly empty card. All sourced historical evidence and authorization requirements remain unchanged.
-
-- A timeline with cached, sourced milestones must render a complete visual cover immediately, even without an image API response. A distinct original locally generated SVG is an acceptable *art fallback*, not a photograph.
-- Company/event photography is preferable. Generic photographs must match a real subject supported by their own photo metadata and be described as illustrations, never as historical proof.
-- Preserve one unique photo ID and original image URL per ticker timeline; do not duplicate or cross-borrow from other ticker histories. Never store generated SVG art in the photo selection table.
-- If CDN delivery fails, replace the broken image with the original art cover; never expose a broken-image icon or blank white card.
-- Do not trigger paid milestone generation or photo searches on anonymous public page reads. Authorized signed-in visitors can initiate or resume progressive photo filling subject to provider and quota limits.
-- The original desktop/mobile layout, flowing beam, connectors, and open-ended tail remain locked. Automated tests cover these controls plus the new subject-first selectors.
+Live authorized generation for CVX, INTC, MCD, META, TSLA, TXRH, WEN and WMT remains pending sign-in. These eight histories still have zero milestones; do not report them complete until they have actually run and been visually checked.
