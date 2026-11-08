@@ -158,6 +158,7 @@ function similarPhotoMetadata(a:any,b:any):boolean{
 type Candidate={
  id:string;image_url:string;full_image_url:string;photographer:string;photographer_url:string;
  photo_url:string;download_location:string;title:string;query:string;tier:number;score:number;company_match?:boolean;venue?:string;context_kinds?:string[];retail_illustration?:boolean;
+ source_type?:"wikimedia_commons";license_name?:string;license_url?:string;verified_at?:string;
 };
 // Industry words do not establish company identity. Keep the complete brand phrase.
 function companyPhotoIdentity(title:string,profile:ThemeProfile):boolean{
