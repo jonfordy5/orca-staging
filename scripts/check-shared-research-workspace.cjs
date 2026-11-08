@@ -238,6 +238,12 @@ check('Universal page standard is documented without a hard metadata cap', () =>
   pageStandard.includes('not a hard 20 KiB ceiling') &&
   pageStandard.includes('Never overwrite archived findings'));
 
+check('Brand new stocks request full ten-event history, not a single origin event', () =>
+  timeline.includes("const researchNeed=()=>!allVerified.length?'history':!hasOrigin()?'origin':") &&
+  timeline.includes("const initialHistoryGoal=10;") &&
+  timeline.includes("showResearchFeedback(message+' Nothing was invented or saved.") &&
+  timeline.includes("researchFeedback&&!data.length") &&
+  timeline.includes("attemptedScopesThisSession.add(researchScope)"));
 check('Empty registered timelines explain consent and offer a generate action', () =>
   timeline.includes("empty.textContent='No sourced company milestones cached") &&
   timeline.includes("generate.textContent='Generate company history'") &&
