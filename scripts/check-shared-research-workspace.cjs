@@ -211,11 +211,13 @@ check('Company timelines remain open-ended with sourced history and credited pho
   timeline.includes("checkHistoryPermission();") &&
   timeline.includes("orca-timeline-photos.js?v="));
 
-check('Illustrative photos come from separately cached metadata URLs', () =>
+check('Real photos come from cached metadata while original fallback art is clearly labeled', () =>
   photos.includes("sb.from('orca_timeline_photo_selections')") &&
-  photos.includes("img.src=p.image_url") &&
+  photos.includes('img.src=p.image_url') &&
   photos.includes('photographer_url') &&
-  !photos.includes('data:image/'));
+  photos.includes("return 'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg)") &&
+  photos.includes('renderIllustration(card)') &&
+  photos.includes('Original abstract illustration; not a historical photograph'));
 check('Photo controls hide when complete and remain available for missing or weak photos', () =>
   photos.includes('button.hidden=!needsAction') &&
   photos.includes("button.textContent=duplicateCount>0?'Improve photos':'Find photos'") &&
@@ -251,7 +253,9 @@ check('Every timeline photo stays scoped to the same stock ticker', () =>
   !photos.includes('const {data:library}') );
 check('Photo generation rejects negative relevance and never borrows other tickers', () => {
  const engine=read('supabase/functions/orca-timeline-photo-fill/index.ts');
- return engine.includes('if(score<0&&!context_kinds.length&&!retail_illustration)return null;') &&
+ return engine.includes('if(score<0&&!context_kinds.length&&!retail_illustration&&!universal_illustration)return null;') &&
+   engine.includes('if(!company_match&&!venue&&!context_kinds.length&&!retail_illustration&&!universal_illustration)return null;') &&
+   engine.includes('const universal_illustration=universalMatch(description,profile);') &&
    engine.includes('if(duplicated){failed++;continue}') &&
    !engine.includes('const {data:library}');
 });
