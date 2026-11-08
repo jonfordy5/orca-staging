@@ -12,7 +12,7 @@ function event(i,override={}){
   points:['A detailed original source supports this historical milestone','The specific development changed the company during this era'],
   why:'This development had enduring significance for Ford Motor Company.',...override};
 }
-async function run({existing=9,batches=[[event(90)]],usage=[{input_tokens:1000,output_tokens:1200,searches:1}],postStatus=200,verifiedUrls=[]}={}){
+async function run({existing=9,batches=[[event(90)]],usage=[{input_tokens:1000,output_tokens:1200,searches:1}],postStatus=200,verifiedUrls=[],budget}={}){
  let handler,apiRequests=[],finished=[],reserves=0;
  const history=Array.from({length:existing},(_,i)=>({
   id:'old'+i,title:'Existing milestone '+i,event_at:'19'+String(20+i).padStart(2,'0')+'-06-15',
@@ -66,7 +66,7 @@ async function run({existing=9,batches=[[event(90)]],usage=[{input_tokens:1000,o
  vm.runInContext(stripTypeScriptTypes(source),ctx);
  const response=await handler(new Request('https://project.test/functions/v1/orca-timeline-discovery',{
   method:'POST',headers:{Authorization:'Bearer fake', 'Content-Type':'application/json'},
-  body:JSON.stringify({ticker:'F'})
+  body:JSON.stringify({ticker:'F',...(budget===undefined?{}:{max_budget_usd:budget})})
  }));
  return {status:response.status,body:await response.json(),requests:apiRequests,finished,reserves};
 }
@@ -117,5 +117,10 @@ async function run({existing=9,batches=[[event(90)]],usage=[{input_tokens:1000,o
  t=await run({existing:0,batches:[[event(1)]],usage:[{input_tokens:200000,output_tokens:3000,searches:5}]});
  assert.equal(t.status,503);assert.equal(t.finished[0].p_error_code,'cost_envelope_exceeded');
  console.log('PASS over-budget run cannot publish events');
+ t=await run({existing:0,batches:[[event(1)]],budget:0.012});
+ assert.equal(t.status,503);assert.equal(t.finished[0].p_error_code,'cost_envelope_exceeded');
+ assert.equal(t.body.research_scope,'history');
+ assert(Number(t.body.estimated_usd)>0.012);
+ console.log('PASS shared research remainder limits a follow-up independently from the 15-cent maximum');
  console.log('ALL TARGETED TIMELINE TESTS PASSED');
 })().catch(e=>{console.error(e);process.exitCode=1});
