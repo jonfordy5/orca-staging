@@ -173,7 +173,8 @@ export async function mountTimelinePhotos({sb,ticker,frame,rail,status,getUser,c
   autoRepairAttempted=true;
   try{
    const key=(ticker==='AAP'?'orca-auto-photo-repair-aap-v12:':
-    ['DG','MSFT','ULTA','RKLB'].includes(ticker)?'orca-licensed-photo-rescue-v1:':'orca-auto-photo-repair-v11:')+ticker;
+    ticker==='RKLB'?'orca-rocket-search-v2:':
+    ['DG','MSFT','ULTA'].includes(ticker)?'orca-licensed-photo-rescue-v1:':'orca-auto-photo-repair-v11:')+ticker;
    const previous=Number(sessionStorage.getItem(key)||0);
    if(Date.now()-previous<6*60*60*1000)return;
    sessionStorage.setItem(key,String(Date.now()));
