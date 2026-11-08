@@ -42,6 +42,15 @@ function safeSource(source:string,site:string){
   return host===base||host.endsWith("."+base)||(corporateAlternate&&(host===corporateAlternate||host.endsWith("."+corporateAlternate)))||host==="sec.gov"||host.endsWith(".sec.gov")?raw.href:null;
  }catch{return null}
 }
+// Track a page by the actual first-party host/path, not incidental tracking
+// parameters in web-search citations.
+function sourceKey(input:string):string{
+ try{
+  const url=new URL(input);
+  return url.hostname.toLowerCase().replace(/^www\./,"")+
+   url.pathname.replace(/\/+$/,"").toLowerCase();
+ }catch{return ""}
+}
 function parseOutput(raw:any){
  const direct=typeof raw.output_text==="string"?raw.output_text:"";
  const joined=direct||((raw.output||[]).flatMap((part:any)=>
@@ -112,6 +121,43 @@ Deno.serve(async req=>{
   const accepted:any[]=[];
   let rejected=0,briefIncomplete=0;
   const observedSources=new Set<string>();
+  const observedKeys=new Set<string>();
+  const verifiedLinks=new Map<string,Promise<boolean>>();
+  // A first-party source can be verified even when the AI citation list omits
+  // it. Never accept a source on an unrelated hostname, or a broken URL.
+  async function firstPartyPageExists(source:string):Promise<boolean>{
+   if(observedSources.has(source)||observedKeys.has(sourceKey(source)))return true;
+   let url=source;
+   for(let redirect=0;redirect<2;redirect++){
+    const controller=new AbortController();
+    const timer=setTimeout(()=>controller.abort(),4500);
+    try{
+     const response=await fetch(url,{method:"GET",redirect:"manual",
+      signal:controller.signal,headers:{"Accept":"text/html,application/pdf,text/plain"}});
+     if(response.status>=300&&response.status<400){
+      const location=response.headers.get("location");
+      await response.body?.cancel();
+      if(!location)return false;
+      const next=new URL(location,url).href;
+      if(!safeSource(next,official))return false;
+      url=next;continue;
+     }
+     const final=response.url||url;
+     const type=String(response.headers.get("content-type")||"").toLowerCase();
+     await response.body?.cancel();
+     return response.ok&&!!safeSource(final,official)&&
+      (!type||/text\/html|application\/pdf|text\/plain/.test(type));
+    }catch{return false}
+    finally{clearTimeout(timer)}
+   }
+   return false;
+  }
+  function verifyFirstParty(source:string):Promise<boolean>{
+   if(observedSources.has(source)||observedKeys.has(sourceKey(source)))return Promise.resolve(true);
+   const key=sourceKey(source);
+   if(!verifiedLinks.has(key))verifiedLinks.set(key,firstPartyPageExists(source));
+   return verifiedLinks.get(key)!;
+  }
   const sourceKeys=new Set(existingRows.map((e:any)=>String(e.source_url||"")));
   const titleKeys=new Set(existingRows.map((e:any)=>String(e.title||"").trim().toLowerCase()));
   let targetedAttempted=false,targetedAccepted=0,targetedStatus="not_needed";
@@ -122,9 +168,15 @@ Deno.serve(async req=>{
    // Keep a conservative $0.065 estimated headroom for ONE smaller web search.
    return existingCount<8&&(count===8||count===9)&&estimated<=0.085;
   }
-  function acceptCandidateMilestones(items:any[]):number{
+  async function acceptCandidateMilestones(items:any[]):Promise<number>{
    let newAccepted=0;
-   for(const e of items){
+   // Validate the small batch concurrently so a slow publisher never stalls
+   // the entire milestone history.
+   const checked=await Promise.all(items.map(async(e:any)=>{
+    const primary=safeSource(String(e?.source_url||""),official);
+    return primary?verifyFirstParty(primary):false;
+   }));
+   for(const [index,e] of items.entries()){
     if(accepted.length>=remainingAtStart)break;
     const when=String(e?.date||"");
     const parsedDate=Date.parse(when+"T12:00:00Z");
@@ -140,7 +192,7 @@ Deno.serve(async req=>{
      ||(scope==="origin"&&(!/\b(found(?:ed|ing)?|incorporat(?:ed|ion)|establish(?:ed|ment)|began as|begins as)\b/i.test(title)
        ||(existingRows.length>0&&parsedDate>=Math.min(...existingRows.map((row:any)=>Date.parse(String(row.event_at||"")))))))
      ||!categories.includes(e?.category)||title.length<4||title.length>100
-     ||summary.length<60||summary.length>500||!primary||!observedSources.has(primary)){
+     ||summary.length<60||summary.length>500||!primary||!checked[index]){
      rejected++;continue;
     }
     const goodBrief=points.length===2&&!points.some((p:string)=>p.length<20||p.length>200)
@@ -218,10 +270,12 @@ Deno.serve(async req=>{
    if(cost>.15)throw Error("cost_envelope_exceeded");
    for(const item of result.output||[]){
     for(const source of item.action?.sources||[]){
-     const verified=safeSource(String(source.url||""),official);if(verified)observedSources.add(verified);
+     const verified=safeSource(String(source.url||""),official);
+     if(verified){observedSources.add(verified);observedKeys.add(sourceKey(verified));}
     }
     for(const part of item.content||[])for(const citation of part.annotations||[]){
-     const verified=safeSource(String(citation.url||""),official);if(verified)observedSources.add(verified);
+     const verified=safeSource(String(citation.url||""),official);
+     if(verified){observedSources.add(verified);observedKeys.add(sourceKey(verified));}
     }
    }
    const parsed=parseOutput(result);
@@ -232,14 +286,14 @@ Deno.serve(async req=>{
   const initiallyTargeted=scope!=="history"||remainingAtStart<=2;
   if(initiallyTargeted){targetedAttempted=true;targetedStatus="started";}
   const first=await researchBatch(initiallyTargeted,[]);
-  const firstAdded=acceptCandidateMilestones(first);
+  const firstAdded=await acceptCandidateMilestones(first);
   if(initiallyTargeted){targetedAccepted=firstAdded;targetedStatus=firstAdded?"accepted":"no_new_primary_sources";}
 
   if(scope==="history"&&shouldTargetFollowup(existingRows.length,accepted.length,cost)){
    targetedAttempted=true;targetedStatus="started";
    try{
     const additional=await researchBatch(true,accepted);
-    targetedAccepted=acceptCandidateMilestones(additional);
+    targetedAccepted=await acceptCandidateMilestones(additional);
     targetedStatus=targetedAccepted?"accepted":"no_new_primary_sources";
    }catch(error){
     // Never discard already validated milestones because a SECOND, optional
