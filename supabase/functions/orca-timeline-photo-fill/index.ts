@@ -75,6 +75,42 @@ function companyTheme(ticker:string,name:string,description:string):ThemeProfile
    "amazon kindle","amazon prime","amazon warehouse"]};
  return {brand,theme:selected.theme,terms:selected.terms,queries:selected.queries};
 }
+// Universal subject-first visual search, learned from nine full 2026 timelines.
+// These are illustrative photographs, never evidence that a historical event
+// was photographed. Every candidate still needs a matching metadata subject.
+const universalSubjects:Record<string,{queries:string[],match:RegExp}>={
+ "discount retail":{queries:["convenience store","retail shelves","grocery aisle"],match:/\b(convenience store|discount store|grocery aisle|retail shelves|store shelves|storefront)\b/i},
+ "auto parts retail":{queries:["car engine","car parts","car battery"],match:/\b(car engine|engine bay|auto parts|car parts|car battery|brake pads|oil filter|alternator)\b/i},
+ "beauty retail":{queries:["cosmetics","makeup products","beauty store"],match:/\b(beauty|cosmetics?|makeup|skincare|perfume|fragrance|salon)\b/i},
+ "semiconductors":{queries:["computer chip","gpu","circuit board"],match:/\b(semiconductor|microchip|computer chip|gpu|processor|circuit board|silicon wafer|graphics card|data center|server rack)\b/i},
+ "consumer devices":{queries:["smartphone","laptop computer","tablet device"],match:/\b(smartphone|mobile phone|tablet|laptop|computer|headphones|smartwatch|iphone|ipad|macbook)\b/i},
+ "software and cloud":{queries:["computer software","data center","computer programming"],match:/\b(computer|software|laptop|coding|programmer|data center|cloud computing|server|keyboard|computer screen)\b/i},
+ "aerospace":{queries:["rocket","rocket launch","satellite"],match:/\b(rocket|spacecraft|satellite|launchpad|launch pad|liftoff|launch vehicle|space shuttle)\b/i},
+ "automotive":{queries:["car","automobile","electric vehicle"],match:/\b(car|cars|automobile|vehicle|electric car|electric vehicle|truck|pickup|charging station)\b/i},
+ "restaurants":{queries:["restaurant food","restaurant dining","burger"],match:/\b(restaurant|food|meal|burger|fries|dining|breakfast|sandwich|coffee|diner)\b/i},
+ "retail":{queries:["retail store","store shelves","shopping cart"],match:/\b(retail|storefront|store shelves|shopping cart|shopping aisle|merchandise|supermarket)\b/i},
+ "energy":{queries:["oil refinery","oil rig","energy pipeline"],match:/\b(oil rig|oil refinery|petroleum|pipeline|natural gas|drilling rig|wind turbine|solar panels)\b/i},
+ "healthcare":{queries:["hospital medical","medical devices","healthcare laboratory"],match:/\b(hospital|healthcare|medical|medicine|pharmacy|clinical|doctor|surgery|laboratory)\b/i},
+ "biotechnology":{queries:["biotech laboratory","microscope","medical research"],match:/\b(biotech|biotechnology|laboratory|microscope|cell culture|medical research|genetics|scientist|pharmaceutical)\b/i},
+ "banking and finance":{queries:["bank building","financial district","credit card"],match:/\b(bank|banking|finance|credit card|payment terminal|financial district|stock exchange)\b/i},
+ "insurance":{queries:["insurance office","home insurance","insurance paperwork"],match:/\b(insurance|insurer|insurance office|property protection|home insurance)\b/i},
+ "utilities":{queries:["electrical substation","power grid","power lines"],match:/\b(electrical substation|power grid|transmission tower|power lines|water treatment|electric utility|power plant)\b/i},
+ "telecommunications":{queries:["cell tower","fiber optic cables","network infrastructure"],match:/\b(cell tower|telecommunications|fiber optic|network antenna|communication tower|broadband|telecom)\b/i},
+ "industrial manufacturing":{queries:["factory machinery","industrial machine","manufacturing equipment"],match:/\b(factory|industrial|manufacturing|machinery|machine shop|assembly line|industrial robot|fabrication)\b/i},
+ "transportation":{queries:["cargo shipping","delivery truck","freight train"],match:/\b(cargo|shipping|delivery truck|freight train|logistics|warehouse|container ship|transportation)\b/i},
+ "mining and materials":{queries:["mining equipment","open pit mine","steel mill"],match:/\b(mining|mine|quarry|ore|copper|iron|steel mill|metal processing|mineral)\b/i},
+ "agriculture and food":{queries:["farm agriculture","food processing","crops harvest"],match:/\b(farm|agriculture|crop|harvest|food processing|grain|produce|orchard|livestock)\b/i},
+ "travel and hospitality":{queries:["hotel interior","travel airplane","resort"],match:/\b(hotel|travel|resort|airplane|aircraft|hospitality|cruise ship)\b/i},
+ "media and entertainment":{queries:["film production","movie camera","recording studio"],match:/\b(film|movie|cinema|camera|television|recording studio|music production|concert|streaming)\b/i},
+ "real estate":{queries:["apartment building","modern homes","construction site"],match:/\b(real estate|apartment|residential building|office building|housing|homes|construction site)\b/i},
+ "apparel":{queries:["fashion clothing","clothing store","apparel rack"],match:/\b(clothing|apparel|fashion|garment|textile|fabric|shoes|sneakers)\b/i},
+ "business technology":{queries:["business technology","modern office","laptop computer"],match:/\b(business|technology|office|laptop|computer|meeting|workplace)\b/i}
+};
+const universalImageExclusions=/\b(clipart|cartoon|vector illustration|graphic design|stock illustration|watermark|toy rocket|rocket league|salad rocket|scrapyard|junkyard|wreckage)\b/i;
+function universalMatch(text:string,profile:ThemeProfile):boolean{
+ const spec=universalSubjects[profile.theme]||universalSubjects["business technology"];
+ return !universalImageExclusions.test(text)&&spec.match.test(text);
+}
 function photoPlans(profile:ThemeProfile){
  // Prefer a one-word company name, except ambiguous names whose single-word search
  // is crowded by unrelated subjects (e.g. Apple fruit vs Apple computers).
@@ -176,7 +212,7 @@ function similarPhotoMetadata(a:any,b:any):boolean{
 
 type Candidate={
  id:string;image_url:string;full_image_url:string;photographer:string;photographer_url:string;
- photo_url:string;download_location:string;title:string;query:string;tier:number;score:number;company_match?:boolean;venue?:string;context_kinds?:string[];retail_illustration?:boolean;
+ photo_url:string;download_location:string;title:string;query:string;tier:number;score:number;company_match?:boolean;venue?:string;context_kinds?:string[];retail_illustration?:boolean;universal_illustration?:boolean;
  source_type?:"wikimedia_commons";license_name?:string;license_url?:string;verified_at?:string;
 };
 // Industry words do not establish company identity. Keep the complete brand phrase.
@@ -292,7 +328,8 @@ function visualQueries(profile:ThemeProfile,events:{title:string;category?:strin
   profile.theme==="semiconductors"?"computer chip electronics":profile.queries[0];
  // Company first; then one search per distinct milestone subject.
  const specific=photoPlans(profile);
- return [...new Set([specific[0]?.query,
+ const subjectQueries=(universalSubjects[profile.theme]||universalSubjects["business technology"]).queries;
+ return [...new Set([specific[0]?.query,...subjectQueries,
   ...(profile.theme==="discount retail"?["convenience store interior","convenience store shelves","convenience store exterior"]:[]),
   ...subjects.map(kind=>plans.find(p=>p.kind===kind)?.queries[0]),
   specific[1]?.query,themed,...profile.queries].filter(Boolean))].slice(0,12);
@@ -352,6 +389,7 @@ function eventCandidateScore(candidate:Candidate,plan:EventVisualPlan):number{
  // A caption-identified retail scene is an honest illustrative fallback for
  // discount retailers; it is never represented as an event photograph.
  if(candidate.retail_illustration)return 30+Math.min(hits,3)*5+Math.min(candidate.score,25);
+ if(candidate.universal_illustration)return 25+Math.min(hits,3)*4+Math.min(candidate.score,25);
  return -Infinity;
 }
 const excludedBrands=/\b(lordco|autozone|o'?reilly|napa auto|pep boys|sephora|dior|chanel|louis vuitton|gucci|prada)\b/i;
@@ -371,19 +409,22 @@ function candidateFromUnsplash(p:any,query:string,tier:number,profile:ThemeProfi
  if(profile.theme==="discount retail"&&/\b(dollar tree|family dollar|walmart|target|costco|aldi|lidl|five below|walgreens|cvs|banknotes?|dollar bills?|currency|bitcoin|cash|coins|money|gas station|gas pump|fuel pump|petrol station|filling station|fuel dispenser)\b/i.test(description))return null;
  if(profile.theme==="auto parts retail"&&/\b(lordco|autozone|o'?reilly|napa auto|pep boys)\b/i.test(description))return null;
  if(profile.theme==="auto parts retail"&&offThemeAuto.test(description))return null;
- let score=photoScore(p,{companyOnly:tier===0&&profile.theme!=="auto parts retail"&&profile.brand!=="rocket lab",minimumScore:0,keywords:profile.terms},profile);
+ let score=photoScore(p,{companyOnly:tier===0&&!universalSubjects[profile.theme]&&profile.brand!=="rocket lab",minimumScore:0,keywords:profile.terms},profile);
  // Do not accept off-brand results at any fallback tier.
  if(score<0&&profile.theme==="discount retail"&&
   /\b(stock exchange|wall street|business meeting|corporate office)\b/i.test(query)&&
   /\b(stock exchange|wall street|trading floor|boardroom|conference room|business meeting|office building|corporate office)\b/i.test(description)&&
   !/\b(banknotes?|cash|dollar bills?|coins?|currency|bitcoin|money|forex|bank teller|walmart|target|dollar tree|family dollar)\b/i.test(description))score=12;
  const context_kinds=[...new Set(plans.filter(plan=>(plan.queries.includes(query)||["advance auto parts","rocket lab"].includes(profile.brand))&&eventContextMatch(description,plan)).map(p=>p.kind))];
+ // A distinctive industry subject is a truthful illustration, not an exact
+ // photo of a corporate announcement. Reject metadata-free search matches.
+ const universal_illustration=universalMatch(description,profile);
  // Compute scene relevance before checking it. The previous order caused a ReferenceError.
  const retail_illustration=(profile.theme==="discount retail"&&
    /\b(convenience stores?|convenience shops?|grocery stores?|supermarkets?|discount stores?|retail shelves|store shelves|shopping aisles|grocery aisles|retail storefront|storefront)\b/i.test(description))||
    (profile.theme==="auto parts retail"&&aapPartsSubject(description));
  if(profile.brand==="rocket lab"&&!rocketPhotoSubject(description))return null;
- if(score<0&&!context_kinds.length&&!retail_illustration)return null;
+ if(score<0&&!context_kinds.length&&!retail_illustration&&!universal_illustration)return null;
  const company_match=companyPhotoIdentity(description,profile);
  // A named acquired business may be shown for its own event, but a random
  // store or market is not a legitimate Amazon photograph.
@@ -391,9 +432,9 @@ function candidateFromUnsplash(p:any,query:string,tier:number,profile:ThemeProfi
     !context_kinds.some(kind=>["amazon_whole_foods","amazon_zappos","amazon_souq","amazon_kindle","amazon_prime"].includes(kind)))
   return null;
  const venue=photoVenue(description);
- if(!company_match&&!venue&&!context_kinds.length&&!retail_illustration)return null;
+ if(!company_match&&!venue&&!context_kinds.length&&!retail_illustration&&!universal_illustration)return null;
  return {id,image_url:url,full_image_url:full,photographer,photographer_url,
-  photo_url,download_location:download,title:description.slice(0,300),query,tier,company_match,venue,context_kinds,retail_illustration,
+  photo_url,download_location:download,title:description.slice(0,300),query,tier,company_match,venue,context_kinds,retail_illustration,universal_illustration,
   score:Math.max(0,score)+Math.max(0,5-tier)*8+Math.min(Number(p.likes||0)/500,2)};
 }
 // Provider diagnostics: numeric metadata only; never expose application keys or user credentials.
