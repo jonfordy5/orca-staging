@@ -41,11 +41,13 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
  const hasOrigin=()=>allVerified.some(isOrigin);
  const hasCurrentYear=()=>allVerified.some(e=>new Date(e.event_at).getUTCFullYear()===year());
  const hasCurrentHalf=()=>allVerified.some(e=>new Date(e.event_at)>=halfYearStart());
- const researchNeed=()=>!hasOrigin()?'origin':
+ // A first-ever stock timeline needs the full multi-event history pass.
+ const researchNeed=()=>!allVerified.length?'history':!hasOrigin()?'origin':
   (!hasCurrentYear()||!hasCurrentHalf())?'current':
   allVerified.length<initialHistoryGoal?'history':'none';
  const mayRequestHistory=()=>!discoveryPending&&researchNeed()!=='none'&&!attemptedScopesThisSession.has(researchNeed());
  let discoveryPending=false;
+ let researchFeedback='';
  let historyAuthorized=false;
  let historyPermissionKnownFor=null;
  let historyPermissionPending=false;
@@ -302,8 +304,12 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
   navigation.hidden=!data.length;
   if(!data.length){
    const empty=document.createElement('div');empty.className='orca-timeline-empty';
-   empty.textContent='No sourced company milestones cached for '+ticker+' yet. Research consent is required before generating a shared history.';
+   empty.textContent='No sourced company milestones cached for '+ticker+' yet. Authorized research is required to build the initial history.';
    rail.append(empty);
+   if(researchFeedback){
+    const feedback=document.createElement('div');feedback.className='orca-timeline-research-feedback';
+    feedback.textContent=researchFeedback;rail.append(feedback);
+   }
    if(getUser()){
     const generate=document.createElement('button');
     generate.type='button';
@@ -429,6 +435,7 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
    renderCards();
   }
   const extra=Math.max(0,verified.length-data.length);
+  if(researchFeedback&&!data.length){status.textContent=researchFeedback;return;}
   status.textContent=data.length+' featured company milestone'+(data.length===1?'':'s')+
    (extra?' · '+extra+' source-backed milestones archived':'')+
    (!hasOrigin()?' · founding history missing':'')+
@@ -451,6 +458,14 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
   if(photoMount)void photoMount.refresh();
   return historyAuthorized;
  }
+ function showResearchFeedback(message){
+  researchFeedback=String(message||'');status.textContent=researchFeedback;
+  if(!data.length){
+   let notice=rail.querySelector('.orca-timeline-research-feedback');
+   if(!notice){notice=document.createElement('div');notice.className='orca-timeline-research-feedback';rail.append(notice);}
+   notice.textContent=researchFeedback;
+  }
+ }
  async function maybePopulateCompanyHistory(){
   if(!mayRequestHistory())return;
   if(!getUser()){
@@ -464,24 +479,27 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
   const researchScope=researchNeed();
   attemptedScopesThisSession.add(researchScope);
   discoveryPending=true;
+  researchFeedback='';
+  rail.querySelector('.orca-timeline-research-feedback')?.remove();
   const generateButton=frame.querySelector('.orca-history-refill-action')||rail.querySelector('.orca-timeline-generate');
   if(generateButton){generateButton.disabled=true;generateButton.textContent='Researching company history…';}
-  status.textContent='Researching and caching sourced company milestones for '+ticker+'. This does not claim an agent research assignment.';
+  showResearchFeedback('Researching source-backed company milestones for '+ticker+'. This does not claim an agent research assignment.');
   try{
    const {data:result,error}=await sb.functions.invoke('orca-timeline-discovery',{body:{ticker,scope:researchScope}});
    if(error)throw error;
    if(result?.state==='ready'){
+    researchFeedback='';
     await loadEvents();
     const added=Number(result.added||0);
-    status.textContent=added>0?added+' sourced milestone'+(added===1?'':'s')+' saved for '+ticker+' · available to future visitors.':
-     'Company history search finished without new verified milestones. Existing records remain unchanged.';
+    showResearchFeedback(added>0?added+' sourced milestone'+(added===1?'':'s')+' saved for '+ticker+' · available to future visitors.':
+     'Company history search finished without new verified milestones. Existing records remain unchanged.');
    }else if(result?.state==='cached'){
     await loadEvents();
     const next=typeof result.refresh_eligible_after==='string'&&Number.isFinite(Date.parse(result.refresh_eligible_after))
      ?new Date(result.refresh_eligible_after).toLocaleString():null;
-    status.textContent=allVerified.length+' historical milestones cached.'+
+    showResearchFeedback(allVerified.length+' historical milestones cached.'+
      (next?' Additional research becomes eligible after '+next+'.':' Research cooldown is active.')+
-     ' Existing sources are unchanged.';
+     ' Existing sources are unchanged.');
    }else{
     const type=String(result?.state||'unavailable');
     const note=({
@@ -490,16 +508,29 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
      daily_limit:'Daily development safeguard reached for this account.',
      budget_exhausted:'The shared $15 monthly AI reservation allowance has been reached.'
     })[type]||'Automatic milestone discovery is currently unavailable.';
-    status.textContent=note+' '+data.length+' previously cached milestones remain available.';
+    showResearchFeedback(note+' '+data.length+' previously cached milestones remain available.');
    }
-  }catch{
-   status.textContent='Could not generate sourced company milestones now. Existing research stays safe; TradingView remains available.';
+  }catch(error){
+   let code='';
+   try{
+    if(error?.context?.clone){
+     const response=await error.context.clone().json();code=String(response?.code||'');
+    }
+   }catch{}
+   const message=code==='no_acceptable_primary_source_milestones'?
+    'Research returned no milestones with acceptable original sources.':
+    code==='official_website_not_verified'?
+    'ORCA has not verified the company website needed for research.':
+    'The research request could not finish.';
+   showResearchFeedback(message+' Nothing was invented or saved. Refresh later to retry within ORCA research limits.');
   }finally{
    discoveryPending=false;
    const generateButton=frame.querySelector('.orca-history-refill-action')||rail.querySelector('.orca-timeline-generate');
    if(generateButton){
     generateButton.disabled=!mayRequestHistory();
-    generateButton.textContent=researchNeed()==='current'?'Research '+year()+' milestone':
+    generateButton.textContent=!mayRequestHistory()&&researchFeedback&&!data.length?
+     'Research attempted · refresh to retry':
+     researchNeed()==='current'?'Research '+year()+' milestone':
       researchNeed()==='origin'?'Research company beginnings':
       allVerified.length?'Add historical milestones':'Generate company history';
    }
