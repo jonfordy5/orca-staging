@@ -518,7 +518,7 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
   if(card)centerMilestone(card,'auto');
  });
  try{
-  const module=await import('./orca-timeline-photos.js?v=commons-rescue-v18');
+  const module=await import('./orca-timeline-photos.js?v=rklb-rocket-v19');
   photoMount=await module.mountTimelinePhotos({sb,ticker,frame,rail,status,getUser,canContribute:()=>historyAuthorized});
  }catch(error){console.warn('Optional history photography is unavailable',error)}
  const poll=setInterval(()=>{if(document.visibilityState==='visible')loadEvents()},60000);
