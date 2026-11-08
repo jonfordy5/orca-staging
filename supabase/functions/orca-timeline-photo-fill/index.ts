@@ -20,7 +20,7 @@ function withUtm(value:unknown){
 
 type ThemeProfile={brand:string,theme:string,terms:string[],queries:string[]};
 function companyTheme(ticker:string,name:string,description:string):ThemeProfile{
- const short=name.replace(/\b(common stock|class [a-z] stock|corporation|incorporated|inc\.?|corp\.?|company|limited|ltd\.?|plc)\b/ig,"").replace(/[.,]/g,"").trim().toLowerCase();
+ const short=name.replace(/\b(common stock|class [a-z] stock|corporation|incorporated|inc\.?|corp\.?|company|limited|ltd\.?|plc|the)\b/ig,"").replace(/[().,]/g,"").replace(/\s+/g," ").trim().toLowerCase();
  const brand=({F:"ford",DG:"dollar general",AAP:"advance auto parts",NVDA:"nvidia",ULTA:"ulta",AAPL:"apple",MSFT:"microsoft",INTC:"intel",META:"meta",RKLB:"rocket lab",AMZN:"amazon",WMT:"walmart",TSLA:"tesla"} as Record<string,string>)[ticker]||short||ticker.toLowerCase();
  const info=(name+" "+description).toLowerCase();
  const themes=[
@@ -39,6 +39,20 @@ function companyTheme(ticker:string,name:string,description:string):ThemeProfile
   {test:/rocket lab|satellite|spacecraft|launch vehicle/,theme:"aerospace",terms:["rocket","space","satellite","launch","spacecraft","aerospace"],queries:["rocket launch","space satellite","aerospace technology"]},
   {test:/automotive|motor vehicle|electric car|tesla|ford motor/,theme:"automotive",terms:["car","vehicle","automotive","factory","electric","manufacturing"],queries:["automotive factory","car vehicle","electric vehicle"]},
   {test:/restaurant|fast food|dining|burger/,theme:"restaurants",terms:["restaurant","food","kitchen","meal","dining"],queries:["restaurant food","commercial kitchen","dining restaurant"]},
+  {test:/biotech|biopharm|pharmaceutical|drug discover|gene therapy|genetic medicine|life sciences/,theme:"biotechnology",terms:["biotechnology","laboratory","microscope","pharmaceutical"],queries:["biotech laboratory","microscope","medical research"]},
+  {test:/healthcare|hospital|medical device|health services|medical technolog/,theme:"healthcare",terms:["hospital","medical","healthcare","medicine","laboratory"],queries:["hospital medical","medical devices","healthcare laboratory"]},
+  {test:/bank|banking|financial services|fintech|payment processing|credit card|asset management|investment firm/,theme:"banking and finance",terms:["bank","credit card","payments","finance"],queries:["bank building","financial district","banking"]},
+  {test:/insurance|underwriting|reinsurance/,theme:"insurance",terms:["insurance","property protection","insurance office"],queries:["insurance office","home insurance"]},
+  {test:/electric utilit|water utilit|power grid|electricity generation|power distribution/,theme:"utilities",terms:["power grid","substation","power lines"],queries:["electrical substation","power grid","power lines"]},
+  {test:/telecom|wireless network|broadband|communications infrastructure|fiber optic/,theme:"telecommunications",terms:["cell tower","fiber optic","telecommunications"],queries:["cell tower","fiber optic cables","network infrastructure"]},
+  {test:/industrial equipment|heavy machinery|industrial manufactur|fabrication|machine tools/,theme:"industrial manufacturing",terms:["factory","industrial machinery","manufacturing"],queries:["factory machinery","industrial machine","manufacturing equipment"]},
+  {test:/logistics|freight|parcel deliver|transportation services|cargo|shipping/,theme:"transportation",terms:["cargo","shipping","delivery","freight","warehouse"],queries:["cargo shipping","delivery truck","freight train"]},
+  {test:/mining|mineral|metal produc|steelmak|raw materials|quarry/,theme:"mining and materials",terms:["mining","mine","steel mill","metal"],queries:["mining equipment","open pit mine","steel mill"]},
+  {test:/agricultur|crop|food production|food manufactur|farming|livestock/,theme:"agriculture and food",terms:["farm","agriculture","food processing","harvest"],queries:["farm agriculture","food processing","crops harvest"]},
+  {test:/hotel|hospitality|resort|airline|cruise|travel services/,theme:"travel and hospitality",terms:["hotel","resort","airplane","travel"],queries:["hotel interior","travel airplane","resort"]},
+  {test:/film studio|movie produc|media company|entertainment|broadcast|television network|music/,theme:"media and entertainment",terms:["film","movie","camera","television"],queries:["film production","movie camera","recording studio"]},
+  {test:/real estate|property develop|commercial propert|homebuild|construction services/,theme:"real estate",terms:["apartments","real estate","homes","construction"],queries:["apartment building","modern homes","construction site"]},
+  {test:/apparel|fashion|footwear|clothing|textile/,theme:"apparel",terms:["clothing","fashion","apparel","shoes"],queries:["fashion clothing","clothing store","apparel rack"]},
   {test:/retailer|retail|store|shopping|e-commerce|merchandise/,theme:"retail",terms:["retail","store","shopping","products","supermarket","warehouse"],queries:["retail store","shopping shelves","retail warehouse"]},
   {test:/energy|oil|petroleum|gas exploration/,theme:"energy",terms:["energy","oil","gas","refinery","industrial","pipeline"],queries:["oil refinery","energy industry","industrial pipeline"]}
  ];
