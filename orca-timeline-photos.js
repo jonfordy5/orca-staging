@@ -10,6 +10,27 @@ export function photoFailureMessage(payload={}){
   payload.error==='Invalid sign-in'||payload.error==='Sign in required'?'Sign in again to find timeline photos.':
   'Unable to select photos right now; existing timeline is unchanged.';
 }
+// Original vector fallback is generated locally from the ticker and event ID.
+// It is explicitly artwork, never a sourced historical photo. This ensures
+// every card has a distinctive dark cover even during CDN/API outages.
+export function timelineIllustration(ticker,eventId,index=0){
+ const seed=Array.from(String(ticker)+':'+String(eventId)).reduce((v,ch)=>((v*31+ch.charCodeAt(0))>>>0),2166136261);
+ const hue=194+(seed%32),second=(hue+29+index%16)%360;
+ const x=55+seed%230,y=38+(seed>>>5)%96;
+ const symbol=String(ticker||'STOCK').replace(/[^A-Z0-9.]/gi,'').slice(0,7).toUpperCase()||'STOCK';
+ const svg='<svg xmlns="http://www.w3.org/2000/svg" width="640" height="400" viewBox="0 0 640 400" role="img" aria-label="Abstract company illustration">'+
+ '<defs><linearGradient id="g" x2="1" y2="1"><stop stop-color="hsl('+hue+',56%,22%)"/><stop offset="1" stop-color="hsl('+second+',61%,10%)"/></linearGradient>'+
+ '<radialGradient id="l"><stop stop-color="#67bfff" stop-opacity=".3"/><stop offset="1" stop-color="#67bfff" stop-opacity="0"/></radialGradient></defs>'+
+ '<rect width="640" height="400" fill="url(#g)"/><circle cx="'+(x+190)+'" cy="'+(y+60)+'" r="260" fill="url(#l)"/>'+
+ '<g fill="none" stroke="#b4e3ff" stroke-opacity=".21" stroke-width="3">'+
+ '<path d="M-50 '+(y+70)+' L200 '+y+' L450 '+(y+115)+' L690 '+(y+25)+'"/>'+
+ '<path d="M-40 '+(y+155)+' L220 '+(y+90)+' L430 '+(y+190)+' L690 '+(y+102)+'"/>'+
+ '<circle cx="'+(350+seed%70)+'" cy="'+(75+index%55)+'" r="84"/></g>'+
+ '<text x="38" y="105" font-family="system-ui,Arial,sans-serif" font-weight="800" font-size="65" letter-spacing="5" fill="#c9edff" opacity=".28">'+symbol+'</text>'+
+ '<g opacity=".22"><circle cx="'+(520+seed%32)+'" cy="255" r="9" fill="#a7e5ff"/><circle cx="90" cy="250" r="5" fill="#a7e5ff"/></g>'+
+ '</svg>';
+ return 'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);
+}
 // Optional visual layer for ORCA's sourced company milestones. Research remains unchanged.
 export async function mountTimelinePhotos({sb,ticker,frame,rail,status,getUser,canContribute}){
  const nav=frame.querySelector('.orca-timeline-navigation');
@@ -32,6 +53,17 @@ export async function mountTimelinePhotos({sb,ticker,frame,rail,status,getUser,c
  let duplicateCount=0;
  let remainingPhotos=0;
  let actionPending=false;
+ function renderIllustration(card){
+  const slot=card.querySelector('.orca-timeline-event-media');
+  if(!slot)return;
+  const img=document.createElement('img');
+  img.className='orca-photo-image orca-generated-art';
+  img.src=timelineIllustration(ticker,card.dataset.eventId,Number(card.dataset.index||0));
+  img.alt='Original abstract illustration; not a historical photograph';
+  img.loading='lazy';
+  slot.replaceChildren(img);slot.classList.add('orca-history-thumb');
+  card.title='Original ORCA decorative illustration. Historical event details are sourced separately.';
+ }
  function updatePhotoAction(){
   const needsAction=duplicateCount>0||remainingPhotos>0;
   // A finished timeline should show its photos, not a disabled "Photos ready" button.
@@ -88,13 +120,9 @@ export async function mountTimelinePhotos({sb,ticker,frame,rail,status,getUser,c
   for(const card of rail.querySelectorAll('button[data-event-id]')){
    const p=photos.get(card.dataset.eventId);
    if(!p){
-    // Previously duplicated images must disappear when a better candidate
-    // has not yet been retrieved; the existing dark card remains readable.
-    const slot=card.querySelector('.orca-timeline-event-media');
-    if(slot?.querySelector('img')){
-     slot.replaceChildren(document.createTextNode('◆'));
-     slot.classList.remove('orca-history-thumb');
-    }
+    // A distinct original SVG cover is always available without consuming
+    // search quota. It is never counted as a sourced photograph.
+    if(!card.querySelector('.orca-generated-art'))renderIllustration(card);
     card.querySelector('.orca-photo-context')?.remove();
     continue;
    }
@@ -108,11 +136,11 @@ export async function mountTimelinePhotos({sb,ticker,frame,rail,status,getUser,c
    }
    if(existing&&existing.dataset.photoUrl===p.image_url)continue;
    const slot=card.querySelector('.orca-timeline-event-media');
-   if(!slot||(!existing&&slot.querySelector('img')))continue;
+   if(!slot||(!existing&&slot.querySelector('img')&&!slot.querySelector('.orca-generated-art')))continue;
    const original=existing?'◆':slot.textContent;
    const img=document.createElement('img');img.className='orca-photo-image';
    img.dataset.photoUrl=p.image_url;img.src=p.image_url;img.alt='Illustrative photography, not the historical event';img.loading='lazy';
-   img.addEventListener('error',()=>{slot.textContent=original;slot.classList.remove('orca-history-thumb')},{once:true});
+   img.addEventListener('error',()=>{renderIllustration(card)},{once:true});
    slot.replaceChildren(img);slot.classList.add('orca-history-thumb');
    const provider=p.source_type==='wikimedia_commons'?'Wikimedia Commons':'Unsplash';
    card.title=(p.temporary?'Temporary company illustration · ':p.needs_review?'Illustrative photo awaiting improvement · ':'Illustrative photo · ')+
@@ -174,7 +202,7 @@ export async function mountTimelinePhotos({sb,ticker,frame,rail,status,getUser,c
   try{
    const key=(ticker==='AAP'?'orca-auto-photo-repair-aap-v12:':
     ticker==='RKLB'?'orca-rocket-search-v2:':
-    ['DG','MSFT','ULTA'].includes(ticker)?'orca-licensed-photo-rescue-v1:':'orca-auto-photo-repair-v11:')+ticker;
+    ['DG','MSFT','ULTA'].includes(ticker)?'orca-licensed-photo-rescue-v1:':'orca-universal-subject-v1:')+ticker;
    const previous=Number(sessionStorage.getItem(key)||0);
    if(Date.now()-previous<6*60*60*1000)return;
    sessionStorage.setItem(key,String(Date.now()));
