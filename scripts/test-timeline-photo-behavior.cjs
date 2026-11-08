@@ -332,8 +332,15 @@ test('Missing or malformed rate headers stay unknown',()=>{
  test('Exhausted shared cap returns a specific state and retry time',()=>{assert.equal(response.status,429);assert.equal(payload.state,'daily_limit');assert.equal(payload.limit,300);assert.equal(payload.retry_at,'2026-11-06T03:00:00.000Z');assert.equal(requests,0)});
  const client=fs.readFileSync(root+'/orca-timeline-photos.js','utf8');
  const frontend={};vm.createContext(frontend);
- vm.runInContext(client.split('// Optional visual layer')[0].replace('export function','function')+'\nglobalThis.message=photoFailureMessage;',frontend);
+ vm.runInContext(client.split('// Optional visual layer')[0].replaceAll('export function','function')+'\nglobalThis.message=photoFailureMessage;globalThis.illustration=timelineIllustration;',frontend);
  test('Daily limit is explained to the user',()=>assert.match(frontend.message(payload),/shared 300-photo daily allowance/));
+ test('Unrelated stock events receive different original vector illustrations',()=>{
+  const a=frontend.illustration('CVX','event-a',0);
+  const b=frontend.illustration('CVX','event-b',1);
+  assert(a.startsWith('data:image/svg+xml;charset=utf-8,'));
+  assert.notEqual(a,b);
+  assert(decodeURIComponent(a).includes('Abstract company illustration'));
+ });
  test('Sign-in error stays actionable',()=>assert.match(frontend.message({error:'Invalid sign-in'}),/Sign in again/));
  for(const count of [24,299,300,301]){
   photoCount=count;
