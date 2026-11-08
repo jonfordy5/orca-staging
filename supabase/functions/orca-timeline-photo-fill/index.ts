@@ -624,7 +624,7 @@ Deno.serve(async(req:Request)=>{
  const cached:any[]=[];
  for(let offset=0;;offset+=250){
   const {data:page,error:cachedError}=await admin.from("orca_timeline_photo_selections")
-   .select("event_id,photo_id,needs_review,photographer").eq("ticker",ticker)
+   .select("event_id,photo_id,needs_review,photographer,full_image_url").eq("ticker",ticker)
    .range(offset,offset+249);
   if(cachedError)return reply(503,{error:"Photo cache unavailable"});
   cached.push(...(page||[]));
@@ -671,9 +671,13 @@ Deno.serve(async(req:Request)=>{
  if(commonsQueries[ticker]){
   const pending=todo.filter(e=>!choices.some(c=>c.event_id===e.id));
   const pool=await findCommons(ticker,pending.length);
+  const reservedUrls=new Set<string>((cached||[]).map((p:any)=>String(p.full_image_url||"")).filter(Boolean));
+  for(const item of choices)reservedUrls.add(item.choice.full_image_url);
   for(const event of pending){
-   const choice=chooseCommons(pool,event,reserved);if(!choice)continue;
-   choices.push({event_id:event.id,choice});reserved.add(choice.id);failed=Math.max(0,failed-1);
+   const candidates=pool.filter(p=>!reservedUrls.has(p.full_image_url));
+   const choice=chooseCommons(candidates,event,reserved);if(!choice)continue;
+   choices.push({event_id:event.id,choice});reserved.add(choice.id);
+   reservedUrls.add(choice.full_image_url);failed=Math.max(0,failed-1);
   }
  }
  // Never recycle one photo across different milestones.
@@ -715,6 +719,7 @@ Deno.serve(async(req:Request)=>{
  await Promise.allSettled(uniqueDownloads.map(c=>fetch(c.download_location,{
   headers:{"Authorization":"Client-ID "+accessKey,"Accept-Version":"v1"},
   signal:AbortSignal.timeout(4500)})));
+ const commonsAdded=savedChoices.filter(c=>c.source_type==="wikimedia_commons").length;
  const upstream=search.provider_failure||search.provider_last;
  return reply(200,{state:added>0?"ready":saveFailures>0?"save_failed":search.provider_failure?.http_status===429?"rate_limited":search.provider_failure?"provider_error":search.limited?"rate_limited":"no_matches",added,failed,save_failures:saveFailures,
   requested:todo.length,remaining:Math.max(0,targets.length-added),
@@ -723,6 +728,6 @@ Deno.serve(async(req:Request)=>{
   provider_rate_limit:search.provider_last?.rate_limit??null,provider_rate_remaining:search.provider_last?.rate_remaining??null,
   provider_requests_made:search.requests_made,provider_results_received:search.results_received,
   provider_eligible_candidates:search.candidates.length,photo_choices:choices.length,
-  provider_network_failures:search.network_failures,
-  note:"Photo selections are illustrative; original research sources unchanged."});
+  provider_network_failures:search.network_failures,commons_added:commonsAdded,
+  note:"Photos are illustrative with linked source and license; historical research sources remain unchanged."});
 });
