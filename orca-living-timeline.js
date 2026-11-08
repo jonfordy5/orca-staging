@@ -483,8 +483,9 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
   const summaries=[];
   // One intentional click handles the missing stages sequentially. Reload
   // cached milestones after each call and never repeat the same research scope.
-  const nextScope=()=>allVerified.length<initialHistoryGoal?'history':
-   !hasOrigin()?'origin':(!hasCurrentHalf()?'current':null);
+  const nextScope=()=>allVerified.length<initialHistoryGoal&&!attempted.has('history')?'history':
+   !hasOrigin()&&!attempted.has('origin')?'origin':
+   !hasCurrentHalf()&&!attempted.has('current')?'current':null;
   try{
    for(let stage=0;stage<3;stage++){
     const scope=nextScope();
@@ -508,7 +509,7 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
       try{
        if(response.error?.context?.clone)details=await response.error.context.clone().json();
       }catch{}
-      spent+=Math.min(remaining,Math.max(0,Number(details?.estimated_usd)||0));
+      spent+=Math.max(0,Number(details?.estimated_usd)||0);
       const code=String(details?.code||'');
       summaries.push(code==='no_acceptable_primary_source_milestones'?
        'No new '+scope+' milestones passed first-party source checks.':
@@ -521,7 +522,7 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
      summaries.push('Research request interrupted; automatic retries stopped.');
      break;
     }
-    spent+=Math.min(remaining,Math.max(0,Number(result?.estimated_usd)||0));
+    spent+=Math.max(0,Number(result?.estimated_usd)||0);
     if(result?.state==='ready'){
      await loadEvents();
      const added=Math.max(0,Number(result.added)||0);
