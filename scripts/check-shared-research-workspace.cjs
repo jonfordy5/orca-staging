@@ -164,7 +164,7 @@ check('Timeline extends beyond the newest milestone and fades into the future', 
   timeline.includes("base.setAttribute('mask','url(#'+tailId+')')") &&
   timeline.includes("beam.setAttribute('mask','url(#'+tailId+')')") &&
   timeline.includes('Math.max(420,Math.round') &&
-  workspace.includes('v=universal-photo-v32'));
+  workspace.includes('v=history-start-v33'));
 
 check('Open-ended timeline preserves milestones and beam arrival effects', () =>
   timeline.includes('const nodeDistances=[0]') &&
@@ -196,7 +196,7 @@ check('Timeline initially centers the middle milestone while navigation remains 
   timeline.includes("centerMilestone(card,'auto')") &&
   timeline.includes("prev.addEventListener('click',()=>jumpTo(0))") &&
   timeline.includes("next.addEventListener('click',()=>jumpTo(data.length-1))") &&
-  workspace.includes('v=universal-photo-v32'));
+  workspace.includes('v=history-start-v33'));
 
 check('Mobile history stays a swipe carousel without zigzag or glowing track', () =>
   workspace.includes('touch-action:pan-x!important') &&
