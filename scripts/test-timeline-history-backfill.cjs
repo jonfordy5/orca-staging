@@ -12,7 +12,7 @@ function event(i,override={}){
   points:['A detailed original source supports this historical milestone','The specific development changed the company during this era'],
   why:'This development had enduring significance for Ford Motor Company.',...override};
 }
-async function run({existing=9,batches=[[event(90)]],usage=[{input_tokens:1000,output_tokens:1200,searches:1}],postStatus=200}={}){
+async function run({existing=9,batches=[[event(90)]],usage=[{input_tokens:1000,output_tokens:1200,searches:1}],postStatus=200,verifiedUrls=[]}={}){
  let handler,apiRequests=[],finished=[],reserves=0;
  const history=Array.from({length:existing},(_,i)=>({
   id:'old'+i,title:'Existing milestone '+i,event_at:'19'+String(20+i).padStart(2,'0')+'-06-15',
@@ -46,7 +46,11 @@ async function run({existing=9,batches=[[event(90)]],usage=[{input_tokens:1000,o
   Deno:{env:{get:key=>key==='OPENAI_API_KEY'?'test-only-key':'ignored'},serve:fn=>handler=fn},
   URL,Request,Response,AbortController,setTimeout,clearTimeout,Date,console,
   fetch:async(url,opts)=>{
-   assert.equal(url,'https://api.openai.com/v1/responses');
+   if(url!=='https://api.openai.com/v1/responses'){
+    const allowed=verifiedUrls.includes(url);
+    return new Response(allowed?'Verified official company archival page':'Not found',{
+     status:allowed?200:404,headers:{'content-type':'text/html'}});
+   }
    const req=JSON.parse(opts.body);
    apiRequests.push(req);
    const i=apiRequests.length-1;
@@ -107,6 +111,9 @@ async function run({existing=9,batches=[[event(90)]],usage=[{input_tokens:1000,o
  t=await run({existing:0,batches:[[event(1,{unobserved:true})]]});
  assert.equal(t.status,503);assert.equal(t.finished[0].p_events.length,0);
  console.log('PASS invented or unobserved source URLs are rejected');
+ t=await run({existing:0,batches:[[event(1,{unobserved:true})]],verifiedUrls:[event(1).source_url]});
+ assert.equal(t.status,200);assert.equal(t.body.total_cached,1);
+ console.log('PASS first-party source page accepted when citation metadata omitted but live URL verified');
  t=await run({existing:0,batches:[[event(1)]],usage:[{input_tokens:200000,output_tokens:3000,searches:5}]});
  assert.equal(t.status,503);assert.equal(t.finished[0].p_error_code,'cost_envelope_exceeded');
  console.log('PASS over-budget run cannot publish events');
