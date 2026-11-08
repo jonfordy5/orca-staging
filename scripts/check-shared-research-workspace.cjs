@@ -74,7 +74,7 @@ check('Company descriptions replace weak pronoun openings without changing inter
  if(start<0||end<0)return false;
  const ctx={};
  vm.runInNewContext(auto.slice(start,end).replace('export function ','function ')+
-  '\\nglobalThis.polish=polishCompanySentenceOpenings;',ctx);
+  '\nglobalThis.polish=polishCompanySentenceOpenings;',ctx);
  const polish=ctx.polish;
  return polish('It sells products. It also offers AWS.','Amazon.com Inc. Common Stock','AMZN')===
     'Amazon sells products. Amazon also offers AWS.' &&
