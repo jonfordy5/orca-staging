@@ -69,6 +69,11 @@ Deno.serve(async req=>{
  try{body=await req.json()}catch{return reply(400,{error:"invalid_request"})}
  const ticker=String(body?.ticker||"").trim().toUpperCase();
  const scope=String(body?.scope||"history").trim().toLowerCase();
+ // A unified timeline action shares a single estimated cost ceiling across
+ // the initial history, founding, and current-period stages.
+ const requestedBudget=Number(body?.max_budget_usd);
+ const costCeiling=Number.isFinite(requestedBudget)&&requestedBudget>0?
+  Math.min(0.15,requestedBudget):0.15;
  if(!validTicker(ticker)||!["history","origin","current"].includes(scope))
   return reply(400,{error:"invalid_ticker_or_scope"});
  const user=identity.user;
@@ -166,7 +171,7 @@ Deno.serve(async req=>{
    const count=existingCount+newCount;
    // Extra research only happens when a general pass left one or two gaps.
    // Keep a conservative $0.065 estimated headroom for ONE smaller web search.
-   return existingCount<8&&(count===8||count===9)&&estimated<=0.085;
+   return existingCount<8&&(count===8||count===9)&&estimated<=Math.min(0.085,costCeiling-0.065);
   }
   async function acceptCandidateMilestones(items:any[]):Promise<number>{
    let newAccepted=0;
@@ -267,7 +272,7 @@ Deno.serve(async req=>{
    tokensOut+=Number(result.usage?.output_tokens||0);
    searchCalls+=(result.output||[]).filter((x:any)=>x.type==="web_search_call"&&x.status==="completed").length;
    cost=Number(((tokensIn*.75+tokensOut*4.5)/1000000+searchCalls*.01).toFixed(5));
-   if(cost>.15)throw Error("cost_envelope_exceeded");
+   if(cost>costCeiling)throw Error("cost_envelope_exceeded");
    for(const item of result.output||[]){
     for(const source of item.action?.sources||[]){
      const verified=safeSource(String(source.url||""),official);
@@ -315,6 +320,6 @@ Deno.serve(async req=>{
   const message=String(e instanceof Error?e.message:e).slice(0,80);
   try{await finish([],message)}catch{}
   return reply(503,{error:"Milestone discovery deferred. Existing sourced events are unchanged.",
-   code:message});
+   code:message,estimated_usd:cost,research_scope:scope});
  }
 });
