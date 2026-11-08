@@ -79,6 +79,25 @@ test('Amazon accepts a recognizable corporate photo but not false company identi
 });
 
 
+test('Universal sector patterns use short visual subjects, not company slogans',()=>{
+ const examples=[
+  ['CVX','Chevron Corporation','oil and petroleum energy company','oil refinery'],
+  ['INTC','Intel Corporation','semiconductor chip manufacturer','computer chip'],
+  ['MCD','McDonald Corporation','restaurant food business','restaurant food'],
+  ['META','Meta Platforms','software and cloud services','computer software'],
+  ['TSLA','Tesla Inc.','automotive electric vehicle manufacturer','car'],
+  ['TXRH','Texas Roadhouse','restaurant dining chain','restaurant food'],
+  ['WEN','Wendys Corporation','restaurant food chain','restaurant food'],
+  ['WMT','Walmart Inc.','retail store chain','retail store'],
+  ['ABC','Example Biotech Inc.','biotechnology pharmaceutical research','biotech laboratory'],
+  ['XYZ','Example Utilities Inc.','electric utility power grid','electrical substation']
+ ];
+ for(const [ticker,name,description,expected] of examples){
+  const theme=companyTheme(ticker,name,description);
+  const queries=visualQueries(theme,[{title:name+' annual report'}]);
+  assert(queries.includes(expected),ticker+' should search '+expected+'; actual '+queries.join(','));
+ }
+});
 const rklb=companyTheme('RKLB','Rocket Lab Corporation','launch vehicles and satellite services');
 const rklbEvents=Array.from({length:11},(_,i)=>({title:'Rocket Lab mission '+i}));
 const rklbPlan=eventVisualPlan(rklbEvents[0],rklb);
