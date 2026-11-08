@@ -47,6 +47,11 @@ function companyTheme(ticker:string,name:string,description:string):ThemeProfile
  if(ticker==="F")return {brand:"ford",theme:"automotive",
   terms:["car","cars","truck","pickup","vehicle","automotive","mustang","bronco","f150","f-150","model t","classic car","logo","electric"],
   queries:["ford","ford mustang","ford truck","ford model t"]};
+ // For Rocket Lab use beautiful, distinct photographic rockets as
+ // illustrations when company-specific event photography is unavailable.
+ if(ticker==="RKLB")return {brand:"rocket lab",theme:"aerospace",
+  terms:["rocket","launch","liftoff","spacecraft","satellite","spaceflight","launchpad","space"],
+  queries:["rocket","rocket launch","rocket liftoff","space rocket","launch pad"]};
  // Branded company/brand searches before generic visual context.
  if(ticker==="AMZN")return {brand:"amazon",theme:"amazon commerce",
   terms:["amazon","prime","kindle","aws","whole foods","zappos","souq",
@@ -196,6 +201,9 @@ function eventVisualPlan(event:{title:string;category?:string},profile:ThemeProf
    return {kind:"amazon_prime",queries:["amazon prime","amazon delivery","amazon"],terms:["prime","delivery","packages","amazon"]};
   return {kind:"amazon_company",queries:["amazon","amazon delivery","amazon warehouse"],terms:["amazon","delivery","warehouse","logo","fulfillment","aws"]};
  }
+ if(profile.brand==="rocket lab")
+  return {kind:"rocket_illustration",queries:["rocket","rocket launch","rocket liftoff","space rocket"],
+   terms:["rocket","launch","liftoff","spacecraft","satellite","launch pad"]};
  // Named acquired AAP brands qualify for their own historical milestones.
  if(profile.brand==="advance auto parts"){
   if(/\b(carquest|worldpac)\b/.test(title))return {kind:"aap_carquest",queries:["carquest auto parts","worldpac automotive parts","advance auto parts store"],terms:["carquest","worldpac","auto parts"]};
@@ -243,6 +251,9 @@ function visualQueries(profile:ThemeProfile,events:{title:string;category?:strin
   "amazon","amazon delivery","whole foods market","amazon whole foods",
   "amazon kindle","amazon prime","amazon warehouse","zappos","souq amazon"
  ];
+ if(profile.brand==="rocket lab")return [
+  "rocket","rocket launch","rocket liftoff","space rocket","rocket launchpad"
+ ];
  if(profile.brand==="advance auto parts")return [
   "advance auto parts store","car engine","car parts",
   "automotive brake pads","car battery","oil filter",
@@ -273,9 +284,17 @@ function visualQueries(profile:ThemeProfile,events:{title:string;category?:strin
   specific[1]?.query,themed,...profile.queries].filter(Boolean))].slice(0,12);
 }
 // Search intent is not evidence. Require a matching SUBJECT in the image's metadata.
+// Generic rockets may illustrate Rocket Lab milestones, but never imply an
+// exact image of the event. Reject toys, cartoons and unrelated homonyms.
+function rocketPhotoSubject(text:string):boolean{
+ const irrelevant=/\b(rocket league|rocket salad|arugula|rocket stove|water rocket|bottle rocket|toy rockets?|model rockets?|paper rocket|cartoon|drawing|vector|clipart|illustration|graphic design|logo|sticker|video game|fireworks|firecracker)\b/i;
+ const rocket=/\b(rocket(?:s)?|launch vehicle|space launch|spacecraft launch|rocketship|rocket ship|space shuttle|launchpad|launch pad|liftoff|lift-off)\b/i;
+ return !irrelevant.test(text)&&rocket.test(text);
+}
 function eventContextMatch(description:string,plan:EventVisualPlan):boolean{
  const text=description.toLowerCase();
  switch(plan.kind){
+  case "rocket_illustration":return rocketPhotoSubject(text);
   case "aap_carquest":return /\b(carquest|worldpac)\b/.test(text)&&/\b(auto|automotive|parts?|store|retail|distribution)\b/.test(text);
   case "aap_diehard":return /\bdiehard\b/.test(text)&&/\b(battery|batteries|car|auto|automotive)\b/.test(text);
   case "aap_general":return aapPartsSubject(text);
@@ -308,6 +327,7 @@ function eventCandidateScore(candidate:Candidate,plan:EventVisualPlan):number{
  if(candidate.company_match&&scene)return 250+Math.min(hits,4)*12;
  if(plan.kind==="listing"&&candidate.venue==="nyse")return 220+Math.min(hits,4)*12;
  // A generic storefront is not a company's M&A announcement.
+ if(plan.kind==="rocket_illustration"&&!rocketPhotoSubject(desc))return -Infinity;
  if(plan.kind==="corporate"&&!candidate.company_match)return -Infinity;
  // Acquired-brand subjects are reserved for their matching AAP event.
  if(plan.kind==="aap_general"&&/\b(carquest|worldpac|diehard)\b/.test(desc))return -Infinity;
@@ -337,17 +357,18 @@ function candidateFromUnsplash(p:any,query:string,tier:number,profile:ThemeProfi
  if(profile.theme==="discount retail"&&/\b(dollar tree|family dollar|walmart|target|costco|aldi|lidl|five below|walgreens|cvs|banknotes?|dollar bills?|currency|bitcoin|cash|coins|money|gas station|gas pump|fuel pump|petrol station|filling station|fuel dispenser)\b/i.test(description))return null;
  if(profile.theme==="auto parts retail"&&/\b(lordco|autozone|o'?reilly|napa auto|pep boys)\b/i.test(description))return null;
  if(profile.theme==="auto parts retail"&&offThemeAuto.test(description))return null;
- let score=photoScore(p,{companyOnly:tier===0&&profile.theme!=="auto parts retail",minimumScore:0,keywords:profile.terms},profile);
+ let score=photoScore(p,{companyOnly:tier===0&&profile.theme!=="auto parts retail"&&profile.brand!=="rocket lab",minimumScore:0,keywords:profile.terms},profile);
  // Do not accept off-brand results at any fallback tier.
  if(score<0&&profile.theme==="discount retail"&&
   /\b(stock exchange|wall street|business meeting|corporate office)\b/i.test(query)&&
   /\b(stock exchange|wall street|trading floor|boardroom|conference room|business meeting|office building|corporate office)\b/i.test(description)&&
   !/\b(banknotes?|cash|dollar bills?|coins?|currency|bitcoin|money|forex|bank teller|walmart|target|dollar tree|family dollar)\b/i.test(description))score=12;
- const context_kinds=[...new Set(plans.filter(plan=>(plan.queries.includes(query)||profile.brand==="advance auto parts")&&eventContextMatch(description,plan)).map(p=>p.kind))];
+ const context_kinds=[...new Set(plans.filter(plan=>(plan.queries.includes(query)||["advance auto parts","rocket lab"].includes(profile.brand))&&eventContextMatch(description,plan)).map(p=>p.kind))];
  // Compute scene relevance before checking it. The previous order caused a ReferenceError.
  const retail_illustration=(profile.theme==="discount retail"&&
    /\b(convenience stores?|convenience shops?|grocery stores?|supermarkets?|discount stores?|retail shelves|store shelves|shopping aisles|grocery aisles|retail storefront|storefront)\b/i.test(description))||
    (profile.theme==="auto parts retail"&&aapPartsSubject(description));
+ if(profile.brand==="rocket lab"&&!rocketPhotoSubject(description))return null;
  if(score<0&&!context_kinds.length&&!retail_illustration)return null;
  const company_match=companyPhotoIdentity(description,profile);
  // A named acquired business may be shown for its own event, but a random
@@ -436,7 +457,7 @@ async function findUnsplashCandidates(accessKey:string,queries:string[],profile:
  let requests_made=0,results_received=0,network_failures=0;
  const brandQuery=queries[0]||profile.brand;
  let nextQuery:string|null=brandQuery;
- const requestBudget=profile.brand==="advance auto parts"?8:maxSearchRequestsPerFill;
+ const requestBudget=["advance auto parts","rocket lab"].includes(profile.brand)?8:maxSearchRequestsPerFill;
  while(nextQuery&&requests_made<requestBudget){
   const query=nextQuery;tried.add(query);triedList.push(query);
   const uri=new URL("https://api.unsplash.com/search/photos");
@@ -481,7 +502,7 @@ async function findUnsplashCandidates(accessKey:string,queries:string[],profile:
   // Search only for still-unmatched milestones; prefer the actual company,
   // model or acquired-brand phrase from those events over generic categories.
   // AAP explicitly prefers different generic car-parts images rather than blanks.
-   const possible=profile.brand==="advance auto parts"?
+   const possible=["advance auto parts","rocket lab"].includes(profile.brand)?
     [...queries,...missing.flatMap(e=>eventVisualPlan(e,profile).queries)]:
     [...missing.flatMap(e=>eventVisualPlan(e,profile).queries),...queries];
    nextQuery=possible.find(q=>q&&!tried.has(q))||null;
