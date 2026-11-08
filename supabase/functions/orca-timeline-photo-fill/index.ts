@@ -506,7 +506,7 @@ function fromCommons(page:any,ticker:string,query:string):CommonsPhoto|null{
  if(!brands[ticker]||(!brands[ticker].test(desc)&&!related[ticker].test(desc)))return null;
  if(/\b(dollar tree|family dollar|autozone|sephora|wreckage|toy rocket|model rocket)\b/.test(desc))return null;
  const license=cleanCommons(i.extmetadata?.LicenseShortName?.value);
- if(!/^(?:CC BY(?:-SA)?(?: \d\.\d)?|CC0(?: 1\.0)?|Public domain|PD[- ])/i.test(license))return null;
+ if(!/^(?:CC BY(?:-SA)? \d\.\d|CC0(?: 1\.0)?|Public domain|PD[- ][A-Za-z0-9 -]+)$/i.test(license))return null;
  let licenseUrl=String(i.extmetadata?.LicenseUrl?.value||"");
  if(!licenseUrl){
   const version=(license.match(/\d\.\d/)||[])[0];
