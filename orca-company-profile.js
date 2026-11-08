@@ -1,4 +1,4 @@
-import { renderAutomaticCompanyProfile, renderUnifiedCompanyProfile } from './orca-auto-company-profile.js';
+import { renderAutomaticCompanyProfile, renderUnifiedCompanyProfile } from './orca-auto-company-profile.js?v=company-subjects-v1';
 import { getCompanySize } from './orca-company-size.js';
 // Curated, source-backed company overviews for AI Stock Commons staging.
 // Never infer a company identity from a ticker alone. Add other tickers only after checking sources.
