@@ -312,8 +312,8 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
     const generate=document.createElement('button');
     generate.type='button';
     generate.className='orca-timeline-generate';
-    generate.textContent='Generate company history';
-    generate.title='Research and cache sourced company origins and current-year milestones within ORCA budget safeguards';
+    generate.textContent='Complete company timeline';
+    generate.title='Complete missing sourced history, founding and current-year milestones within a shared $0.15 estimated budget';
     generate.addEventListener('click',()=>void maybePopulateCompanyHistory());
     rail.append(generate);
    }
@@ -366,10 +366,8 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
    const generate=document.createElement('button');
    generate.type='button';
    generate.className='orca-timeline-generate orca-history-refill-action';
-   const scope=researchNeed();
-   generate.textContent=scope==='current'?'Research '+year()+' milestone':
-    scope==='origin'?'Research company beginnings':'Add historical milestones';
-   generate.title='Source-backed research. Current-year refreshes are eligible twice yearly and require authorization.';
+   generate.textContent='Complete company timeline';
+   generate.title='Complete missing sourced history, founding and current-year milestones within a shared $0.15 estimated budget';
    generate.disabled=!mayRequestHistory();
    generate.addEventListener('click',()=>void maybePopulateCompanyHistory());
    frame.insertBefore(generate,rail);
@@ -467,70 +465,84 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
  async function maybePopulateCompanyHistory(){
   if(!mayRequestHistory())return;
   if(!getUser()){
-   if(!data.length)status.textContent='No company timeline cached. Sign in and enable ORCA research consent to generate it; viewing cached company histories is free.';
+   if(!data.length)showResearchFeedback('Sign in and enable ORCA research consent before generating company history.');
    return;
   }
   if(!(await checkHistoryPermission())){
-   status.textContent='Enable research consent in your ORCA agent profile to complete this company history.';
+   showResearchFeedback('Enable research consent in your ORCA researcher profile to complete company history.');
    return;
   }
-  const researchScope=researchNeed();
   discoveryPending=true;
   researchFeedback='';
   rail.querySelector('.orca-timeline-research-feedback')?.remove();
   const generateButton=frame.querySelector('.orca-history-refill-action')||rail.querySelector('.orca-timeline-generate');
-  if(generateButton){generateButton.disabled=true;generateButton.textContent='Researching company history…';}
-  showResearchFeedback('Researching source-backed company milestones for '+ticker+'. This does not claim an agent research assignment.');
+  if(generateButton){generateButton.disabled=true;generateButton.textContent='Completing company timeline…';}
+  let spent=0;
+  const maxBudget=0.15;
+  const attempted=new Set();
+  const summaries=[];
+  // One intentional click handles the missing stages sequentially. Reload
+  // cached milestones after each call and never repeat the same research scope.
+  const nextScope=()=>allVerified.length<initialHistoryGoal?'history':
+   !hasOrigin()?'origin':(!hasCurrentHalf()?'current':null);
   try{
-   const {data:result,error}=await sb.functions.invoke('orca-timeline-discovery',{body:{ticker,scope:researchScope}});
-   if(error)throw error;
-   if(result?.state==='ready'){
-    researchFeedback='';
-    await loadEvents();
-    const added=Number(result.added||0);
-    showResearchFeedback(added>0?added+' sourced milestone'+(added===1?'':'s')+' saved for '+ticker+' · available to future visitors.':
-     'Company history search finished without new verified milestones. Existing records remain unchanged.');
-   }else if(result?.state==='cached'){
-    await loadEvents();
-    const next=typeof result.refresh_eligible_after==='string'&&Number.isFinite(Date.parse(result.refresh_eligible_after))
-     ?new Date(result.refresh_eligible_after).toLocaleString():null;
-    showResearchFeedback(allVerified.length+' historical milestones cached.'+
-     (next?' Additional research becomes eligible after '+next+'.':' This research is already cached.')+
-     ' Existing sources are unchanged.');
-   }else{
-    const type=String(result?.state||'unavailable');
-    const note=({
-     building:'Company milestone discovery is already underway.',
-     cooldown:'Milestone discovery is temporarily resting after an unsuccessful attempt.',
-     daily_limit:'Daily development safeguard reached for this account.',
-     budget_exhausted:'The shared $15 monthly AI reservation allowance has been reached.'
-    })[type]||'Automatic milestone discovery is currently unavailable.';
-    showResearchFeedback(note+' '+data.length+' previously cached milestones remain available.');
-   }
-  }catch(error){
-   let code='';
-   try{
-    if(error?.context?.clone){
-     const response=await error.context.clone().json();code=String(response?.code||'');
+   for(let stage=0;stage<3;stage++){
+    const scope=nextScope();
+    if(!scope||attempted.has(scope))break;
+    const remaining=Number((maxBudget-spent).toFixed(5));
+    // Preserve room for a real, single-search research request.
+    if(remaining<0.025){
+     summaries.push('Remaining research deferred to avoid exceeding the $0.15 estimated budget.');
+     break;
     }
-   }catch{}
-   const message=code==='no_acceptable_primary_source_milestones'?
-    'Research returned no milestones with acceptable original sources.':
-    code==='official_website_not_verified'?
-    'ORCA has not verified the company website needed for research.':
-    'The research request could not finish.';
-   showResearchFeedback(message+' Nothing was invented or saved. You can retry now.');
+    attempted.add(scope);
+    showResearchFeedback('Completing '+ticker+' timeline · research '+(stage+1)+
+     '/3 · estimated cost $'+spent.toFixed(3)+' of $0.15');
+    let result;
+    try{
+     const response=await sb.functions.invoke('orca-timeline-discovery',{
+      body:{ticker,scope,max_budget_usd:remaining}});
+     result=response.data;
+     if(response.error){
+      let details={};
+      try{
+       if(response.error?.context?.clone)details=await response.error.context.clone().json();
+      }catch{}
+      spent+=Math.min(remaining,Math.max(0,Number(details?.estimated_usd)||0));
+      const code=String(details?.code||'');
+      summaries.push(code==='no_acceptable_primary_source_milestones'?
+       'No new '+scope+' milestones passed first-party source checks.':
+       code==='cost_envelope_exceeded'?
+       'Stopped '+scope+' research at the research budget limit.':
+       'Research could not finish '+scope+'.');
+      break;
+     }
+    }catch{
+     summaries.push('Research request interrupted; automatic retries stopped.');
+     break;
+    }
+    spent+=Math.min(remaining,Math.max(0,Number(result?.estimated_usd)||0));
+    if(result?.state==='ready'){
+     await loadEvents();
+     const added=Math.max(0,Number(result.added)||0);
+     summaries.push(added+' '+scope+' milestone'+(added===1?'':'s')+' saved.');
+     if(!added)break;
+    }else if(result?.state==='cached'){
+     await loadEvents();
+     summaries.push('Existing '+scope+' history reused.');
+     if(scope==='history')break;
+    }else{
+     summaries.push('Research status: '+String(result?.state||'unavailable')+'.');
+     break;
+    }
+   }
+   await loadEvents();
+   showResearchFeedback(summaries.join(' ')+' Estimated research cost this click: $'+spent.toFixed(3)+
+    ' / $0.15. '+allVerified.length+' sourced milestones saved.');
   }finally{
    discoveryPending=false;
-   const generateButton=frame.querySelector('.orca-history-refill-action')||rail.querySelector('.orca-timeline-generate');
-   if(generateButton){
-    generateButton.disabled=!mayRequestHistory();
-    generateButton.textContent=!mayRequestHistory()&&researchFeedback&&!data.length?
-     'Research attempted · refresh to retry':
-     researchNeed()==='current'?'Research '+year()+' milestone':
-      researchNeed()==='origin'?'Research company beginnings':
-      allVerified.length?'Add historical milestones':'Generate company history';
-   }
+   const button=frame.querySelector('.orca-history-refill-action')||rail.querySelector('.orca-timeline-generate');
+   if(button){button.disabled=!mayRequestHistory();button.textContent='Complete company timeline';}
   }
  }
  // Display cached history immediately; paid history research remains opt-in.
