@@ -133,9 +133,11 @@ export async function mountTimelinePhotos({sb,ticker,frame,rail,status,getUser,c
    await refresh();
    const saved=Number(data?.added||0);
    const left=Number(data?.remaining||0);
-   const statusInfo=Number.isInteger(data?.provider_http_status)?
-    ' Unsplash HTTP '+data.provider_http_status+
-    (Number.isInteger(data?.provider_rate_remaining)?', remaining '+data.provider_rate_remaining:'')+'.':'';
+   const commonsCount=Number(data?.commons_added||0);
+   const statusInfo=(commonsCount?' '+commonsCount+' Wikimedia Commons image'+(commonsCount===1?'':'s')+' with verified reuse licenses.':'')+
+    (Number.isInteger(data?.provider_http_status)&&saved>commonsCount?
+     ' Unsplash HTTP '+data.provider_http_status+
+     (Number.isInteger(data?.provider_rate_remaining)?', remaining '+data.provider_rate_remaining:'')+'.':'');
    showNotice(saved>0?saved+' illustrative photo'+(saved===1?'':'s')+' saved.'+(left?' '+left+' events remain.':'')+statusInfo:
     data?.state==='cached'?'All featured milestones have cached photographs.':
     data?.state==='save_failed'?'ORCA found potential images, but the photo database rejected the save. No historical research changed.':
@@ -170,7 +172,8 @@ export async function mountTimelinePhotos({sb,ticker,frame,rail,status,getUser,c
      !(duplicateCount>0||remainingPhotos>0))return;
   autoRepairAttempted=true;
   try{
-   const key=(ticker==='AAP'?'orca-auto-photo-repair-aap-v12:':'orca-auto-photo-repair-v11:')+ticker;
+   const key=(ticker==='AAP'?'orca-auto-photo-repair-aap-v12:':
+    ['DG','MSFT','ULTA','RKLB'].includes(ticker)?'orca-licensed-photo-rescue-v1:':'orca-auto-photo-repair-v11:')+ticker;
    const previous=Number(sessionStorage.getItem(key)||0);
    if(Date.now()-previous<6*60*60*1000)return;
    sessionStorage.setItem(key,String(Date.now()));
