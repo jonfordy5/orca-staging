@@ -25,8 +25,8 @@ const admin={auth:{getUser:async()=>({data:{user:{id:'test'}}})},from(table){
 }};
 const ctx={createClient:()=>admin,Deno:{env:{get:name=>name==='UNSPLASH_ACCESS_KEY'&&providerKeyEnabled?'test':'',},serve:fn=>handler=fn},URL,Response,Request,Date,AbortSignal,fetch:async()=>{requests++;return new Response(providerStatus===200?JSON.stringify({results:[{id:'photo'}]}):'',{status:providerStatus,headers:{'Content-Type':'application/json','X-Ratelimit-Limit':providerLimit,'X-Ratelimit-Remaining':providerRemaining}})}};
 vm.createContext(ctx);
-vm.runInContext(stripTypeScriptTypes(source)+ '\nglobalThis.api={companyTheme,eventVisualPlan,visualQueries,eventCandidateScore,pickCandidate,companyPhotoIdentity,photoVenue,eventContextMatch,candidateFromUnsplash,numericHeader,providerMeta,providerMeaning,storedMatchType};',ctx);
-const {companyTheme,eventVisualPlan,visualQueries,eventCandidateScore,pickCandidate,companyPhotoIdentity,photoVenue,eventContextMatch,candidateFromUnsplash,numericHeader,providerMeta,providerMeaning,storedMatchType}=ctx.api;
+vm.runInContext(stripTypeScriptTypes(source)+ '\nglobalThis.api={companyTheme,eventVisualPlan,visualQueries,eventCandidateScore,pickCandidate,companyPhotoIdentity,photoVenue,eventContextMatch,candidateFromUnsplash,numericHeader,providerMeta,providerMeaning,storedMatchType,fromCommons,chooseCommons};',ctx);
+const {companyTheme,eventVisualPlan,visualQueries,eventCandidateScore,pickCandidate,companyPhotoIdentity,photoVenue,eventContextMatch,candidateFromUnsplash,numericHeader,providerMeta,providerMeaning,storedMatchType,fromCommons,chooseCommons}=ctx.api;
 const dg=companyTheme('DG','Dollar General','discount retailer');
 const nvda=companyTheme('NVDA','NVIDIA','semiconductors');
 const ulta=companyTheme('ULTA','Ulta Beauty','beauty retail');
@@ -117,6 +117,35 @@ test('AAP acquired brands qualify only for their own events',()=>{
  assert.equal(eventCandidateScore(diehard,aapOrdinary),-Infinity);
  assert.equal(candidateFromUnsplash(photoMock('competitor','AutoZone retail parts store'),'auto parts store',1,aap,[aapOrdinary]),null);
  assert.equal(candidateFromUnsplash(photoMock('scrap','scrapyard car wreckage and spare parts'),'auto parts store',1,aap,[aapOrdinary]),null);
+});
+
+
+const commonsMock=(id,name,license='CC BY-SA 4.0')=>({
+ pageid:id,title:'File:'+name+'.jpg',imageinfo:[{
+  thumburl:'https://upload.wikimedia.org/wikipedia/commons/thumb/a/aa/photo.jpg/900px-photo.jpg',
+  url:'https://upload.wikimedia.org/wikipedia/commons/a/aa/photo.jpg',
+  descriptionurl:'https://commons.wikimedia.org/wiki/File:'+name.replace(/\s+/g,'_')+'.jpg',
+  user:'Contributor',extmetadata:{LicenseShortName:{value:license},LicenseUrl:{value:'https://creativecommons.org/licenses/by-sa/4.0/'},Artist:{value:'Test Photographer'}}
+ }]
+});
+test('Commons photos require a verified reuse license and relevant company subject',()=>{
+ const good=fromCommons(commonsMock(1,'Rocket Lab Electron rocket launch'),'RKLB','Rocket Lab Electron');
+ assert(good&&good.source_type==='wikimedia_commons');
+ assert.equal(good.license_name,'CC BY-SA 4.0');
+ assert.equal(fromCommons(commonsMock(2,'Rocket Lab Electron rocket launch','CC BY-NC 4.0'),'RKLB','Rocket Lab Electron'),null);
+ assert.equal(fromCommons(commonsMock(3,'Random beach sunset'),'RKLB','Rocket Lab'),null);
+ assert.equal(fromCommons(commonsMock(4,'Ulta Beauty retail store'),'ULTA','Ulta Beauty store')?.id,'commons:4');
+});
+test('Commons selection keeps every timeline photo ID unique',()=>{
+ const pool=Array.from({length:11},(_,i)=>fromCommons(commonsMock(10+i,'Rocket Lab Electron launch '+i),'RKLB','Rocket Lab Electron'));
+ assert(pool.every(Boolean));
+ const used=new Set();
+ for(let i=0;i<11;i++){
+  const p=chooseCommons(pool,{title:'Rocket Lab Electron launch'},used);
+  assert(p);assert(!used.has(p.id));used.add(p.id);
+ }
+ assert.equal(used.size,11);
+ assert.equal(chooseCommons(pool,{title:'Rocket Lab launch'},used),null);
 });
 
 const ford=companyTheme('F','Ford Motor Company Common Stock','automotive manufacturer');
