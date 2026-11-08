@@ -488,6 +488,73 @@ async function findUnsplashCandidates(accessKey:string,queries:string[],profile:
  return {candidates:[...byId.values()].sort((a,b)=>b.score-a.score),limited,
   queries_tried:triedList,provider_last,provider_failure,requests_made,results_received,network_failures};
 }
+
+type CommonsPhoto=Candidate&{source_type:"wikimedia_commons";license_name:string;license_url:string;verified_at:string};
+const commonsQueries:Record<string,string[]>={
+ DG:["Dollar General store","Dollar General storefront","Dollar General retail","discount retail shelves"],
+ MSFT:["Microsoft Altair 8800","Microsoft headquarters","Microsoft campus","Microsoft logo","Microsoft computer","Microsoft office"],
+ ULTA:["Ulta Beauty store","Ulta Beauty storefront","Ulta cosmetics","cosmetics beauty store"],
+ RKLB:["Rocket Lab Electron","Rocket Lab launch","Rocket Lab Photon","Rocket Lab CAPSTONE","Rocket Lab Neutron","Electron rocket launch","Rocket Lab space"]
+};
+function cleanCommons(v:any){return String(v||"").replace(/<[^>]*>/g," ").replace(/&(?:amp|nbsp|quot|#39);/g," ").replace(/\s+/g," ").trim().slice(0,300)}
+function fromCommons(page:any,ticker:string,query:string):CommonsPhoto|null{
+ const i=page?.imageinfo?.[0];if(!i)return null;
+ const desc=(String(page.title||"")+" "+cleanCommons(i.extmetadata?.ImageDescription?.value)).toLowerCase();
+ const brands:Record<string,RegExp>={DG:/\bdollar general\b/,MSFT:/\bmicrosoft\b/,ULTA:/\bulta(?: beauty)?\b/,RKLB:/\brocket lab\b/};
+ const related:Record<string,RegExp>={DG:/\bdiscount (?:store|retail)\b/,MSFT:/\b(altair 8800|windows computer)\b/,ULTA:/\b(cosmetics store|makeup products|beauty retail)\b/,RKLB:/\b(electron rocket|rocket launch|rocket booster|spacecraft|satellite)\b/};
+ if(!brands[ticker]||(!brands[ticker].test(desc)&&!related[ticker].test(desc)))return null;
+ if(/\b(dollar tree|family dollar|autozone|sephora|wreckage|toy rocket|model rocket)\b/.test(desc))return null;
+ const license=cleanCommons(i.extmetadata?.LicenseShortName?.value);
+ if(!/^(?:CC BY(?:-SA)?(?: \d\.\d)?|CC0(?: 1\.0)?|Public domain|PD[- ])/i.test(license))return null;
+ let licenseUrl=String(i.extmetadata?.LicenseUrl?.value||"");
+ if(!licenseUrl){
+  const version=(license.match(/\d\.\d/)||[])[0];
+  licenseUrl=/^CC0\b/i.test(license)?"https://creativecommons.org/publicdomain/zero/1.0/":
+   /^(?:Public domain|PD[- ])/i.test(license)?"https://creativecommons.org/publicdomain/mark/1.0/":
+   version?"https://creativecommons.org/licenses/"+(/^CC BY-SA/i.test(license)?"by-sa/":"by/")+version+"/":"";
+ }
+ const safe=(v:string,host:string)=>{try{const u=new URL(v);return u.protocol==="https:"&&u.hostname===host&&!u.username&&!u.password}catch{return false}};
+ const thumb=String(i.thumburl||i.url||""),full=String(i.url||""),source=String(i.descriptionurl||"");
+ if(!safe(thumb,"upload.wikimedia.org")||!safe(full,"upload.wikimedia.org")||
+  !safe(source,"commons.wikimedia.org")||!safe(licenseUrl,"creativecommons.org")||
+  !/\.(?:jpg|jpeg|png|webp)$/i.test(String(page.title||""))||!Number.isInteger(page.pageid))return null;
+ const creator=cleanCommons(i.extmetadata?.Artist?.value)||String(i.user||"Wikimedia Commons contributor").slice(0,120);
+ return {id:"commons:"+page.pageid,image_url:thumb,full_image_url:full,photo_url:source,
+  photographer:creator.slice(0,120),photographer_url:source,download_location:"",
+  title:desc.slice(0,300),query,tier:0,score:brands[ticker].test(desc)?110:40,
+  company_match:brands[ticker].test(desc),source_type:"wikimedia_commons",
+  license_name:license,license_url:licenseUrl,verified_at:new Date().toISOString()};
+}
+async function findCommons(ticker:string,needed:number):Promise<CommonsPhoto[]>{
+ const pool=new Map<string,CommonsPhoto>();
+ if(!commonsQueries[ticker]||!needed)return [];
+ for(const query of commonsQueries[ticker].slice(0,7)){
+  const u=new URL("https://commons.wikimedia.org/w/api.php");
+  for(const [k,v] of Object.entries({action:"query",format:"json",formatversion:"2",generator:"search",gsrsearch:query,
+   gsrnamespace:"6",gsrlimit:"20",prop:"imageinfo",iiprop:"url|extmetadata|user",iiurlwidth:"900",
+   iiextmetadatafilter:"LicenseShortName|LicenseUrl|Artist|ImageDescription"}))u.searchParams.set(k,v);
+  try{
+   const r=await fetch(u.href,{headers:{"Accept":"application/json","User-Agent":"ORCA-Stock-Commons/1.0 (https://jonfordy5.github.io/orca-staging/)"},
+    signal:AbortSignal.timeout(7000)});
+   if(!r.ok)continue;const d=await r.json();
+   for(const page of (Array.isArray(d?.query?.pages)?d.query.pages:[])){
+    const p=fromCommons(page,ticker,query);if(p)pool.set(p.id,p);
+   }
+  }catch{console.warn("ORCA_COMMONS_LOOKUP_FAILED",ticker)}
+  if(pool.size>=needed+8)break;
+ }
+ return [...pool.values()];
+}
+function chooseCommons(pool:CommonsPhoto[],event:any,reserved:Set<string>):CommonsPhoto|null{
+ const title=String(event.title||"").toLowerCase();
+ const score=(p:CommonsPhoto)=>{
+  let n=p.score;
+  for(const term of ["rocket","electron","neutron","photon","capstone","altair","microsoft","ulta","dollar general","store","launch","computer","nasdaq"])
+   if(title.includes(term)&&p.title.includes(term))n+=25;
+  return n;
+ };
+ return pool.filter(p=>!reserved.has(p.id)).sort((a,b)=>score(b)-score(a))[0]||null;
+}
 // Database constraint "orca_timeline_photo_selections_relevance_check" only allows
 // exact_event, exact_subject, contextual and rejected. Detailed ranking stays in
 // memory, but persisted labels must obey that existing contract.
@@ -599,6 +666,15 @@ Deno.serve(async(req:Request)=>{
   photographers.set(found.photographer,(photographers.get(found.photographer)||0)+1);
   choices.push({event_id:e.id,choice:found});
  }
+ // Wikimedia Commons rescue for missing slots; keep all existing distinct photos.
+ if(commonsQueries[ticker]){
+  const pending=todo.filter(e=>!choices.some(c=>c.event_id===e.id));
+  const pool=await findCommons(ticker,pending.length);
+  for(const event of pending){
+   const choice=chooseCommons(pool,event,reserved);if(!choice)continue;
+   choices.push({event_id:event.id,choice});reserved.add(choice.id);failed=Math.max(0,failed-1);
+  }
+ }
  // Never recycle one photo across different milestones.
  // Unmatched events stay pending so another broad company-first search can
  // supply a distinct photo. Ten duplicate cards are NOT a successful result.
@@ -611,12 +687,14 @@ Deno.serve(async(req:Request)=>{
    event_id,ticker,photo_id:choice.id,image_url:choice.image_url,
    full_image_url:choice.full_image_url,photographer:choice.photographer,
    photographer_url:choice.photographer_url,photo_url:choice.photo_url,illustrative:true,
-   source_type:"unsplash_legacy",rights_status:"legacy_provider_terms",
+   source_type:("source_type" in choice?choice.source_type:"unsplash_legacy"),
+   rights_status:("source_type" in choice?"reuse_verified":"legacy_provider_terms"),
+   ...("source_type" in choice?{license_name:choice.license_name,license_url:choice.license_url,verified_at:choice.verified_at}:{}),
    match_type:matchType,search_query:choice.query,query_used:choice.query,
    strategy_version:10,needs_review:false,created_at:new Date().toISOString(),
    image_title:choice.title,
    match_score:Math.round(choice.score),relevance_score:Math.min(100,Math.round(choice.score)),
-   attribution_text:"Photo by "+choice.photographer+" on Unsplash",
+   attribution_text:("source_type" in choice?"Image by "+choice.photographer+" via Wikimedia Commons":"Photo by "+choice.photographer+" on Unsplash"),
    source_page_url:choice.photo_url,creator:choice.photographer
   },{onConflict:"event_id"});
   if(saveError){
