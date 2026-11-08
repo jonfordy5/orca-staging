@@ -261,6 +261,15 @@ check('Photo generation checks licensed URLs and never borrows other tickers',()
  const engine=read('supabase/functions/orca-timeline-photo-fill/index.ts');
  return engine.includes('usedUrls.has(originalUrl(p.full_image_url))')&&engine.includes('.eq("ticker",ticker)')&&engine.includes('photo.premium||photo.plus');
 });
+check('Company incorporation founding milestone suppresses unnecessary paid origin searches', () => {
+ const source=timeline.match(/const isOrigin=e=>[\s\S]*?;\n/);
+ if(!source)return false;
+ const expression=source[0].replace(/^const isOrigin=e=>/,'').replace(/;\n$/,'');
+ const isOrigin=new Function('e','return '+expression);
+ return isOrigin({title:'Intel incorporates to pursue continuous innovation'}) &&
+  isOrigin({title:'The company was incorporated'}) &&
+  !isOrigin({title:'Intel introduces a new chip'});
+});
 check('Open-ended histories provide opt-in founding and current-year refreshes', () =>
   timeline.includes("scope==='current'?'Research '+year()+' milestone'") &&
   timeline.includes("scope==='origin'?'Research company beginnings'") &&
