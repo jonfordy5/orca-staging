@@ -43,7 +43,7 @@ export async function mountTimelinePhotos({sb,ticker,frame,rail,status,getUser,c
   const data=[];
   for(let offset=0;;offset+=250){
    const {data:page,error}=await sb.from('orca_timeline_photo_selections')
-    .select('event_id,photo_id,image_url,full_image_url,photo_url,photographer,photographer_url,needs_review,strategy_version,match_type')
+    .select('event_id,photo_id,image_url,full_image_url,photo_url,photographer,photographer_url,needs_review,strategy_version,match_type,source_type,source_page_url,license_name,license_url,attribution_text')
     .eq('ticker',ticker).range(offset,offset+249);
    if(error){button.hidden=true;return}
    data.push(...(page||[]));
@@ -102,7 +102,8 @@ export async function mountTimelinePhotos({sb,ticker,frame,rail,status,getUser,c
    let badge=card.querySelector('.orca-photo-context');
    if(p.strategy_version>=7){
     if(!badge){badge=document.createElement('small');badge.className='orca-photo-context';card.append(badge)}
-    badge.textContent=p.match_type==='topic_context'||p.match_type==='venue_context'?'Related photo · not event photo':
+    badge.textContent=p.source_type==='wikimedia_commons'?'Illustrative photo · not the event':
+     p.match_type==='topic_context'||p.match_type==='venue_context'?'Related photo · not event photo':
      p.match_type==='company_event_context'?'Company-related photo · not event photo':'Company photo · not event photo';
    }
    if(existing&&existing.dataset.photoUrl===p.image_url)continue;
@@ -113,8 +114,9 @@ export async function mountTimelinePhotos({sb,ticker,frame,rail,status,getUser,c
    img.dataset.photoUrl=p.image_url;img.src=p.image_url;img.alt='Illustrative photography, not the historical event';img.loading='lazy';
    img.addEventListener('error',()=>{slot.textContent=original;slot.classList.remove('orca-history-thumb')},{once:true});
    slot.replaceChildren(img);slot.classList.add('orca-history-thumb');
+   const provider=p.source_type==='wikimedia_commons'?'Wikimedia Commons':'Unsplash';
    card.title=(p.temporary?'Temporary company illustration · ':p.needs_review?'Illustrative photo awaiting improvement · ':'Illustrative photo · ')+
-    'Photo by '+p.photographer+' on Unsplash.';
+    'Image: '+p.photographer+' on '+provider+'.'+(p.license_name?' License: '+p.license_name+'.':'');
   }
  }
  async function fillPhotos(){
@@ -153,7 +155,11 @@ export async function mountTimelinePhotos({sb,ticker,frame,rail,status,getUser,c
   if(!popup)return;
   const credit=document.createElement('small');credit.className='orca-photo-attribution';
   const link=(url,text)=>{const a=document.createElement('a');a.href=url;a.target='_blank';a.rel='noopener noreferrer';a.textContent=text;return a};
-  credit.append('Illustrative photo · Photo by ',link(p.photographer_url,p.photographer),' on ',link('https://unsplash.com/?utm_source=ai_stock_commons_orca&utm_medium=referral','Unsplash'));
+  if(p.source_type==='wikimedia_commons'){
+   credit.append('Illustrative photo · ',link(p.source_page_url||p.photo_url,p.photographer),' via ',
+    link(p.source_page_url||p.photo_url,'Wikimedia Commons'));
+   if(p.license_name&&p.license_url)credit.append(' · ',link(p.license_url,p.license_name));
+  }else credit.append('Illustrative photo · Photo by ',link(p.photographer_url,p.photographer),' on ',link('https://unsplash.com/?utm_source=ai_stock_commons_orca&utm_medium=referral','Unsplash'));
   popup.append(credit);
  },false);
  async function refreshAndMaybeFill(){
