@@ -189,14 +189,29 @@ async function wikiProfile(registeredName){
   intro, business:business||null,source:article.content_urls.desktop.page,
   revision:article.timestamp||null,image,...details};
 }
+// Keep source-backed meaning unchanged while avoiding weak pronoun openings.
+// Runs at rendering time, so cached descriptions are polished without AI calls.
+export function polishCompanySentenceOpenings(text,companyName,ticker=''){
+ const raw=String(text||'');
+ const shortName={
+  AMZN:'Amazon',F:'Ford',WEN:'Wendy’s',META:'Meta',MCD:'McDonald’s'
+ }[ticker]||String(companyName||ticker).replace(/\s+(?:Inc\.?|Incorporated|Corporation|Corp\.?|Company|Co\.?|Ltd\.?|Limited|PLC)\b.*$/i,'').trim()||ticker;
+ const possessive=/(?:['’]s)$/i.test(shortName)?shortName:shortName+'’s';
+ return raw.replace(/(^|[.!?]\s+)(It['’]s|Its|It)(?=\s|$)/g,(_,prefix,pronoun)=>{
+  const replacement=/^It['’]s$/.test(pronoun)?shortName+' is':
+   pronoun==='Its'?possessive:shortName;
+  return prefix+replacement;
+ });
+}
 // The ONE layout for every ORCA stock. All profile inputs are company-specific data.
 // Layout, section headings, typography classes and photo placement live only here.
 export function renderUnifiedCompanyProfile(root,ticker,profile={}){
  root.replaceChildren();
  const name=String(profile.name||ticker);
- const description=String(profile.description||'A verified company overview is not available yet.');
- const missionText=String(profile.mission||'Official company mission or focus has not yet been verified.');
- const operations=String(profile.operations||'An independently sourced description of this company’s activities is not yet available.');
+ const polish=value=>polishCompanySentenceOpenings(value,name,ticker);
+ const description=polish(profile.description||'A verified company overview is not available yet.');
+ const missionText=polish(profile.mission||'Official company mission or focus has not yet been verified.');
+ const operations=polish(profile.operations||'An independently sourced description of this company’s activities is not yet available.');
  const lines=Array.isArray(profile.businessLines)?profile.businessLines:[];
  const layout=$(root,'div','company-profile-grid');
  const body=$(layout,'div','company-profile-copy');
@@ -222,11 +237,11 @@ export function renderUnifiedCompanyProfile(root,ticker,profile={}){
  const what=$(body,'div','company-business');
  $(what,'strong',null,'The mission and the method');
  $(what,'p',null,operations);
- if(profile.how&&String(profile.how).trim()!==operations)$(what,'p','company-business-method',String(profile.how));
+ if(profile.how&&polish(profile.how).trim()!==operations)$(what,'p','company-business-method',polish(profile.how));
  for(const item of lines){
   if(!item?.name||!item?.detail)continue;
   const block=$(what,'div','company-business-line');
-  $(block,'h4',null,String(item.name));$(block,'p',null,String(item.detail));
+  $(block,'h4',null,String(item.name));$(block,'p',null,polish(item.detail));
  }
  const breakdown=$(body,'section','company-business-breakdown');
  const heading=$(breakdown,'div','company-business-heading');
