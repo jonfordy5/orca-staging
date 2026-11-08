@@ -241,12 +241,12 @@ check('Universal page standard is documented without a hard metadata cap', () =>
 check('Brand new stocks request full ten-event history, not a single origin event', () =>
   timeline.includes("const researchNeed=()=>allVerified.length<initialHistoryGoal?'history':!hasOrigin()?'origin':") &&
   timeline.includes("const initialHistoryGoal=10;") &&
-  timeline.includes("showResearchFeedback(message+' Nothing was invented or saved.") &&
+  timeline.includes("showResearchFeedback(summaries.join(' ')") &&
   timeline.includes("researchFeedback&&!data.length") &&
   !timeline.includes('attemptedScopesThisSession'));
 check('Empty registered timelines explain consent and offer a generate action', () =>
   timeline.includes("empty.textContent='No sourced company milestones cached") &&
-  timeline.includes("generate.textContent='Generate company history'") &&
+  timeline.includes("generate.textContent='Complete company timeline'") &&
   timeline.includes("generate.addEventListener('click',()=>void maybePopulateCompanyHistory())"));
 check('Timeline generation checks opted-in researcher without requiring stock membership in UI', () =>
   timeline.includes("async function checkHistoryPermission()") &&
@@ -271,14 +271,16 @@ check('Company incorporation founding milestone suppresses unnecessary paid orig
   !isOrigin({title:'Intel introduces a new chip'});
 });
 check('Open-ended histories provide opt-in founding and current-year refreshes', () =>
-  timeline.includes("scope==='current'?'Research '+year()+' milestone'") &&
-  timeline.includes("scope==='origin'?'Research company beginnings'") &&
+  timeline.includes("generate.textContent='Complete company timeline'") &&
+  timeline.includes("const nextScope=()=>allVerified.length<initialHistoryGoal?'history':") &&
   timeline.includes('const nextData=verified;') &&
   timeline.includes('halfYearStart') &&
   !timeline.includes('attemptedScopesThisSession') &&
   timeline.includes('await checkHistoryPermission();') &&
   !timeline.includes('if(!data.length)await maybePopulateCompanyHistory()') &&
-  timeline.includes('refresh_eligible_after') &&
+  timeline.includes("const maxBudget=0.15;") &&
+  timeline.includes("if(!scope||attempted.has(scope))break;") &&
+  timeline.includes("body:{ticker,scope,max_budget_usd:remaining}") &&
   timeline.includes('frame.insertBefore(generate,rail)') &&
   timeline.includes("frame.querySelector('.orca-history-refill-action')?.remove()"));
 const discovery=read('supabase/functions/orca-timeline-discovery/index.ts');
