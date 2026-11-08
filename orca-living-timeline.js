@@ -36,7 +36,7 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
  const year=()=>new Date().getUTCFullYear();
  const halfYearStart=()=>new Date(Date.UTC(year(),new Date().getUTCMonth()<6?0:6,1));
  const isOrigin=e=>e?.quick_brief?.era==='founding'||
-  /\b(found(?:ed|ing)?|incorporat(?:ed|ion)|establish(?:ed|ment)|began as|begins as|first (?:store|operation|business))\b/i.test(String(e?.title||''));
+  /\b(found(?:ed|ing)?|incorporat(?:e(?:d|s)?|ing|ion)|establish(?:ed|ment)|began as|begins as|first (?:store|operation|business))\b/i.test(String(e?.title||''));
  const hasOrigin=()=>allVerified.some(isOrigin);
  const hasCurrentYear=()=>allVerified.some(e=>new Date(e.event_at).getUTCFullYear()===year());
  const hasCurrentHalf=()=>allVerified.some(e=>new Date(e.event_at)>=halfYearStart());
