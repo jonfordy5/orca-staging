@@ -67,6 +67,23 @@ check('All profiles share the same mission/method and company size headings', ()
   auto.includes("'The mission and the method'") &&
   auto.includes("'Company size and impact'"));
 
+check('Company descriptions replace weak pronoun openings without changing internal pronouns', () => {
+ const vm=require('node:vm');
+ const start=auto.indexOf('export function polishCompanySentenceOpenings(');
+ const end=auto.indexOf('// The ONE layout for every ORCA stock.',start);
+ if(start<0||end<0)return false;
+ const ctx={};
+ vm.runInNewContext(auto.slice(start,end).replace('export function ','function ')+
+  '\\nglobalThis.polish=polishCompanySentenceOpenings;',ctx);
+ const polish=ctx.polish;
+ return polish('It sells products. It also offers AWS.','Amazon.com Inc. Common Stock','AMZN')===
+    'Amazon sells products. Amazon also offers AWS.' &&
+   polish('Its core focus is retail. Its brands are strong.','Ford Motor Company','F')===
+    'Ford’s core focus is retail. Ford’s brands are strong.' &&
+   polish('Amazon sells goods, and it supports merchants.','Amazon','AMZN')===
+    'Amazon sells goods, and it supports merchants.' &&
+   polish('It serves diners.','The Wendy’s Company','WEN')==='Wendy’s serves diners.';
+});
 check('All tickers mount the same source-backed Living Timeline component', () =>
   workspace.includes("mountLivingTimeline({sb,ticker,") &&
   workspace.includes("import('./orca-living-timeline.js?"));
