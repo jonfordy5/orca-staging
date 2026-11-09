@@ -30,7 +30,7 @@ async function run({count=11,cachedCount=0,brand='Wendy’s',version=0,unsplashS
    if(u.hostname==='api.openai.com')throw Error('Cached business subjects must be reused');
    if(u.hostname==='commons.wikimedia.org'){
     searches.push({provider:'commons',query:u.searchParams.get('gsrsearch')});
-    return new Response(JSON.stringify({query:{pages:empty?[]:[commons(1,brand+' restaurant storefront'),commons(2,brand+' restaurant exterior')]}},{status:commonsStatus}));
+    return new Response(JSON.stringify({query:{pages:empty?[]:[commons(1,brand+' restaurant storefront'),commons(2,brand+' restaurant exterior')]}}),{status:commonsStatus});
    }
    const query=u.searchParams.get('query');searches.push({provider:'unsplash',query});
    const results=empty?[]:query.includes('signage')?[unsplash('brand',brand+' restaurant signage'),unsplash('unrelated','Unrelated promotional software screenshot')]:query.includes('restaurant')?[unsplash('wrong','A restaurant with no identifiable brand')]:Array.from({length:20},(_,i)=>unsplash('food'+i,'A hamburger and fries on a plate'));
