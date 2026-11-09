@@ -47,7 +47,6 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
   !hasOrigin()?'origin':allVerified.length<initialHistoryGoal?'history':'none';
  const mayRequestHistory=()=>!discoveryPending&&(researchNeed()!=='none'||photoMissing>0);
  let discoveryPending=false;
- let completionAttemptedThisView=false;
  let researchFeedback='';
  let historyAuthorized=false;
  let historyPermissionKnownFor=null;
@@ -310,8 +309,8 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
    return;
   }
   const needed=researchNeed()!=='none'||photoMissing>0;
-  // Never present an apparent second paid action in the same page view.
-  if(!needed||completionAttemptedThisView||!getUser()){old?.remove();return}
+  // Saved coverage determines completion; an attempted click is not success.
+  if(!needed||!getUser()){old?.remove();return}
   const generate=old||document.createElement('button');
   generate.type='button';
   generate.className='orca-timeline-generate orca-history-refill-action';
@@ -440,7 +439,7 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
    rows.push(...(page||[]));
    if(!page||page.length<250)break;
   }
-  const verified=rows.filter(x=>validSource(x.source_url))
+  const verified=rows.filter(x=>x.category!=='custom_note'&&validSource(x.source_url))
    .map(x=>({...x,image_url:validImage(x.image_url)}));
   // Open-ended: render EVERY source-backed milestone in chronological order.
   // The first and last events remain visible even as the history grows.
@@ -496,7 +495,7 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
    showResearchFeedback('Enable research consent in your ORCA researcher profile to complete company history.');
    return;
   }
-  completionAttemptedThisView=true;
+  if(discoveryPending)return;
   discoveryPending=true;
   researchFeedback='';
   rail.querySelector('.orca-timeline-research-feedback')?.remove();
@@ -517,8 +516,15 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
     const scope=nextScope();
     if(!scope||attempted.has(scope))break;
     const remaining=Number((maxBudget-spent).toFixed(5));
+    // Reserve later stages before broad history can consume the click budget.
+    // Current year has priority; founding usually arrives with the history pass.
+    const futureReserve=scope==='history'?
+     (!hasCurrentYear()&&!attempted.has('current')?0.05:0)+
+     (!hasOrigin()&&!attempted.has('origin')?0.025:0):
+     scope==='current'&&!hasOrigin()&&!attempted.has('origin')?0.025:0;
+    const stageBudget=Number((remaining-futureReserve).toFixed(5));
     // Preserve room for a real, single-search research request.
-    if(remaining<0.025){
+    if(stageBudget<0.02){
      summaries.push('Remaining research deferred to avoid exceeding the $0.15 estimated budget.');
      break;
     }
@@ -528,7 +534,7 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
     let result;
     try{
      const response=await sb.functions.invoke('orca-timeline-discovery',{
-      body:{ticker,scope,max_budget_usd:remaining}});
+      body:{ticker,scope,max_budget_usd:stageBudget}});
      result=response.data;
      if(response.error){
       let details={};
@@ -544,7 +550,7 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
        'Research could not finish '+scope+'.');
       // A source gap in one phase must not block another independent
       // phase during this same authorized click.
-      if(code==='no_acceptable_primary_source_milestones')continue;
+      if(code==='no_acceptable_primary_source_milestones'||code==='cost_envelope_exceeded')continue;
       break;
      }
     }catch{
@@ -556,7 +562,6 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
      await loadEvents();
      const added=Math.max(0,Number(result.added)||0);
      summaries.push(added+' '+scope+' milestone'+(added===1?'':'s')+' saved.');
-     if(!added)break;
     }else if(result?.state==='cached'){
      await loadEvents();
      summaries.push('Existing '+scope+' history reused.');
@@ -587,7 +592,7 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
     ' Estimated history research cost this click: $'+spent.toFixed(3)+
     ' / $0.15. '+allVerified.length+' sourced milestones saved.'+
     (researchNeed()==='none'&&photoMissing===0?' Timeline complete.':
-     ' Remaining items need verified source evidence or a later manual retry. No second click is required now.'));
+     ' Timeline incomplete: '+(!hasCurrentYear()?'no verified '+year()+' event; ':'')+(!hasOrigin()?'founding evidence missing; ':'')+(allVerified.length<initialHistoryGoal?'starter history has '+allVerified.length+' of approximately 10 events; ':'')+(photoMissing?photoMissing+' photographs unavailable.':'')));
   }finally{
    discoveryPending=false;
    updateCompleteAction();

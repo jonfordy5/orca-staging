@@ -171,7 +171,7 @@ check('Timeline extends beyond the newest milestone and fades into the future', 
   timeline.includes("base.setAttribute('mask','url(#'+tailId+')')") &&
   timeline.includes("beam.setAttribute('mask','url(#'+tailId+')')") &&
   timeline.includes('Math.max(420,Math.round') &&
-  workspace.includes('v=full-timeline-v39'));
+  workspace.includes('v=completion-year-sources-v40'));
 
 check('Open-ended timeline preserves milestones and beam arrival effects', () =>
   timeline.includes('const nodeDistances=[0]') &&
@@ -203,7 +203,7 @@ check('Timeline initially centers the middle milestone while navigation remains 
   timeline.includes("centerMilestone(card,'auto')") &&
   timeline.includes("prev.addEventListener('click',()=>jumpTo(0))") &&
   timeline.includes("next.addEventListener('click',()=>jumpTo(data.length-1))") &&
-  workspace.includes('v=full-timeline-v39'));
+  workspace.includes('v=completion-year-sources-v40'));
 
 check('Mobile history stays a swipe carousel without zigzag or glowing track', () =>
   workspace.includes('touch-action:pan-x!important') &&
@@ -284,9 +284,9 @@ check('Meta Harvard founding is recognized and 2026 is handled within the first 
  const isOrigin=new Function('e','return '+source[0].replace(/^const isOrigin=e=>/,'').replace(/;\n$/,''));
  return isOrigin({title:'Facebook launches at Harvard'}) &&
   timeline.includes("!hasCurrentYear()&&!attempted.has('current')") &&
-  timeline.includes("completionAttemptedThisView=true;") &&
-  timeline.includes("if(!needed||completionAttemptedThisView||!getUser())") &&
-  timeline.includes("if(code==='no_acceptable_primary_source_milestones')continue;") &&
+  !timeline.includes("completionAttemptedThisView") &&
+  timeline.includes("if(!needed||!getUser())") &&
+  timeline.includes("if(code==='no_acceptable_primary_source_milestones'||code==='cost_envelope_exceeded')continue;") &&
   timeline.includes("if(photoMount&&allVerified.length)");
 });
 check('McDonald brothers opening the first restaurant counts as founding', () => {
@@ -316,14 +316,14 @@ check('Open-ended histories provide opt-in founding and current-year refreshes',
   !timeline.includes('if(!data.length)await maybePopulateCompanyHistory()') &&
   timeline.includes("const maxBudget=0.15;") &&
   timeline.includes("if(!scope||attempted.has(scope))break;") &&
-  timeline.includes("body:{ticker,scope,max_budget_usd:remaining}") &&
+  timeline.includes("body:{ticker,scope,max_budget_usd:stageBudget}") &&
   timeline.includes('frame.insertBefore(generate,rail)') &&
   timeline.includes("frame.querySelector('.orca-history-refill-action')?.remove()"));
 const discovery=read('supabase/functions/orca-timeline-discovery/index.ts');
 check('Timeline discovery covers historical company origins with capped primary-source research', () =>
   discovery.includes("FULL HISTORY") &&
   discovery.includes('Date.parse("1800-01-01")') &&
-  discovery.includes('max_tool_calls:targeted?1:5,max_output_tokens:targeted?2100:6500') &&
+  discovery.includes('Math.min(targeted?2:5') && discovery.includes('max_output_tokens:targeted?2100:6500') &&
   discovery.includes('if(cost>costCeiling)') &&
   discovery.includes('scope==="current"') &&
   discovery.includes('scope==="origin"') &&

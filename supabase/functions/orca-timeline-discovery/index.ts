@@ -2,7 +2,6 @@ import {createClient} from "npm:@supabase/supabase-js@2.57.0";
 
 const url=Deno.env.get("SUPABASE_URL")||"";
 const serviceKey=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")||"";
-const publishableKey=Deno.env.get("SUPABASE_ANON_KEY")||"";
 const admin=createClient(url,serviceKey,{auth:{persistSession:false,autoRefreshToken:false}});
 const cors={
  "Content-Type":"application/json",
@@ -36,10 +35,15 @@ function safeSource(source:string,site:string){
   const parts=officialHost.split(".");
   const base=parts.length>2?parts.slice(-2).join("."):officialHost;
   // Amazon's SEC investor releases live on a separate official About Amazon host.
-  const corporateAlternate=officialHost.endsWith("amazon.com")?"aboutamazon.com":null;
+  // Alternate hosts are explicitly linked by the company's own website.
+  const alternates:Record<string,string[]>={
+   "amazon.com":["aboutamazon.com"],
+   "meta.com":["about.fb.com","investor.atmeta.com"]
+  };
+  const corporateAlternates=alternates[base]||[];
   if(["github.io","netlify.app","pages.dev","vercel.app","co.uk","com.au","co.nz"].includes(base))
    return host===officialHost||host.endsWith("."+officialHost)||host==="sec.gov"||host.endsWith(".sec.gov")?raw.href:null;
-  return host===base||host.endsWith("."+base)||(corporateAlternate&&(host===corporateAlternate||host.endsWith("."+corporateAlternate)))||host==="sec.gov"||host.endsWith(".sec.gov")?raw.href:null;
+  return host===base||host.endsWith("."+base)||corporateAlternates.some(allowed=>host===allowed||host.endsWith("."+allowed))||host==="sec.gov"||host.endsWith(".sec.gov")?raw.href:null;
  }catch{return null}
 }
 // Track a page by the actual first-party host/path, not incidental tracking
@@ -72,6 +76,8 @@ Deno.serve(async req=>{
  // A unified timeline action shares a single estimated cost ceiling across
  // the initial history, founding, and current-period stages.
  const requestedBudget=Number(body?.max_budget_usd);
+ if(body?.max_budget_usd!==undefined&&(!Number.isFinite(requestedBudget)||requestedBudget<0.02))
+  return reply(400,{error:"invalid_research_budget"});
  const costCeiling=Number.isFinite(requestedBudget)&&requestedBudget>0?
   Math.min(0.15,requestedBudget):0.15;
  if(!validTicker(ticker)||!["history","origin","current"].includes(scope))
@@ -79,22 +85,20 @@ Deno.serve(async req=>{
  const user=identity.user;
  // Cached public history is free to read without generating anything.
  const {data:existing,error:readError}=await admin.from("orca_timeline_annotations")
-  .select("id,title,event_at,source_url").eq("ticker",ticker).neq("category","custom_note").is("created_by",null).limit(500);
+  .select("id,title,event_at,source_url,quick_brief").eq("ticker",ticker).neq("category","custom_note").is("created_by",null).limit(500);
  if(readError)return reply(503,{error:"milestone_cache_unavailable"});
- const {data:last}=await admin.from("orca_timeline_generation_runs")
-  .select("state,attempted_at").eq("ticker",ticker).eq("state","ready")
-  .order("attempted_at",{ascending:false}).limit(1).maybeSingle();
  if(scope==="history"&&(existing?.length||0)>=10)
   return reply(200,{state:"cached",milestones:existing?.length||0,reason:"starter_history_complete"});
  const {data:reservation,error:reserveError}=scope==="history"
-  ?await admin.rpc("orca_timeline_reserve_generation",{p_ticker:ticker,p_user:user.id})
-  :await admin.rpc("orca_timeline_reserve_scoped_generation",{p_ticker:ticker,p_user:user.id,p_scope:scope});
+  ?await admin.rpc("orca_timeline_reserve_generation",{p_ticker:ticker,p_user:user.id,p_budget_usd:costCeiling})
+  :await admin.rpc("orca_timeline_reserve_scoped_generation",{p_ticker:ticker,p_user:user.id,p_scope:scope,p_budget_usd:costCeiling});
  if(reserveError)return reply(403,{error:"team_membership_and_research_consent_required"});
  if(reservation?.state!=="reserved")
   return reply(200,{state:reservation?.state||"unavailable",milestones:existing?.length||0,refresh_eligible_after:reservation?.refresh_eligible_after||null});
  const run=reservation.run_id;
  let tokensIn=0,tokensOut=0,searchCalls=0;
  let cost=0;
+ const diagnostics:any[]=[];
  async function finish(events:any[],errorCode:string|null){
   const {data,error}=await admin.rpc("orca_timeline_finish_generation",{
    p_run_id:run,p_events:events,p_cost_usd:cost,p_search_calls:searchCalls,
@@ -125,6 +129,8 @@ Deno.serve(async req=>{
   }));
   const accepted:any[]=[];
   let rejected=0,briefIncomplete=0;
+  const asOf=new Date().toISOString().slice(0,10);
+  const currentYear=new Date().getUTCFullYear();
   const observedSources=new Set<string>();
   const observedKeys=new Set<string>();
   const verifiedLinks=new Map<string,Promise<boolean>>();
@@ -163,7 +169,6 @@ Deno.serve(async req=>{
    if(!verifiedLinks.has(key))verifiedLinks.set(key,firstPartyPageExists(source));
    return verifiedLinks.get(key)!;
   }
-  const sourceKeys=new Set(existingRows.map((e:any)=>String(e.source_url||"")));
   const titleKeys=new Set(existingRows.map((e:any)=>String(e.title||"").trim().toLowerCase()));
   let targetedAttempted=false,targetedAccepted=0,targetedStatus="not_needed";
 
@@ -192,9 +197,8 @@ Deno.serve(async req=>{
     if(titleKeys.has(title.toLowerCase()))continue;
     if(!/^\d{4}-\d{2}-\d{2}$/.test(when)||!Number.isFinite(parsedDate)
      ||parsedDate>Date.now()||parsedDate<Date.parse("1800-01-01")
-     ||(scope==="current"&&(!when.startsWith(String(new Date().getUTCFullYear()))
-       ||parsedDate<Date.UTC(new Date().getUTCFullYear(),new Date().getUTCMonth()<6?0:6,1)))
-     ||(scope==="origin"&&(!/\b(found(?:ed|ing)?|incorporat(?:ed|ion)|establish(?:ed|ment)|began as|begins as)\b/i.test(title)
+     ||(scope==="current"&&!when.startsWith(String(currentYear)+"-"))
+     ||(scope==="origin"&&(!/\b(found(?:ed|ing)?|incorporat(?:e(?:d|s)?|ing|ion)|establish(?:ed|ment)|began as|begins as|first (?:store|operation|business|restaurant|location)|open(?:s|ed)?\s+(?:the\s+)?first|launch(?:es|ed)\s+at\s+(?:harvard|a university|university|college))\b/i.test(title)
        ||(existingRows.length>0&&parsedDate>=Math.min(...existingRows.map((row:any)=>Date.parse(String(row.event_at||"")))))))
      ||!categories.includes(e?.category)||title.length<4||title.length>100
      ||summary.length<60||summary.length>500||!primary||!checked[index]){
@@ -203,7 +207,7 @@ Deno.serve(async req=>{
     const goodBrief=points.length===2&&!points.some((p:string)=>p.length<20||p.length>200)
      &&why.length>=20&&why.length<=200;
     if(!goodBrief)briefIncomplete++;
-    sourceKeys.add(primary);titleKeys.add(title.toLowerCase());
+    titleKeys.add(title.toLowerCase());
     accepted.push({date:when,category:e.category,title,summary,source_url:primary,
      points:goodBrief?points:null,why:goodBrief?why:null,image_url:null,image_credit:null});
     newAccepted++;
@@ -224,7 +228,7 @@ Deno.serve(async req=>{
    "Output structured JSON only. Do not generate image URLs. Timeline photography is selected separately."
   ].join(" ");
   const targetedInstructions=[
-   "TARGETED COMPANY HISTORY SEARCH. If scope is origin, find the company's authentic founding or incorporation date before the earliest saved event. If scope is current, find one material, ORIGINAL-SOURCE corporate announcement whose event ACTUALLY HAPPENED within the current UTC January-June or July-December period. If scope is history, fill the missing one or two historical events.",
+   "TARGETED COMPANY HISTORY SEARCH. Find the authentic founding or incorporation event before the earliest saved event, or fill the requested missing historical events.",
    "Review the existing event titles, years, and original-source URLs. Focus on an unrepresented major historical era, not another recent minor update.",
    "Find dated evidence on the company's OFFICIAL corporate history, heritage, press release or investor pages, or SEC EDGAR. Each candidate needs a direct HTTPS source that supports the actual event and date.",
    "Do not reuse any supplied title; do not invent an event, year, original company source, or direct link.",
@@ -232,17 +236,27 @@ Deno.serve(async req=>{
    "Return structured JSON only. Provide summary, two source-backed facts and a short why-it-matters note. No photos, stock ratings or forecasts."
   ].join(" ");
 
+  const currentInstructions=[
+   "Research ONLY the specified current calendar year, from period_start through as_of_date, inclusive. Do not research founding, old history, or a half-year window.",
+   "Find one material corporate announcement or completed event for this public company using live web search. Use company newsroom, investor relations or SEC EDGAR originals only. Search the supplied official source hosts, including alternate corporate hosts.",
+   "Verify the actual event date. An announcement is itself an event: distinguish announced plans from completed deals and never imply projections are realized results. Reject future events, unsupported dates, blogs and invented URLs.",
+   "Return up to three supported candidates in order of business significance so validation can select one. Never repeat existing events. If no evidence is available return an empty milestones array.",
+   "Use the required JSON schema. Write a 90–330 character summary, exactly two source-backed facts of 35–160 characters each, and a 40–160 character why-it-matters sentence. No images, ratings or forecasts."
+  ].join(" ");
   async function researchBatch(targeted:boolean,alreadySaved:any[]):Promise<any[]>{
    const missing=Math.max(0,remainingAtStart-accepted.length);
    if(!missing)return [];
    const input=JSON.stringify({
     ticker,company_name:stock.company_name,official_website:official,
+    as_of_date:asOf,current_year:currentYear,
+    period_start:scope==="current"?String(currentYear)+"-01-01":null,
+    official_source_hosts:official.includes("meta.com")?["meta.com","about.fb.com","investor.atmeta.com","sec.gov"]:[official,"sec.gov"],
     research_scope:scope,founding_or_current_year_requirement:
      scope==="origin"?"Find a real early founding/incorporation event predating existing events":
-     scope==="current"?"Find a material corporate event actually occurring in the current UTC half-year":
+     scope==="current"?"Find a material corporate event actually occurring from "+currentYear+"-01-01 through "+asOf:
      "Find material events across company history",
     target_total:scope==="history"?10:null,missing_milestones:missing,
-    research_period:"1800 onward, across the full company history",
+    research_period:scope==="current"?currentYear+"-01-01 through "+asOf:"1800 onward, across the full company history",
     existing_events:[...existingEvents,...alreadySaved.map((e:any)=>({
      date:e.date,title:e.title,source_url:e.source_url
     }))],
@@ -250,11 +264,14 @@ Deno.serve(async req=>{
    });
    const providerBody={
     model,store:false,reasoning:{effort:"low"},
-    instructions:targeted?baseInstructions+" "+targetedInstructions:baseInstructions,
+    instructions:scope==="current"?currentInstructions:targeted?baseInstructions+" "+targetedInstructions:baseInstructions,
     input,
     include:["web_search_call.action.sources"],
     tools:[{type:"web_search",search_context_size:targeted?"low":"medium"}],
-    max_tool_calls:targeted?1:5,max_output_tokens:targeted?2100:6500,
+    // Limit provider work BEFORE spending, including the shared click remainder.
+    // Allow room for input/search context as well as billed output tokens.
+    max_tool_calls:Math.max(1,Math.min(targeted?2:5,Math.floor((costCeiling-(targeted?0.012:0.032))/0.018))),
+    max_output_tokens:targeted?2100:6500,
     text:{format:{type:"json_schema",name:"orca_company_history_v1",strict:true,schema}}
    };
    const controller=new AbortController();
@@ -283,7 +300,12 @@ Deno.serve(async req=>{
      if(verified){observedSources.add(verified);observedKeys.add(sourceKey(verified));}
     }
    }
+   if(result.status==="incomplete")throw Error("provider_incomplete_"+String(result.incomplete_details?.reason||"unknown"));
    const parsed=parseOutput(result);
+   diagnostics.push({provider_status:result.status||null,incomplete_details:result.incomplete_details||null,
+    candidates:(parsed.milestones||[]).map((e:any)=>({date:e.date,title:e.title,source_url:e.source_url,
+     allowed_source:!!safeSource(String(e.source_url||""),official)}))});
+   console.log(JSON.stringify({diagnostic:"timeline_candidates_v2",run_id:run,ticker,scope,diagnostics,estimated_usd:cost}));
    if(!Array.isArray(parsed.milestones))throw Error("invalid_provider_output");
    return parsed.milestones;
   }
@@ -315,11 +337,11 @@ Deno.serve(async req=>{
    targeted_search_attempted:targetedAttempted,targeted_added:targetedAccepted,
    targeted_status:targetedStatus,web_search_calls:searchCalls,
    missing_after_run:scope==="history"?Math.max(0,10-((existing?.length||0)+(saved?.added||0))):0,estimated_usd:cost,
-   rejected,reduced_briefs:briefIncomplete,milestone_sources:"company_and_sec_originals"});
+   diagnostics,reserved_usd:reservation.reserve_usd,rejected,reduced_briefs:briefIncomplete,milestone_sources:"company_and_sec_originals"});
  }catch(e){
   const message=String(e instanceof Error?e.message:e).slice(0,80);
   try{await finish([],message)}catch{}
   return reply(503,{error:"Milestone discovery deferred. Existing sourced events are unchanged.",
-   code:message,estimated_usd:cost,research_scope:scope});
+   code:message,estimated_usd:cost,reserved_usd:reservation.reserve_usd,diagnostics,research_scope:scope});
  }
 });
