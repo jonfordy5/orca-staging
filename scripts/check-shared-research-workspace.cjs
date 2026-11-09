@@ -218,11 +218,12 @@ check('Real photos come from cached metadata while original fallback art is clea
   photos.includes("return 'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg)") &&
   photos.includes('renderIllustration(card)') &&
   photos.includes('Original abstract illustration; not a historical photograph'));
-check('Photo controls hide when complete and remain available for missing or weak photos', () =>
-  photos.includes('button.hidden=!needsAction') &&
-  photos.includes("button.textContent=duplicateCount>0?'Improve photos':'Find photos'") &&
-  photos.includes('seenUrls.has(originalKey(p))') &&
-  photos.includes('visibleCards.filter(card=>!photos.has(card.dataset.eventId))'));
+check('No separate photo button: the unified research action owns picture completion', () =>
+  photos.includes('button.hidden=true') &&
+  photos.includes('return {refresh,fillMissing,getCoverage};') &&
+  photos.includes('visibleCards.filter(card=>!photos.has(card.dataset.eventId))') &&
+  timeline.includes('photoMount.fillMissing()') &&
+  timeline.includes("const needed=researchNeed()!=='none'||photoMissing>0"));
 check('Open-ended photo coverage never repeats an old saved image', () =>
   photos.includes('seen.has(p.photo_id)') &&
   photos.includes('seen.add(p.photo_id)') &&
@@ -270,6 +271,18 @@ check('Company incorporation founding milestone suppresses unnecessary paid orig
   isOrigin({title:'The company was incorporated'}) &&
   !isOrigin({title:'Intel introduces a new chip'});
 });
+check('McDonald brothers opening the first restaurant counts as founding', () => {
+ const source=timeline.match(/const isOrigin=e=>[\s\S]*?;\n/);
+ if(!source)return false;
+ const isOrigin=new Function('e','return '+source[0].replace(/^const isOrigin=e=>/,'').replace(/;\n$/,''));
+ return isOrigin({title:'McDonald brothers open the first McDonald’s'}) &&
+  isOrigin({title:'The company opens the first restaurant'}) &&
+  !isOrigin({title:'McDonald’s opens in Moscow for the first time'});
+});
+check('Missing image records keep Complete timeline action available', () =>
+ timeline.includes("const mayRequestHistory=()=>!discoveryPending&&(researchNeed()!=='none'||photoMissing>0)") &&
+ timeline.includes('photoMissing=Math.max(0,Number(coverage?.missing||0))') &&
+ photos.includes('return getCoverage();'));
 check('Open-ended histories provide opt-in founding and current-year refreshes', () =>
   timeline.includes("generate.textContent='Complete company timeline'") &&
   timeline.includes("const nextScope=()=>allVerified.length<initialHistoryGoal&&!attempted.has('history')?'history':") &&
@@ -312,14 +325,14 @@ check('Photos depend on business descriptions, never events or ticker-specific r
  !engine.includes('eventCandidateScore')&&!engine.includes('ticker===')&&
  engine.includes('originalUrl(p.full_image_url)')&&engine.includes('if(added>=needed)break;');
 });
-check('Photo repair remains available without the Unsplash diagnostic button', () =>
+check('Photo selection is initiated only by a signed-in Complete timeline click', () =>
   !photos.includes('Check Unsplash API') &&
   !photos.includes('diagnosticsButton') &&
-  !photos.includes('diagnostic:true') &&
-  photos.includes("button.addEventListener('click',()=>void fillPhotos())") &&
-  photos.includes('autoRepairAttempted') &&
-  !photos.includes('sessionStorage.setItem') &&
-  photos.includes('await refreshAndMaybeFill()'));
+  !photos.includes("button.addEventListener('click',()=>void fillPhotos())") &&
+  !photos.includes('autoRepairAttempted') &&
+  photos.includes('async function fillMissing()') &&
+  photos.includes('await refreshAndMaybeFill()') &&
+  timeline.includes('const photoResult=await photoMount.fillMissing()'));
 
 console.log('\nShared workspace checks: ' + passed + ' passed, ' + failures.length + ' failed.');
 if (failures.length) process.exitCode = 1;
