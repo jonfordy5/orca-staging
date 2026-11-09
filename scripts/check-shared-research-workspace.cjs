@@ -4,6 +4,7 @@
  * the GitHub consistency check; it never touches Supabase or research data.
  */
 const fs = require('node:fs');
+const {execFileSync} = require('node:child_process');
 const assert = require('node:assert/strict');
 const path = require('node:path');
 const root = path.resolve(__dirname, '..');
@@ -28,6 +29,12 @@ function check(name, test) {
     console.error('FAIL ' + name + ': ' + error.message);
   }
 }
+check('Timeline modules parse as JavaScript before publication', () => {
+ for(const file of ['orca-living-timeline.js','orca-timeline-photos.js']){
+  execFileSync(process.execPath,['--check',path.join(root,file)],{stdio:'pipe',timeout:5000});
+ }
+ return true;
+});
 check('One dynamic workspace handles every stock ticker', () =>
   workspace.includes("new URLSearchParams(location.search).get('ticker')"));
 check('Search routes all tickers through shared workspace', () =>
