@@ -295,6 +295,17 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
  }
  function updateCompleteAction(){
   const old=frame.querySelector('.orca-history-refill-action');
+  // Empty stocks already have the sole action inside the empty-state rail.
+  // Never insert a second toolbar button before the first milestone exists.
+  if(!data.length){
+   old?.remove();
+   const emptyButton=rail.querySelector('.orca-timeline-generate');
+   if(emptyButton){
+    emptyButton.disabled=discoveryPending||!historyAuthorized;
+    emptyButton.textContent=discoveryPending?'Completing company timeline…':'Complete company timeline';
+   }
+   return;
+  }
   const needed=researchNeed()!=='none'||photoMissing>0;
   if(!needed||!getUser()){old?.remove();return}
   const generate=old||document.createElement('button');
