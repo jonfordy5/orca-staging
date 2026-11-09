@@ -8,14 +8,14 @@ const unsplash=(id,title)=>({id,width:1600,height:1000,alt_description:title,
 const commons=(id,title,license='CC BY-SA 4.0')=>({pageid:id,title:'File:'+title+'.jpg',index:id,
  imageinfo:[{url:'https://upload.wikimedia.org/wikipedia/commons/original-'+id+'.jpg',thumburl:'https://upload.wikimedia.org/wikipedia/commons/thumb-'+id+'.jpg',descriptionurl:'https://commons.wikimedia.org/wiki/File:photo-'+id+'.jpg',width:1600,height:1000,mediatype:'BITMAP',sha1:'hash'+id,
  extmetadata:{Artist:{value:'<a href="/wiki/User:Photographer">Real Photographer</a>'},ImageDescription:{value:title},LicenseShortName:{value:license},LicenseUrl:{value:'https://creativecommons.org/licenses/by-sa/4.0/'}}}]});
-async function run({count=11,cachedCount=0,brand='Wendy’s',version=0,unsplashStatus=200,commonsStatus=200,empty=false}={}){
+async function run({count=11,cachedCount=0,brand='Wendy’s',version=0,unsplashStatus=200,commonsStatus=200,empty=false,staticProfile=false}={}){
  let handler;const saved=[],searches=[],downloads=[];
  const events=Array.from({length:count},(_,i)=>({id:'e'+i}));
  const originals=events.slice(0,cachedCount).map((e,i)=>({event_id:e.id,ticker:'WEN',photo_id:'old'+i,image_url:'https://images.unsplash.com/photo-old'+i,full_image_url:'https://images.unsplash.com/photo-old'+i,match_type:'contextual',photographer:'Old credited creator',license_url:'https://unsplash.com/license'}));
- const cache=structuredClone(originals),job={queries:['hamburger','fries','fast food'],brand_search_version:version};
+ const cache=structuredClone(originals),job={queries:staticProfile?['rocket','rocket launch']:['hamburger','fries','fast food'],brand_search_version:version};
  const admin={auth:{getUser:async()=>({data:{user:{id:'u'}},error:null})},rpc:async()=>({data:true}),from(table){
   let changes=null;
-  const value=()=>table==='agent_profiles'?[{id:'p'}]:table==='orca_timeline_annotations'?events:table==='orca_timeline_photo_selections'?cache:table==='orca_timeline_photo_jobs'?job:table==='orca_ai_company_profiles'?{company_name:'The '+brand+' Company',content:{overview:'A restaurant company serving food to customers.'}}:null;
+  const value=()=>table==='agent_profiles'?[{id:'p'}]:table==='orca_timeline_annotations'?events:table==='orca_timeline_photo_selections'?cache:table==='orca_timeline_photo_jobs'?job:table==='stocks'?{company_name:brand+' USA Inc. Common Stock'}:table==='orca_ai_company_profiles'&&!staticProfile?{company_name:'The '+brand+' Company',content:{overview:'A restaurant company serving food to customers.'}}:null;
   const finish=()=>{if(changes&&table==='orca_timeline_photo_jobs')Object.assign(job,changes);return {data:structuredClone(value()),error:null}};
   const q={select(){return q},eq(){return q},is(){return q},neq(){return q},order(){return q},limit(){return q},range(){return q},
    single:async()=>finish(),maybeSingle:async()=>finish(),update(v){changes=v;return q},
@@ -66,6 +66,11 @@ async function run({count=11,cachedCount=0,brand='Wendy’s',version=0,unsplashS
  assert.equal(t.body.branded_photos,2);assert(t.body.remaining>0); // Commons fixture contains only two usable originals.
  t=await run({commonsStatus:429});assert.equal(t.searches.filter(s=>s.provider==='commons').length,1);
  assert.equal(t.body.remaining,0);assert.equal(t.body.branded_photos,1);
+ t=await run({brand:'Rocket Lab',cachedCount:11,staticProfile:true});
+ assert(t.searches.some(s=>s.query.startsWith('Rocket Lab rocket')));
+ assert(!t.searches.some(s=>s.query.includes(' USA ')));
+ assert.equal(t.saved.length,2);
+ console.log('PASS static-profile companies derive recognizable brand names from the stock record and reuse cached business subjects');
  const {api}=t;
  assert.equal(api.recognizableName('The Wendy’s Company Common Stock'),"Wendy's");
  assert.equal(api.recognizableName("Wendy's Company (The) Common Stock"),"Wendy's");
