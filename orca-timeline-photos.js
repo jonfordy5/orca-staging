@@ -132,6 +132,7 @@ export async function mountTimelinePhotos({sb,ticker,frame,rail,status,getUser,c
    card.title=(p.temporary?'Temporary company illustration · ':p.needs_review?'Illustrative photo awaiting improvement · ':'Illustrative photo · ')+
     'Image: '+p.photographer+' on '+provider+'.'+(p.license_name?' License: '+p.license_name+'.':'');
   }
+  return getCoverage();
  }
  async function fillPhotos(){
   if(actionPending||!getUser()||!canContribute()||!(remainingPhotos>0||duplicateCount>0))
