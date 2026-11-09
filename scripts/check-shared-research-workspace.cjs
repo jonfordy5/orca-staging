@@ -279,6 +279,11 @@ check('McDonald brothers opening the first restaurant counts as founding', () =>
   isOrigin({title:'The company opens the first restaurant'}) &&
   !isOrigin({title:'McDonald’s opens in Moscow for the first time'});
 });
+check('Empty new stock boards cannot render two Complete timeline buttons', () =>
+ timeline.includes('if(!data.length){\n   old?.remove();') &&
+ timeline.includes("const emptyButton=rail.querySelector('.orca-timeline-generate')") &&
+ timeline.includes('if(!old){') &&
+ timeline.includes('frame.insertBefore(generate,rail)'));
 check('Missing image records keep Complete timeline action available', () =>
  timeline.includes("const mayRequestHistory=()=>!discoveryPending&&(researchNeed()!=='none'||photoMissing>0)") &&
  timeline.includes('photoMissing=Math.max(0,Number(coverage?.missing||0))') &&
