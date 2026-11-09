@@ -239,7 +239,7 @@ Deno.serve(async req=>{
   const currentInstructions=[
    "Research ONLY the specified current calendar year, from period_start through as_of_date, inclusive. Do not research founding, old history, or a half-year window.",
    "Find one material corporate announcement or completed event for this public company using live web search. Use company newsroom, investor relations or SEC EDGAR originals only. Search the supplied official source hosts, including alternate corporate hosts.",
-   "Verify the actual event date. An announcement is itself an event: distinguish announced plans from completed deals and never imply projections are realized results. Reject future events, unsupported dates, blogs and invented URLs.",
+   "Verify the actual event date. An announcement is itself an event: distinguish announced plans from completed deals and never imply projections are realized results. Reject future events, unsupported dates, blogs and invented URLs. Quote numerical claims only when explicitly stated by the source; never calculate totals or derive new amounts from individual figures.",
    "Return up to three supported candidates in order of business significance so validation can select one. Never repeat existing events. If no evidence is available return an empty milestones array.",
    "Use the required JSON schema. Write a 90–330 character summary, exactly two source-backed facts of 35–160 characters each, and a 40–160 character why-it-matters sentence. No images, ratings or forecasts."
   ].join(" ");
