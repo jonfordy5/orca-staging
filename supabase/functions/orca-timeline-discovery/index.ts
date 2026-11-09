@@ -62,6 +62,14 @@ function parseOutput(raw:any){
  if(!joined)throw Error("empty_response");
  return JSON.parse(joined);
 }
+// Scope-specific coverage keys survive refresh without time-based cooldowns.
+const completionVersion=3;
+function coverageKey(scope:string,rows:any[]){
+ const year=String(new Date().getUTCFullYear());
+ return year+":"+JSON.stringify(rows.filter(e=>scope==="current"?
+  String(e.event_at||e.date).startsWith(year):!String(e.event_at||e.date).startsWith(year))
+  .map(e=>[String(e.event_at||e.date).slice(0,10),e.title,e.source_url]).sort((a,b)=>JSON.stringify(a).localeCompare(JSON.stringify(b))));
+}
 Deno.serve(async req=>{
  if(req.method==="OPTIONS")return new Response(null,{status:204,headers:cors});
  if(req.method!=="POST")return reply(405,{error:"method_not_allowed"});
@@ -80,13 +88,50 @@ Deno.serve(async req=>{
   return reply(400,{error:"invalid_research_budget"});
  const costCeiling=Number.isFinite(requestedBudget)&&requestedBudget>0?
   Math.min(0.15,requestedBudget):0.15;
- if(!validTicker(ticker)||!["history","origin","current"].includes(scope))
+ if(!validTicker(ticker)||!["history","origin","current","status"].includes(scope))
   return reply(400,{error:"invalid_ticker_or_scope"});
  const user=identity.user;
  // Cached public history is free to read without generating anything.
  const {data:existing,error:readError}=await admin.from("orca_timeline_annotations")
   .select("id,title,event_at,source_url,quick_brief").eq("ticker",ticker).neq("category","custom_note").is("created_by",null).limit(500);
  if(readError)return reply(503,{error:"milestone_cache_unavailable"});
+ const {data:recentRuns,error:statusError}=await admin.from("orca_timeline_generation_runs")
+  .select("id,research_scope,completion_details").eq("ticker",ticker)
+  .order("attempted_at",{ascending:false}).limit(30);
+ if(statusError)return reply(503,{error:"completion_status_unavailable"});
+ if(scope==="status"&&Array.isArray(body?.completed_run_ids)&&body.completed_run_ids.length){
+  const ids=body.completed_run_ids.filter((id:any)=>typeof id==="string"&&/^[0-9a-f-]{36}$/i.test(id)).slice(0,6);
+  if(ids.length){
+   const {data:runs}=await admin.from("orca_timeline_generation_runs")
+    .select("id,research_scope,completion_details,estimated_actual_usd,state").eq("ticker",ticker)
+    .eq("requested_by",user.id).in("id",ids);
+   const used=(runs||[]).reduce((sum:number,r:any)=>sum+Number(r.estimated_actual_usd||0),0);
+   if(0.15-used<0.03)for(const r of runs||[]){
+    const d=r.completion_details;
+    if(r.state!=="running"&&d?.version===completionVersion&&d.followup_eligible&&
+     d.coverage_key===coverageKey(r.research_scope,existing||[])){
+     const settled={...d,terminal:true,followup_eligible:false,reason:"budget_limit"};
+     await admin.from("orca_timeline_generation_runs").update({completion_details:settled}).eq("id",r.id);
+     const cached=(recentRuns||[]).find((x:any)=>x.id===r.id);
+     if(cached)cached.completion_details=settled;
+    }
+   }
+  }
+ }
+ const stopped:Record<string,any>={};
+ const seenScopes=new Set<string>();
+ for(const row of recentRuns||[]){
+  if(seenScopes.has(row.research_scope))continue;
+  seenScopes.add(row.research_scope);
+  const details=row.completion_details;
+  if(details?.version===completionVersion&&details.terminal&&
+   details.coverage_key===coverageKey(row.research_scope,existing||[]))stopped[row.research_scope]=details;
+ }
+ if(scope==="status")return reply(200,{state:"status",stopped});
+ // An explicit future update may bypass a saved terminal outcome. Ordinary page
+ // loads and repeated completion requests reuse it, with no paid provider call.
+ if(stopped[scope]&&body?.force_research!==true)
+  return reply(200,{state:"limited",research_scope:scope,completion_details:stopped[scope],estimated_usd:0});
  if(scope==="history"&&(existing?.length||0)>=10)
   return reply(200,{state:"cached",milestones:existing?.length||0,reason:"starter_history_complete"});
  const {data:reservation,error:reserveError}=scope==="history"
@@ -98,6 +143,7 @@ Deno.serve(async req=>{
  const run=reservation.run_id;
  let tokensIn=0,tokensOut=0,searchCalls=0;
  let cost=0;
+ let outcome:any=null;
  const diagnostics:any[]=[];
  async function finish(events:any[],errorCode:string|null){
   const {data,error}=await admin.rpc("orca_timeline_finish_generation",{
@@ -105,6 +151,15 @@ Deno.serve(async req=>{
    p_input_tokens:tokensIn,p_output_tokens:tokensOut,p_error_code:errorCode
   });
   if(error)throw Error("save_failed");
+  const {data:rows,error:cacheError}=await admin.from("orca_timeline_annotations")
+   .select("title,event_at,source_url").eq("ticker",ticker).neq("category","custom_note").is("created_by",null).limit(500);
+  if(!cacheError){
+   const details={version:completionVersion,...(outcome||{reason:errorCode||"complete",terminal:!!errorCode}),
+    coverage_key:coverageKey(scope,rows||[]),estimated_usd:cost};
+   const {error:detailError}=await admin.from("orca_timeline_generation_runs")
+    .update({completion_details:details}).eq("id",run);
+   if(detailError)console.error("timeline_completion_status_save_failed",run);
+  }
   return data;
  }
  try{
@@ -169,16 +224,16 @@ Deno.serve(async req=>{
    if(!verifiedLinks.has(key))verifiedLinks.set(key,firstPartyPageExists(source));
    return verifiedLinks.get(key)!;
   }
+  const eventKeys=new Set(existingRows.map((e:any)=>String(e.event_at||"").slice(0,10)+":"+sourceKey(String(e.source_url||""))));
   const titleKeys=new Set(existingRows.map((e:any)=>String(e.title||"").trim().toLowerCase()));
   let targetedAttempted=false,targetedAccepted=0,targetedStatus="not_needed";
 
   function shouldTargetFollowup(existingCount:number,newCount:number,estimated:number):boolean{
-   const count=existingCount+newCount;
-   // Extra research only happens when a general pass left one or two gaps.
-   // Keep a conservative $0.065 estimated headroom for ONE smaller web search.
-   return existingCount<8&&(count===8||count===9)&&estimated<=Math.min(0.085,costCeiling-0.065);
+   // Any underfilled history may need a focused pass, including 4 or 6 results.
+   // Reserve realistic room for one low-context search and its answer.
+   return existingCount+newCount<10&&costCeiling-estimated>=0.03;
   }
-  async function acceptCandidateMilestones(items:any[]):Promise<number>{
+  async function acceptCandidateMilestones(items:any[],historicalGap=false):Promise<number>{
    let newAccepted=0;
    // Validate the small batch concurrently so a slow publisher never stalls
    // the entire milestone history.
@@ -194,9 +249,10 @@ Deno.serve(async req=>{
     const title=String(e?.title||"").trim(),summary=String(e?.summary||"").trim();
     const points=Array.isArray(e?.points)?e.points.map((p:any)=>String(p||"").trim()):[];
     const why=String(e?.why||"").trim();
-    if(titleKeys.has(title.toLowerCase()))continue;
+    if(titleKeys.has(title.toLowerCase())||eventKeys.has(when+":"+sourceKey(primary||"")))continue;
     if(!/^\d{4}-\d{2}-\d{2}$/.test(when)||!Number.isFinite(parsedDate)
      ||parsedDate>Date.now()||parsedDate<Date.parse("1800-01-01")
+     ||(historicalGap&&when.startsWith(String(currentYear)+"-"))
      ||(scope==="current"&&!when.startsWith(String(currentYear)+"-"))
      ||(scope==="origin"&&(!/\b(found(?:ed|ing)?|incorporat(?:e(?:d|s)?|ing|ion)|establish(?:ed|ment)|began as|begins as|first (?:store|operation|business|restaurant|location)|open(?:s|ed)?\s+(?:the\s+)?first|launch(?:es|ed)\s+at\s+(?:harvard|a university|university|college))\b/i.test(title)
        ||(existingRows.length>0&&parsedDate>=Math.min(...existingRows.map((row:any)=>Date.parse(String(row.event_at||"")))))))
@@ -207,7 +263,7 @@ Deno.serve(async req=>{
     const goodBrief=points.length===2&&!points.some((p:string)=>p.length<20||p.length>200)
      &&why.length>=20&&why.length<=200;
     if(!goodBrief)briefIncomplete++;
-    titleKeys.add(title.toLowerCase());
+    titleKeys.add(title.toLowerCase());eventKeys.add(when+":"+sourceKey(primary));
     accepted.push({date:when,category:e.category,title,summary,source_url:primary,
      points:goodBrief?points:null,why:goodBrief?why:null,image_url:null,image_credit:null});
     newAccepted++;
@@ -228,7 +284,7 @@ Deno.serve(async req=>{
    "Output structured JSON only. Do not generate image URLs. Timeline photography is selected separately."
   ].join(" ");
   const targetedInstructions=[
-   "TARGETED COMPANY HISTORY SEARCH. Find the authentic founding or incorporation event before the earliest saved event, or fill the requested missing historical events.",
+   "TARGETED COMPANY HISTORY SEARCH. Find the authentic founding or incorporation event before the earliest saved event, or fill the requested missing historical events. Prioritize the largest gaps between saved dates: foundational products, expansion, acquisitions, manufacturing or financial turning points. Do not fill the target with minor updates or rename an existing event. Historical gap candidates must predate current_year; the current-year bulletin is handled separately.",
    "Review the existing event titles, years, and original-source URLs. Focus on an unrepresented major historical era, not another recent minor update.",
    "Find dated evidence on the company's OFFICIAL corporate history, heritage, press release or investor pages, or SEC EDGAR. Each candidate needs a direct HTTPS source that supports the actual event and date.",
    "Do not reuse any supplied title; do not invent an event, year, original company source, or direct link.",
@@ -246,6 +302,8 @@ Deno.serve(async req=>{
   async function researchBatch(targeted:boolean,alreadySaved:any[]):Promise<any[]>{
    const missing=Math.max(0,remainingAtStart-accepted.length);
    if(!missing)return [];
+   const available=Number((costCeiling-cost).toFixed(5));
+   if(available<(scope==="origin"?0.02:0.03))throw Error("insufficient_search_budget");
    const input=JSON.stringify({
     ticker,company_name:stock.company_name,official_website:official,
     as_of_date:asOf,current_year:currentYear,
@@ -260,6 +318,7 @@ Deno.serve(async req=>{
     existing_events:[...existingEvents,...alreadySaved.map((e:any)=>({
      date:e.date,title:e.title,source_url:e.source_url
     }))],
+    historical_gap_search:targeted&&scope==="history",
     excluded_titles:[...titleKeys]
    });
    const providerBody={
@@ -270,8 +329,8 @@ Deno.serve(async req=>{
     tools:[{type:"web_search",search_context_size:targeted?"low":"medium"}],
     // Limit provider work BEFORE spending, including the shared click remainder.
     // Allow room for input/search context as well as billed output tokens.
-    max_tool_calls:Math.max(1,Math.min(targeted?2:5,Math.floor((costCeiling-(targeted?0.012:0.032))/0.018))),
-    max_output_tokens:targeted?2100:6500,
+    max_tool_calls:Math.max(1,Math.min(targeted?2:5,Math.floor((available-(targeted?0.012:0.032))/0.018))),
+    max_output_tokens:targeted?Math.min(scope==="current"?2100:3000,scope==="current"?2100:600+missing*450,Math.floor((available-0.02)/0.0000045)):6500,
     text:{format:{type:"json_schema",name:"orca_company_history_v1",strict:true,schema}}
    };
    const controller=new AbortController();
@@ -310,38 +369,49 @@ Deno.serve(async req=>{
    return parsed.milestones;
   }
 
-  const initiallyTargeted=scope!=="history"||remainingAtStart<=2;
+  const initiallyTargeted=scope!=="history"||existingRows.length>0;
   if(initiallyTargeted){targetedAttempted=true;targetedStatus="started";}
   const first=await researchBatch(initiallyTargeted,[]);
-  const firstAdded=await acceptCandidateMilestones(first);
+  const firstAdded=await acceptCandidateMilestones(first,scope==="history"&&initiallyTargeted);
   if(initiallyTargeted){targetedAccepted=firstAdded;targetedStatus=firstAdded?"accepted":"no_new_primary_sources";}
 
-  if(scope==="history"&&shouldTargetFollowup(existingRows.length,accepted.length,cost)){
-   targetedAttempted=true;targetedStatus="started";
-   try{
-    const additional=await researchBatch(true,accepted);
-    targetedAccepted=await acceptCandidateMilestones(additional);
-    targetedStatus=targetedAccepted?"accepted":"no_new_primary_sources";
-   }catch(error){
-    // Never discard already validated milestones because a SECOND, optional
-    // near-completion search failed. Keep the cost tally truthful.
-    targetedStatus=String(error instanceof Error?error.message:"targeted_search_failed").slice(0,65);
+  let followups=0;
+  if(scope==="history"){
+   // Bounded gap filling; stop immediately on no new verified evidence.
+   // The frontend can use unused current-year funds for one final history stage.
+   while(shouldTargetFollowup(existingRows.length,accepted.length,cost)&&followups<2&&!(initiallyTargeted&&firstAdded===0)){
+    followups++;targetedAttempted=true;targetedStatus="started";
+    try{
+     const additional=await researchBatch(true,accepted);
+     const added=await acceptCandidateMilestones(additional,true);
+     targetedAccepted+=added;
+     targetedStatus=added?"accepted":"no_new_primary_sources";
+     if(!added)break;
+    }catch(error){
+     targetedStatus=String(error instanceof Error?error.message:"targeted_search_failed").slice(0,65);
+     break;
+    }
    }
-  }else if(!initiallyTargeted&&existingRows.length+accepted.length>=8&&existingRows.length+accepted.length<10){
-   targetedStatus="deferred_budget_or_not_eligible";
-  }
+   const missing=existingRows.length+accepted.length<10;
+   const sourceLimited=targetedStatus==="no_new_primary_sources";
+   outcome={reason:!missing?"target_reached":sourceLimited?"source_limit":followups>=2&&costCeiling-cost>=0.03?"search_limit":"budget_limit",
+    terminal:missing&&(sourceLimited||body?.final_history_pass===true),followup_eligible:missing&&!sourceLimited&&body?.final_history_pass!==true,
+    verified_added:accepted.length,rejected,followups};
+  }else outcome={reason:accepted.length?"target_reached":"source_limit",terminal:!accepted.length,
+   followup_eligible:false,verified_added:accepted.length,rejected};
   if(!accepted.length)throw Error("no_acceptable_primary_source_milestones");
   const saved=await finish(accepted.slice(0,remainingAtStart),null);
-  return reply(200,{state:saved?.state||"unknown",added:saved?.added||0,
+  return reply(200,{run_id:run,state:saved?.state||"unknown",added:saved?.added||0,
    total_cached:(existing?.length||0)+(saved?.added||0),research_scope:scope,starter_goal:10,
    targeted_search_attempted:targetedAttempted,targeted_added:targetedAccepted,
    targeted_status:targetedStatus,web_search_calls:searchCalls,
    missing_after_run:scope==="history"?Math.max(0,10-((existing?.length||0)+(saved?.added||0))):0,estimated_usd:cost,
-   diagnostics,reserved_usd:reservation.reserve_usd,rejected,reduced_briefs:briefIncomplete,milestone_sources:"company_and_sec_originals"});
+   completion_details:outcome,diagnostics,reserved_usd:reservation.reserve_usd,rejected,reduced_briefs:briefIncomplete,milestone_sources:"company_and_sec_originals"});
  }catch(e){
   const message=String(e instanceof Error?e.message:e).slice(0,80);
+  outcome=outcome||{reason:message,terminal:true,followup_eligible:false};
   try{await finish([],message)}catch{}
   return reply(503,{error:"Milestone discovery deferred. Existing sourced events are unchanged.",
-   code:message,estimated_usd:cost,reserved_usd:reservation.reserve_usd,diagnostics,research_scope:scope});
+   run_id:run,code:message,completion_details:outcome,estimated_usd:cost,reserved_usd:reservation.reserve_usd,diagnostics,research_scope:scope});
  }
 });

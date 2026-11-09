@@ -171,7 +171,7 @@ check('Timeline extends beyond the newest milestone and fades into the future', 
   timeline.includes("base.setAttribute('mask','url(#'+tailId+')')") &&
   timeline.includes("beam.setAttribute('mask','url(#'+tailId+')')") &&
   timeline.includes('Math.max(420,Math.round') &&
-  workspace.includes('v=completion-year-sources-v40'));
+  workspace.includes('v=completion-gap-followup-v41'));
 
 check('Open-ended timeline preserves milestones and beam arrival effects', () =>
   timeline.includes('const nodeDistances=[0]') &&
@@ -203,7 +203,7 @@ check('Timeline initially centers the middle milestone while navigation remains 
   timeline.includes("centerMilestone(card,'auto')") &&
   timeline.includes("prev.addEventListener('click',()=>jumpTo(0))") &&
   timeline.includes("next.addEventListener('click',()=>jumpTo(data.length-1))") &&
-  workspace.includes('v=completion-year-sources-v40'));
+  workspace.includes('v=completion-gap-followup-v41'));
 
 check('Mobile history stays a swipe carousel without zigzag or glowing track', () =>
   workspace.includes('touch-action:pan-x!important') &&
@@ -230,7 +230,7 @@ check('No separate photo button: the unified research action owns picture comple
   photos.includes('return {refresh,fillMissing,getCoverage};') &&
   photos.includes('visibleCards.filter(card=>!photos.has(card.dataset.eventId))') &&
   timeline.includes('photoMount.fillMissing()') &&
-  timeline.includes("const needed=researchNeed()!=='none'||photoMissing>0"));
+  timeline.includes("const needed=completionStatusKnown&&(needsResearch()||photoMissing>0)"));
 check('Open-ended photo coverage never repeats an old saved image', () =>
   photos.includes('seen.has(p.photo_id)') &&
   photos.includes('seen.add(p.photo_id)') &&
@@ -303,27 +303,27 @@ check('Empty new stock boards cannot render two Complete timeline buttons', () =
  timeline.includes('if(!old){') &&
  timeline.includes('frame.insertBefore(generate,rail)'));
 check('Missing image records keep Complete timeline action available', () =>
- timeline.includes("const mayRequestHistory=()=>!discoveryPending&&(researchNeed()!=='none'||photoMissing>0)") &&
+ timeline.includes("const mayRequestHistory=()=>completionStatusKnown&&!discoveryPending&&(needsResearch()||photoMissing>0)") &&
  timeline.includes('photoMissing=Math.max(0,Number(coverage?.missing||0))') &&
  photos.includes('return getCoverage();'));
 check('Open-ended histories provide opt-in founding and current-year refreshes', () =>
   timeline.includes("generate.textContent='Complete company timeline'") &&
-  timeline.includes("const nextScope=()=>!allVerified.length&&!attempted.has('history')?'history':") &&
+  timeline.includes("const nextScope=()=>!allVerified.length&&!historyAttempts&&!blockedScopes.history?'history':") &&
   timeline.includes('const nextData=verified;') &&
   timeline.includes('halfYearStart') &&
   !timeline.includes('attemptedScopesThisSession') &&
   timeline.includes('await checkHistoryPermission();') &&
   !timeline.includes('if(!data.length)await maybePopulateCompanyHistory()') &&
   timeline.includes("const maxBudget=0.15;") &&
-  timeline.includes("if(!scope||attempted.has(scope))break;") &&
-  timeline.includes("body:{ticker,scope,max_budget_usd:stageBudget}") &&
+  timeline.includes("if(!scope||(scope!=='history'&&attempted.has(scope)))break;") &&
+  timeline.includes("body:{ticker,scope,max_budget_usd:stageBudget,final_history_pass:scope==='history'&&historyAttempts===2}") &&
   timeline.includes('frame.insertBefore(generate,rail)') &&
   timeline.includes("frame.querySelector('.orca-history-refill-action')?.remove()"));
 const discovery=read('supabase/functions/orca-timeline-discovery/index.ts');
 check('Timeline discovery covers historical company origins with capped primary-source research', () =>
   discovery.includes("FULL HISTORY") &&
   discovery.includes('Date.parse("1800-01-01")') &&
-  discovery.includes('Math.min(targeted?2:5') && discovery.includes('max_output_tokens:targeted?2100:6500') &&
+  discovery.includes('Math.min(targeted?2:5') && discovery.includes('max_output_tokens:targeted?Math.min(') &&
   discovery.includes('if(cost>costCeiling)') &&
   discovery.includes('scope==="current"') &&
   discovery.includes('scope==="origin"') &&

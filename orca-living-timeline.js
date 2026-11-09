@@ -45,7 +45,33 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
  // founding anchors. Optional half-year refreshes don't block completion.
  const researchNeed=()=>!allVerified.length?'history':!hasCurrentYear()?'current':
   !hasOrigin()?'origin':allVerified.length<initialHistoryGoal?'history':'none';
- const mayRequestHistory=()=>!discoveryPending&&(researchNeed()!=='none'||photoMissing>0);
+ let blockedScopes={};
+ let completionStatusKnown=false;
+ const needsResearch=()=>
+  (!allVerified.length&&!blockedScopes.history)||
+  (!hasCurrentYear()&&!blockedScopes.current)||(!hasOrigin()&&!blockedScopes.origin)||
+  (allVerified.length<initialHistoryGoal&&!blockedScopes.history);
+ const mayRequestHistory=()=>completionStatusKnown&&!discoveryPending&&(needsResearch()||photoMissing>0);
+ async function loadCompletionStatus(completedRunIds=[]){
+  if(getUser()&&(researchNeed()!=='none'||completedRunIds.length)){
+   try{
+    const {data,error}=await sb.functions.invoke('orca-timeline-discovery',{
+     body:{ticker,scope:'status',completed_run_ids:completedRunIds}});
+    if(!error){
+     blockedScopes=data?.stopped||{};
+     if(allVerified.length>=initialHistoryGoal)delete blockedScopes.history;
+     if(hasCurrentYear())delete blockedScopes.current;
+     if(hasOrigin())delete blockedScopes.origin;
+    }
+   }catch{ /* A free status outage must not trigger paid research. */ }
+  }
+  completionStatusKnown=true;
+ }
+ const limitationText=()=>Object.entries(blockedScopes).map(([scope,d])=>
+  scope+' research checked: '+(d.reason==='source_limit'?'no additional original-source evidence verified':
+   d.reason==='budget_limit'?'shared research budget used':d.reason==='search_limit'?'bounded search completed':
+   'provider or source verification unavailable')).join(' · ');
+
  let discoveryPending=false;
  let researchFeedback='';
  let historyAuthorized=false;
@@ -303,12 +329,13 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
    old?.remove();
    const emptyButton=rail.querySelector('.orca-timeline-generate');
    if(emptyButton){
-    emptyButton.disabled=discoveryPending||!historyAuthorized;
+    if(completionStatusKnown&&!needsResearch()&&!photoMissing){emptyButton.remove();return}
+    emptyButton.disabled=!completionStatusKnown||discoveryPending||!historyAuthorized;
     emptyButton.textContent=discoveryPending?'Completing company timeline…':'Complete company timeline';
    }
    return;
   }
-  const needed=researchNeed()!=='none'||photoMissing>0;
+  const needed=completionStatusKnown&&(needsResearch()||photoMissing>0);
   // Saved coverage determines completion; an attempted click is not success.
   if(!needed||!getUser()){old?.remove();return}
   const generate=old||document.createElement('button');
@@ -458,7 +485,7 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
    (extra?' · '+extra+' source-backed milestones archived':'')+
    (!hasOrigin()?' · founding history missing':'')+
    (!hasCurrentYear()?' · '+year()+' bulletin needed':(!hasCurrentHalf()?' · half-year bulletin eligible':''))+
-   ' · explore company history';
+   (limitationText()?' · '+limitationText():'')+' · explore company history';
  }
  async function checkHistoryPermission(){
   const user=getUser();
@@ -504,37 +531,44 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
   let spent=0;
   const maxBudget=0.15;
   const attempted=new Set();
+  const completedRunIds=[];
+  let historyAttempts=0,historyFollowup=true;
   const summaries=[];
-  // One intentional click handles the missing stages sequentially. Reload
-  // cached milestones after each call and never repeat the same research scope.
-  const nextScope=()=>!allVerified.length&&!attempted.has('history')?'history':
-   !hasCurrentYear()&&!attempted.has('current')?'current':
-   !hasOrigin()&&!attempted.has('origin')?'origin':
-   allVerified.length<initialHistoryGoal&&!attempted.has('history')?'history':null;
+  // History may revisit remaining gaps after the independent current-year stage.
+  // Never repeat a focused pass that found no new verified evidence.
+  const nextScope=()=>!allVerified.length&&!historyAttempts&&!blockedScopes.history?'history':
+   !hasCurrentYear()&&!attempted.has('current')&&!blockedScopes.current?'current':
+   !hasOrigin()&&!attempted.has('origin')&&!blockedScopes.origin?'origin':
+   allVerified.length<initialHistoryGoal&&historyAttempts<2&&historyFollowup&&!blockedScopes.history?'history':null;
   try{
-   for(let stage=0;stage<3;stage++){
+   for(let stage=0;stage<4;stage++){
     const scope=nextScope();
-    if(!scope||attempted.has(scope))break;
+    if(!scope||(scope!=='history'&&attempted.has(scope)))break;
     const remaining=Number((maxBudget-spent).toFixed(5));
     // Reserve later stages before broad history can consume the click budget.
     // Current year has priority; founding usually arrives with the history pass.
-    const futureReserve=scope==='history'?
+    let futureReserve=scope==='history'?
      (!hasCurrentYear()&&!attempted.has('current')?0.05:0)+
      (!hasOrigin()&&!attempted.has('origin')?0.025:0):
-     scope==='current'&&!hasOrigin()&&!attempted.has('origin')?0.025:0;
+     scope==='current'?
+      (!hasOrigin()&&!attempted.has('origin')?0.025:0)+
+      (allVerified.length<initialHistoryGoal&&historyAttempts<2&&historyFollowup&&!blockedScopes.history?0.03:0):0;
+    // Never starve a missing current-year anchor to hold optional gap funds.
+    if(scope==='current'&&remaining-futureReserve<0.03&&futureReserve>=0.03)
+     futureReserve-=0.03;
     const stageBudget=Number((remaining-futureReserve).toFixed(5));
     // Preserve room for a real, single-search research request.
-    if(stageBudget<0.02){
+    if(stageBudget<(scope==='origin'?0.02:0.03)){
      summaries.push('Remaining research deferred to avoid exceeding the $0.15 estimated budget.');
      break;
     }
-    attempted.add(scope);
+    if(scope==='history')historyAttempts++;else attempted.add(scope);
     showResearchFeedback('Completing '+ticker+' timeline · research '+(stage+1)+
-     '/3 · estimated cost $'+spent.toFixed(3)+' of $0.15');
+     '/4 · estimated cost $'+spent.toFixed(3)+' of $0.15');
     let result;
     try{
      const response=await sb.functions.invoke('orca-timeline-discovery',{
-      body:{ticker,scope,max_budget_usd:stageBudget}});
+      body:{ticker,scope,max_budget_usd:stageBudget,final_history_pass:scope==='history'&&historyAttempts===2}});
      result=response.data;
      if(response.error){
       let details={};
@@ -542,6 +576,8 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
        if(response.error?.context?.clone)details=await response.error.context.clone().json();
       }catch{}
       spent+=Math.max(0,Number(details?.estimated_usd)||0);
+      if(details.run_id)completedRunIds.push(details.run_id);
+      if(scope==='history')historyFollowup=false;
       const code=String(details?.code||'');
       summaries.push(code==='no_acceptable_primary_source_milestones'?
        'No verified '+scope+' milestone was available from primary sources.':
@@ -558,9 +594,16 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
      break;
     }
     spent+=Math.max(0,Number(result?.estimated_usd)||0);
+    if(result?.run_id)completedRunIds.push(result.run_id);
+    if(scope==='history')historyFollowup=result?.completion_details?.followup_eligible===true;
+    if(result?.state==='limited'){
+     blockedScopes[scope]=result.completion_details;
+     summaries.push('Saved '+scope+' research limitation reused.');continue;
+    }
     if(result?.state==='ready'){
      await loadEvents();
      const added=Math.max(0,Number(result.added)||0);
+     if(scope==='origin'&&added)historyFollowup=true;
      summaries.push(added+' '+scope+' milestone'+(added===1?'':'s')+' saved.');
     }else if(result?.state==='cached'){
      await loadEvents();
@@ -571,6 +614,7 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
      break;
     }
    }
+   await loadCompletionStatus(completedRunIds);
    await loadEvents();
    // Photo selection is an internal, authorized part of this action, not
    // another button. It never generates historical milestones or adds
@@ -589,10 +633,10 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
     }
    }
    showResearchFeedback(summaries.join(' ')+
-    ' Estimated history research cost this click: $'+spent.toFixed(3)+
+    ' Estimated history research cost this click: $'+spent.toFixed(5)+
     ' / $0.15. '+allVerified.length+' sourced milestones saved.'+
     (researchNeed()==='none'&&photoMissing===0?' Timeline complete.':
-     ' Timeline incomplete: '+(!hasCurrentYear()?'no verified '+year()+' event; ':'')+(!hasOrigin()?'founding evidence missing; ':'')+(allVerified.length<initialHistoryGoal?'starter history has '+allVerified.length+' of approximately 10 events; ':'')+(photoMissing?photoMissing+' photographs unavailable.':'')));
+     ' Timeline incomplete: '+(!hasCurrentYear()?'no verified '+year()+' event; ':'')+(!hasOrigin()?'founding evidence missing; ':'')+(allVerified.length<initialHistoryGoal?'starter history has '+allVerified.length+' of approximately 10 events; ':'')+(photoMissing?photoMissing+' photographs unavailable.':'')+(limitationText()?' '+limitationText()+'. Saved results retained; refresh will not restart paid research.':'')));
   }finally{
    discoveryPending=false;
    updateCompleteAction();
@@ -615,10 +659,12 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
  try{
   const module=await import('./orca-timeline-photos.js?v=one-button-photos-v22');
   photoMount=await module.mountTimelinePhotos({sb,ticker,frame,rail,status,getUser,canContribute:()=>historyAuthorized});
+  await loadCompletionStatus();
+  if(limitationText())showResearchFeedback(status.textContent+' · '+limitationText()+'. Saved results retained; refresh will not restart paid research.');
   const coverage=photoMount.getCoverage();
   photoMissing=Math.max(0,Number(coverage?.missing||0))+Math.max(0,Number(coverage?.duplicates||0));
   updateCompleteAction();
- }catch(error){console.warn('Optional history photography is unavailable',error)}
+ }catch(error){console.warn('Optional history photography is unavailable',error);await loadCompletionStatus();updateCompleteAction()}
  const poll=setInterval(()=>{if(document.visibilityState==='visible')loadEvents()},60000);
  window.addEventListener('pagehide',()=>{stopBeam();clearInterval(poll)},{once:true});
 }
