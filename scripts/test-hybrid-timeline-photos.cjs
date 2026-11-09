@@ -6,7 +6,7 @@ const unsplash=(id,title)=>({id,width:1600,height:1000,alt_description:title,
  links:{html:'https://unsplash.com/photos/'+id,download_location:'https://api.unsplash.com/photos/'+id+'/download'},
  user:{name:'Creator',links:{html:'https://unsplash.com/@creator'}}});
 const commons=(id,title,license='CC BY-SA 4.0')=>({pageid:id,title:'File:'+title+'.jpg',index:id,
- imageinfo:[{url:'https://upload.wikimedia.org/wikipedia/commons/original-'+id+'.jpg',thumburl:'https://upload.wikimedia.org/wikipedia/commons/thumb-'+id+'.jpg',descriptionurl:'https://commons.wikimedia.org/wiki/File:photo-'+id+'.jpg',width:1600,height:1000,mediatype:'BITMAP',sha1:'hash'+id,
+ imageinfo:[{url:'https://upload.wikimedia.org/wikipedia/commons/original-'+id+'.jpg',thumburl:'https://thumb.wikimedia.org/wikipedia/commons/thumb-'+id+'.jpg',descriptionurl:'https://commons.wikimedia.org/wiki/File:photo-'+id+'.jpg',width:1600,height:1000,mediatype:'BITMAP',sha1:'hash'+id,
  extmetadata:{Artist:{value:'<a href="/wiki/User:Photographer">Real Photographer</a>'},ImageDescription:{value:title},LicenseShortName:{value:license},LicenseUrl:{value:'https://creativecommons.org/licenses/by-sa/4.0/'}}}]});
 async function run({count=11,cachedCount=0,brand='Wendy’s',version=0,unsplashStatus=200,commonsStatus=200,empty=false,staticProfile=false}={}){
  let handler;const saved=[],searches=[],downloads=[];
@@ -53,14 +53,14 @@ async function run({count=11,cachedCount=0,brand='Wendy’s',version=0,unsplashS
  t=await run({cachedCount:11});assert.equal(t.saved.length,2);assert.equal(t.cache.length,11);
  assert.equal(t.cache.filter(p=>p.photo_id.startsWith('old')).length,9);
  assert(t.saved.every(p=>p.previous_photo?.photographer==='Old credited creator'));
- assert.equal(t.job.brand_search_version,12);
+ assert.equal(t.job.brand_search_version,13);
  console.log('PASS WEN upgrade changes at most two covers and archives their complete original credits; nine good photos untouched');
  t=await run({count:10,cachedCount:7,brand:'Texas Roadhouse'});
  assert.equal(t.cache.length,10);assert.equal(t.saved.length,3);assert.equal(t.body.branded_photos,2);
  for(const p of t.originals)assert.deepEqual(t.cache.find(c=>c.event_id===p.event_id),p);
  console.log('PASS TXRH fills only three gaps with two branded photos and one business image; all seven steak photographs retained');
- t=await run({cachedCount:11,version:12});assert.equal(t.saved.length,0);assert.equal(t.searches.length,0);
- t=await run({cachedCount:11,empty:true});assert.equal(t.saved.length,0);assert.equal(t.job.brand_search_version,12);
+ t=await run({cachedCount:11,version:13});assert.equal(t.saved.length,0);assert.equal(t.searches.length,0);
+ t=await run({cachedCount:11,empty:true});assert.equal(t.saved.length,0);assert.equal(t.job.brand_search_version,13);
  console.log('PASS completed hybrid search is cached; unavailable brand images do not force replacements or repeated searches');
  t=await run({unsplashStatus:429});assert.equal(t.searches.filter(s=>s.provider==='unsplash').length,1);
  assert.equal(t.body.branded_photos,2);assert(t.body.remaining>0); // Commons fixture contains only two usable originals.

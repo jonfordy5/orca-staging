@@ -7,7 +7,7 @@ const photo=(id,alt='')=>({id,width:1600,height:1000,alt_description:alt,
  urls:{regular:'https://images.unsplash.com/photo-'+id+'?w=900',raw:'https://images.unsplash.com/photo-'+id},
  links:{html:'https://unsplash.com/photos/'+id,download_location:'https://api.unsplash.com/photos/'+id+'/download'},
  user:{name:'Photographer',links:{html:'https://unsplash.com/@photographer'}}});
-function harness({signedIn=true,consent=true,locked=true,events=[],cached=[],job={queries:['oil refinery'],brand_search_version:12}}={}){
+function harness({signedIn=true,consent=true,locked=true,events=[],cached=[],job={queries:['oil refinery'],brand_search_version:13}}={}){
  let handler,network=0,unlocks=0;
  const admin={auth:{getUser:async()=>({data:{user:signedIn?{id:'owner'}:null}})},
  rpc:async()=>({data:locked}),from(table){

@@ -14,7 +14,7 @@ function creditedUrl(value:unknown){
  const valueUrl=safeUrl(value,"unsplash.com");if(!valueUrl)return null;
  const u=new URL(valueUrl);u.searchParams.set("utm_source","ai_stock_commons_orca");u.searchParams.set("utm_medium","referral");return u.href;
 }
-const photoVersion=12;
+const photoVersion=13;
 const commonsAgent="ORCA-Timeline/2.0 (https://github.com/jonfordy5/orca-staging)";
 function plain(value:unknown){return String(value||"").replace(/<[^>]*>/g," ").replace(/&amp;/g,"&").replace(/&#0?39;|&apos;/g,"'").replace(/&quot;/g,'"').replace(/&nbsp;/g," ").replace(/\s+/g," ").trim()}
 function recognizableName(company:string){
@@ -42,7 +42,7 @@ function commonsCandidate(page:any,query:string){
  if(publicDomain)licenseLink=safeUrl(licenseUrl,"creativecommons.org")||"https://creativecommons.org/publicdomain/mark/1.0/";
  else if(/^CC BY(?:-SA)? [1-4]\.0$/i.test(license)&&/^https:\/\/creativecommons\.org\/licenses\/by(?:-sa)?\/[1-4]\.0\/?$/.test(licenseUrl))licenseLink=licenseUrl;
  if(!licenseLink)return null; // Exclude NC/ND, unknown and permission-only licenses.
- const image=safeUrl(info.thumburl||info.url,"upload.wikimedia.org"),full=safeUrl(info.url,"upload.wikimedia.org");
+ const image=safeUrl(info.thumburl||info.url,"upload.wikimedia.org")||safeUrl(info.thumburl,"thumb.wikimedia.org"),full=safeUrl(info.url,"upload.wikimedia.org");
  const source=safeUrl(info.descriptionurl,"commons.wikimedia.org");
  const artist=value("Artist")||value("Credit");
  let authorUrl=source;
@@ -249,7 +249,7 @@ Deno.serve(async(req:Request)=>{
    // Provider outages remain eligible for an intentional retry.
    const complete=!desired||brandReports.some(r=>r.provider_http_status===200);
    if(complete){
-    const {error}=await admin.from("orca_timeline_photo_jobs").update({brand_search_version:photoVersion,brand_diagnostics:{brand,selected:brandAdded,reports:brandReports}}).eq("ticker",ticker);
+    const {error}=await admin.from("orca_timeline_photo_jobs").update({brand_search_version:photoVersion,brand_diagnostics:{brand,selected:brandAdded,total_branded:existingBranded+brandAdded,reports:brandReports}}).eq("ticker",ticker);
     if(error)throw Error("brand_status_save_failed");
    }
   }

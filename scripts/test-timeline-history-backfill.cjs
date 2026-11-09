@@ -208,5 +208,13 @@ async function run({existing=9,batches=[[event(90)]],usage=[{input_tokens:1000,o
  assert.equal(t.body.diagnostics[0].official_at_validation,'https://corporate.ford.com');
  assert(t.body.diagnostics[0].candidates.every(c=>c.allowed_source));
  console.log('PASS TXRH profile race: corporate sources validated against the identity that became ready during research');
+
+ t=await run({existing:7,batches:[[],[event(91),event(92),event(93)]],budget:.15,
+  usage:[{input_tokens:14000,output_tokens:1700,searches:2},{input_tokens:11000,output_tokens:1600,searches:1}]});
+ assert.equal(t.body.total_cached,10);assert.equal(t.requests.length,2);
+ assert.equal(JSON.parse(t.requests[1].input).research_strategy,'source_index');
+ assert(JSON.parse(t.requests[1].input).historical_gap_periods.length>0);
+ assert(t.body.estimated_usd<.15);
+ console.log('PASS one empty focused response changes to an official-source index search in the same click rather than declaring evidence exhausted');
  console.log('ALL TARGETED TIMELINE TESTS PASSED');
 })().catch(e=>{console.error(e);process.exitCode=1});

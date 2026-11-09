@@ -58,7 +58,7 @@ async function run({rows=[],initial=10,failCurrent=false,gapLimit=10,historyCost
  let r=await run({rows:history()});
  assert.deepEqual(r.requests.map(x=>x.scope),['current']);assert.equal(r.saved.length,11);assert.equal(r.photoCalls,1);assert(r.feedback.includes('Timeline complete.'));
  console.log('PASS META: existing founding/history reused; current-year event and photo finish in one click');
- for(const origin of ['Facebook launches at Harvard','McDonald brothers open the first McDonald’s','Intel incorporates to pursue continuous innovation','Sam Walton opens first Walmart in Rogers']){
+ for(const origin of ['First Wendy’s opens in Columbus','Facebook launches at Harvard','McDonald brothers open the first McDonald’s','Intel incorporates to pursue continuous innovation','Sam Walton opens first Walmart in Rogers']){
   r=await run({rows:[...history(10,origin),current()]});
   assert.equal(r.requests.length,0);assert.equal(r.photoCalls,0);assert.equal(r.saved.length,11);assert.equal(r.eligible,false);
  }

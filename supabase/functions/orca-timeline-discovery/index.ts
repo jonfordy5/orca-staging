@@ -63,7 +63,7 @@ function parseOutput(raw:any){
  return JSON.parse(joined);
 }
 // Scope-specific coverage keys survive refresh without time-based cooldowns.
-const completionVersion=4;
+const completionVersion=5;
 function coverageKey(scope:string,rows:any[]){
  const year=String(new Date().getUTCFullYear());
  return year+":"+JSON.stringify(rows.filter(e=>scope==="current"?
@@ -128,8 +128,9 @@ Deno.serve(async req=>{
    details.coverage_key===coverageKey(row.research_scope,existing||[]))stopped[row.research_scope]=details;
  }
  if(scope==="status"){
-  const {data:photoJob}=await admin.from("orca_timeline_photo_jobs").select("brand_search_version").eq("ticker",ticker).maybeSingle();
-  return reply(200,{state:"status",stopped,photo_brand_pending:Number(photoJob?.brand_search_version||0)<12});
+  const {data:photoJob}=await admin.from("orca_timeline_photo_jobs").select("brand_search_version,brand_diagnostics").eq("ticker",ticker).maybeSingle();
+  const branded=Number(photoJob?.brand_diagnostics?.total_branded||photoJob?.brand_diagnostics?.selected||0);
+  return reply(200,{state:"status",stopped,photo_brand_pending:Number(photoJob?.brand_search_version||0)<13&&branded<2});
  }
  // An explicit future update may bypass a saved terminal outcome. Ordinary page
  // loads and repeated completion requests reuse it, with no paid provider call.
@@ -169,8 +170,8 @@ Deno.serve(async req=>{
   const {data:stock,error:stockError}=await admin.from("stocks")
    .select("company_name").eq("ticker",ticker).single();
   if(stockError||!stock?.company_name)throw Error("stock_identity_not_found");
-  const {data:profile}=await admin.from("orca_ai_company_profiles")
-   .select("state,usage").eq("ticker",ticker).maybeSingle();
+  let {data:profile}=await admin.from("orca_ai_company_profiles")
+   .select("state,usage,content,source_urls").eq("ticker",ticker).maybeSingle();
   let official=profile?.state==="ready"?String(profile?.usage?.official_website||""):"";
   // SEC-backed profiles can research SEC originals even when no corporate site is cached.
   const apiKey=Deno.env.get("OPENAI_API_KEY");
@@ -253,14 +254,14 @@ Deno.serve(async req=>{
     const points=Array.isArray(e?.points)?e.points.map((p:any)=>String(p||"").trim()):[];
     const why=String(e?.why||"").trim();
     if(titleKeys.has(title.toLowerCase())||eventKeys.has(when+":"+sourceKey(primary||"")))continue;
-    const founding=/\b(found(?:ed|ing)?|incorporat(?:ed|ion)|opens? (?:the )?first|first (?:restaurant|store))\b/i;
+    const founding=/\b(found(?:ed|ing)?|incorporat(?:ed|ion)|opens? (?:the )?first|first (?:restaurant|store)|first\s+.{1,50}?\s+(?:opens?|opened))\b/i;
     if(founding.test(title)&&[...existingRows,...accepted].some((row:any)=>
      String(row.event_at||row.date).slice(0,10)===when&&founding.test(String(row.title))))continue;
     if(!/^\d{4}-\d{2}-\d{2}$/.test(when)||!Number.isFinite(parsedDate)
      ||parsedDate>Date.now()||parsedDate<Date.parse("1800-01-01")
      ||(historicalGap&&when.startsWith(String(currentYear)+"-"))
      ||(scope==="current"&&!when.startsWith(String(currentYear)+"-"))
-     ||(scope==="origin"&&(!/\b(found(?:ed|ing)?|incorporat(?:e(?:d|s)?|ing|ion)|establish(?:ed|ment)|began as|begins as|first (?:store|operation|business|restaurant|location)|open(?:s|ed)?\s+(?:the\s+)?first|launch(?:es|ed)\s+at\s+(?:harvard|a university|university|college))\b/i.test(title)
+     ||(scope==="origin"&&(!/\b(found(?:ed|ing)?|incorporat(?:e(?:d|s)?|ing|ion)|establish(?:ed|ment)|began as|begins as|first (?:store|operation|business|restaurant|location)|first\s+.{1,50}?\s+(?:opens?|opened)|open(?:s|ed)?\s+(?:the\s+)?first|launch(?:es|ed)\s+at\s+(?:harvard|a university|university|college))\b/i.test(title)
        ||(existingRows.length>0&&parsedDate>=Math.min(...existingRows.map((row:any)=>Date.parse(String(row.event_at||"")))))))
      ||!categories.includes(e?.category)||title.length<4||title.length>100
      ||summary.length<60||summary.length>500||!primary||!checked[index]){
@@ -290,7 +291,8 @@ Deno.serve(async req=>{
    "Output structured JSON only. Do not generate image URLs. Timeline photography is selected separately."
   ].join(" ");
   const targetedInstructions=[
-   "TARGETED COMPANY HISTORY SEARCH. Find the authentic founding or incorporation event before the earliest saved event, or fill the requested missing historical events. Prioritize the largest gaps between saved dates: foundational products, expansion, acquisitions, manufacturing or financial turning points. Do not fill the target with minor updates or rename an existing event. Historical gap candidates must predate current_year; the current-year bulletin is handled separately.",
+   scope==="origin"?"Find the authentic founding or incorporation event before the earliest saved event.":
+    "Fill ONLY the missing significant historical events, prioritizing historical_gap_periods. Founding, IPO or current-year events already in existing_events do not need to be researched again. Look for new products or restaurant concepts, acquisitions, geographic expansion and leadership transitions using the supplied business description and official source index. Do not fill the target with minor updates or renamed events. Candidates must predate current_year.",
    "Review the existing event titles, years, and original-source URLs. Focus on an unrepresented major historical era, not another recent minor update.",
    "Find dated evidence on the company's OFFICIAL corporate history, heritage, press release or investor pages, or SEC EDGAR. Each candidate needs a direct HTTPS source that supports the actual event and date.",
    "Do not reuse any supplied title; do not invent an event, year, original company source, or direct link.",
@@ -305,7 +307,12 @@ Deno.serve(async req=>{
    "Return up to three supported candidates in order of business significance so validation can select one. Never repeat existing events. If no evidence is available return an empty milestones array.",
    "Use the required JSON schema. Write a 90–330 character summary, exactly two source-backed facts of 35–160 characters each, and a 40–160 character why-it-matters sentence. No images, ratings or forecasts."
   ].join(" ");
-  async function researchBatch(targeted:boolean,alreadySaved:any[]):Promise<any[]>{
+  function historicalGaps(saved:any[]){
+   const dates=[...new Set(saved.map((e:any)=>String(e.date).slice(0,10)).filter((d:string)=>d<String(currentYear)+"-01-01"))].sort();
+   return dates.slice(1).map((before,i)=>({after:dates[i],before,days:(Date.parse(before)-Date.parse(dates[i]))/86400000}))
+    .filter(g=>g.days>365).sort((a,b)=>b.days-a.days).slice(0,3);
+  }
+  async function researchBatch(targeted:boolean,alreadySaved:any[],strategy="initial"):Promise<any[]>{
    const missing=Math.max(0,remainingAtStart-accepted.length);
    if(!missing)return [];
    const available=Number((costCeiling-cost).toFixed(5));
@@ -313,6 +320,11 @@ Deno.serve(async req=>{
    const input=JSON.stringify({
     ticker,company_name:stock.company_name,official_website:official,
     as_of_date:asOf,current_year:currentYear,
+    business_description:profile?.content||null,verified_company_sources:profile?.source_urls||[],
+    historical_gap_periods:scope==="history"?historicalGaps([...existingEvents,...alreadySaved]):[],
+    research_strategy:strategy,
+    source_index_requirement:strategy==="source_index"?
+     "The first pass found no candidates. Change approach: review official history/media kits, primary company/SEC business descriptions, and dated launch announcements for concepts or products named in business_description. Do not repeat an identical search. Return only supported significant events.":null,
     period_start:scope==="current"?String(currentYear)+"-01-01":null,
     official_source_hosts:official.includes("meta.com")?["meta.com","about.fb.com","investor.atmeta.com","sec.gov"]:[official,"sec.gov"],
     research_scope:scope,founding_or_current_year_requirement:
@@ -354,8 +366,8 @@ Deno.serve(async req=>{
    // Company profiles can finish while this first research request is running.
    // Reuse the now-verified identity instead of rejecting all corporate sources.
    if(!official){
-    const {data:latest}=await admin.from("orca_ai_company_profiles").select("state,usage").eq("ticker",ticker).maybeSingle();
-    if(latest?.state==="ready")official=String(latest?.usage?.official_website||"");
+    const {data:latest}=await admin.from("orca_ai_company_profiles").select("state,usage,content,source_urls").eq("ticker",ticker).maybeSingle();
+    if(latest?.state==="ready"){profile=latest;official=String(latest?.usage?.official_website||"");}
    }
    tokensIn+=Number(result.usage?.input_tokens||0);
    tokensOut+=Number(result.usage?.output_tokens||0);
@@ -392,10 +404,10 @@ Deno.serve(async req=>{
   if(scope==="history"){
    // Bounded gap filling; stop immediately on no new verified evidence.
    // The frontend can use unused current-year funds for one final history stage.
-   while(shouldTargetFollowup(existingRows.length,accepted.length,cost)&&followups<2&&!(initiallyTargeted&&firstAdded===0)){
+   while(shouldTargetFollowup(existingRows.length,accepted.length,cost)&&followups<2){
     followups++;targetedAttempted=true;targetedStatus="started";
     try{
-     const additional=await researchBatch(true,accepted);
+     const additional=await researchBatch(true,accepted,accepted.length?"historical_gaps":"source_index");
      const added=await acceptCandidateMilestones(additional,true);
      targetedAccepted+=added;
      targetedStatus=added?"accepted":"no_new_primary_sources";
