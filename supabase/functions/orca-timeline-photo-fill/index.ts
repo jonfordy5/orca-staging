@@ -205,7 +205,7 @@ Deno.serve(async(req:Request)=>{
   const accessKey=Deno.env.get("UNSPLASH_ACCESS_KEY")||"";
   const existingBranded=cached.filter(p=>p.match_type==="exact_subject"&&p.image_url).length;
   let brandAdded=0,broadAdded=0,saveFailures=0;
-  let unsplashAvailable=!!accessKey;
+  let unsplashAvailable=!!accessKey,commonsAvailable=true;
   const replacements=events.filter(e=>!targets.some(t=>t.id===e.id)&&byEvent.get(e.id)?.match_type!=="exact_subject");
   async function savePhoto(p:any,branded:boolean){
    const target=targets[0]||(branded?replacements[0]:null);
@@ -241,6 +241,7 @@ Deno.serve(async(req:Request)=>{
     }
     const report=await selectCommons([brand+" "+subject],desired-brandAdded,usedIds,usedUrls,p=>savePhoto(p,true),brand,usedHashes);
     brandReports.push({provider:"wikimedia_commons",...report});
+    if(report.provider_http_status!==200)commonsAvailable=false;
    }
    // Cache a completed bounded search, including a genuine no-match result.
    // Provider outages remain eligible for an intentional retry.
@@ -253,7 +254,7 @@ Deno.serve(async(req:Request)=>{
   let broad:any={added:0,provider_requests_made:0};
   if(targets.length&&unsplashAvailable)broad=await selectPhotos(accessKey,queries,targets.length,usedIds,usedUrls,p=>savePhoto(p,false));
   let commons:any={added:0,provider_requests_made:0};
-  if(targets.length)commons=await selectCommons(queries,targets.length,usedIds,usedUrls,p=>savePhoto(p,false),"",usedHashes);
+  if(targets.length&&commonsAvailable)commons=await selectCommons(queries,targets.length,usedIds,usedUrls,p=>savePhoto(p,false),"",usedHashes);
   const added=brandAdded+broadAdded;
   return reply(200,{state:added?"ready":targets.length?"no_matches":"cached",added,brand_added:brandAdded,
    branded_photos:existingBranded+brandAdded,remaining:targets.length,save_failures:saveFailures,

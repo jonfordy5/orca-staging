@@ -8,7 +8,7 @@ const unsplash=(id,title)=>({id,width:1600,height:1000,alt_description:title,
 const commons=(id,title,license='CC BY-SA 4.0')=>({pageid:id,title:'File:'+title+'.jpg',index:id,
  imageinfo:[{url:'https://upload.wikimedia.org/wikipedia/commons/original-'+id+'.jpg',thumburl:'https://upload.wikimedia.org/wikipedia/commons/thumb-'+id+'.jpg',descriptionurl:'https://commons.wikimedia.org/wiki/File:photo-'+id+'.jpg',width:1600,height:1000,mediatype:'BITMAP',sha1:'hash'+id,
  extmetadata:{Artist:{value:'<a href="/wiki/User:Photographer">Real Photographer</a>'},ImageDescription:{value:title},LicenseShortName:{value:license},LicenseUrl:{value:'https://creativecommons.org/licenses/by-sa/4.0/'}}}]});
-async function run({count=11,cachedCount=0,brand='Wendy’s',version=0,unsplashStatus=200,empty=false}={}){
+async function run({count=11,cachedCount=0,brand='Wendy’s',version=0,unsplashStatus=200,commonsStatus=200,empty=false}={}){
  let handler;const saved=[],searches=[],downloads=[];
  const events=Array.from({length:count},(_,i)=>({id:'e'+i}));
  const originals=events.slice(0,cachedCount).map((e,i)=>({event_id:e.id,ticker:'WEN',photo_id:'old'+i,image_url:'https://images.unsplash.com/photo-old'+i,full_image_url:'https://images.unsplash.com/photo-old'+i,match_type:'contextual',photographer:'Old credited creator',license_url:'https://unsplash.com/license'}));
@@ -30,7 +30,7 @@ async function run({count=11,cachedCount=0,brand='Wendy’s',version=0,unsplashS
    if(u.hostname==='api.openai.com')throw Error('Cached business subjects must be reused');
    if(u.hostname==='commons.wikimedia.org'){
     searches.push({provider:'commons',query:u.searchParams.get('gsrsearch')});
-    return new Response(JSON.stringify({query:{pages:empty?[]:[commons(1,brand+' restaurant storefront'),commons(2,brand+' restaurant exterior')]}}));
+    return new Response(JSON.stringify({query:{pages:empty?[]:[commons(1,brand+' restaurant storefront'),commons(2,brand+' restaurant exterior')]}},{status:commonsStatus}));
    }
    const query=u.searchParams.get('query');searches.push({provider:'unsplash',query});
    const results=empty?[]:query.includes('signage')?[unsplash('brand',brand+' restaurant signage'),unsplash('unrelated','Unrelated promotional software screenshot')]:query.includes('restaurant')?[unsplash('wrong','A restaurant with no identifiable brand')]:Array.from({length:20},(_,i)=>unsplash('food'+i,'A hamburger and fries on a plate'));
@@ -64,6 +64,8 @@ async function run({count=11,cachedCount=0,brand='Wendy’s',version=0,unsplashS
  console.log('PASS completed hybrid search is cached; unavailable brand images do not force replacements or repeated searches');
  t=await run({unsplashStatus:429});assert.equal(t.searches.filter(s=>s.provider==='unsplash').length,1);
  assert.equal(t.body.branded_photos,2);assert(t.body.remaining>0); // Commons fixture contains only two usable originals.
+ t=await run({commonsStatus:429});assert.equal(t.searches.filter(s=>s.provider==='commons').length,1);
+ assert.equal(t.body.remaining,0);assert.equal(t.body.branded_photos,1);
  const {api}=t;
  assert.equal(api.recognizableName('The Wendy’s Company Common Stock'),"Wendy's");
  assert.equal(api.brandMatch('Wendy’s restaurant exterior',"Wendy's"),true);
