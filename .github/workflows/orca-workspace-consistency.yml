@@ -26,6 +26,12 @@ jobs:
         run: node scripts/test-timeline-completion.cjs
       - name: Verify hybrid brand photography, licenses and cache preservation
         run: node scripts/test-hybrid-timeline-photos.cjs
+      - name: Install browser for offline mobile layout regression
+        run: |
+          npm install --prefix "$RUNNER_TEMP/orca-browser" --no-save --package-lock=false playwright@1.62.1
+          "$RUNNER_TEMP/orca-browser/node_modules/.bin/playwright" install --with-deps chromium
+      - name: Verify phone swipes, complete frames and unchanged desktop geometry
+        run: NODE_PATH="$RUNNER_TEMP/orca-browser/node_modules" node scripts/test-timeline-mobile-layout.cjs
   deploy-pages:
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     needs: shared-workspace

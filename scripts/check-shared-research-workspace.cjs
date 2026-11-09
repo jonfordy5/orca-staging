@@ -129,7 +129,7 @@ check('Locked design keeps the current rendering unchanged', () =>
   timeline.includes('const futureStep=190;') &&
   timeline.includes("const tailFadeStart=Math.max(0,futurePoints[1][0]-150)") &&
   timeline.includes("centerMilestone(card,'auto')") &&
-  workspace.includes('touch-action:pan-x!important') &&
+  workspace.includes('touch-action:pan-x pan-y pinch-zoom!important') &&
   !photos.includes('Check Unsplash API') &&
   workspace.includes('.orca-company-timeline .orca-photo-context{display:none!important}'));
 
@@ -171,7 +171,7 @@ check('Timeline extends beyond the newest milestone and fades into the future', 
   timeline.includes("base.setAttribute('mask','url(#'+tailId+')')") &&
   timeline.includes("beam.setAttribute('mask','url(#'+tailId+')')") &&
   timeline.includes('Math.max(420,Math.round') &&
-  workspace.includes('v=universal-hybrid-v43'));
+  workspace.includes('v=mobile-carousel-v44'));
 
 check('Open-ended timeline preserves milestones and beam arrival effects', () =>
   timeline.includes('const nodeDistances=[0]') &&
@@ -198,18 +198,23 @@ check('Beam touches milestone and lights connector up to the photo', () =>
   workspace.includes('animation:orca-photo-arrival 1.4s') &&
   workspace.includes('prefers-reduced-motion:reduce'));
 
-check('Timeline initially centers the middle milestone while navigation remains intact', () =>
+check('Desktop centers the middle milestone, mobile starts at the beginning, navigation remains intact', () =>
   timeline.includes('const middle=Math.floor((data.length-1)/2)') &&
+  timeline.includes('const initialIndex=mobileLayout.matches?0:middle') &&
   timeline.includes("centerMilestone(card,'auto')") &&
   timeline.includes("prev.addEventListener('click',()=>jumpTo(0))") &&
   timeline.includes("next.addEventListener('click',()=>jumpTo(data.length-1))") &&
-  workspace.includes('v=universal-hybrid-v43'));
+  workspace.includes('v=mobile-carousel-v44'));
 
 check('Mobile history stays a swipe carousel without zigzag or glowing track', () =>
-  workspace.includes('touch-action:pan-x!important') &&
+  workspace.includes('touch-action:pan-x pan-y pinch-zoom!important') &&
   workspace.includes('scroll-snap-type:x mandatory!important') &&
-  workspace.includes('.orca-timeline-frame .orca-history-track,') &&
-  workspace.includes('height:245px') &&
+  workspace.includes('#chart-section .orca-timeline-frame .orca-history-track,') &&
+  workspace.includes('flex:0 0 100%!important;width:100%!important') &&
+  workspace.includes('--orca-mobile-card-height:clamp(260px,76vw,330px)') &&
+  workspace.includes('position:relative!important;top:auto!important;bottom:auto!important;left:auto!important') &&
+  workspace.includes('(max-height:600px) and (hover:none) and (pointer:coarse)') &&
+  timeline.includes('Swipe to explore · ') &&
   workspace.includes('display:none!important'));
 
 check('Company timelines remain open-ended with sourced history and credited photographs', () =>

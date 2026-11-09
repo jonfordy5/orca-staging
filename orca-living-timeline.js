@@ -21,6 +21,11 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
  navigation.append(prev,index,next);
  const rail=document.createElement('div');
  rail.className='orca-timeline-events';
+ const mobileLayout=window.matchMedia('(max-width:700px), (max-width:1000px) and (max-height:600px) and (hover:none) and (pointer:coarse)');
+ const mobileProgress=document.createElement('p');
+ mobileProgress.className='orca-timeline-mobile-progress';
+ mobileProgress.setAttribute('role','status');
+ let mobileVisibleIndex=0,mobileScrollFrame=0;
  const details=document.createElement('section');
  details.className='orca-timeline-details';
  details.hidden=true;
@@ -28,7 +33,7 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
  backdrop.className='orca-history-backdrop';
  backdrop.hidden=true;
  backdrop.setAttribute('aria-hidden','true');
- frame.append(heading,navigation,rail,backdrop,details);
+ frame.append(heading,navigation,rail,mobileProgress,backdrop,details);
  details.classList.add('orca-history-popover');details.setAttribute('role','dialog');details.setAttribute('aria-label','Milestone details');details.setAttribute('tabindex','-1');
  let data=[],activeIndex=0;
  const initialHistoryGoal=10; // Starter goal, never a display limit.
@@ -96,6 +101,8 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
   const spine=rail.querySelector('.orca-history-spine');
   if(!spine)return;
   spine.querySelector('.orca-history-track')?.remove();
+  // Mobile has no off-screen zigzag or future tail to scroll into.
+  if(mobileLayout.matches)return;
   const stops=[...spine.querySelectorAll('.orca-history-stop')];
   if(!stops.length)return;
   const spineRect=spine.getBoundingClientRect();
@@ -196,7 +203,7 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
   // Append to keep :nth-child parity of alternating milestone cards stable.
   // The track is absolutely positioned behind photos and stems by z-index.
   spine.append(svg);
-  if(stops.length<2||window.matchMedia('(max-width:700px)').matches||
+  if(stops.length<2||mobileLayout.matches||
      window.matchMedia('(prefers-reduced-motion: reduce)').matches||
      document.visibilityState==='hidden')return;
   const length=base.getTotalLength();
@@ -240,11 +247,11 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
   const spine=rail.querySelector('.orca-history-spine');
   const stop=spine?.querySelector('.orca-history-stop');
   if(!spine||!stop||!rail.clientWidth)return;
-  const mobile=window.matchMedia('(max-width:700px)').matches;
+  const mobile=mobileLayout.matches;
   // Desktop gets enough room to reveal the future continuation beyond
   // the last company event. Mobile remains a normal swipe-only photo strip.
-  spine.style.paddingLeft=(mobile?12:20)+'px';
-  spine.style.paddingRight=(mobile?12:Math.max(420,Math.round((rail.clientWidth-stop.getBoundingClientRect().width)/2)))+'px';
+  spine.style.paddingLeft=(mobile?0:20)+'px';
+  spine.style.paddingRight=(mobile?0:Math.max(420,Math.round((rail.clientWidth-stop.getBoundingClientRect().width)/2)))+'px';
  }
  function centerMilestone(element,behavior='smooth'){
   const stop=element?.closest('.orca-history-stop');
@@ -253,7 +260,32 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
   const left=stop.offsetLeft+stop.offsetWidth/2-rail.clientWidth/2;
   rail.scrollTo({left:Math.max(0,left),behavior});
  }
- window.addEventListener('resize',()=>{fitRailEdges();drawHistoryTrack()});
+ function updateMobileProgress(){
+  if(!mobileLayout.matches||!data.length)return;
+  const stops=[...rail.querySelectorAll('.orca-history-stop')];
+  const center=rail.getBoundingClientRect().left+rail.clientWidth/2;
+  mobileVisibleIndex=stops.reduce((nearest,stop,i)=>{
+   const distance=element=>Math.abs(element.getBoundingClientRect().left+element.offsetWidth/2-center);
+   return distance(stop)<distance(stops[nearest])?i:nearest;
+  },0);
+  mobileProgress.textContent='Swipe to explore · '+(mobileVisibleIndex+1)+' of '+data.length;
+ }
+ rail.addEventListener('scroll',()=>{
+  if(!mobileLayout.matches||mobileScrollFrame)return;
+  mobileScrollFrame=requestAnimationFrame(()=>{mobileScrollFrame=0;updateMobileProgress()});
+ },{passive:true});
+ window.addEventListener('resize',()=>{
+  fitRailEdges();drawHistoryTrack();
+  if(mobileLayout.matches){
+   cancelAnimationFrame(mobileScrollFrame);
+   const visibleIndex=mobileVisibleIndex;
+   mobileScrollFrame=requestAnimationFrame(()=>{
+    const card=rail.querySelector('.orca-timeline-event[data-index="'+visibleIndex+'"]');
+    if(card)centerMilestone(card,'auto');
+    mobileScrollFrame=0;updateMobileProgress();
+   });
+  }
+ });
  document.addEventListener('visibilitychange',()=>{
   if(document.visibilityState==='hidden')stopBeam();
   else drawHistoryTrack();
@@ -426,6 +458,7 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
   updateCompleteAction();
   fitRailEdges();
   drawHistoryTrack();
+  updateMobileProgress();
   // Do not automatically display milestone details.
   closeDetails();
   index.textContent=data.length+' company milestones';
@@ -658,8 +691,10 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
   fitRailEdges();
   drawHistoryTrack();
   const middle=Math.floor((data.length-1)/2);
-  const card=rail.querySelector('.orca-timeline-event[data-index="'+middle+'"]');
+  const initialIndex=mobileLayout.matches?0:middle;
+  const card=rail.querySelector('.orca-timeline-event[data-index="'+initialIndex+'"]');
   if(card)centerMilestone(card,'auto');
+  updateMobileProgress();
  });
  try{
   const module=await import('./orca-timeline-photos.js?v=hybrid-photos-v23');
