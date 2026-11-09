@@ -46,19 +46,22 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
  const researchNeed=()=>!allVerified.length?'history':!hasCurrentYear()?'current':
   !hasOrigin()?'origin':allVerified.length<initialHistoryGoal?'history':'none';
  let blockedScopes={};
+ let brandPhotoPending=false;
+ const needsPhotoWork=()=>photoMissing>0||brandPhotoPending;
  let completionStatusKnown=false;
  const needsResearch=()=>
   (!allVerified.length&&!blockedScopes.history)||
   (!hasCurrentYear()&&!blockedScopes.current)||(!hasOrigin()&&!blockedScopes.origin)||
   (allVerified.length<initialHistoryGoal&&!blockedScopes.history);
- const mayRequestHistory=()=>completionStatusKnown&&!discoveryPending&&(needsResearch()||photoMissing>0);
+ const mayRequestHistory=()=>completionStatusKnown&&!discoveryPending&&(needsResearch()||needsPhotoWork());
  async function loadCompletionStatus(completedRunIds=[]){
-  if(getUser()&&(researchNeed()!=='none'||completedRunIds.length)){
+  if(getUser()){
    try{
     const {data,error}=await sb.functions.invoke('orca-timeline-discovery',{
      body:{ticker,scope:'status',completed_run_ids:completedRunIds}});
     if(!error){
      blockedScopes=data?.stopped||{};
+     brandPhotoPending=!!data?.photo_brand_pending;
      if(allVerified.length>=initialHistoryGoal)delete blockedScopes.history;
      if(hasCurrentYear())delete blockedScopes.current;
      if(hasOrigin())delete blockedScopes.origin;
@@ -329,20 +332,20 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
    old?.remove();
    const emptyButton=rail.querySelector('.orca-timeline-generate');
    if(emptyButton){
-    if(completionStatusKnown&&!needsResearch()&&!photoMissing){emptyButton.remove();return}
+    if(completionStatusKnown&&!needsResearch()&&!needsPhotoWork()){emptyButton.remove();return}
     emptyButton.disabled=!completionStatusKnown||discoveryPending||!historyAuthorized;
     emptyButton.textContent=discoveryPending?'Completing company timeline…':'Complete company timeline';
    }
    return;
   }
-  const needed=completionStatusKnown&&(needsResearch()||photoMissing>0);
+  const needed=completionStatusKnown&&(needsResearch()||needsPhotoWork());
   // Saved coverage determines completion; an attempted click is not success.
   if(!needed||!getUser()){old?.remove();return}
   const generate=old||document.createElement('button');
   generate.type='button';
   generate.className='orca-timeline-generate orca-history-refill-action';
   generate.textContent=discoveryPending?'Completing company timeline…':'Complete company timeline';
-  generate.title='One authorized action checks missing sourced milestones and unique photo coverage';
+  generate.title=needsResearch()?'One authorized action checks missing sourced milestones and unique photo coverage':'History is saved. Check for up to two recognizable company photographs while retaining other photos.';
   generate.disabled=discoveryPending||!historyAuthorized;
   if(!old){
    generate.addEventListener('click',()=>void maybePopulateCompanyHistory());
@@ -622,20 +625,22 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
    if(photoMount&&allVerified.length){
     const initial=await photoMount.refresh();
     photoMissing=Math.max(0,Number(initial?.missing||0))+Math.max(0,Number(initial?.duplicates||0));
-    if(photoMissing){
+    if(needsPhotoWork()){
      showResearchFeedback('Company history checked. Finding distinct business photographs for missing cards…');
-     const photoResult=await photoMount.fillMissing();
+     const photoResult=await photoMount.fillMissing({includeBrand:brandPhotoPending});
+     await loadCompletionStatus();
      const coverage=await photoMount.refresh();
      photoMissing=Math.max(0,Number(coverage?.missing||0))+Math.max(0,Number(coverage?.duplicates||0));
      summaries.push(photoMissing===0?'Photo coverage complete.':
       photoMissing+' image slot'+(photoMissing===1?'':'s')+' still awaiting source photos.');
      if(photoResult?.error)summaries.push('Image provider request could not finish.');
+     else if(!photoResult?.branded_photos)summaries.push('No suitable branded photographs found; business illustrations retained.');
     }
    }
    showResearchFeedback(summaries.join(' ')+
     ' Estimated history research cost this click: $'+spent.toFixed(5)+
     ' / $0.15. '+allVerified.length+' sourced milestones saved.'+
-    (researchNeed()==='none'&&photoMissing===0?' Timeline complete.':
+    (researchNeed()==='none'&&photoMissing===0&&!brandPhotoPending?' Timeline complete.':
      ' Timeline incomplete: '+(!hasCurrentYear()?'no verified '+year()+' event; ':'')+(!hasOrigin()?'founding evidence missing; ':'')+(allVerified.length<initialHistoryGoal?'starter history has '+allVerified.length+' of approximately 10 events; ':'')+(photoMissing?photoMissing+' photographs unavailable.':'')+(limitationText()?' '+limitationText()+'. Saved results retained; refresh will not restart paid research.':'')));
   }finally{
    discoveryPending=false;
@@ -657,7 +662,7 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
   if(card)centerMilestone(card,'auto');
  });
  try{
-  const module=await import('./orca-timeline-photos.js?v=one-button-photos-v22');
+  const module=await import('./orca-timeline-photos.js?v=hybrid-photos-v23');
   photoMount=await module.mountTimelinePhotos({sb,ticker,frame,rail,status,getUser,canContribute:()=>historyAuthorized});
   await loadCompletionStatus();
   if(limitationText())showResearchFeedback(status.textContent+' · '+limitationText()+'. Saved results retained; refresh will not restart paid research.');

@@ -1,5 +1,5 @@
 import {createClient} from "npm:@supabase/supabase-js@2.57.0";
-// Business illustrations only. Milestone titles, dates and brands never rank photos.
+// Up to two identifiable company photographs; broad business illustrations for every other card. No event/year matching.
 const admin=createClient(Deno.env.get("SUPABASE_URL")||"",Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")||"",{auth:{persistSession:false,autoRefreshToken:false}});
 const origin="https://jonfordy5.github.io";
 const cors={"Content-Type":"application/json","Access-Control-Allow-Origin":origin,
@@ -14,13 +14,86 @@ function creditedUrl(value:unknown){
  const valueUrl=safeUrl(value,"unsplash.com");if(!valueUrl)return null;
  const u=new URL(valueUrl);u.searchParams.set("utm_source","ai_stock_commons_orca");u.searchParams.set("utm_medium","referral");return u.href;
 }
+const photoVersion=12;
+const commonsAgent="ORCA-Timeline/2.0 (https://github.com/jonfordy5/orca-staging)";
+function plain(value:unknown){return String(value||"").replace(/<[^>]*>/g," ").replace(/&amp;/g,"&").replace(/&#0?39;|&apos;/g,"'").replace(/&quot;/g,'"').replace(/&nbsp;/g," ").replace(/\s+/g," ").trim()}
+function recognizableName(company:string){
+ return company.replace(/^The\s+/i,"").replace(/[’‘]/g,"'")
+  .replace(/\b(?:Common Stock|Ordinary Shares|Class [A-Z]|Holdings?|Corporation|Incorporated|Company|Limited|Inc|Corp|Ltd|PLC|Co)\b\.?/gi,"")
+  .replace(/[, ]+$/g,"").replace(/\s+/g," ").trim();
+}
+function words(value:string){return plain(value).toLowerCase().replace(/[’‘']/g,"").replace(/[^a-z0-9]+/g," ").trim()}
+function brandMatch(title:string,brand:string){
+ const text=" "+words(title)+" ",tokens=words(brand).split(" ").filter(Boolean);
+ return tokens.length>0&&tokens.every(t=>text.includes(" "+t+" "))&&
+  /\b(restaurant|store|storefront|sign|signage|exterior|building|vehicle|car|factory|facility|rocket|station|headquarters|office|aircraft|product|gpu|chip|refinery|supermarket)\b/i.test(title)&&
+  !/\b(abandoned|derelict|demolished|vacant|ruins?|closed)\b/i.test(title);
+}
+function commonsCandidate(page:any,query:string){
+ const info=page.imageinfo?.[0],meta=info?.extmetadata||{};
+ if(!info||info.mediatype!=="BITMAP"||info.width<600||info.height<350||info.width<info.height)return null;
+ const value=(key:string)=>plain(meta[key]?.value);
+ const title=plain(page.title)+" "+value("ImageDescription");
+ if(unusableImageText(title))return null;
+ const license=value("LicenseShortName"),declared=value("UsageTerms");
+ const publicDomain=/^(Public domain|CC0)(?:\b|$)/i.test(license)||declared==="Public domain";
+ const licenseUrl=String(meta.LicenseUrl?.value||"");
+ let licenseLink:string|null=null;
+ if(publicDomain)licenseLink=safeUrl(licenseUrl,"creativecommons.org")||"https://creativecommons.org/publicdomain/mark/1.0/";
+ else if(/^CC BY(?:-SA)? [1-4]\.0$/i.test(license)&&/^https:\/\/creativecommons\.org\/licenses\/by(?:-sa)?\/[1-4]\.0\/?$/.test(licenseUrl))licenseLink=licenseUrl;
+ if(!licenseLink)return null; // Exclude NC/ND, unknown and permission-only licenses.
+ const image=safeUrl(info.thumburl||info.url,"upload.wikimedia.org"),full=safeUrl(info.url,"upload.wikimedia.org");
+ const source=safeUrl(info.descriptionurl,"commons.wikimedia.org");
+ const artist=value("Artist")||value("Credit");
+ let authorUrl=source;
+ try{
+  const href=String(meta.Artist?.value||"").match(/href=["']([^"']+)["']/i)?.[1];
+  if(href){const u=new URL(href,"https://commons.wikimedia.org");if(u.protocol==="https:"&&!u.username&&!u.password)authorUrl=u.href;}
+ }catch{}
+ if(!image||!full||!source||!artist)return null;
+ return {id:"commons:"+page.pageid,image_url:image,full_image_url:full,photo_url:source,
+  photographer:artist,photographer_url:authorUrl,source_type:"wikimedia_commons",
+  license_name:license||declared,license_url:licenseLink,image_hash:info.sha1||null,
+  attribution_text:[artist,value("Attribution"),value("Credit"),license||declared,"via Wikimedia Commons; cropped for card display"].filter(Boolean).join(" · "),
+  title,query};
+}
+async function selectCommons(queries:string[],needed:number,usedIds:Set<string>,usedUrls:Set<string>,save:(p:any)=>Promise<boolean>,brand="",usedHashes=new Set<string>()){
+ let added=0,requests=0,results=0,status:number|null=null;
+ for(const query of queries.slice(0,brand?1:2)){
+  // One brand query checks Commons even when Unsplash already found both covers.
+  if(!brand&&added>=needed)break;
+  const uri=new URL("https://commons.wikimedia.org/w/api.php");
+  uri.search=new URLSearchParams({action:"query",generator:"search",gsrsearch:query+" filetype:bitmap -intitle:screenshot -intitle:logo",gsrnamespace:"6",gsrlimit:"12",prop:"imageinfo",iiprop:"url|size|extmetadata|sha1|mediatype",iiurlwidth:"1000",format:"json",formatversion:"2"}).toString();
+  let response:Response;
+  try{response=await fetch(uri,{headers:{"User-Agent":commonsAgent},signal:AbortSignal.timeout(10000)})}catch{break}
+  requests++;status=response.status;if(!response.ok)break;
+  const data=await response.json();
+  const pages=(data.query?.pages||[]).sort((a:any,b:any)=>(a.index||0)-(b.index||0));
+  for(const page of pages){
+   if(added>=needed)break;
+   results++;
+   const p=commonsCandidate(page,query);
+   if(!p||brand&&!brandMatch(p.title,brand)||usedIds.has(p.id)||usedUrls.has(originalUrl(p.full_image_url))||p.image_hash&&usedHashes.has(p.image_hash))continue;
+   try{
+    const check=await fetch(p.image_url,{method:"HEAD",headers:{"User-Agent":commonsAgent},signal:AbortSignal.timeout(4500)});
+    if(!check.ok||!check.headers.get("content-type")?.startsWith("image/"))continue;
+   }catch{continue}
+   if(!await save(p))continue;
+   usedIds.add(p.id);usedUrls.add(originalUrl(p.full_image_url));if(p.image_hash)usedHashes.add(p.image_hash);added++;
+  }
+ }
+ return {added,provider_requests_made:requests,provider_results_received:results,provider_http_status:status};
+}
+function unusableImageText(text:string){
+ return /\b(3d render(?:ing)?|ai.generated|illustration|vector art|clip ?art|screenshot|screen shot|software interface|promotional graphic|marketing banner|logo on (?:a )?white background)\b/i.test(text);
+}
 function candidate(photo:any,query:string){
  const image=safeUrl(photo.urls?.regular,"images.unsplash.com"),full=safeUrl(photo.urls?.raw||photo.urls?.full||photo.urls?.regular,"images.unsplash.com");
  const source=creditedUrl(photo.links?.html),author=creditedUrl(photo.user?.links?.html);
  const download=safeUrl(photo.links?.download_location,"api.unsplash.com");
  const title=[photo.alt_description,photo.description].filter(Boolean).join(" ");
  if(!photo.id||!image||!full||!source||!author||!download||!photo.user?.name||photo.premium||photo.plus)return null;
- if(photo.width<600||photo.height<350||/\b(3d render(?:ing)?|ai.generated|illustration|vector art|clip ?art)\b/i.test(title))return null;
+ if(photo.width<600||photo.height<350||unusableImageText(title))return null;
  // Unsplash's ranked subject search supplies relevance. Sparse metadata is OK.
  return {id:String(photo.id),image_url:image,full_image_url:full,photo_url:source,
   photographer:String(photo.user.name),photographer_url:author,download_location:download,
@@ -47,7 +120,7 @@ async function businessQueries(ticker:string,company:string,description:string,c
  if(error)throw Error("subject_cache_failed");
  return queries;
 }
-async function selectPhotos(accessKey:string,queries:string[],needed:number,usedIds:Set<string>,usedUrls:Set<string>,save:(photo:any)=>Promise<boolean>){
+async function selectPhotos(accessKey:string,queries:string[],needed:number,usedIds:Set<string>,usedUrls:Set<string>,save:(photo:any)=>Promise<boolean>,brand=""){
  let added=0,requests=0,results=0,providerStatus:number|null=null,remaining:number|null=null;
  const tried:string[]=[];
  for(const query of queries.slice(0,4)){
@@ -64,7 +137,7 @@ async function selectPhotos(accessKey:string,queries:string[],needed:number,used
    if(added>=needed)break;
    results++;
    const p=candidate(raw,query);
-   if(!p||usedIds.has(p.id)||usedUrls.has(originalUrl(p.full_image_url)))continue;
+   if(!p||brand&&!brandMatch(p.title,brand)||usedIds.has(p.id)||usedUrls.has(originalUrl(p.full_image_url)))continue;
    usedIds.add(p.id);usedUrls.add(originalUrl(p.full_image_url));
    // Test the actual cover before committing it; failed URLs leave original art.
    try{
@@ -111,37 +184,82 @@ Deno.serve(async(req:Request)=>{
   }
   const events=await rows("orca_timeline_annotations","id");
   if(!events.length)return reply(200,{state:"history_required",added:0,remaining:0});
-  const cached=await rows("orca_timeline_photo_selections","event_id,photo_id,image_url,full_image_url,needs_review");
+  const cached=await rows("orca_timeline_photo_selections","*");
   const byEvent=new Map(cached.map(p=>[p.event_id,p]));
-  const usedIds=new Set<string>(),usedUrls=new Set<string>();
+  const usedIds=new Set<string>(),usedUrls=new Set<string>(),usedHashes=new Set<string>();
   const targets=events.filter(e=>{
    const p=byEvent.get(e.id);let original="";
    try{original=originalUrl(p?.full_image_url||p?.image_url)}catch{}
    if(!p?.photo_id||!p?.image_url||!original||usedIds.has(p.photo_id)||usedUrls.has(original))return true;
-   // Preserve all existing distinct covers, including those flagged by old relevance rules.
-   usedIds.add(p.photo_id);usedUrls.add(original);return false;
+   // Preserve existing distinct photos; brand upgrades replace at most two cards.
+   usedIds.add(p.photo_id);usedUrls.add(original);if(p.image_hash)usedHashes.add(p.image_hash);return false;
   });
-  if(!targets.length)return reply(200,{state:"cached",added:0,remaining:0,photos:events.length});
-  const accessKey=Deno.env.get("UNSPLASH_ACCESS_KEY");if(!accessKey)throw Error("Unsplash access key is not configured");
+  const {data:job,error:jobError}=await admin.from("orca_timeline_photo_jobs").select("queries,brand_search_version").eq("ticker",ticker).single();
+  if(jobError)throw Error("photo_job_unavailable");
+  const checkBrand=Number(job?.brand_search_version||0)<photoVersion;
+  if(!targets.length&&!checkBrand)return reply(200,{state:"cached",added:0,remaining:0,photos:events.length,brand_checked:true});
   const {data:profile}=await admin.from("orca_ai_company_profiles").select("company_name,content").eq("ticker",ticker).maybeSingle();
-  const {data:job}=await admin.from("orca_timeline_photo_jobs").select("queries").eq("ticker",ticker).single();
   const description=[profile?.content?.overview,profile?.content?.what_they_do,profile?.content?.business_focus].filter(Boolean).join(" ");
   const queries=await businessQueries(ticker,profile?.company_name||ticker,description,job?.queries);
-  let saveFailures=0,index=0;
-  const search=await selectPhotos(accessKey,queries,targets.length,usedIds,usedUrls,async p=>{
-   const {error}=await admin.from("orca_timeline_photo_selections").upsert({
-    event_id:targets[index].id,ticker,photo_id:p.id,image_url:p.image_url,full_image_url:p.full_image_url,
+  const brand=recognizableName(profile?.company_name||"");
+  const accessKey=Deno.env.get("UNSPLASH_ACCESS_KEY")||"";
+  const existingBranded=cached.filter(p=>p.match_type==="exact_subject"&&p.image_url).length;
+  let brandAdded=0,broadAdded=0,saveFailures=0;
+  let unsplashAvailable=!!accessKey;
+  const replacements=events.filter(e=>!targets.some(t=>t.id===e.id)&&byEvent.get(e.id)?.match_type!=="exact_subject");
+  async function savePhoto(p:any,branded:boolean){
+   const target=targets[0]||(branded?replacements[0]:null);
+   if(!target)return false;
+   const old=byEvent.get(target.id);
+   const commons=p.source_type==="wikimedia_commons";
+   const record:any={event_id:target.id,ticker,photo_id:p.id,image_url:p.image_url,full_image_url:p.full_image_url,
     photo_url:p.photo_url,photographer:p.photographer,photographer_url:p.photographer_url,
-    illustrative:true,source_type:"unsplash_legacy",rights_status:"legacy_provider_terms",
-    license_name:"Unsplash License",license_url:"https://unsplash.com/license",verified_at:new Date().toISOString(),
-    source_page_url:p.photo_url,creator:p.photographer,attribution_text:"Photo by "+p.photographer+" on Unsplash",
-    match_type:"contextual",search_query:p.query,query_used:p.query,strategy_version:11,
-    needs_review:false,image_title:p.title,match_score:null,relevance_score:null
-   },{onConflict:"event_id"});
-   if(error){saveFailures++;return false}index++;return true;
-  });
-  return reply(200,{...search,state:search.added?"ready":saveFailures?"save_failed":search.provider_http_status===429?"rate_limited":search.provider_http_status!==200?"provider_error":"no_matches",
-   remaining:targets.length-search.added,save_failures:saveFailures,note:"Business illustrations, not photographs of historical events."});
+    illustrative:true,source_type:commons?"wikimedia_commons":"unsplash_legacy",rights_status:commons?"reuse_verified":"legacy_provider_terms",
+    license_name:p.license_name||"Unsplash License",license_url:p.license_url||"https://unsplash.com/license",verified_at:new Date().toISOString(),
+    source_page_url:p.photo_url,creator:p.photographer,attribution_text:p.attribution_text||"Photo by "+p.photographer+" on Unsplash",
+    match_type:branded?"exact_subject":"contextual",search_query:p.query,query_used:p.query,strategy_version:photoVersion,
+    needs_review:false,image_title:p.title,image_hash:p.image_hash||null,match_score:null,relevance_score:null};
+   if(old)record.previous_photo=old.previous_photo||old;
+   const {error}=await admin.from("orca_timeline_photo_selections").upsert(record,{onConflict:"event_id"});
+   if(error){saveFailures++;return false}
+   if(targets[0]?.id===target.id)targets.shift();else replacements.shift();
+   if(branded)brandAdded++;else broadAdded++;
+   return true;
+  }
+  const brandReports:any[]=[];
+  if(checkBrand){
+   const desired=Math.max(0,2-existingBranded);
+   if(brand&&desired){
+    const subject=/restaurant|dining|fast.food/i.test(description)?"restaurant":/retail|stores|supermarket/i.test(description)?"storefront":queries[0];
+    if(accessKey){
+     for(const query of [brand+" "+subject,brand+" signage"]){
+      if(brandAdded>=desired)break;
+      const report=await selectPhotos(accessKey,[query],query.endsWith(" signage")?desired-brandAdded:1,usedIds,usedUrls,p=>savePhoto(p,true),brand);
+      brandReports.push({provider:"unsplash",query,...report});
+      if(report.provider_http_status!==200||report.provider_rate_remaining===0){unsplashAvailable=false;break}
+     }
+    }
+    const report=await selectCommons([brand+" "+subject],desired-brandAdded,usedIds,usedUrls,p=>savePhoto(p,true),brand,usedHashes);
+    brandReports.push({provider:"wikimedia_commons",...report});
+   }
+   // Cache a completed bounded search, including a genuine no-match result.
+   // Provider outages remain eligible for an intentional retry.
+   const complete=!desired||brandReports.some(r=>r.provider_http_status===200);
+   if(complete){
+    const {error}=await admin.from("orca_timeline_photo_jobs").update({brand_search_version:photoVersion,brand_diagnostics:{brand,selected:brandAdded,reports:brandReports}}).eq("ticker",ticker);
+    if(error)throw Error("brand_status_save_failed");
+   }
+  }
+  let broad:any={added:0,provider_requests_made:0};
+  if(targets.length&&unsplashAvailable)broad=await selectPhotos(accessKey,queries,targets.length,usedIds,usedUrls,p=>savePhoto(p,false));
+  let commons:any={added:0,provider_requests_made:0};
+  if(targets.length)commons=await selectCommons(queries,targets.length,usedIds,usedUrls,p=>savePhoto(p,false),"",usedHashes);
+  const added=brandAdded+broadAdded;
+  return reply(200,{state:added?"ready":targets.length?"no_matches":"cached",added,brand_added:brandAdded,
+   branded_photos:existingBranded+brandAdded,remaining:targets.length,save_failures:saveFailures,
+   providers:{branded:brandReports,broad_unsplash:broad,broad_commons:commons},
+   note:"Illustrative company and business photographs, not photographs of historical events."});
+
  }catch(error){return reply(503,{error:error instanceof Error?error.message:"Photo selection failed"})}
  finally{await admin.from("orca_timeline_photo_jobs").update({lock_token:null,locked_until:null}).eq("ticker",ticker).eq("lock_token",token)}
 });

@@ -24,6 +24,8 @@ jobs:
         run: node scripts/test-timeline-history-backfill.cjs
       - name: Exercise the complete timeline click across saved and empty stocks
         run: node scripts/test-timeline-completion.cjs
+      - name: Verify hybrid brand photography, licenses and cache preservation
+        run: node scripts/test-hybrid-timeline-photos.cjs
   deploy-pages:
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     needs: shared-workspace

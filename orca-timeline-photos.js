@@ -134,8 +134,8 @@ export async function mountTimelinePhotos({sb,ticker,frame,rail,status,getUser,c
   }
   return getCoverage();
  }
- async function fillPhotos(){
-  if(actionPending||!getUser()||!canContribute()||!(remainingPhotos>0||duplicateCount>0))
+ async function fillPhotos(includeBrand=false){
+  if(actionPending||!getUser()||!canContribute()||!(remainingPhotos>0||duplicateCount>0||includeBrand))
    return {added:0,skipped:true,...getCoverage()};
   actionPending=true;updatePhotoAction();
   try{
@@ -156,15 +156,15 @@ export async function mountTimelinePhotos({sb,ticker,frame,rail,status,getUser,c
     data?.state==='building'?'Photo selection is already underway.':
     data?.state==='rate_limited'?'Photo provider limit reached.':
     'No additional photographs could be saved.');
-   return {added:saved,state:data?.state,...getCoverage()};
+   return {added:saved,state:data?.state,brand_added:data?.brand_added||0,branded_photos:data?.branded_photos||0,...getCoverage()};
   }catch{
    showNotice(photoFailureMessage());
    return {added:0,error:true,...getCoverage()};
   }finally{actionPending=false;updatePhotoAction()}
  }
- async function fillMissing(){
+ async function fillMissing({includeBrand=false}={}){
   await refresh();
-  return fillPhotos();
+  return fillPhotos(includeBrand);
  }
  rail.addEventListener('click',event=>{
   const card=event.target.closest?.('button[data-event-id]');
@@ -179,6 +179,7 @@ export async function mountTimelinePhotos({sb,ticker,frame,rail,status,getUser,c
    credit.append('Illustrative photo · ',link(p.source_page_url||p.photo_url,p.photographer),' via ',
     link(p.source_page_url||p.photo_url,'Wikimedia Commons'));
    if(p.license_name&&p.license_url)credit.append(' · ',link(p.license_url,p.license_name));
+   credit.append(' · cropped for card display');
   }else credit.append('Illustrative photo · Photo by ',link(p.photographer_url,p.photographer),' on ',link('https://unsplash.com/?utm_source=ai_stock_commons_orca&utm_medium=referral','Unsplash'));
   popup.append(credit);
  },false);

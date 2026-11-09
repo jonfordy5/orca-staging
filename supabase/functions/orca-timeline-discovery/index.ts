@@ -63,7 +63,7 @@ function parseOutput(raw:any){
  return JSON.parse(joined);
 }
 // Scope-specific coverage keys survive refresh without time-based cooldowns.
-const completionVersion=3;
+const completionVersion=4;
 function coverageKey(scope:string,rows:any[]){
  const year=String(new Date().getUTCFullYear());
  return year+":"+JSON.stringify(rows.filter(e=>scope==="current"?
@@ -127,7 +127,10 @@ Deno.serve(async req=>{
   if(details?.version===completionVersion&&details.terminal&&
    details.coverage_key===coverageKey(row.research_scope,existing||[]))stopped[row.research_scope]=details;
  }
- if(scope==="status")return reply(200,{state:"status",stopped});
+ if(scope==="status"){
+  const {data:photoJob}=await admin.from("orca_timeline_photo_jobs").select("brand_search_version").eq("ticker",ticker).maybeSingle();
+  return reply(200,{state:"status",stopped,photo_brand_pending:Number(photoJob?.brand_search_version||0)<12});
+ }
  // An explicit future update may bypass a saved terminal outcome. Ordinary page
  // loads and repeated completion requests reuse it, with no paid provider call.
  if(stopped[scope]&&body?.force_research!==true)
@@ -168,7 +171,7 @@ Deno.serve(async req=>{
   if(stockError||!stock?.company_name)throw Error("stock_identity_not_found");
   const {data:profile}=await admin.from("orca_ai_company_profiles")
    .select("state,usage").eq("ticker",ticker).maybeSingle();
-  const official=profile?.state==="ready"?String(profile?.usage?.official_website||""):"";
+  let official=profile?.state==="ready"?String(profile?.usage?.official_website||""):"";
   // SEC-backed profiles can research SEC originals even when no corporate site is cached.
   const apiKey=Deno.env.get("OPENAI_API_KEY");
   if(!apiKey)throw Error("openai_unconfigured");
@@ -250,6 +253,9 @@ Deno.serve(async req=>{
     const points=Array.isArray(e?.points)?e.points.map((p:any)=>String(p||"").trim()):[];
     const why=String(e?.why||"").trim();
     if(titleKeys.has(title.toLowerCase())||eventKeys.has(when+":"+sourceKey(primary||"")))continue;
+    const founding=/\b(found(?:ed|ing)?|incorporat(?:ed|ion)|opens? (?:the )?first|first (?:restaurant|store))\b/i;
+    if(founding.test(title)&&[...existingRows,...accepted].some((row:any)=>
+     String(row.event_at||row.date).slice(0,10)===when&&founding.test(String(row.title))))continue;
     if(!/^\d{4}-\d{2}-\d{2}$/.test(when)||!Number.isFinite(parsedDate)
      ||parsedDate>Date.now()||parsedDate<Date.parse("1800-01-01")
      ||(historicalGap&&when.startsWith(String(currentYear)+"-"))
@@ -344,6 +350,13 @@ Deno.serve(async req=>{
    }finally{clearTimeout(timer)}
    if(!response.ok)throw Error("provider_"+response.status);
    const result=await response.json();
+   const officialAtRequest=official;
+   // Company profiles can finish while this first research request is running.
+   // Reuse the now-verified identity instead of rejecting all corporate sources.
+   if(!official){
+    const {data:latest}=await admin.from("orca_ai_company_profiles").select("state,usage").eq("ticker",ticker).maybeSingle();
+    if(latest?.state==="ready")official=String(latest?.usage?.official_website||"");
+   }
    tokensIn+=Number(result.usage?.input_tokens||0);
    tokensOut+=Number(result.usage?.output_tokens||0);
    searchCalls+=(result.output||[]).filter((x:any)=>x.type==="web_search_call"&&x.status==="completed").length;
@@ -361,7 +374,7 @@ Deno.serve(async req=>{
    }
    if(result.status==="incomplete")throw Error("provider_incomplete_"+String(result.incomplete_details?.reason||"unknown"));
    const parsed=parseOutput(result);
-   diagnostics.push({provider_status:result.status||null,incomplete_details:result.incomplete_details||null,
+   diagnostics.push({official_at_request:officialAtRequest,official_at_validation:official,provider_status:result.status||null,incomplete_details:result.incomplete_details||null,
     candidates:(parsed.milestones||[]).map((e:any)=>({date:e.date,title:e.title,source_url:e.source_url,
      allowed_source:!!safeSource(String(e.source_url||""),official)}))});
    console.log(JSON.stringify({diagnostic:"timeline_candidates_v2",run_id:run,ticker,scope,diagnostics,estimated_usd:cost}));

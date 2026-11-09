@@ -12,9 +12,10 @@ function event(i,override={}){
   points:['A detailed original source supports this historical milestone','The specific development changed the company during this era'],
   why:'This development had enduring significance for Ford Motor Company.',...override};
 }
-async function run({existing=9,batches=[[event(90)]],usage=[{input_tokens:1000,output_tokens:1200,searches:1}],postStatus=200,verifiedUrls=[],budget,scope='history',official='https://corporate.ford.com',ticker='F',historyRows,recentRuns=[],force=false,finalPass=false,completedRunIds=[]}={}){
+async function run({existing=9,batches=[[event(90)]],usage=[{input_tokens:1000,output_tokens:1200,searches:1}],postStatus=200,verifiedUrls=[],budget,scope='history',official='https://corporate.ford.com',ticker='F',historyRows,recentRuns=[],force=false,finalPass=false,completedRunIds=[],profileInitiallyBuilding=false}={}){
  let handler,apiRequests=[],finished=[],reserves=0;
  const runs=structuredClone(recentRuns);
+ let profileReads=0;
  const history=historyRows||Array.from({length:existing},(_,i)=>({
   id:'old'+i,title:'Existing milestone '+i,event_at:'19'+String(20+i).padStart(2,'0')+'-06-15',
   source_url:'https://corporate.ford.com/articles/history/existing-'+i+'/'
@@ -37,7 +38,7 @@ async function run({existing=9,batches=[[event(90)]],usage=[{input_tokens:1000,o
     select(){return q},update(value){state.update=value;return q},in(){return q},eq(){return q},neq(){return q},is(){return q},limit(){return q},order(){return q},
     single(){return Promise.resolve(table==='stocks'?{data:{company_name:'Ford Motor Company'},error:null}:{data:null,error:null})},
     maybeSingle(){return Promise.resolve(table==='orca_ai_company_profiles'?
-     {data:{state:'ready',usage:{official_website:official}},error:null}:
+     {data:(profileInitiallyBuilding&&++profileReads===1)?{state:'building'}:{state:'ready',usage:{official_website:official}},error:null}:
      {data:null,error:null})},
     then(ok,bad){if(state.update&&runs[0])Object.assign(runs[0],state.update);return Promise.resolve({data:table==='orca_timeline_annotations'?structuredClone(history):table==='orca_timeline_generation_runs'?runs:null,error:null}).then(ok,bad)}
    };
@@ -151,7 +152,7 @@ async function run({existing=9,batches=[[event(90)]],usage=[{input_tokens:1000,o
  assert.equal(t.status,200);
  console.log('PASS backend founding validation matches legitimate launch-at-university event');
 
- for(const count of [4,6,8,9,10]){
+ for(const count of [4,6,7,8,9,10]){
   const first=Array.from({length:count},(_,i)=>event(i+1));
   const gaps=Array.from({length:10-count},(_,i)=>event(i+count+1));
   t=await run({existing:0,budget:.075,batches:[first,gaps],usage:[
@@ -168,7 +169,7 @@ async function run({existing=9,batches=[[event(90)]],usage=[{input_tokens:1000,o
   }
   assert.equal(new Set(t.finished[0].p_events.map(e=>e.title)).size,10);
  }
- console.log('PASS realistic 4/6/8/9/10 first batches: all eligible gaps filled within allocated budget, no redundant full search');
+ console.log('PASS realistic 4/6/7/8/9/10 first batches: all eligible gaps filled within allocated budget, no redundant full search');
  t=await run({existing:0,budget:.075,batches:[Array.from({length:6},(_,i)=>event(i+1)),
   [event(20,{source_url:'https://unrelated.test/release'}),event(1,{title:'A renamed duplicate historical fact',source_url:event(1).source_url+'?utm_source=search'})]],usage:[
    {input_tokens:14029,output_tokens:2258,searches:2},{input_tokens:10000,output_tokens:700,searches:1}]});
@@ -200,5 +201,12 @@ async function run({existing=9,batches=[[event(90)]],usage=[{input_tokens:1000,o
  t=await run({scope:'status',historyRows:changedHistory,recentRuns:cachedRuns});
  assert.equal(Object.keys(t.body.stopped).length,0);
  console.log('PASS server settles exhausted click from recorded costs; new saved evidence invalidates the old limitation');
+
+ t=await run({existing:0,batches:[[event(1),event(2)]],profileInitiallyBuilding:true,budget:.075});
+ assert.equal(t.status,200);assert.equal(t.body.total_cached,2);
+ assert.equal(t.body.diagnostics[0].official_at_request,'');
+ assert.equal(t.body.diagnostics[0].official_at_validation,'https://corporate.ford.com');
+ assert(t.body.diagnostics[0].candidates.every(c=>c.allowed_source));
+ console.log('PASS TXRH profile race: corporate sources validated against the identity that became ready during research');
  console.log('ALL TARGETED TIMELINE TESTS PASSED');
 })().catch(e=>{console.error(e);process.exitCode=1});

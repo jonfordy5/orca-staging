@@ -10,17 +10,17 @@ const y=new Date().getUTCFullYear();
 const historical=(title,i)=>({id:'old'+i,title,event_at:'2004-02-04',source_url:'https://www.meta.com/about/company-info/'});
 const history=(count=10,origin='Facebook launches at Harvard')=>Array.from({length:count},(_,i)=>historical(i?'Historical milestone '+i:origin,i));
 const current=()=>({...historical('Verified current year event',10),event_at:y+'-02-04'});
-async function run({rows=[],initial=10,failCurrent=false,gapLimit=10,historyCost=.04068,currentCost=.03109,gapCost=.024,stopped={}}={}){
+async function run({rows=[],initial=10,failCurrent=false,gapLimit=10,historyCost=.04068,currentCost=.03109,gapCost=.024,stopped={},brandPending=false}={}){
  let saved=structuredClone(rows),requests=[],statusCalls=0,feedback='',photoCalls=0,missing=0,historyCalls=0;
- let stored=structuredClone(stopped);
+ let stored=structuredClone(stopped),storedBrandPending=brandPending;
  const ctx={Set,Number,Date,Math,Object,ticker:'TEST',getUser:()=>({id:'u'}),checkHistoryPermission:async()=>true,
   rail:{querySelector:()=>null},frame:{querySelector:()=>null},
   showResearchFeedback:message=>feedback=message,
   loadEvents:async()=>{ctx.allVerified=structuredClone(saved)},
   updateCompleteAction(){},
-  photoMount:{refresh:async()=>({missing,duplicates:0}),fillMissing:async()=>{photoCalls++;missing=0;return {added:1}}},
+  photoMount:{refresh:async()=>({missing,duplicates:0}),fillMissing:async()=>{photoCalls++;missing=0;storedBrandPending=false;return {added:1,branded_photos:2}}},
   sb:{functions:{invoke:async(name,{body})=>{
-   if(body.scope==='status'){statusCalls++;return {data:{stopped:stored}}}
+   if(body.scope==='status'){statusCalls++;return {data:{stopped:stored,photo_brand_pending:storedBrandPending}}}
    requests.push(body);
    if(body.scope==='history'){
     historyCalls++;
@@ -69,7 +69,7 @@ async function run({rows=[],initial=10,failCurrent=false,gapLimit=10,historyCost
  assert.equal(r.saved.length,10);assert.deepEqual(r.saved.slice(0,7),teslaBefore);
  assert.equal(r.photoCalls,1);assert.equal(r.eligible,false);
  console.log('PASS saved TSLA 6+1: one focused history stage fills three gaps without repeating current year, founding or existing history');
- for(const initial of [4,6,8,9,10]){
+ for(const initial of [4,6,7,8,9,10]){
   r=await run({initial});
   assert.deepEqual(r.requests.map(x=>x.scope),initial<9?['history','current','history']:['history','current']);
   assert.equal(r.requests[0].max_budget_usd,.075);
@@ -81,7 +81,7 @@ async function run({rows=[],initial=10,failCurrent=false,gapLimit=10,historyCost
   let spent=0;for(let i=0;i<costs.length;i++){assert(costs[i]<=r.requests[i].max_budget_usd);spent+=costs[i]}
   assert(spent<=.15);assert.equal(new Set(r.saved.map(x=>x.id)).size,r.saved.length);
  }
- console.log('PASS 4/6/8/9/10 partial histories: all eligible stages run in one click with accurate shared allocations');
+ console.log('PASS 4/6/7/8/9/10 partial histories: all eligible stages run in one click with accurate shared allocations');
  r=await run({initial:6,gapLimit:0});
  assert.equal(r.saved.length,7);assert(r.feedback.includes('Timeline incomplete:'));assert.equal(r.eligible,false);
  assert(r.limitations.includes('no additional original-source evidence'));
@@ -92,6 +92,9 @@ async function run({rows=[],initial=10,failCurrent=false,gapLimit=10,historyCost
  assert.equal(r.saved.length,7);assert(r.feedback.includes('$0.149'));assert.equal(r.eligible,false);
  assert(r.limitations.includes('shared research budget used'));
  console.log('PASS budget-limited final history pass saves partial results, reports $0.149 and stops');
+ r=await run({rows:[...history(),current()],brandPending:true});
+ assert.equal(r.requests.length,0);assert.equal(r.photoCalls,1);assert.equal(r.saved.length,11);
+ console.log('PASS completed company can receive a one-time branded-photo upgrade with the same button and no history research');
  r=await run({rows:history(),failCurrent:true});
  assert.equal(r.saved.length,10);assert(r.feedback.includes('no verified '+y+' event'));assert.equal(r.eligible,false);
  console.log('PASS unverifiable current-year evidence leaves an explicit cached limitation');

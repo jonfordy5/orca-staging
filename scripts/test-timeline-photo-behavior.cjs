@@ -7,17 +7,17 @@ const photo=(id,alt='')=>({id,width:1600,height:1000,alt_description:alt,
  urls:{regular:'https://images.unsplash.com/photo-'+id+'?w=900',raw:'https://images.unsplash.com/photo-'+id},
  links:{html:'https://unsplash.com/photos/'+id,download_location:'https://api.unsplash.com/photos/'+id+'/download'},
  user:{name:'Photographer',links:{html:'https://unsplash.com/@photographer'}}});
-function harness({signedIn=true,consent=true,locked=true,events=[],cached=[]}={}){
+function harness({signedIn=true,consent=true,locked=true,events=[],cached=[],job={queries:['oil refinery'],brand_search_version:12}}={}){
  let handler,network=0,unlocks=0;
  const admin={auth:{getUser:async()=>({data:{user:signedIn?{id:'owner'}:null}})},
  rpc:async()=>({data:locked}),from(table){
- let result={data:table==='agent_profiles'?(consent?[{id:'researcher'}]:[]):table==='orca_timeline_annotations'?events:table==='orca_timeline_photo_selections'?cached:null};
+ let result={data:table==='agent_profiles'?(consent?[{id:'researcher'}]:[]):table==='orca_timeline_annotations'?events:table==='orca_timeline_photo_selections'?cached:table==='orca_timeline_photo_jobs'?job:null};
  const q={select(){return q},eq(){return q},is(){return q},neq(){return q},order(){return q},limit(){return q},range(){return q},
- update(){unlocks++;return q},then(resolve){return Promise.resolve(result).then(resolve)}};return q;
+ single(){return Promise.resolve(result)},maybeSingle(){return Promise.resolve(result)},update(){unlocks++;return q},then(resolve){return Promise.resolve(result).then(resolve)}};return q;
  }};
  const ctx={createClient:()=>admin,Deno:{env:{get:()=>''},serve:f=>handler=f},URL,URLSearchParams,Response,Request,AbortSignal,crypto,console,
  fetch:async()=>{network++;throw Error('Unexpected provider call')}};
- vm.createContext(ctx);vm.runInContext(stripTypeScriptTypes(source)+'\nglobalThis.api={candidate,originalUrl,businessQueries};',ctx);
+ vm.createContext(ctx);vm.runInContext(stripTypeScriptTypes(source)+'\nglobalThis.api={candidate,originalUrl,businessQueries,brandMatch,commonsCandidate,recognizableName};',ctx);
  return {api:ctx.api,invoke:async()=>{
  const r=await handler(new Request('https://test',{method:'POST',headers:{Origin:'https://jonfordy5.github.io',Authorization:'Bearer test'},body:JSON.stringify({ticker:'CVX'})}));
  return {status:r.status,body:await r.json(),network,unlocks};

@@ -171,7 +171,7 @@ check('Timeline extends beyond the newest milestone and fades into the future', 
   timeline.includes("base.setAttribute('mask','url(#'+tailId+')')") &&
   timeline.includes("beam.setAttribute('mask','url(#'+tailId+')')") &&
   timeline.includes('Math.max(420,Math.round') &&
-  workspace.includes('v=completion-gap-followup-v41'));
+  workspace.includes('v=universal-hybrid-v42'));
 
 check('Open-ended timeline preserves milestones and beam arrival effects', () =>
   timeline.includes('const nodeDistances=[0]') &&
@@ -203,7 +203,7 @@ check('Timeline initially centers the middle milestone while navigation remains 
   timeline.includes("centerMilestone(card,'auto')") &&
   timeline.includes("prev.addEventListener('click',()=>jumpTo(0))") &&
   timeline.includes("next.addEventListener('click',()=>jumpTo(data.length-1))") &&
-  workspace.includes('v=completion-gap-followup-v41'));
+  workspace.includes('v=universal-hybrid-v42'));
 
 check('Mobile history stays a swipe carousel without zigzag or glowing track', () =>
   workspace.includes('touch-action:pan-x!important') &&
@@ -229,8 +229,8 @@ check('No separate photo button: the unified research action owns picture comple
   photos.includes('button.hidden=true') &&
   photos.includes('return {refresh,fillMissing,getCoverage};') &&
   photos.includes('visibleCards.filter(card=>!photos.has(card.dataset.eventId))') &&
-  timeline.includes('photoMount.fillMissing()') &&
-  timeline.includes("const needed=completionStatusKnown&&(needsResearch()||photoMissing>0)"));
+  timeline.includes('photoMount.fillMissing({includeBrand:brandPhotoPending})') &&
+  timeline.includes("const needed=completionStatusKnown&&(needsResearch()||needsPhotoWork())"));
 check('Open-ended photo coverage never repeats an old saved image', () =>
   photos.includes('seen.has(p.photo_id)') &&
   photos.includes('seen.add(p.photo_id)') &&
@@ -303,7 +303,7 @@ check('Empty new stock boards cannot render two Complete timeline buttons', () =
  timeline.includes('if(!old){') &&
  timeline.includes('frame.insertBefore(generate,rail)'));
 check('Missing image records keep Complete timeline action available', () =>
- timeline.includes("const mayRequestHistory=()=>completionStatusKnown&&!discoveryPending&&(needsResearch()||photoMissing>0)") &&
+ timeline.includes("const mayRequestHistory=()=>completionStatusKnown&&!discoveryPending&&(needsResearch()||needsPhotoWork())") &&
  timeline.includes('photoMissing=Math.max(0,Number(coverage?.missing||0))') &&
  photos.includes('return getCoverage();'));
 check('Open-ended histories provide opt-in founding and current-year refreshes', () =>
@@ -353,9 +353,9 @@ check('Photo selection is initiated only by a signed-in Complete timeline click'
   !photos.includes('diagnosticsButton') &&
   !photos.includes("button.addEventListener('click',()=>void fillPhotos())") &&
   !photos.includes('autoRepairAttempted') &&
-  photos.includes('async function fillMissing()') &&
+  photos.includes('async function fillMissing({includeBrand=false}={})') &&
   photos.includes('await refreshAndMaybeFill()') &&
-  timeline.includes('const photoResult=await photoMount.fillMissing()'));
+  timeline.includes('const photoResult=await photoMount.fillMissing({includeBrand:brandPhotoPending})'));
 
 console.log('\nShared workspace checks: ' + passed + ' passed, ' + failures.length + ' failed.');
 if (failures.length) process.exitCode = 1;
