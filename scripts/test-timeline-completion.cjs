@@ -58,11 +58,17 @@ async function run({rows=[],initial=10,failCurrent=false,gapLimit=10,historyCost
  let r=await run({rows:history()});
  assert.deepEqual(r.requests.map(x=>x.scope),['current']);assert.equal(r.saved.length,11);assert.equal(r.photoCalls,1);assert(r.feedback.includes('Timeline complete.'));
  console.log('PASS META: existing founding/history reused; current-year event and photo finish in one click');
- for(const origin of ['McDonald brothers open the first McDonald’s','Intel incorporates to pursue continuous innovation','Sam Walton opens first Walmart in Rogers']){
+ for(const origin of ['Facebook launches at Harvard','McDonald brothers open the first McDonald’s','Intel incorporates to pursue continuous innovation','Sam Walton opens first Walmart in Rogers']){
   r=await run({rows:[...history(10,origin),current()]});
   assert.equal(r.requests.length,0);assert.equal(r.photoCalls,0);assert.equal(r.saved.length,11);assert.equal(r.eligible,false);
  }
- console.log('PASS WMT/INTC/MCD: saved completion has no research calls, image calls or completion action');
+ console.log('PASS WMT/META/INTC/MCD: saved completion has no research calls, image calls or completion action');
+ const teslaBefore=[...history(6,'Tesla is incorporated in Delaware'),current()];
+ r=await run({rows:teslaBefore,historyCost:.03834});
+ assert.deepEqual(r.requests.map(x=>x.scope),['history']);
+ assert.equal(r.saved.length,10);assert.deepEqual(r.saved.slice(0,7),teslaBefore);
+ assert.equal(r.photoCalls,1);assert.equal(r.eligible,false);
+ console.log('PASS saved TSLA 6+1: one focused history stage fills three gaps without repeating current year, founding or existing history');
  for(const initial of [4,6,8,9,10]){
   r=await run({initial});
   assert.deepEqual(r.requests.map(x=>x.scope),initial<9?['history','current','history']:['history','current']);
