@@ -1,27 +1,7 @@
 name: ORCA shared workspace consistency
 on:
   push:
-    paths:
-      - 'research-workspace.html'
-      - 'research-workspace-staging.html'
-      - 'orca-company-profile.js'
-      - 'orca-auto-company-profile.js'
-      - 'orca-stock-search.js'
-      - 'orca-living-timeline.js'
-      - 'orca-timeline-photos.js'
-      - 'supabase/functions/orca-timeline-photo-fill/**'
-      - 'supabase/functions/orca-timeline-discovery/**'
-      - 'sql/orca_timeline_immediate_targeted_completion.sql'
-      - 'sql/orca_timeline_open_ended_periodic_updates.sql'
-      - 'sql/orca_timeline_unique_approved_photos.sql'
-      - 'scripts/test-timeline-history-backfill.cjs'
-      - 'scripts/test-timeline-completion.cjs'
-      - 'supabase/migrations/**'
-      - 'scripts/test-timeline-photo-behavior.cjs'
-      - 'scripts/test-unsplash-progressive-search.cjs'
-      - 'docs/orca-company-page-standard.md'
-      - 'scripts/check-shared-research-workspace.cjs'
-      - '.github/workflows/orca-workspace-consistency.yml'
+    branches: [main]
   pull_request:
   workflow_dispatch:
 permissions:
@@ -44,3 +24,30 @@ jobs:
         run: node scripts/test-timeline-history-backfill.cjs
       - name: Exercise the complete timeline click across saved and empty stocks
         run: node scripts/test-timeline-completion.cjs
+  deploy-pages:
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    needs: shared-workspace
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    concurrency:
+      group: orca-pages-deployment
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use the verified Actions deployment instead of automatic branch publishing
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api --method PUT "repos/${{ github.repository }}/pages" -f build_type=workflow
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.'
+      - name: Publish only after syntax and regression checks pass
+        id: deployment
+        uses: actions/deploy-pages@v4
