@@ -40,10 +40,6 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
-      - name: Use the verified Actions deployment instead of automatic branch publishing
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: gh api --method PUT "repos/${{ github.repository }}/pages" -f build_type=workflow
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
