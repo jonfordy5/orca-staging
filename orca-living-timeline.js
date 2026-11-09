@@ -584,7 +584,7 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
   if(card)centerMilestone(card,'auto');
  });
  try{
-  const module=await import('./orca-timeline-photos.js?v=kiss-photo-v21');
+  const module=await import('./orca-timeline-photos.js?v=one-button-photos-v22');
   photoMount=await module.mountTimelinePhotos({sb,ticker,frame,rail,status,getUser,canContribute:()=>historyAuthorized});
   const coverage=photoMount.getCoverage();
   photoMissing=Math.max(0,Number(coverage?.missing||0))+Math.max(0,Number(coverage?.duplicates||0));
