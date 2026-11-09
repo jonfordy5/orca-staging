@@ -36,14 +36,14 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
  const year=()=>new Date().getUTCFullYear();
  const halfYearStart=()=>new Date(Date.UTC(year(),new Date().getUTCMonth()<6?0:6,1));
  const isOrigin=e=>e?.quick_brief?.era==='founding'||
-  /\b(found(?:ed|ing)?|incorporat(?:e(?:d|s)?|ing|ion)|establish(?:ed|ment)|began as|begins as|first (?:store|operation|business))\b/i.test(String(e?.title||''));
+  /\b(found(?:ed|ing)?|incorporat(?:e(?:d|s)?|ing|ion)|establish(?:ed|ment)|began as|begins as|first (?:store|operation|business|restaurant|location)|open(?:s|ed)?\s+(?:the\s+)?first)\b/i.test(String(e?.title||''));
  const hasOrigin=()=>allVerified.some(isOrigin);
  const hasCurrentYear=()=>allVerified.some(e=>new Date(e.event_at).getUTCFullYear()===year());
  const hasCurrentHalf=()=>allVerified.some(e=>new Date(e.event_at)>=halfYearStart());
  // A first-ever stock timeline needs the full multi-event history pass.
  const researchNeed=()=>allVerified.length<initialHistoryGoal?'history':!hasOrigin()?'origin':
   (!hasCurrentYear()||!hasCurrentHalf())?'current':'none';
- const mayRequestHistory=()=>!discoveryPending&&researchNeed()!=='none';
+ const mayRequestHistory=()=>!discoveryPending&&(researchNeed()!=='none'||photoMissing>0);
  let discoveryPending=false;
  let researchFeedback='';
  let historyAuthorized=false;
@@ -51,6 +51,7 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
  let historyPermissionPending=false;
  let prices=[];
  let photoMount=null;
+ let photoMissing=0;
  let lastEventFingerprint='';
  // Render the zigzag directly through measured photo connector endpoints.
  // No circles, no gaps, and no hard-coded node coordinates.
@@ -292,6 +293,21 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
   const selected=rail.querySelector('.orca-timeline-event[data-index="'+activeIndex+'"]');
   if(selected){centerMilestone(selected);selected.focus({preventScroll:true});}
  }
+ function updateCompleteAction(){
+  const old=frame.querySelector('.orca-history-refill-action');
+  const needed=researchNeed()!=='none'||photoMissing>0;
+  if(!needed||!getUser()){old?.remove();return}
+  const generate=old||document.createElement('button');
+  generate.type='button';
+  generate.className='orca-timeline-generate orca-history-refill-action';
+  generate.textContent=discoveryPending?'Completing company timeline…':'Complete company timeline';
+  generate.title='One authorized action checks missing sourced milestones and unique photo coverage';
+  generate.disabled=discoveryPending||!historyAuthorized;
+  if(!old){
+   generate.addEventListener('click',()=>void maybePopulateCompanyHistory());
+   frame.insertBefore(generate,rail);
+  }
+ }
  function renderCards(){
   // Rebuild the visible refill toolbar with the cards, never inside the
   // horizontally scrolling event rail where it would disappear off-screen.
@@ -314,6 +330,7 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
     generate.className='orca-timeline-generate';
     generate.textContent='Complete company timeline';
     generate.title='Complete missing sourced history, founding and current-year milestones within a shared $0.15 estimated budget';
+    generate.disabled=discoveryPending||!historyAuthorized;
     generate.addEventListener('click',()=>void maybePopulateCompanyHistory());
     rail.append(generate);
    }
@@ -361,17 +378,8 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
    spine.append(stop);
   });
   rail.append(spine);
-  // Incomplete cached timelines offer a deliberate refill, never a paid page-view retry.
-  if(researchNeed()!=='none'&&getUser()){
-   const generate=document.createElement('button');
-   generate.type='button';
-   generate.className='orca-timeline-generate orca-history-refill-action';
-   generate.textContent='Complete company timeline';
-   generate.title='Complete missing sourced history, founding and current-year milestones within a shared $0.15 estimated budget';
-   generate.disabled=!mayRequestHistory();
-   generate.addEventListener('click',()=>void maybePopulateCompanyHistory());
-   frame.insertBefore(generate,rail);
-  }
+  // A single control handles both research and optional photographs.
+  updateCompleteAction();
   fitRailEdges();
   drawHistoryTrack();
   // Do not automatically display milestone details.
@@ -452,6 +460,7 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
   }catch{historyAuthorized=false}
   finally{historyPermissionPending=false}
   if(photoMount)void photoMount.refresh();
+  updateCompleteAction();
   return historyAuthorized;
  }
  function showResearchFeedback(message){
@@ -538,8 +547,57 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
     }
    }
    await loadEvents();
-   showResearchFeedback(summaries.join(' ')+' Estimated research cost this click: $'+spent.toFixed(3)+
-    ' / $0.15. '+allVerified.length+' sourced milestones saved.');
+   // Photo selection is an internal, authorized part of this action, not
+   // another button. It never generates historical milestones or adds
+   // to the $0.15 research-generation estimate.
+   if(photoMount&&allVerified.length){
+    const initial=await photoMount.refresh();
+    photoMissing=Math.max(0,Number(initial?.missing||0))+Math.max(0,Number(initial?.duplicates||0));
+    if(photoMissing){
+     showResearchFeedback('Company history checked. Finding distinct business photographs for missing cards…');
+     const photoResult=await photoMount.fillMissing();
+     const coverage=await photoMount.refresh();
+     photoMissing=Math.max(0,Number(coverage?.missing||0))+Math.max(0,Number(coverage?.duplicates||0));
+     summaries.push(photoMissing===0?'Photo coverage complete.':
+      photoMissing+' image slot'+(photoMissing===1?'':'s')+' still awaiting source photos.');
+     if(photoResult?.error)summaries.push('Image provider request could not finish.');
+    }
+   }
+   showResearchFeedback(summaries.join(' ')+' Estimated history research cost this click: 
+  }finally{
+   discoveryPending=false;
+   updateCompleteAction();
+   const button=rail.querySelector('.orca-timeline-generate');
+   if(button){button.disabled=!mayRequestHistory();button.textContent='Complete company timeline';}
+  }
+ }
+ // Display cached history immediately; paid history research remains opt-in.
+ await loadEvents();
+ // Cached histories and existing photo repairs should work immediately
+ // without relying on the old manual Living Timeline toggle.
+ await checkHistoryPermission();
+ requestAnimationFrame(()=>{
+  fitRailEdges();
+  drawHistoryTrack();
+  const middle=Math.floor((data.length-1)/2);
+  const card=rail.querySelector('.orca-timeline-event[data-index="'+middle+'"]');
+  if(card)centerMilestone(card,'auto');
+ });
+ try{
+  const module=await import('./orca-timeline-photos.js?v=kiss-photo-v21');
+  photoMount=await module.mountTimelinePhotos({sb,ticker,frame,rail,status,getUser,canContribute:()=>historyAuthorized});
+  const coverage=photoMount.getCoverage();
+  photoMissing=Math.max(0,Number(coverage?.missing||0))+Math.max(0,Number(coverage?.duplicates||0));
+  updateCompleteAction();
+ }catch(error){console.warn('Optional history photography is unavailable',error)}
+ const poll=setInterval(()=>{if(document.visibilityState==='visible')loadEvents()},60000);
+ window.addEventListener('pagehide',()=>{stopBeam();clearInterval(poll)},{once:true});
+}
++spent.toFixed(3)+
+    ' / $0.15. '+allVerified.length+' sourced milestones saved.'+
+    (researchNeed()==='none'&&photoMissing===0?' Timeline complete.':
+     ' Remaining research or photo work was not invented or automatically retried.'));
+   updateCompleteAction();
   }finally{
    discoveryPending=false;
    const button=frame.querySelector('.orca-history-refill-action')||rail.querySelector('.orca-timeline-generate');
