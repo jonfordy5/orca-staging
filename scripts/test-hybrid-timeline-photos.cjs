@@ -68,6 +68,8 @@ async function run({count=11,cachedCount=0,brand='Wendy’s',version=0,unsplashS
  assert.equal(t.body.remaining,0);assert.equal(t.body.branded_photos,1);
  const {api}=t;
  assert.equal(api.recognizableName('The Wendy’s Company Common Stock'),"Wendy's");
+ assert.equal(api.recognizableName("Wendy's Company (The) Common Stock"),"Wendy's");
+ assert.equal(api.recognizableName('Rocket Lab USA Inc. Common Stock'),'Rocket Lab');
  assert.equal(api.brandMatch('Wendy’s restaurant exterior',"Wendy's"),true);
  assert.equal(api.brandMatch('An abandoned Wendy’s restaurant',"Wendy's"),false);
  assert.equal(api.brandMatch('A generic hamburger',"Wendy's"),false);

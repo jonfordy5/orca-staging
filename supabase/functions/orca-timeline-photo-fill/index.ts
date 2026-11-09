@@ -18,9 +18,9 @@ const photoVersion=12;
 const commonsAgent="ORCA-Timeline/2.0 (https://github.com/jonfordy5/orca-staging)";
 function plain(value:unknown){return String(value||"").replace(/<[^>]*>/g," ").replace(/&amp;/g,"&").replace(/&#0?39;|&apos;/g,"'").replace(/&quot;/g,'"').replace(/&nbsp;/g," ").replace(/\s+/g," ").trim()}
 function recognizableName(company:string){
- return company.replace(/^The\s+/i,"").replace(/[’‘]/g,"'")
+ return company.replace(/\(\s*The\s*\)/gi,"").replace(/^The\s+/i,"").replace(/[’‘]/g,"'")
   .replace(/\b(?:Common Stock|Ordinary Shares|Class [A-Z]|Holdings?|Corporation|Incorporated|Company|Limited|Inc|Corp|Ltd|PLC|Co)\b\.?/gi,"")
-  .replace(/[, ]+$/g,"").replace(/\s+/g," ").trim();
+  .replace(/[ ,.-]+$/g,"").replace(/\s+/g," ").trim().replace(/\s+USA$/i,"");
 }
 function words(value:string){return plain(value).toLowerCase().replace(/[’‘']/g,"").replace(/[^a-z0-9]+/g," ").trim()}
 function brandMatch(title:string,brand:string){
@@ -199,9 +199,11 @@ Deno.serve(async(req:Request)=>{
   const checkBrand=Number(job?.brand_search_version||0)<photoVersion;
   if(!targets.length&&!checkBrand)return reply(200,{state:"cached",added:0,remaining:0,photos:events.length,brand_checked:true});
   const {data:profile}=await admin.from("orca_ai_company_profiles").select("company_name,content").eq("ticker",ticker).maybeSingle();
+  let company=profile?.company_name||"";
+  if(!company){const {data:stock}=await admin.from("stocks").select("company_name").eq("ticker",ticker).single();company=stock?.company_name||"";}
   const description=[profile?.content?.overview,profile?.content?.what_they_do,profile?.content?.business_focus].filter(Boolean).join(" ");
-  const queries=await businessQueries(ticker,profile?.company_name||ticker,description,job?.queries);
-  const brand=recognizableName(profile?.company_name||"");
+  const queries=await businessQueries(ticker,company||ticker,description,job?.queries);
+  const brand=recognizableName(company);
   const accessKey=Deno.env.get("UNSPLASH_ACCESS_KEY")||"";
   const existingBranded=cached.filter(p=>p.match_type==="exact_subject"&&p.image_url).length;
   let brandAdded=0,broadAdded=0,saveFailures=0;
