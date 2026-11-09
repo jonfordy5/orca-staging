@@ -188,6 +188,3 @@ export async function mountTimelinePhotos({sb,ticker,frame,rail,status,getUser,c
  await refreshAndMaybeFill();
  return {refresh,fillMissing,getCoverage};
 }
- await refreshAndMaybeFill();
- return {refresh:refreshAndMaybeFill};
-}
