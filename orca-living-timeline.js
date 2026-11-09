@@ -36,15 +36,18 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
  const year=()=>new Date().getUTCFullYear();
  const halfYearStart=()=>new Date(Date.UTC(year(),new Date().getUTCMonth()<6?0:6,1));
  const isOrigin=e=>e?.quick_brief?.era==='founding'||
-  /\b(found(?:ed|ing)?|incorporat(?:e(?:d|s)?|ing|ion)|establish(?:ed|ment)|began as|begins as|first (?:store|operation|business|restaurant|location)|open(?:s|ed)?\s+(?:the\s+)?first)\b/i.test(String(e?.title||''));
+  /\b(found(?:ed|ing)?|incorporat(?:e(?:d|s)?|ing|ion)|establish(?:ed|ment)|began as|begins as|first (?:store|operation|business|restaurant|location)|open(?:s|ed)?\s+(?:the\s+)?first|launch(?:es|ed)\s+at\s+(?:harvard|a university|university|college))\b/i.test(String(e?.title||''));
  const hasOrigin=()=>allVerified.some(isOrigin);
  const hasCurrentYear=()=>allVerified.some(e=>new Date(e.event_at).getUTCFullYear()===year());
  const hasCurrentHalf=()=>allVerified.some(e=>new Date(e.event_at)>=halfYearStart());
  // A first-ever stock timeline needs the full multi-event history pass.
- const researchNeed=()=>allVerified.length<initialHistoryGoal?'history':!hasOrigin()?'origin':
-  (!hasCurrentYear()||!hasCurrentHalf())?'current':'none';
+ // Build the starter history first, then fill the missing current-year and
+ // founding anchors. Optional half-year refreshes don't block completion.
+ const researchNeed=()=>!allVerified.length?'history':!hasCurrentYear()?'current':
+  !hasOrigin()?'origin':allVerified.length<initialHistoryGoal?'history':'none';
  const mayRequestHistory=()=>!discoveryPending&&(researchNeed()!=='none'||photoMissing>0);
  let discoveryPending=false;
+ let completionAttemptedThisView=false;
  let researchFeedback='';
  let historyAuthorized=false;
  let historyPermissionKnownFor=null;
@@ -307,7 +310,8 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
    return;
   }
   const needed=researchNeed()!=='none'||photoMissing>0;
-  if(!needed||!getUser()){old?.remove();return}
+  // Never present an apparent second paid action in the same page view.
+  if(!needed||completionAttemptedThisView||!getUser()){old?.remove();return}
   const generate=old||document.createElement('button');
   generate.type='button';
   generate.className='orca-timeline-generate orca-history-refill-action';
@@ -492,6 +496,7 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
    showResearchFeedback('Enable research consent in your ORCA researcher profile to complete company history.');
    return;
   }
+  completionAttemptedThisView=true;
   discoveryPending=true;
   researchFeedback='';
   rail.querySelector('.orca-timeline-research-feedback')?.remove();
@@ -503,9 +508,10 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
   const summaries=[];
   // One intentional click handles the missing stages sequentially. Reload
   // cached milestones after each call and never repeat the same research scope.
-  const nextScope=()=>allVerified.length<initialHistoryGoal&&!attempted.has('history')?'history':
+  const nextScope=()=>!allVerified.length&&!attempted.has('history')?'history':
+   !hasCurrentYear()&&!attempted.has('current')?'current':
    !hasOrigin()&&!attempted.has('origin')?'origin':
-   !hasCurrentHalf()&&!attempted.has('current')?'current':null;
+   allVerified.length<initialHistoryGoal&&!attempted.has('history')?'history':null;
   try{
    for(let stage=0;stage<3;stage++){
     const scope=nextScope();
@@ -532,10 +538,13 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
       spent+=Math.max(0,Number(details?.estimated_usd)||0);
       const code=String(details?.code||'');
       summaries.push(code==='no_acceptable_primary_source_milestones'?
-       'No new '+scope+' milestones passed first-party source checks.':
+       'No verified '+scope+' milestone was available from primary sources.':
        code==='cost_envelope_exceeded'?
        'Stopped '+scope+' research at the research budget limit.':
        'Research could not finish '+scope+'.');
+      // A source gap in one phase must not block another independent
+      // phase during this same authorized click.
+      if(code==='no_acceptable_primary_source_milestones')continue;
       break;
      }
     }catch{
@@ -551,7 +560,7 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
     }else if(result?.state==='cached'){
      await loadEvents();
      summaries.push('Existing '+scope+' history reused.');
-     if(scope==='history')break;
+     // Cache hits are free; another missing scope may still need evidence.
     }else{
      summaries.push('Research status: '+String(result?.state||'unavailable')+'.');
      break;
@@ -578,7 +587,7 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
     ' Estimated history research cost this click: $'+spent.toFixed(3)+
     ' / $0.15. '+allVerified.length+' sourced milestones saved.'+
     (researchNeed()==='none'&&photoMissing===0?' Timeline complete.':
-     ' Remaining research or photo work was not invented or automatically retried.'));
+     ' Remaining items need verified source evidence or a later manual retry. No second click is required now.'));
   }finally{
    discoveryPending=false;
    updateCompleteAction();
