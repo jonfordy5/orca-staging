@@ -84,11 +84,12 @@ read-only page loads corroborated persisted META and WMT cards and photos after
 refresh. Automated Chromium traffic used Node's verified environment CA/proxy
 because Chromium did not trust that CA directly; TLS verification was retained.
 The page emitted existing permission-denied errors with empty stacks, but no
-JavaScript syntax error. Public loads also rendered MCD/INTC with 11 cards each.
+JavaScript syntax error. Public loads also rendered MCD/INTC with 11 cards each. The user confirmed WMT saved eleven photographs in one click, Meta retained its 2026 card after refresh, and MCD had no completion button. INTC had no new generation records and its live cache checks required no research.
 
 The GitHub Actions deployment now depends on the shared-workspace tests. The tested
-Actions deployment succeeded. To prevent the independent legacy branch publisher
-from also running, Pages Source must be GitHub Actions. Both available integration
-tokens received HTTP 403 attempting that administrative setting; a repository-owner
-handoff was requested. The current setting must be verified before claiming the
-legacy publication path is disabled.
+Actions deployment succeeded. Both available integration tokens initially received
+HTTP 403 when changing the administrative Pages Source setting. The repository
+owner then switched it to GitHub Actions; the Pages API confirms `build_type=workflow`.
+The independent legacy branch publisher is disabled, so publication depends on the
+syntax and regression checks. Live HTML and timeline JavaScript match the tested
+repository files.
