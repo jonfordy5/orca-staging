@@ -247,7 +247,7 @@ check('Universal page standard is documented without a hard metadata cap', () =>
   pageStandard.includes('Never overwrite archived findings'));
 
 check('Brand new stocks request full ten-event history, not a single origin event', () =>
-  timeline.includes("const researchNeed=()=>allVerified.length<initialHistoryGoal?'history':!hasOrigin()?'origin':") &&
+  timeline.includes("const researchNeed=()=>!allVerified.length?'history':!hasCurrentYear()?'current':") &&
   timeline.includes("const initialHistoryGoal=10;") &&
   timeline.includes("showResearchFeedback(summaries.join(' ')") &&
   timeline.includes("researchFeedback&&!data.length") &&
@@ -278,6 +278,17 @@ check('Company incorporation founding milestone suppresses unnecessary paid orig
   isOrigin({title:'The company was incorporated'}) &&
   !isOrigin({title:'Intel introduces a new chip'});
 });
+check('Meta Harvard founding is recognized and 2026 is handled within the first click', () => {
+ const source=timeline.match(/const isOrigin=e=>[\s\S]*?;\n/);
+ if(!source)return false;
+ const isOrigin=new Function('e','return '+source[0].replace(/^const isOrigin=e=>/,'').replace(/;\n$/,''));
+ return isOrigin({title:'Facebook launches at Harvard'}) &&
+  timeline.includes("!hasCurrentYear()&&!attempted.has('current')") &&
+  timeline.includes("completionAttemptedThisView=true;") &&
+  timeline.includes("if(!needed||completionAttemptedThisView||!getUser())") &&
+  timeline.includes("if(code==='no_acceptable_primary_source_milestones')continue;") &&
+  timeline.includes("if(photoMount&&allVerified.length)");
+});
 check('McDonald brothers opening the first restaurant counts as founding', () => {
  const source=timeline.match(/const isOrigin=e=>[\s\S]*?;\n/);
  if(!source)return false;
@@ -297,7 +308,7 @@ check('Missing image records keep Complete timeline action available', () =>
  photos.includes('return getCoverage();'));
 check('Open-ended histories provide opt-in founding and current-year refreshes', () =>
   timeline.includes("generate.textContent='Complete company timeline'") &&
-  timeline.includes("const nextScope=()=>allVerified.length<initialHistoryGoal&&!attempted.has('history')?'history':") &&
+  timeline.includes("const nextScope=()=>!allVerified.length&&!attempted.has('history')?'history':") &&
   timeline.includes('const nextData=verified;') &&
   timeline.includes('halfYearStart') &&
   !timeline.includes('attemptedScopesThisSession') &&
