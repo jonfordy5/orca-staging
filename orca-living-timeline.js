@@ -574,7 +574,11 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
      if(photoResult?.error)summaries.push('Image provider request could not finish.');
     }
    }
-   showResearchFeedback(summaries.join(' ')+' Estimated history research cost this click: 
+   showResearchFeedback(summaries.join(' ')+
+    ' Estimated history research cost this click: $'+spent.toFixed(3)+
+    ' / $0.15. '+allVerified.length+' sourced milestones saved.'+
+    (researchNeed()==='none'&&photoMissing===0?' Timeline complete.':
+     ' Remaining research or photo work was not invented or automatically retried.'));
   }finally{
    discoveryPending=false;
    updateCompleteAction();
@@ -600,36 +604,6 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
   const coverage=photoMount.getCoverage();
   photoMissing=Math.max(0,Number(coverage?.missing||0))+Math.max(0,Number(coverage?.duplicates||0));
   updateCompleteAction();
- }catch(error){console.warn('Optional history photography is unavailable',error)}
- const poll=setInterval(()=>{if(document.visibilityState==='visible')loadEvents()},60000);
- window.addEventListener('pagehide',()=>{stopBeam();clearInterval(poll)},{once:true});
-}
-+spent.toFixed(3)+
-    ' / $0.15. '+allVerified.length+' sourced milestones saved.'+
-    (researchNeed()==='none'&&photoMissing===0?' Timeline complete.':
-     ' Remaining research or photo work was not invented or automatically retried.'));
-   updateCompleteAction();
-  }finally{
-   discoveryPending=false;
-   const button=frame.querySelector('.orca-history-refill-action')||rail.querySelector('.orca-timeline-generate');
-   if(button){button.disabled=!mayRequestHistory();button.textContent='Complete company timeline';}
-  }
- }
- // Display cached history immediately; paid history research remains opt-in.
- await loadEvents();
- // Cached histories and existing photo repairs should work immediately
- // without relying on the old manual Living Timeline toggle.
- await checkHistoryPermission();
- requestAnimationFrame(()=>{
-  fitRailEdges();
-  drawHistoryTrack();
-  const middle=Math.floor((data.length-1)/2);
-  const card=rail.querySelector('.orca-timeline-event[data-index="'+middle+'"]');
-  if(card)centerMilestone(card,'auto');
- });
- try{
-  const module=await import('./orca-timeline-photos.js?v=kiss-photo-v21');
-  photoMount=await module.mountTimelinePhotos({sb,ticker,frame,rail,status,getUser,canContribute:()=>historyAuthorized});
  }catch(error){console.warn('Optional history photography is unavailable',error)}
  const poll=setInterval(()=>{if(document.visibilityState==='visible')loadEvents()},60000);
  window.addEventListener('pagehide',()=>{stopBeam();clearInterval(poll)},{once:true});
