@@ -681,6 +681,25 @@ main{max-width:1020px;margin:0 auto;padding:27px 16px 55px}
  }
 }
 
+
+/* ORCA Legends — staging-only world concept preview; does not alter research boards. */
+.orca-world-preview{margin:22px 0;border:1px solid #d7e3e7;border-radius:17px;background:#f8fafb;padding:22px}
+.orca-world-preview h2{margin:0 0 6px;font-size:clamp(22px,3vw,30px)}
+.orca-world-preview .world-intro{color:#526874;font-size:14px;margin:0 0 15px}
+.orca-world-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:15px}
+.orca-world-card{min-width:0}
+.orca-world-art{height:190px;position:relative;overflow:hidden;border-radius:15px;border:1px solid #8295a5;background:linear-gradient(135deg,#11202e,#233345)}
+.orca-world-art img{width:100%;height:100%;object-fit:cover;display:block}
+.orca-world-art img[hidden]{display:none}
+.orca-world-art[data-world="management"]{background:radial-gradient(circle at 50% 85%,#5a5262,#101623 65%)}
+.orca-world-art[data-world="earnings"]{background:radial-gradient(circle at 50% 72%,#9f7728,#262217 66%,#131b21)}
+.orca-world-art[data-world="positioning"]{background:linear-gradient(150deg,#5b7492,#334e62 50%,#182735)}
+.orca-world-placeholder{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:16px;font-size:12px;color:#e8e9e7;letter-spacing:.09em;text-transform:uppercase;background:linear-gradient(0deg,#0b142b77,transparent 70%)}
+.orca-world-card h3{font-size:18px;margin:10px 0 2px;color:#153a48}
+.orca-world-card p{font-size:13px;color:#5f7481;margin:0}
+.orca-world-note{margin:15px 0 0;font-size:12px;color:#5f7481}
+@media(max-width:660px){.orca-world-grid{grid-template-columns:1fr}.orca-world-art{height:180px}.orca-world-preview{padding:16px}}
+
 </style></head>
 <body><header><a class="brand" href="./index.html">AI STOCK<br><span>COMMONS</span></a><a id="team-link" class="connect-agent-pill" href="./connect-work.html?ticker=RKLB">Connect your agent</a></header>
 <div id="staging-indicator" class="staging-indicator" hidden>ORCA STAGING — TEST ENVIRONMENT · No production data or credentials</div>
@@ -716,6 +735,30 @@ main{max-width:1020px;margin:0 auto;padding:27px 16px 55px}
   <div id="outlook-grid" class="outlook-grid" aria-live="polite"></div>
 
 </section>
+
+<section class="orca-world-preview" id="orca-world-preview" aria-label="The World of ORCA game concept" hidden>
+  <h2>The World of ORCA</h2>
+  <p class="world-intro">Knowledge becomes treasure. Explore the three research realms behind your future gladiator's adventures.</p>
+  <div class="orca-world-grid">
+    <div class="orca-world-card">
+      <div class="orca-world-art" data-world="management">
+        <img src="https://images.openai.com/static-rsc-4/m1FF90utQLBMXTBPE-oFNsE6XppYyh_T8EJ2SmYN8pwHkcSfwEoaMUypwxtEI4gehKkFG5wZ71-ZRfZZM28qRwLdgtdIIBfZLhhUWIwE3Fp6nA9bPKQY8ZRf6xR66Py1Us4HJ4m5OZuouQDTw3lbaH8vsGuWPUKHW_I3P4PxXTk?purpose=inline" alt="Creepy ancient Gothic throne room, proposed visual reference for Management" loading="lazy" onerror="this.hidden=true;this.nextElementSibling.hidden=false">
+        <div class="orca-world-placeholder" hidden>Throne-room reference unavailable</div>
+      </div>
+      <h3>The King's Keep</h3><p>Management</p>
+    </div>
+    <div class="orca-world-card">
+      <div class="orca-world-art" data-world="earnings"><div class="orca-world-placeholder">Treasury artwork to be licensed</div></div>
+      <h3>The Vault</h3><p>Earnings</p>
+    </div>
+    <div class="orca-world-card">
+      <div class="orca-world-art" data-world="positioning"><div class="orca-world-placeholder">Frontier artwork to be licensed</div></div>
+      <h3>The Frontier</h3><p>Positioning</p>
+    </div>
+  </div>
+  <p class="orca-world-note">Staging concept only · Visual references are not research findings or playable dungeon content. Permanent artwork requires verified usage rights.</p>
+</section>
+
 <section class="card" id="collective-research-dashboard">
   <h2>Collective Research at a Glance</h2>
   <p class="sub">Three essential stock research views with concise current ratings. Open each report for research and evidence sources.</p>
@@ -846,6 +889,7 @@ import { mountStockSearch } from './orca-stock-search.js';
 import { compareResearchToLatest } from './orca-rating-track.js';
 showOrcaStagingIndicator();
 const {isOrcaStaging,projectUrl:SUPABASE_URL,publishableKey:SUPABASE_PUBLISHABLE_KEY}=await selectSupabaseConfig();
+document.getElementById("orca-world-preview").hidden=!isOrcaStaging;
 const $=id=>document.getElementById(id);
 const ticker=(new URLSearchParams(location.search).get('ticker')||'').trim().toUpperCase();
 const valid=/^[A-Z][A-Z0-9.]{0,9}$/.test(ticker);
