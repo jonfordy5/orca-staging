@@ -1,10 +1,10 @@
 import { createWorld } from './world.js';
 import { createFighter } from './actors.js';
-import { GameUI } from './ui.js';
+import { GameUI } from './ui.js?v=vault-access-rpc-20261110';
 import { Inventory, createDemoResearchProvider } from './loot.js';
 import { ATTACKS, DODGE, canAct, inAttackArc, resolveDefense } from './combat.js';
 import { VaultAudio } from './audio.js';
-import { checkContributorAccess } from './access.js';
+import { checkContributorAccess, subscribeContributorAuth } from './access.js?v=vault-access-rpc-20261110';
 
 const B = window.BABYLON;
 const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
@@ -29,16 +29,37 @@ class VaultGame {
       onCheckAccess: () => this.checkAccess(),
     });
     this.ui.setSettings(settings); this.ui.setLoading(0, 'Verifying contributor access…');
+    // These listeners must exist before eligibility: signed-out visitors never
+    // reach bindControls(), but can sign in in another tab and return here.
+    this.accessAbort = new AbortController(); const accessOptions = { signal: this.accessAbort.signal };
+    window.addEventListener('focus', () => this.checkAccess(), accessOptions);
+    window.addEventListener('storage', event => { if (!event.key || event.key === 'sb-vbziibatnejoswsdggga-auth-token') this.checkAccess(); }, accessOptions);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) this.checkAccess(); }, accessOptions);
+    window.addEventListener('pagehide', () => this.dispose(), { ...accessOptions, once: true });
+    subscribeContributorAuth(() => this.checkAccess()).then(unsubscribe => { if (this.disposed) unsubscribe(); else this.unsubscribeAuth = unsubscribe; }).catch(() => {});
   }
   async checkAccess() {
-    if (this.checkingAccess) return;
+    if (this.disposed) return;
+    const revision = this.accessRevision = (this.accessRevision || 0) + 1;
+    if (this.checkingAccess) {
+      this.accessPending = true;
+      if (['loading', 'start'].includes(this.phase)) this.ui.setAccess({ allowed: false, status: 'checking', message: 'Checking your sign-in and existing research contribution…' });
+      return;
+    }
     this.checkingAccess = true;
+    if (!this.access?.allowed || ['loading', 'start'].includes(this.phase)) this.ui.setAccess({ allowed: false, status: 'checking', message: 'Checking your sign-in and existing research contribution…' });
     try {
-      this.access = await checkContributorAccess(); this.ui.setAccess(this.access);
+      const access = await checkContributorAccess();
+      if (this.disposed || revision !== this.accessRevision) return;
+      this.access = access; this.ui.setAccess(access);
       if (this.access.allowed && !this.engine) await this.init();
-      else if (!this.access.allowed) this.ui.setLoading(0, 'Complete the contributor steps above, then recheck eligibility.');
+      else if (this.access.allowed && this.phase === 'start') this.ui.setLoading(1, 'The Vault is ready.');
+      else if (!this.access.allowed) {
+        this.phase = 'start'; this.keys.clear(); this.mouseBlock = false;
+        this.ui.showStart(); this.ui.setLoading(0, 'Resolve the account status above, then recheck. Your research remains recorded.');
+      }
     } catch (error) { this.fail(error); }
-    finally { this.checkingAccess = false; }
+    finally { this.checkingAccess = false; if (this.accessPending && !this.disposed) { this.accessPending = false; this.checkAccess(); } }
   }
   async init() {
     this.ui.setLoading(.12, 'Lighting the ancient treasury…');
@@ -436,7 +457,7 @@ class VaultGame {
     });
   }
   fail(error) { console.error('ORCA Legends:', error); this.phase = 'error'; this.engine?.stopRenderLoop(); this.ui.showError?.(error.message); }
-  dispose() { this.abort?.abort(); this.engine?.stopRenderLoop(); this.clearEffects(); this.audio.dispose(); this.ui.dispose(); this.world?.dispose(); this.scene?.dispose(); this.engine?.dispose(); delete window.__ORCA_TEST__; }
+  dispose() { if (this.disposed) return; this.disposed = true; this.accessAbort?.abort(); this.unsubscribeAuth?.(); this.abort?.abort(); this.engine?.stopRenderLoop(); this.clearEffects(); this.audio.dispose(); this.ui.dispose(); this.world?.dispose(); this.scene?.dispose(); this.engine?.dispose(); delete window.__ORCA_TEST__; }
 }
 
 const game = new VaultGame();

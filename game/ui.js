@@ -95,8 +95,8 @@ export class GameUI {
     this._renderAccess();
     if(this.loadingProgress!==undefined)this.setLoading(this.loadingProgress,this.loadingMessage);
   }
-  setAccess({allowed=false,localDemo=false,message=''}={}){
-    this.access={allowed:allowed===true,localDemo:localDemo===true,message:String(message||'')};
+  setAccess({allowed=false,localDemo=false,message='',status='checking',ticker}={}){
+    this.access={allowed:allowed===true,localDemo:localDemo===true,message:String(message||''),status,ticker};
     this._renderAccess();
     if(this.loadingProgress!==undefined)this.setLoading(this.loadingProgress,this.loadingMessage);
   }
@@ -105,10 +105,12 @@ export class GameUI {
     const access=this.access;
     if(panel){
       panel.dataset.access=access.allowed?'allowed':'locked';
+      panel.dataset.status=access.status;
       const label=access.localDemo?'LOCAL DEVELOPER TEST · LOCAL ELIGIBILITY BYPASS':access.allowed?'CONTRIBUTOR STAGING TEST':'CONTRIBUTOR ACCESS REQUIRED';
       const message=access.message||(access.localDemo?'Local test access only. This bypass does not grant public gameplay eligibility.':access.allowed?'Contributor eligibility confirmed. Every chest still uses demonstration research.':'Sign in, authorize your own assistant, and complete a source-backed ORCA mission to unlock play.');
-      panel.innerHTML=`<div class="access-label">${escape(label)}</div><p class="access-message" id="access-message">${escape(message)}</p>${!access.allowed?'<nav class="access-links" aria-label="Contributor eligibility steps"><a href="./account.html">Sign in</a><a href="./join-research.html?ticker=NVDA">Join research</a><a href="./connect-work.html">Connect your assistant</a><a href="./research-workspace.html?ticker=NVDA">View missions</a></nav><button class="secondary-button access-recheck" data-action="check-access">Recheck eligibility</button>':''}`;
+      panel.innerHTML=`<div class="access-label">${escape(label)}</div><p class="access-message" id="access-message">${escape(message)}</p>${!access.allowed?'<nav class="access-links" aria-label="Contributor eligibility steps"><a href="./account.html?returnTo=orca-legends-game.html&amp;ticker=RKLB">Sign in · return to The Vault</a><a href="./join-research.html?ticker=RKLB">Research permission</a><a href="./connect-work.html?ticker=RKLB">Your assistant setup</a><a href="./research-workspace.html?ticker=RKLB">View existing missions</a></nav><button class="secondary-button access-recheck" data-action="check-access" >Recheck eligibility</button>':''}`;
     }
+    const recheck=$('[data-action="check-access"]',this.root);if(recheck)recheck.disabled=access.status==='checking';
     const tag=$('#prototype-tag',this.root);if(tag)writeText(tag,access.localDemo?'LOCAL DEVELOPER TEST · ELIGIBILITY BYPASS · DEMO RESEARCH':'CONTRIBUTOR STAGING TEST · DEMONSTRATION RESEARCH');
   }
   setHUD(state={}){
