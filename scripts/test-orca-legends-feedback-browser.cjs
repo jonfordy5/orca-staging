@@ -48,6 +48,10 @@ const eventKind = state => typeof state.feedback.lastEvent === 'string' ? state.
   const position = (x, z, yaw = 0) => page.evaluate(args => window.__ORCA_TEST__.position(...args), [x, z, yaw]);
   const action = kind => page.evaluate(name => window.__ORCA_TEST__.action(name), kind);
   const contact = damage => page.evaluate(value => window.__ORCA_TEST__.enemyHit(value), damage);
+  const render = async () => {
+    await page.evaluate(() => window.__ORCA_TEST__.render());
+    assert.deepEqual(errors, [], 'Rendering active combat geometry must not report errors.');
+  };
   const restart = async () => {
     await page.keyboard.up('KeyQ');
     await page.keyboard.press('Escape');
@@ -107,7 +111,10 @@ const eventKind = state => typeof state.feedback.lastEvent === 'string' ? state.
   assert.equal(state.player.stamina, 72);
   assert.equal(state.player.action.dealt, true);
   await frames(1); // The damped pulse starts at zero at the exact contact instant.
-  assert((await snapshot()).feedback.cameraImpulse > lightFeedback.cameraImpulse, 'Heavy contact has a stronger bounded camera pulse.');
+  const heavyContact = await snapshot();
+  assert(heavyContact.feedback.cameraImpulse > lightFeedback.cameraImpulse, 'Heavy contact has a stronger bounded camera pulse.');
+  assert(heavyContact.feedback.trailActive && heavyContact.feedback.activeSparks > 0 && heavyContact.feedback.activeFlashes > 0);
+  await render(); // Exercise ribbon, spark and flash geometry while all are enabled.
   assert(state.guardian.reaction.strength > 1);
   assert.equal(await action('heavy'), false);
   await frames(27);
@@ -171,7 +178,10 @@ const eventKind = state => typeof state.feedback.lastEvent === 'string' ? state.
   assert.equal(state.guardian.stagger, 1.2);
   assert.equal(eventKind(state), 'parry');
   await frames(1);
-  assert((await snapshot()).feedback.cameraImpulse > 0);
+  const parryContact = await snapshot();
+  assert(parryContact.feedback.cameraImpulse > 0);
+  assert(parryContact.feedback.activeFlashes > 0 && parryContact.feedback.activeSparks > 0);
+  await render(); // The parry material and contact mesh must render during the cue.
   assert(state.guardian.reaction.remaining > 0);
   assert.match(await page.locator('#toasts').innerText(), /PERFECT PARRY/);
   pass('A timed parry costs six stamina, prevents damage and opens the same stagger window');
@@ -189,21 +199,25 @@ const eventKind = state => typeof state.feedback.lastEvent === 'string' ? state.
   assert.equal(eventKind(state), 'guard-break');
   pass('Exhausted guard still takes full damage and uses a distinct guard-break cue');
 
-  await settings('low', true);
-  await restart();
-  await frames(48);
-  await position(0, 5.8);
-  await action('heavy');
-  await frames(28);
-  state = await snapshot();
-  assert.equal(state.feedback.trailActive, false);
-  await frames(1);
-  state = await snapshot();
-  assert.equal(state.guardian.health, 117);
-  assert.equal(state.feedback.cameraImpulse, 0);
-  assert(state.feedback.activeSparks <= 4, 'Reduced-motion contacts must use the small spark budget.');
-  assert(state.feedback.activeFlashes > 0, 'Contact stays readable with reduced motion.');
-  pass('Performance and reduced-motion settings preserve combat with no camera pulse or moving trail');
+  for (const [quality, reducedMotion] of [['low', false], ['low', true], ['high', true]]) {
+    await settings(quality, reducedMotion);
+    await prepareUnguarded();
+    await action('heavy');
+    await frames(28);
+    state = await snapshot();
+    assert.equal(state.feedback.trailActive, !reducedMotion);
+    await frames(2); // Contact, then one tick into the camera envelope.
+    state = await snapshot();
+    assert.equal(state.guardian.health, 117);
+    assert.equal(state.feedback.trailActive, !reducedMotion);
+    if (reducedMotion) assert.equal(state.feedback.cameraImpulse, 0);
+    else assert(state.feedback.cameraImpulse > 0, 'Performance quality retains the brief camera pulse.');
+    assert(state.feedback.activeSparks > 0);
+    assert(state.feedback.activeSparks <= (reducedMotion ? 2 : 5), 'Contact respects the independent quality/motion spark budget.');
+    assert(state.feedback.activeFlashes > 0, 'Contact stays readable under either setting.');
+    await render();
+    pass(`${quality} quality / reduced motion ${reducedMotion}: exact damage, bounded FX and correct camera/trail behavior`);
+  }
 
   await settings('high', false);
   await restart();
@@ -237,9 +251,8 @@ const eventKind = state => typeof state.feedback.lastEvent === 'string' ? state.
   }
   pass('Repeated overlapping contacts, effect expiry and restart keep pooled scene resources bounded');
 
-  // Render the integrated high-quality scene once: this catches shader/geometry
-  // errors that pure manual simulation would leave undetected.
-  await page.evaluate(() => window.__ORCA_TEST__.render());
+  // Verify the clean scene remains renderable after resource stress and resets.
+  await render();
   assert.deepEqual(errors, []);
   assert.equal(requests.some(url => /https?:\/\/[^/]*(supabase\.co|api\.openai\.com|api\.anthropic\.com)/.test(url)), false);
   const disposed = await page.evaluate(() => {
