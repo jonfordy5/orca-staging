@@ -2,6 +2,21 @@
  * No downloaded models, textures, character designs, or animation clips.
  */
 const B = window.BABYLON;
+const sides = [-1, 1];
+const smooth = t => { t = Math.max(0, Math.min(1, t)); return t * t * (3 - 2 * t); };
+// Original additive poses: shoulder XYZ, elbow X, wrist XZ, torso YX,
+// pelvis Y and local body Z. Contact is sampled at the simulation's hit time.
+const restPose = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+const lightPoses = [
+  [-1.20, -.85, -.32, -.52, .06, -.28, -.28, -.04, -.10, -.035],
+  [-1.02, .32, .21, -.12, -.28, .12, .21, .055, .07, .055],
+  [-.35, .93, .34, -.12, -.10, .16, .32, .075, .13, .07],
+];
+const heavyPoses = [
+  [-2.55, -.15, -.28, -.65, -.12, .06, -.14, -.15, -.04, -.065],
+  [-1.05, .15, -.05, -.08, -.52, -.02, .14, .16, .06, .085],
+  [.28, .25, .18, -.18, -.10, .02, .23, .22, .11, .10],
+];
 
 export function createFighter(scene, { kind = 'hero', name = kind } = {}) {
   const guardian = kind === 'guardian';
@@ -17,6 +32,9 @@ export function createFighter(scene, { kind = 'hero', name = kind } = {}) {
   let disposed = false;
   let stride = 0;
   let death = 0;
+  let moveBlend = 0;
+  let guardBlend = 0;
+  const strikePose = new Float32Array(restPose.length);
   let currentWeaponId = null;
   let currentShieldId = null;
 
@@ -289,22 +307,43 @@ export function createFighter(scene, { kind = 'hero', name = kind } = {}) {
     const victory = !!state.victory;
     const attack = Math.max(0, Math.min(1, state.attackProgress || 0));
     const heavy = !!state.heavy;
+    const reducedMotion = !!state.reducedMotion;
+    const transition = 1 - Math.exp(-12 * dt);
+    moveBlend += ((moving && !dead ? 1 : 0) - moveBlend) * transition;
+    guardBlend += ((blocking && !dead && !dodging && !attacking ? 1 : 0) - guardBlend) * (1 - Math.exp(-22 * dt));
+    // The blade reaches the authored contact pose at the actual damage tick.
+    // The longer heavy anticipation therefore never moves the hit window.
+    strikePose.fill(0);
+    if (attacking && !dead) {
+      const impact = Math.max(.2, Math.min(.8, state.attackImpact || (heavy ? .48 / .94 : .22 / .56)));
+      const windEnd = impact - (heavy ? .14 : .13);
+      const followEnd = Math.min(.9, impact + (heavy ? .13 : .15));
+      const poses = heavy ? heavyPoses : lightPoses;
+      let from, to, weight;
+      if (attack < windEnd) { from = restPose; to = poses[0]; weight = smooth(attack / windEnd); }
+      else if (attack < impact) { from = poses[0]; to = poses[1]; weight = smooth((attack - windEnd) / (impact - windEnd)); }
+      else if (attack < followEnd) { from = poses[1]; to = poses[2]; weight = smooth((attack - impact) / (followEnd - impact)); }
+      else { from = poses[2]; to = restPose; weight = smooth((attack - followEnd) / (1 - followEnd)); }
+      for (let i = 0; i < strikePose.length; i++) strikePose[i] = from[i] + (to[i] - from[i]) * weight;
+    }
     stride += dt * (moving ? (sprinting ? 13.8 : 9) : 1.2);
     death = B.Scalar.Lerp(death, dead ? 1 : 0, Math.min(1, dt * 5));
-    const gait = moving && !attacking && !dodging && !dead ? (sprinting ? .66 : .43) : 0;
-    const bob = moving && !dodging ? Math.abs(Math.sin(stride)) * (sprinting ? .05 : .026) : Math.sin(time * 1.6) * .009;
+    const attackWeight = attacking ? smooth(attack / .12) * smooth((1 - attack) / .18) : 0;
+    const gait = !dodging && !dead ? moveBlend * (sprinting ? .66 : .43) * (1 - attackWeight) : 0;
+    const bob = !dodging ? Math.abs(Math.sin(stride)) * (sprinting ? .05 : .026) * moveBlend + Math.sin(time * 1.6) * .009 * (1 - moveBlend) : 0;
     rig.position.y = bob - (dodging ? .35 : 0) - death * .20;
     rig.rotation.x = dodging ? -.65 : sprinting && moving ? -.13 : 0;
     rig.rotation.z = death * -1.48;
     rig.position.x = death * -.17;
-    pelvis.rotation.y = moving ? Math.sin(stride) * .045 : 0;
-    torso.rotation.y = attacking ? Math.sin(attack * Math.PI * 2 - .6) * .32 : moving ? -Math.sin(stride) * .04 : 0;
-    torso.rotation.x = dodging ? .7 : blocking ? -.10 : 0;
-    head.rotation.x = dead ? .24 : blocking ? -.06 : Math.sin(time * .8) * .018;
+    rig.position.z = strikePose[9];
+    pelvis.rotation.y = Math.sin(stride) * .045 * moveBlend * (1 - attackWeight) + strikePose[8];
+    torso.rotation.y = -Math.sin(stride) * .04 * moveBlend * (1 - attackWeight) + strikePose[6];
+    torso.rotation.x = (dodging ? .7 : -.10 * guardBlend) + strikePose[7];
+    head.rotation.x = dead ? .24 : -.06 * guardBlend + Math.sin(time * .8) * .018 * (1 - guardBlend);
     cape.rotation.x = .12 + (sprinting && moving ? .40 : moving ? .16 : 0) + Math.sin(time * 3) * .025;
     cape.rotation.z = Math.sin(time * 2.3) * .035;
     tabard.rotation.x = moving ? .08 + Math.abs(Math.sin(stride)) * .12 : .01;
-    for (const side of [-1, 1]) {
+    for (const side of sides) {
       const phase = stride + (side === -1 ? Math.PI : 0);
       legs[side].hip.rotation.x = Math.sin(phase) * gait;
       legs[side].knee.rotation.x = Math.max(0, -Math.sin(phase)) * gait * 1.3;
@@ -315,31 +354,33 @@ export function createFighter(scene, { kind = 'hero', name = kind } = {}) {
       arms[side].shoulder.rotation.set(Math.sin(phase + Math.PI) * gait * .65, 0, side * -.09);
       arms[side].elbow.rotation.x = moving ? -.12 : -.06;
     }
-    // Light strike: deliberate windup, sweeping active phase, then recovery.
-    // Heavy strike: raised overhead windup and a forceful descending cut.
-    if (attacking) {
-      const wind = Math.min(1, attack / .28);
-      const cut = Math.max(0, Math.min(1, (attack - .28) / .30));
-      const recover = Math.max(0, (attack - .58) / .42);
-      const power = (1 - recover);
-      arms[-1].shoulder.rotation.x = (heavy ? -2.55 * wind + 2.7 * cut : -1.55 * wind + 1.25 * cut) * power;
-      arms[-1].shoulder.rotation.y = (heavy ? -.18 : -.8 + cut * 1.65) * wind * power;
-      arms[-1].shoulder.rotation.z = (heavy ? -.18 : -.4 + cut * .75) * power;
-      arms[-1].elbow.rotation.x = -.3 * power;
-      weapon.rotation.z = heavy ? -.08 : -.10 - Math.sin(attack * Math.PI) * .22;
-    } else {
-      weapon.rotation.z = -.10;
-    }
-    if (blocking && !dead) {
-      arms[1].shoulder.rotation.x = -.85;
-      arms[1].shoulder.rotation.y = -.30;
-      arms[1].shoulder.rotation.z = -.22;
-      arms[1].elbow.rotation.x = -.32;
-      shield.rotation.x = .4;
-      shield.rotation.y = -.27;
-    } else {
-      shield.rotation.x = 0;
-      shield.rotation.y = .08;
+    arms[-1].shoulder.rotation.x += strikePose[0];
+    arms[-1].shoulder.rotation.y += strikePose[1];
+    arms[-1].shoulder.rotation.z += strikePose[2];
+    arms[-1].elbow.rotation.x += strikePose[3];
+    weapon.rotation.x = 2.64 + strikePose[4];
+    weapon.rotation.z = -.10 + strikePose[5];
+    arms[1].shoulder.rotation.x += (-.85 - arms[1].shoulder.rotation.x) * guardBlend;
+    arms[1].shoulder.rotation.y = -.30 * guardBlend;
+    arms[1].shoulder.rotation.z += (-.22 - arms[1].shoulder.rotation.z) * guardBlend;
+    arms[1].elbow.rotation.x += (-.32 - arms[1].elbow.rotation.x) * guardBlend;
+    shield.rotation.x = .4 * guardBlend;
+    shield.rotation.y = .08 - .35 * guardBlend;
+    // Flinch only the visual rig. Physics, facing and committed enemy windups
+    // remain authoritative; a light hit cannot manufacture a stagger.
+    const reaction = state.reaction;
+    if (reaction?.remaining > 0 && reaction.duration > 0 && !dead) {
+      const remaining = Math.max(0, Math.min(1, reaction.remaining / reaction.duration));
+      const recoil = remaining * remaining * Math.max(0, Math.min(1.8, reaction.strength ?? 1)) * (reducedMotion ? .3 : 1);
+      const c = Math.cos(root.rotation.y), s = Math.sin(root.rotation.y);
+      const localX = c * reaction.x - s * reaction.z, localZ = s * reaction.x + c * reaction.z;
+      rig.position.x += localX * .08 * recoil;
+      rig.position.z += localZ * .08 * recoil;
+      rig.rotation.x += localZ * .16 * recoil;
+      rig.rotation.z -= localX * .14 * recoil;
+      torso.rotation.y += localX * .12 * recoil;
+      head.rotation.x -= localZ * .10 * recoil;
+      if (reaction.kind === 'block' || reaction.kind === 'parry') shield.rotation.x -= .16 * recoil;
     }
     if (victory && !dead) {
       arms[-1].shoulder.rotation.x = -2.7 + Math.sin(time * 3) * .07;
@@ -354,8 +395,8 @@ export function createFighter(scene, { kind = 'hero', name = kind } = {}) {
       legs[1].hip.rotation.x = .1;
     }
     const hit = Math.max(0, Math.min(1, typeof state.hit === 'number' ? state.hit : state.hit ? 1 : 0));
-    steel.emissiveColor.copyFrom(steel.diffuseColor.scale(.025));
-    steel.emissiveColor.addInPlace(new B.Color3(.45 * hit, .08 * hit, .025 * hit));
+    const flash = hit * (reducedMotion ? .45 : 1);
+    steel.emissiveColor.set(steel.diffuseColor.r * .025 + .45 * flash, steel.diffuseColor.g * .025 + .08 * flash, steel.diffuseColor.b * .025 + .025 * flash);
     spellOrb.scaling.setAll(1 + Math.sin(time * 4) * .12);
   }
 

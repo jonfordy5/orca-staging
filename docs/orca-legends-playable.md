@@ -32,6 +32,8 @@ Browser gameplay checks and their observed results are recorded separately after
 
 ## Controls
 
+WO-01 sword feedback changes, before/after captures, verification and review steps are recorded in the [combat handoff](./orca-legends-wo-01-handoff.md).
+
 | Input | Action |
 |---|---|
 | WASD | Move relative to camera |
