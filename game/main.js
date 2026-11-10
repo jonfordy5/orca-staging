@@ -344,7 +344,7 @@ class VaultGame {
     let desired = new B.Vector3(p.x - Math.sin(this.yaw) * this.zoom * Math.cos(this.pitch), 1.6 + Math.sin(this.pitch) * this.zoom, p.z - Math.cos(this.yaw) * this.zoom * Math.cos(this.pitch));
     const direction = desired.subtract(target), length = direction.length(); direction.normalize();
     const obstruction = this.scene.pickWithRay(new B.Ray(target, direction, length), mesh => mesh.name === 'merged-vault-architecture' && mesh.material?.alpha >= .95);
-    if (obstruction?.hit && obstruction.distance < length) desired = target.add(direction.scale(Math.max(1.2, obstruction.distance - .3)));
+    if (obstruction?.hit && obstruction.distance < length) desired = target.add(direction.scale(Math.max(.35, obstruction.distance - .3)));
     this.camera.position = B.Vector3.Lerp(this.camera.position, desired, snap ? 1 : 1 - Math.exp(-10 * dt));
     this.camera.setTarget(target);
   }

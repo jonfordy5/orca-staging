@@ -42,6 +42,7 @@ let browser;
   assert.equal(await page.evaluate(() => window.__ORCA_TEST__.collision(0, 23)), false); check('Walls, pillars and locked gate collide');
   await page.mouse.move(460, 300); await page.mouse.down({button:'middle'}); await page.mouse.move(570, 300, { steps: 4 }); await page.mouse.up({button:'middle'});
   assert(Math.abs((await snapshot()).camera.yaw) > .05); check('Mouse-controlled orbit camera');
+  await position(22.1, 6, -Math.PI / 2); assert((await snapshot()).camera.position[0] < 23, 'Follow camera must stay inside an adjacent chamber wall');
   await page.keyboard.press('Escape'); const paused = (await snapshot()).player.x; await keyStep('KeyD', 1); assert.equal((await snapshot()).player.x, paused); await page.locator('[data-action="resume"]').click(); check('Pause freezes gameplay and resumes');
   await position(-19, .8); await page.keyboard.press('KeyE'); await page.waitForFunction(() => window.__ORCA_TEST__.snapshot().chests.includes('management'));
   await step(.9); assert((await snapshot()).chestLids.management < -1.4); await page.keyboard.press('KeyI');
