@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0c1012">
+  <meta name="description" content="Contributor-gated ORCA Legends staging developer test. The Vault is a playable 3D action RPG prototype with demonstration research loot.">
+  <title>ORCA Legends — The Vault | STAGING DEVELOPER TEST · DEMONSTRATION RESEARCH</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath fill='%230c1012' d='M0 0h64v64H0z'/%3E%3Cpath fill='none' stroke='%23d5b67a' stroke-width='3' d='M32 5 55 18v28L32 59 9 46V18Z M20 18h24L32 48Z'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="./game/game.css">
+</head>
+<body>
+  <canvas id="game-canvas" aria-label="The Vault, a 3D fantasy dungeon. Use WASD to move and mouse to look." tabindex="0"></canvas>
+  <div id="game-ui"></div>
+  <noscript><div class="no-script">ORCA Legends requires JavaScript and a desktop browser with WebGL enabled.</div></noscript>
+  <script src="./game/vendor/babylon.js"></script>
+  <script src="./game/vendor/supabase.js"></script>
+  <script type="module" src="./game/main.js"></script>
+</body>
+</html>
