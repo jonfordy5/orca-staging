@@ -30,7 +30,7 @@ Presentation currently uses one generic swing sound at attack start and generic 
 
 ## First WO-01 repeat
 
-Repeated the same harness after presentation commit `fb96d6a`, with other browser workers closed before RAF sampling. The existing integrated Chromium suite again passed all 22 groups, with no console errors or research/API requests. Review captures are under `work/wo-01-after/`.
+Repeated the same harness after presentation commit `fb96d6a`, with other browser workers closed before RAF sampling. The existing integrated Chromium suite again passed all 22 groups, with no console errors or research/API requests. Preserved review captures are under `docs/evidence/wo-01/after/`; the matching baseline stills are under `docs/evidence/wo-01/before/`.
 
 | Setting | RAF frames / elapsed | Mean interval | Median interval | 95th percentile |
 |---|---:|---:|---:|---:|
@@ -39,4 +39,4 @@ Repeated the same harness after presentation commit `fb96d6a`, with other browse
 
 Both repeats completed one heavy impact, with player health 100 and Warden health 117; capture errors remained empty. High-quality contact used 12 pooled sparks and one flash, while reduced motion disabled camera impulse and blade ribbon. The fixed pool adds 20 meshes and five materials per scene; it does not allocate those meshes for each strike. These short, variable software-renderer samples **do not establish a performance improvement or regression**. Use a hardware browser and longer matched encounter traces before setting a frame-time budget.
 
-Visual comparison confirms visible, restrained light/heavy contact glints and preserved Vault/HUD composition. The first parry still exposed an occluded contact glint from the rear camera; that review finding was sent back for shield-position correction before final delivery. Final handoff evidence and validation supersede this intermediate review sample where further presentation fixes were made.
+Visual comparison confirms visible, restrained light/heavy contact glints and preserved Vault/HUD composition. The first parry still exposed an occluded contact glint from the rear camera. Commit `ca37df3` resolved that finding by placing defensive glints on the visible shield rim; the final parry still shows the teal contact clearly. Before/after stills are preserved in `docs/evidence/wo-01/{before,after}/`. The RAF performance values above were measured at `fb96d6a`, before the later shield-recoil label and contact-position corrections; they were not rerun for those small presentation fixes. Final handoff validation identifies checks performed after those corrections.
