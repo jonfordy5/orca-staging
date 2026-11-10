@@ -4,6 +4,7 @@ import { GameUI } from './ui.js?v=vault-access-rpc-20261110';
 import { Inventory, createDemoResearchProvider } from './loot.js';
 import { ATTACKS, DODGE, canAct, inAttackArc, resolveDefense } from './combat.js';
 import { VaultAudio } from './audio.js';
+import { CombatFeedback } from './feedback.js';
 import { checkContributorAccess, subscribeContributorAuth } from './access.js?v=vault-access-rpc-20261110';
 
 const B = window.BABYLON;
@@ -70,6 +71,7 @@ class VaultGame {
     this.camera = new B.FreeCamera('expedition-camera', new B.Vector3(0, 6, -21), this.scene);
     this.camera.minZ = .15; this.camera.maxZ = 100; this.camera.fov = .9;
     this.world = createWorld(this.scene, settings);
+    this.feedback = new CombatFeedback(this.scene);
     this.ui.setLoading(.65, 'Awakening the vault warden…');
     this.hero = createFighter(this.scene, { kind: 'hero', name: 'The Seeker' });
     this.guardian = this.makeEnemy('guardian', 'AURIC WARDEN', 145, 0, 8);
@@ -87,10 +89,10 @@ class VaultGame {
   }
   makeEnemy(kind, name, maxHealth, x, z) {
     const actor = createFighter(this.scene, { kind, name }); actor.root.position.set(x, 0, z);
-    return { kind, name, actor, health: maxHealth, maxHealth, x, z, yaw: Math.PI, cooldown: 1.6, action: null, stagger: 0, guard: false, hit: 0, attacks: 0, dead: false };
+    return { kind, name, actor, health: maxHealth, maxHealth, x, z, yaw: Math.PI, cooldown: 1.6, action: null, stagger: 0, guard: false, hit: 0, reaction: null, attacks: 0, dead: false };
   }
   resetPlayer() {
-    this.player = { x: 0, z: -14, yaw: 0, vx: 0, vz: 0, health: 100, maxHealth: 100, stamina: 100, maxStamina: 100, mana: 100, maxMana: 100, action: null, blockTime: 99, blocking: false, hit: 0, regenDelay: 0, spellCooldown: 0 };
+    this.player = { x: 0, z: -14, yaw: 0, vx: 0, vz: 0, health: 100, maxHealth: 100, stamina: 100, maxStamina: 100, mana: 100, maxMana: 100, action: null, blockTime: 99, blocking: false, hit: 0, reaction: null, regenDelay: 0, spellCooldown: 0 };
     this.hero.root.position.set(0, 0, -14); this.hero.root.rotation.y = 0; this.yaw = 0;
   }
   equipHero() {
@@ -108,7 +110,7 @@ class VaultGame {
   restart() {
     this.ui.hideModal(); this.keys.clear(); this.mouseBlock = false; this.opened.clear(); this.inventory.reset(); this.equipHero(); this.resetPlayer();
     for (const enemy of [this.guardian, this.gladiator]) {
-      enemy.health = enemy.maxHealth; enemy.dead = false; enemy.stagger = 0; enemy.cooldown = 1.6; enemy.action = null; enemy.hit = 0; enemy.attacks = 0; enemy.guard = false;
+      enemy.health = enemy.maxHealth; enemy.dead = false; enemy.stagger = 0; enemy.cooldown = 1.6; enemy.action = null; enemy.hit = 0; enemy.reaction = null; enemy.attacks = 0; enemy.guard = false;
       enemy.x = 0; enemy.z = enemy.kind === 'guardian' ? 8 : 43; enemy.yaw = Math.PI; enemy.actor.root.position.set(enemy.x, 0, enemy.z); enemy.actor.root.rotation.set(0, Math.PI, 0);
       enemy.actor.setVisible(enemy.kind === 'guardian');
     }
@@ -122,6 +124,7 @@ class VaultGame {
     settings[key] = key === 'volume' ? clamp(Number(value), 0, 1) : value;
     if (key === 'volume') this.audio.volume = settings.volume;
     if (key === 'quality') this.engine?.setHardwareScalingLevel(settings.quality === 'high' ? Math.max(1, devicePixelRatio / 1.5) : 1.6);
+    if (key === 'reducedMotion') { this.feedback?.update(0, settings); if (this.hero) this.feedback?.updateTrail(this.hero.weapon, this.player.action, settings); }
     try { localStorage.setItem('orca-legends-settings', JSON.stringify(settings)); } catch {}
   }
   bindControls() {
@@ -177,7 +180,7 @@ class VaultGame {
     p.stamina -= spec.stamina; p.regenDelay = .7; p.blocking = false; p.action = { type, elapsed: 0, duration: spec.duration, dealt: false };
     const enemy = this.activeEnemy();
     if (!enemy.dead && dist(p, enemy) < 5) p.yaw = Math.atan2(enemy.x - p.x, enemy.z - p.z);
-    this.audio.play('swing'); return true;
+    return true;
   }
   dodge() {
     const p = this.player; if (!['explore', 'arena'].includes(this.phase) || !canAct(p, DODGE.stamina)) return false;
@@ -236,8 +239,9 @@ class VaultGame {
   frame(dt) {
     const playing = ['explore', 'arena', 'intro'].includes(this.phase) && !this.ui.isModalOpen();
     if (playing) {
-      this.time += dt; this.world.update(dt, this.time); this.updatePlayer(dt); this.updateEffects(dt);
+      this.time += dt; this.feedback.update(dt, settings); this.world.update(dt, this.time); this.updatePlayer(dt); this.updateEffects(dt);
       if (this.phase !== 'intro') this.updateEnemy(this.activeEnemy(), dt);
+      this.feedback.updateTrail(this.hero.weapon, this.player.action, settings);
       if (this.phase === 'explore' && this.arenaUnlocked() && this.player.z > 29) this.enterArena();
       if (this.phase === 'intro') { this.introTimer -= dt; if (this.introTimer <= 0) { this.phase = 'arena'; this.ui.toast('FIGHT', 'Watch the windup. A timed guard turns their strength against them.'); } }
       for (const chest of this.world.chests) if (this.opened.has(chest.id)) chest.lid.rotation.x = -1.45 * Math.min(1, (this.time - (chest.openTime ?? 0)) / .7);
@@ -255,6 +259,7 @@ class VaultGame {
     p.blocking = (this.mouseBlock || this.keys.has('KeyQ')) && !p.action && p.stamina > 2 && this.phase !== 'intro';
     p.blockTime = p.blocking ? (wasBlocking ? p.blockTime + dt : 0) : 99;
     p.hit = Math.max(0, p.hit - dt); p.spellCooldown = Math.max(0, p.spellCooldown - dt); p.regenDelay = Math.max(0, p.regenDelay - dt);
+    if (p.reaction) { p.reaction.remaining = Math.max(0, p.reaction.remaining - dt); if (!p.reaction.remaining) p.reaction = null; }
     const sprinting = (this.keys.has('ShiftLeft') || this.keys.has('ShiftRight')) && p.stamina > 2 && !p.action && !p.blocking && Math.hypot(vector.x, vector.z) > .1;
     if (sprinting) { p.stamina = Math.max(0, p.stamina - 16 * dt); p.regenDelay = .4; }
     else if (p.regenDelay === 0) p.stamina = Math.min(100, p.stamina + (p.blocking ? 8 : 25) * dt);
@@ -271,29 +276,46 @@ class VaultGame {
     if (p.action) {
       const action = p.action;
       action.elapsed += dt; const spec = ATTACKS[action.type];
+      if (spec && !action.sounded && action.elapsed >= spec.impact - (action.type === 'heavy' ? .15 : .09)) {
+        action.sounded = true; this.audio.play(action.type === 'heavy' ? 'heavy-swing' : 'swing');
+      }
       if (spec && !action.dealt && action.elapsed >= spec.impact) { action.dealt = true; this.meleeImpact(action.type); }
       if (p.action === action && action.elapsed >= action.duration) p.action = null;
     }
     this.hero.root.position.set(p.x, 0, p.z); this.hero.root.rotation.y = p.yaw;
-    this.hero.update(dt, { moving: Math.hypot(p.vx, p.vz) > .25, sprinting, attacking: !!ATTACKS[p.action?.type], attackProgress: p.action ? p.action.elapsed / p.action.duration : 0, heavy: p.action?.type === 'heavy', blocking: p.blocking, dodging: p.action?.type === 'dodge', hit: p.hit > 0, time: this.time });
+    this.hero.update(dt, { moving: Math.hypot(p.vx, p.vz) > .25, sprinting, attacking: !!ATTACKS[p.action?.type], attackProgress: p.action ? p.action.elapsed / p.action.duration : 0, attackImpact: ATTACKS[p.action?.type]?.impact / (p.action?.duration || 1), heavy: p.action?.type === 'heavy', blocking: p.blocking, dodging: p.action?.type === 'dodge', hit: p.hit / .25, reaction: p.reaction, reducedMotion: settings.reducedMotion, time: this.time });
     if (Math.hypot(p.vx, p.vz) > 1 && this.time > (this.nextStep || 0)) { this.audio.play('step'); this.nextStep = this.time + (sprinting ? .27 : .42); }
   }
   meleeImpact(type) {
     const enemy = this.activeEnemy(), p = this.player, spec = ATTACKS[type];
-    if (enemy.dead || !inAttackArc(p, enemy, spec.reach)) return;
+    if (enemy.dead || !inAttackArc(p, enemy, spec.reach)) { this.feedback.miss(); return; }
     let damage = Math.round(this.inventory.getStats().damage * spec.multiplier);
-    if (enemy.guard && type !== 'heavy') { damage = Math.round(damage * .3); this.audio.play('block'); this.ui.toast('GUARDED', 'Heavy strikes break the Warden’s defense.'); }
+    const guarded = enemy.guard, outcome = guarded ? (type === 'heavy' ? 'guard-break' : 'block') : type === 'heavy' ? 'heavy' : 'hit';
+    if (guarded && type !== 'heavy') { damage = Math.round(damage * .3); this.audio.play('block'); this.ui.toast('GUARDED', 'Heavy strikes break the Warden’s defense.'); }
     else {
       // Committed windups resist light-hit stun locks. Heavy attacks and parries interrupt.
       if (type === 'heavy' || !enemy.action) { enemy.stagger = spec.stagger; enemy.action = null; }
-      this.audio.play('hit');
+      this.audio.play(outcome === 'guard-break' ? 'guard-break' : type === 'heavy' ? 'heavy-hit' : 'hit');
+      if (guarded) this.ui.toast('GUARD BREAK', 'A heavy cut opens their defense.');
     }
-    this.hurtEnemy(enemy, damage, type === 'heavy' ? '#ffd27a' : '#ffe8c3');
+    this.react(enemy, p, outcome, outcome === 'block' ? .4 : type === 'heavy' ? 1.6 : 1, type === 'heavy' ? .38 : .24);
+    this.contact(outcome, enemy, p);
+    this.hurtEnemy(enemy, damage, type === 'heavy' ? '#ffd27a' : '#ffe8c3', true);
   }
-  hurtEnemy(enemy, damage, color) {
+  react(target, source, kind, strength, duration = .28) {
+    const dx = target.x - source.x, dz = target.z - source.z, length = Math.hypot(dx, dz) || 1;
+    target.reaction = { remaining: duration, duration, x: dx / length, z: dz / length, strength, kind };
+  }
+  contact(kind, target, source) {
+    const dx = target.x - source.x, dz = target.z - source.z, length = Math.hypot(dx, dz) || 1;
+    // Contact sits on the facing armor/shield, away from the mesh's hidden center.
+    this.feedback.contact(kind, target.x - dx / length * .5, target.kind === 'guardian' ? 1.75 : 1.4, target.z - dz / length * .5, dx / length, dz / length, settings);
+  }
+  hurtEnemy(enemy, damage, color, melee = false) {
     if (enemy.dead) return;
     enemy.health = Math.max(0, enemy.health - damage); enemy.hit = .23;
-    this.burst(enemy.x, 1.5, enemy.z, color, 9); this.damageText(enemy.x, 2.5, enemy.z, String(damage), color);
+    if (!melee) this.burst(enemy.x, 1.5, enemy.z, color, 9);
+    this.damageText(enemy.x, 2.5, enemy.z, String(damage), color);
     if (enemy.health === 0) {
       enemy.dead = true; enemy.action = null; enemy.guard = false;
       this.burst(enemy.x, 1.3, enemy.z, '#f9d67b', 24); this.audio.play('win');
@@ -306,6 +328,7 @@ class VaultGame {
   }
   updateEnemy(enemy, dt) {
     enemy.hit = Math.max(0, enemy.hit - dt);
+    if (enemy.reaction) { enemy.reaction.remaining = Math.max(0, enemy.reaction.remaining - dt); if (!enemy.reaction.remaining) enemy.reaction = null; }
     if (enemy.dead) { enemy.actor.update(dt, { dead: true, time: this.time }); return; }
     const p = this.player, distance = dist(enemy, p);
     enemy.stagger = Math.max(0, enemy.stagger - dt); enemy.cooldown = Math.max(0, enemy.cooldown - dt);
@@ -335,7 +358,7 @@ class VaultGame {
     }
     enemy.actor.root.position.set(enemy.x, 0, enemy.z); enemy.actor.root.rotation.y = enemy.yaw;
     const a = enemy.action;
-    enemy.actor.update(dt, { moving: !a && enemy.stagger === 0 && distance > 2.4 && distance < 20, attacking: !!a, attackProgress: a ? a.elapsed / a.duration : 0, heavy: true, blocking: enemy.guard, hit: enemy.hit > 0, time: this.time });
+    enemy.actor.update(dt, { moving: !a && enemy.stagger === 0 && distance > 2.4 && distance < 20, attacking: !!a, attackProgress: a ? a.elapsed / a.duration : 0, attackImpact: a ? a.windup / a.duration : undefined, heavy: true, blocking: enemy.guard, hit: enemy.hit / .23, reaction: enemy.reaction, reducedMotion: settings.reducedMotion, time: this.time });
   }
   hurtPlayer(enemy, damage, area = false) {
     const p = this.player;
@@ -343,9 +366,20 @@ class VaultGame {
     const resolved = resolveDefense({ damage, blocking: p.blocking && facing, stamina: p.stamina, defense: this.inventory.getStats().defense, perfect: p.blockTime < .24 && !area, dodging: p.action?.type === 'dodge' && p.action.elapsed < DODGE.invulnerableUntil });
     p.stamina = Math.max(0, p.stamina - resolved.staminaCost); p.regenDelay = .7;
     p.health = Math.max(0, p.health - resolved.damage);
-    if (resolved.outcome === 'parried') { enemy.stagger = 1.2; enemy.action = null; enemy.cooldown = 1.4; this.audio.play('block'); this.burst(p.x, 1.3, p.z, '#a0f5e4', 16); this.ui.toast('PERFECT PARRY', 'Their guard is broken. Strike now.'); }
+    if (resolved.outcome === 'parried') {
+      enemy.stagger = 1.2; enemy.action = null; enemy.cooldown = 1.4; this.audio.play('parry');
+      this.react(enemy, p, 'parry', 1.5, .38); this.react(p, enemy, 'block', .3, .18); this.contact('parry', p, enemy);
+      this.ui.toast('PERFECT PARRY', 'Their guard is broken. Strike now.');
+    }
     else if (resolved.outcome === 'evaded') { this.ui.toast('EVADED', 'Timing over equipment.'); }
-    else if (resolved.damage) { p.hit = .25; this.audio.play(resolved.outcome === 'blocked' ? 'block' : 'hit'); this.damageText(p.x, 2.2, p.z, `−${resolved.damage}`, '#ff8d75'); }
+    else if (resolved.damage) {
+      const blocked = resolved.outcome === 'blocked', broken = resolved.outcome === 'guard-broken';
+      p.hit = .25; this.audio.play(blocked ? 'block' : broken ? 'guard-break' : 'hit');
+      this.react(p, enemy, blocked ? 'block' : broken ? 'guard-break' : 'hit', blocked ? .4 : broken ? 1.4 : 1);
+      this.contact(blocked ? 'block' : broken ? 'guard-break' : 'hit', p, enemy);
+      if (broken) this.ui.toast('GUARD BROKEN', 'Recover stamina or dodge the next strike.');
+      this.damageText(p.x, 2.2, p.z, `−${resolved.damage}`, '#ff8d75');
+    }
     if (p.health === 0) this.finish(false);
   }
   enterArena() {
@@ -356,6 +390,7 @@ class VaultGame {
   }
   finish(won) {
     this.phase = won ? 'won' : 'lost'; this.keys.clear(); this.mouseBlock = false; this.player.action = null;
+    this.feedback.clear();
     this.ui.setPrompt(null); this.ui.setEnemy(null);
     this.ui.showResult({ won, title: won ? 'A LEGEND IS FORGED' : 'THE VAULT REMEMBERS', subtitle: won ? 'You defeated Varr. Knowledge armed you. Timing won the duel.' : 'Read the windup. Preserve stamina. A perfect parry creates an opening.', reward: won ? 'GILDED LAUREL · Expedition complete · Demonstration reward' : 'Return to the Vault and challenge fate again.' });
     if (won) this.audio.play('win');
@@ -367,13 +402,14 @@ class VaultGame {
     const obstruction = this.scene.pickWithRay(new B.Ray(target, direction, length), mesh => mesh.name === 'merged-vault-architecture' && mesh.material?.alpha >= .95);
     if (obstruction?.hit && obstruction.distance < length) desired = target.add(direction.scale(Math.max(.35, obstruction.distance - .3)));
     this.camera.position = B.Vector3.Lerp(this.camera.position, desired, snap ? 1 : 1 - Math.exp(-10 * dt));
+    if (!snap && !settings.reducedMotion) target.y += this.feedback.cameraOffset();
     this.camera.setTarget(target);
   }
   refreshHUD() {
     if (!this.player) return;
     const p = this.player, enemy = this.activeEnemy();
     this.ui.setHUD({ ...p, location: p.z > 27 ? 'THE COLISEUM' : Math.abs(p.x) > 11 ? (p.x < 0 ? 'THE KING’S KEEP · RELIC CHAMBER' : 'THE FRONTIER · RELIC CHAMBER') : 'THE VAULT · KINGDOM OF EARNINGS', objective: this.phase === 'arena' ? 'Defeat Varr. Watch for the Ember Ring.' : this.arenaUnlocked() ? 'Enter the northern passage to the Coliseum.' : `${this.guardian.dead ? 'Warden defeated' : 'Defeat the Auric Warden'} · Discover three research relics`, chests: this.opened.size, guardianDead: this.guardian.dead, arenaUnlocked: this.arenaUnlocked() });
-    this.ui.setCombatState?.({ blocking: p.blocking, dodging: p.action?.type === 'dodge', heavy: p.action?.type === 'heavy', spellCooldown: p.spellCooldown });
+    this.ui.setCombatState?.({ blocking: p.blocking, dodging: p.action?.type === 'dodge', heavy: p.action?.type === 'heavy', attacking: p.action?.type === 'light', spellCooldown: p.spellCooldown });
     if (['explore', 'arena'].includes(this.phase) && !enemy.dead && dist(p, enemy) < 16) {
       this.ui.setEnemy({ name: enemy.name, health: enemy.health, maxHealth: enemy.maxHealth, intent: enemy.stagger > 0 ? 'STAGGERED · STRIKE NOW' : enemy.action ? (enemy.action.type === 'shockwave' ? 'EMBER RING · DODGE' : enemy.action.elapsed < enemy.action.windup ? 'WINDING UP · WATCH THE BLADE' : 'RECOVERING') : enemy.guard ? 'GUARDING · HEAVY STRIKE' : 'APPROACHING' });
     } else this.ui.setEnemy(null);
@@ -441,12 +477,24 @@ class VaultGame {
     }
   }
   clearEffects() {
+    this.feedback?.clear();
     for (const p of this.projectiles) { p.mesh.dispose(); p.material.dispose(); } this.projectiles = [];
     const groups = new Set(); for (const e of this.effects) { e.mesh.dispose(); e.material?.dispose(); e.texture?.dispose(); if (e.group) groups.add(e.group); } for (const group of groups) group.material.dispose(); this.effects = [];
   }
   installTestInterface() {
     window.__ORCA_TEST__ = Object.freeze({
-      snapshot: () => ({ phase: this.phase, modal: this.ui.mode, player: { ...this.player }, camera: { yaw: this.yaw, pitch: this.pitch, position: this.camera.position.asArray() }, chests: [...this.opened], chestLids: Object.fromEntries(this.world.chests.map(c => [c.id, c.lid.rotation.x])), equipmentAppearance: { weapon: this.hero.weapon.getChildMeshes().find(m => m.material?.name === 'hero-equipped-blade')?.material.diffuseColor.toHexString(), shield: this.hero.shield.getChildMeshes().find(m => m.material?.name === 'hero-equipped-shield')?.material.diffuseColor.toHexString() }, equipped: { ...this.inventory.equipped }, items: this.inventory.list(), guardian: { health: this.guardian.health, dead: this.guardian.dead, x: this.guardian.x, z: this.guardian.z, action: this.guardian.action, guard: this.guardian.guard }, gladiator: { health: this.gladiator.health, dead: this.gladiator.dead, x: this.gladiator.x, z: this.gladiator.z, action: this.gladiator.action }, arenaUnlocked: this.arenaUnlocked(), meshes: this.scene.meshes.length, fps: this.engine.getFps(), effects: this.effects.length, projectiles: this.projectiles.length }),
+      snapshot: () => ({
+        phase: this.phase, modal: this.ui.mode, player: { ...this.player },
+        camera: { yaw: this.yaw, pitch: this.pitch, position: this.camera.position.asArray() },
+        chests: [...this.opened], chestLids: Object.fromEntries(this.world.chests.map(c => [c.id, c.lid.rotation.x])),
+        equipmentAppearance: { weapon: this.hero.weapon.getChildMeshes().find(m => m.material?.name === 'hero-equipped-blade')?.material.diffuseColor.toHexString(), shield: this.hero.shield.getChildMeshes().find(m => m.material?.name === 'hero-equipped-shield')?.material.diffuseColor.toHexString() },
+        equipped: { ...this.inventory.equipped }, items: this.inventory.list(),
+        guardian: { health: this.guardian.health, dead: this.guardian.dead, x: this.guardian.x, z: this.guardian.z, yaw: this.guardian.yaw, action: this.guardian.action, guard: this.guardian.guard, reaction: this.guardian.reaction, stagger: this.guardian.stagger, cooldown: this.guardian.cooldown },
+        gladiator: { health: this.gladiator.health, dead: this.gladiator.dead, x: this.gladiator.x, z: this.gladiator.z, action: this.gladiator.action },
+        actorPositions: { hero: this.hero.root.position.asArray(), guardian: this.guardian.actor.root.position.asArray() },
+        arenaUnlocked: this.arenaUnlocked(), meshes: this.scene.meshes.length, materials: this.scene.materials.length,
+        feedback: this.feedback.snapshot(), fps: this.engine.getFps(), effects: this.effects.length, projectiles: this.projectiles.length,
+      }),
       position: (x, z, yaw = 0) => { if (!this.world.isWalkable(x, z, .48)) throw new Error('Test position is outside collision geometry'); Object.assign(this.player, { x, z, yaw, vx: 0, vz: 0 }); this.yaw = yaw; this.updateCamera(1, true); },
       step: (seconds) => { for (let t = 0; t < seconds; t += 1 / 60) this.frame(1 / 60); },
       manualClock: () => this.engine.stopRenderLoop(),
@@ -457,7 +505,7 @@ class VaultGame {
     });
   }
   fail(error) { console.error('ORCA Legends:', error); this.phase = 'error'; this.engine?.stopRenderLoop(); this.ui.showError?.(error.message); }
-  dispose() { if (this.disposed) return; this.disposed = true; this.accessAbort?.abort(); this.unsubscribeAuth?.(); this.abort?.abort(); this.engine?.stopRenderLoop(); this.clearEffects(); this.audio.dispose(); this.ui.dispose(); this.world?.dispose(); this.scene?.dispose(); this.engine?.dispose(); delete window.__ORCA_TEST__; }
+  dispose() { if (this.disposed) return; this.disposed = true; this.accessAbort?.abort(); this.unsubscribeAuth?.(); this.abort?.abort(); this.engine?.stopRenderLoop(); this.clearEffects(); this.feedback?.dispose(); this.audio.dispose(); this.ui.dispose(); this.world?.dispose(); this.scene?.dispose(); this.engine?.dispose(); delete window.__ORCA_TEST__; }
 }
 
 const game = new VaultGame();
