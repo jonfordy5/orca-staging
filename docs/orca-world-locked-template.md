@@ -29,7 +29,7 @@ These are the three permanent ORCA research categories, not generic decorative t
 The ultimate goal is a **polished, genuinely playable 3D action RPG**, drawing from Diablo/Darkstone-style dungeon exploration and loot, with tactile swordplay, dodging, blocking, stamina, spells and timing reminiscent of classic RPG combat. A static web debate with robotic costumes is **not** the final experience.
 
 1. **Human controls the hero** in a 3D stock-themed expedition. The **opted-in AI researcher** is the research companion/treasure hunter.
-2. **Cached verified ORCA evidence powers immediate loot and quests**. Players can enjoy exploration and combat without waiting for an AI call.
+2. **Research contribution unlocks play**. After the participant's own agent completes an accepted source-backed ORCA mission, cached verified evidence can power immediate loot and quests without extra AI calls.
 3. New owner-authorized, dated, original-source research may create a **new chest, item, relic, spell, or quest**, once checked for authenticity, relevance, source and duplication. Research depth leads to distinct discovery types—not automatic gains just from idle time.
 4. **Common / Uncommon / Rare / Epic / Legendary** tiers reflect source strength, usefulness, original contribution and independent scrutiny, **not simply bullishness, a margin percentage or hype**.
 5. **Research Forge:** complementary Management, Earnings and Positioning discoveries can be combined into weapons/armor/spells. Attribution remains visible and inspectable.
@@ -37,21 +37,33 @@ The ultimate goal is a **polished, genuinely playable 3D action RPG**, drawing f
 7. **Underdog gameplay matters:** even an under-equipped newcomer with skill and a meaningful new verified discovery can defeat a better-equipped champion. Tactile player combat skill must matter; research doesn't automatically decide the winner.
 8. Rivalries, seasons, hero identities, challenges, fans, replayability and match highlights are the entertainment layer. Published real research and game mechanics must remain distinguishable.
 
-### Research execution model
-- Personal ChatGPT assistant participation follows existing ORCA owner consent and active authorized sessions. Closing that session **does not** cause the personal assistant to continue working endlessly in the background.
-- A potential future **ORCA-operated** server-side research worker is a **different service**: separately authorized, strictly scoped and budget-capped, using a queued, deduplicated, auditable process.
-- Reuse cached evidence across users. Never call a paid research model simply because a player opens a chest or has played for another minute.
-- No trades, real-money gambling, pay-to-win, mandatory subscriptions or unapproved account integrations. Free to watch, play, learn and contribute; advertising is separate from research.
+### Agent-research participation and assignment model — OWNER-APPROVED CORE RULE
+**ORCA Legends is a contributor game, not an open-to-all game.** A person participates by bringing and authorizing **their own AI assistant**, claiming an ORCA research metric, and completing a legitimate source-backed research mission. The game is the incentive for building the independent Commons research database. ORCA must **not** supply a default platform-operated AI companion, substitute an OpenAI API bot for the member's assistant, or grant normal gameplay participation merely for visiting the site. Public Commons reading and spectator experiences (if offered) are separate from contributor-gated gameplay.
+
+**Role split:** ORCA is the **dispatcher, assignment allocator, brief-packet provider, mission/status ledger, and verifier**. Participating personal assistants are the **actual researchers**. Humans are the **game players**. The existing claim / independent research / publish workflow remains authoritative.
+
+1. Participant signs in, explicitly authorizes their own assistant, and selects or receives an existing ORCA mission. Their **first completed and accepted research mission** unlocks regular gameplay. A purely local developer demo may bypass this gate only if visibly marked as a test.
+2. ORCA assigns an available **distinct, well-scoped metric/question** and provides a concise evidence/brief packet that avoids repeating prior work; packet is for orientation, not instructions to accept previous conclusions.
+3. The owner's active agent researches independently, checks credible dated primary sources, and publishes source-backed findings and uncertainties through the approved assignment. An agent may research while the owner plays **only if its authorized ChatGPT Work/research session actually remains active**. The game does not summon a closed or disconnected personal ChatGPT agent on demand.
+4. The player continues playing in the separate game interface. On publication/acceptance, ORCA updates Supabase; the game receives (polling or Realtime) a **new discovery event** and converts approved research into collectible equipment. Attribution and source inspection are preserved.
+5. ORCA may precreate or allocate the **next assignment** when a previous task is completed, but the owner's agent must be active and authorized before investigating it. No background agent impersonation or unlimited auto-claiming.
+6. As player numbers increase (e.g., 500 concurrent participants), ORCA allocates **different research tasks or deliberately scoped independent verification** across Management, Earnings and Positioning: more companies, new filings/time periods, distinct subquestions, cross-company evidence, unresolved contradictions, and freshness checks. Existing fixed metric catalog requires **future subdivision/question scheduling** to scale; do not claim today's six metrics guarantee 500 nonoverlapping missions.
+7. Reward **accepted original contributions and useful verification**, not sheer time, excessive token use, repetitive claims, the direction of a stock opinion, or clicking the same mission repeatedly. A valid result that confirms prior evidence is useful; a duplicate earns no imaginary new discovery.
+8. Reuse cached verified findings for dungeon population **after player access is earned**; cache does not exempt a newcomer from performing their own research contribution.
+
+**No default ORCA API research companion and no platform-paid autonomous-research substitute.** Any future server AI capability would be a separately approved architectural change, not an assumed feature of this game. Existing research permissions, privacy and owner control remain unchanged. ORCA coordination logic (allocation, briefs, verification, notifications) can run server-side without autonomous OpenAI searches.
+
+- No trades, real-money gambling, pay-to-win, mandatory subscriptions or unapproved account integrations. Contributing/play is free but **requires genuine agent research**. Advertising is separate from published findings.
 
 ## 4. First prototype acceptance criteria
 - One polished, compact 3D dungeon, responsive character control, convincing block/dodge/attack, one guardian, one arena encounter.
 - Three research-linked chests or discoveries, one for each research realm, with inventory/equip and accessible evidence details.
-- Real preverified evidence from the existing Commons used for loot before expensive live-agent jobs.
+- A contributor-gated entry flow (connecting one's own agent and completing an accepted metric mission) is required for regular gameplay; prototype demo access is explicitly labeled. Existing verified Commons evidence supplies loot without platform-operated AI research.
 - An owner-approved new contribution can later add one legitimate unique discovery item, without forcing a ChatGPT agent to run in the background.
 - Staging/prototype only until expressly approved; keep the existing site, timelines and research data intact.
 
 ## 5. Explicit change-control rule
-**LOCKED:** The three names, their mapping, original visuals, full-image aspect ratio, text-over-image treatment, integration inside existing research cards, research IDs, and the ambition of a real 3D research-to-loot RPG.  
+**LOCKED:** The three names, their mapping, original visuals, full-image aspect ratio, text-over-image treatment, integration inside existing research cards, research IDs, the contributor-gated personal-agent research/ORCA-dispatch model, and the ambition of a real 3D research-to-loot RPG.  
 **FLEXIBLE:** Specific animations, character visuals, weapon balance, 3D engine, individual mission scenarios and game UI details during prototyping.
 
 When an improvement is proposed:
@@ -63,6 +75,8 @@ When an improvement is proposed:
 ## Change log
 | Date | Change | Status |
 |---|---|---|
+|---|---|
+| 2026-11-09 | Clarified that contributing real research with the player's own authorized AI is the required participation gate; ORCA allocates varied tasks and packets, never substitutes a default API researcher. | Locked |
 | 2026-11-09 | Three world identities approved and illustrated. | Locked |
 | 2026-11-09 | Artwork merged into three existing research cards; separate preview row removed. | Locked |
 | 2026-11-09 | Full uncropped portrait artwork with names and category labels **inside** the images. | Locked |
