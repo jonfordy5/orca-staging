@@ -296,7 +296,7 @@ class VaultGame {
       // Committed windups resist light-hit stun locks. Heavy attacks and parries interrupt.
       if (type === 'heavy' || !enemy.action) { enemy.stagger = spec.stagger; enemy.action = null; }
       this.audio.play(outcome === 'guard-break' ? 'guard-break' : type === 'heavy' ? 'heavy-hit' : 'hit');
-      if (guarded) this.ui.toast('GUARD BREAK', 'A heavy cut opens their defense.');
+      if (guarded) this.ui.toast('GUARD PIERCED', 'The heavy cut lands through their defense.');
     }
     this.react(enemy, p, outcome, outcome === 'block' ? .4 : type === 'heavy' ? 1.6 : 1, type === 'heavy' ? .38 : .24);
     this.contact(outcome, enemy, p);
