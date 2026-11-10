@@ -50,7 +50,15 @@ let browser;
     return page;
   }
   async function capture(page, name, elapsedSeconds, extra = {}) {
-    await page.evaluate(() => window.__ORCA_TEST__.render());
+    await page.evaluate(async () => {
+      const test = window.__ORCA_TEST__;
+      test.render();
+      // Newly enabled pooled FX and dynamic legacy particles may compile a
+      // material on their first render. Keep simulation frozen while readying
+      // that real scene, then render its actual pixels for the still.
+      await window.BABYLON.EngineStore.LastCreatedScene.whenReadyAsync();
+      test.render();
+    });
     const snapshot = await page.evaluate(() => window.__ORCA_TEST__.snapshot());
     await page.screenshot({ path: path.join(output, name + '.png') });
     results.captures.push({ name, elapsedSeconds, ...extra, snapshot });
@@ -79,9 +87,22 @@ let browser;
   await capture(close, 'ready', null, { quality: 'high', reducedMotion: false, playerZ: 5.8 });
   await close.evaluate(() => window.__ORCA_TEST__.step(21 / 60));
   await capture(close, 'charge', null, { quality: 'high', reducedMotion: false, playerZ: 5.8, readinessSeconds: 21 / 60 });
-  await cast(close);
+  const closeBefore = await cast(close);
   await close.evaluate(() => window.__ORCA_TEST__.step(1 / 60));
   await capture(close, 'launch', 1 / 60, { quality: 'high', reducedMotion: false, playerZ: 5.8 });
+  const closeImpactFrames = await close.evaluate(health => {
+    const test = window.__ORCA_TEST__; let frames = 1;
+    while (test.snapshot().guardian.health === health && frames < 100) { test.step(1 / 60); frames++; }
+    return frames;
+  }, closeBefore.guardian.health);
+  assert((await close.evaluate(() => window.__ORCA_TEST__.snapshot())).guardian.health < closeBefore.guardian.health);
+  const closeHitSeconds = closeImpactFrames / 60;
+  await close.evaluate(() => window.__ORCA_TEST__.step(3 / 60));
+  await capture(close, 'impact-close', closeHitSeconds + 3 / 60,
+    { quality: 'high', reducedMotion: false, playerZ: 5.8, collisionSeconds: closeHitSeconds });
+  await close.evaluate(() => window.__ORCA_TEST__.step(18 / 60));
+  await capture(close, 'afterglow-close', closeHitSeconds + 21 / 60,
+    { quality: 'high', reducedMotion: false, playerZ: 5.8, collisionSeconds: closeHitSeconds });
   await close.close();
 
   // Longer flight keeps the projectile clear of the hero and lets the same

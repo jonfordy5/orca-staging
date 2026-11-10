@@ -17,7 +17,7 @@ The unchanged F input spends 28 mana, starts a 3.6-second cooldown and creates t
 
 Before stills and raw measurements are preserved in [`docs/evidence/wo-02/before/`](./evidence/wo-02/before/). Local full capture output, including the integrated browser log, is under `work/wo02-before/`.
 
-The reusable [`capture-orca-legends-spell.cjs`](../scripts/capture-orca-legends-spell.cjs) serves exactly `SPELL_CAPTURE_ROOT` (the checkout by default), uses genuine Playwright `KeyF` input, and only uses the localhost test interface for scene positioning, manual time and rendering. The close camera uses `(0, 5.8)`; the flight camera uses `(0, -3)` and lets the existing Warden AI and real projectile collision determine contact. Stills are rendered at fixed 1/60-second simulation steps. They preserve the game UI, including any transient start toast.
+The reusable [`capture-orca-legends-spell.cjs`](../scripts/capture-orca-legends-spell.cjs) serves exactly `SPELL_CAPTURE_ROOT` (the checkout by default), uses genuine Playwright `KeyF` input, and only uses the localhost test interface for scene positioning, manual time and rendering. The close camera uses `(0, 5.8)`; the flight camera uses `(0, -3)` and lets the existing Warden AI and real projectile collision determine contact. Stills are rendered at fixed 1/60-second simulation steps. Each still waits for the actual Babylon scene/materials to become ready while simulation stays frozen, then renders again. They preserve the game UI, including any transient start toast.
 
 ```sh
 CHROME_BIN=/usr/bin/chromium \
@@ -40,6 +40,8 @@ Set `CAPTURE_STILLS_ONLY=1` to skip RAF sampling. `CAPTURE_LABEL`, `CAPTURE_REVI
 
 The flight, impact and afterglow states also have `-reduced.png` counterparts using low quality and reduced motion. The old spell has no dedicated local light pulse or spell afterglow; its collision shares the existing generic hit presentation and audio. The still named `charge` documents that absence rather than claiming a baseline charging mechanic.
 
+Additional `impact-close.png` and `afterglow-close.png` use the close camera for clearer contact review. The same real collision occurs at 5/60 second, followed by 3/60 second for impact and 21/60 second for afterglow. Before/after comparisons must use matching coordinates and file names. The final baseline stills and RAF measurements were refreshed together after adding these close views; they continue to use the untouched frozen game.
+
 ## Scene counts and software-renderer sample
 
 | State | High meshes / materials | Low + reduced meshes / materials |
@@ -54,7 +56,7 @@ Chromium used `--use-angle=swiftshader --enable-unsafe-swiftshader`, a 960 × 64
 
 | Setting | Frames / elapsed | Mean interval | Median interval | 95th percentile |
 |---|---:|---:|---:|---:|
-| High, reduced motion off | 12 / 4,055.8 ms | 337.98 ms | 333.3 ms | 1,100.0 ms |
-| Low, reduced motion on | 25 / 4,086.1 ms | 163.44 ms | 166.6 ms | 250.0 ms |
+| High, reduced motion off | 13 / 4,219.5 ms | 324.58 ms | 366.6 ms | 450.0 ms |
+| Low, reduced motion on | 22 / 4,126.8 ms | 187.58 ms | 200.0 ms | 383.3 ms |
 
 Both samples ended in `explore` with player health 100 and Warden health 122. These are short, variable measurements of software WebGL on a shared cloud executor. The rows differ in both quality and motion settings and do not isolate their costs. Repeat the same harness after the change; a hardware browser and longer matched traces are needed to assess a consumer frame-rate target or claim a performance improvement/regression.
