@@ -74,6 +74,7 @@ class VaultGame {
     this.feedback = new CombatFeedback(this.scene);
     this.ui.setLoading(.65, 'Awakening the vault warden…');
     this.hero = createFighter(this.scene, { kind: 'hero', name: 'The Seeker' });
+    this.shieldContact = new B.Vector3(.25, .08, .12); this.contactPosition = new B.Vector3();
     this.guardian = this.makeEnemy('guardian', 'AURIC WARDEN', 145, 0, 8);
     this.gladiator = this.makeEnemy('gladiator', 'VARR — THE GILDED OATH', 215, 0, 43);
     this.gladiator.actor.setVisible(false);
@@ -308,6 +309,14 @@ class VaultGame {
   }
   contact(kind, target, source) {
     const dx = target.x - source.x, dz = target.z - source.z, length = Math.hypot(dx, dz) || 1;
+    if (target === this.player && (kind === 'block' || kind === 'parry' || kind === 'guard-break')) {
+      // The shield's outer rim stays visible from the follow camera; emitting
+      // at the actor center would bury a successful parry inside their armor.
+      B.Vector3.TransformCoordinatesToRef(this.shieldContact, this.hero.shield.computeWorldMatrix(true), this.contactPosition);
+      const point = this.contactPosition;
+      this.feedback.contact(kind, point.x, point.y, point.z, dx / length, dz / length, settings);
+      return;
+    }
     // Contact sits on the facing armor/shield, away from the mesh's hidden center.
     this.feedback.contact(kind, target.x - dx / length * .5, target.kind === 'guardian' ? 1.75 : 1.4, target.z - dz / length * .5, dx / length, dz / length, settings);
   }
