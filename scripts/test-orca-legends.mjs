@@ -182,6 +182,20 @@ test('eligibility rejects malformed evidence, unpublished findings and unsafe or
   }
 });
 
+test('completed alias-based R4 research unlocks only for its actual signed-in contributor', () => {
+  const evidence = {
+    ownerId: 'owner-123',
+    profile: { id: 'profile-456', display_name: 'ORCA Test Researcher 1', opted_in: true },
+    tasks: [{ id: 'task-rklb', status: 'completed', assigned_agent: 'ORCA Test Researcher 1', claimed_owner_id: null }],
+    findings: [{ task_id: 'task-rklb', contributor_id: 'owner-123', summary: '[ORCA-R4;Q:pricing;A:BUY] Valid original-source finding.', published_at: '2026-11-10T05:53:29Z', source_urls: ['https://www.sec.gov/Archives/edgar/data/1/sample'] }],
+  };
+  assert.equal(validateContributorEvidence(evidence), true, 'The real ORCA alias format is accepted.');
+  assert.equal(validateContributorEvidence({ ...evidence, ownerId: 'different-owner' }), false, 'A different signed-in user cannot claim another owner’s finding.');
+  assert.equal(validateContributorEvidence({ ...evidence, findings: [{ ...evidence.findings[0], contributor_id: 'different-owner' }] }), false, 'Same-name researcher cannot borrow a public finding.');
+  assert.equal(validateContributorEvidence({ ...evidence, tasks: [{ ...evidence.tasks[0], claimed_owner_id: 'different-owner' }] }), false, 'Claimed ownership must match if recorded.');
+  assert.equal(validateContributorEvidence({ ...evidence, profile: { ...evidence.profile, opted_in: false } }), false, 'Revoking consent locks gameplay.');
+});
+
 test('development bypass is limited to exact loopback hostnames, never a public test query', () => {
   for (const hostname of ['localhost', '127.0.0.1', '[::1]', '::1']) assert.equal(isLocalDevelopment(hostname), true, hostname);
   for (const hostname of [undefined, '', 'jonfordy5.github.io', 'jonfordy5.github.io?test=1', 'localhost.evil.example', 'localhost:8000', '127.0.0.1.evil.example', '127.0.0.2', '0.0.0.0', 'https://localhost', 'example.com?localhost']) {
