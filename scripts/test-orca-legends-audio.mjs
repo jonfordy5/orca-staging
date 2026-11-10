@@ -72,3 +72,53 @@ test('all supported cues release sources on disposal and disposed audio cannot r
   assert.ok(context.sources.every(source => source.stopped));
   assert.ok(context.nodes.every(node => !node.connected));
 });
+
+test('each Cinderbolt cue completes all layers and releases every node while sharing the noise buffer', () => {
+  const audio = new VaultAudio(.35); audio.start();
+  for (const cue of ['spell-charge', 'spell-launch', 'spell-impact', 'spell-fizzle']) {
+    audio.play(cue);
+    const voice = [...audio.voices][0];
+    assert.equal(audio.voices.size, 1, `${cue} creates one bounded voice`);
+    assert.ok(voice.sources.length > 1, `${cue} has its own layered synthesis`);
+    for (const source of voice.sources.slice(0, -1)) source.finish();
+    assert.equal(audio.voices.size, 1, `${cue} retains the remaining layer`);
+    voice.sources.at(-1).finish();
+    assert.equal(audio.voices.size, 0, `${cue} releases naturally`);
+    assert.ok(voice.sources.every(source => source.stopped && source.onended === null));
+    assert.ok(voice.nodes.every(node => !node.connected));
+  }
+  assert.equal(audio.context.buffers.length, 1);
+  audio.dispose();
+});
+
+test('overlapping spell and sword cues share the twelve-voice budget, live mute and final disposal', () => {
+  const audio = new VaultAudio(.35); audio.start();
+  const cues = ['spell-charge', 'spell-launch', 'spell-impact', 'spell-fizzle', 'heavy-hit', 'parry'];
+  for (let i = 0; i < 72; i++) audio.play(cues[i % cues.length]);
+  assert.equal(audio.voices.size, 12);
+  assert.equal(audio.context.buffers.length, 1);
+  assert.ok(audio.context.sources.some(source => source.stopped));
+  assert.ok(audio.context.sources.filter(source => source.stopped).every(source => !source.connected));
+  const nodeCount = audio.context.nodes.length;
+  audio.volume = 0;
+  for (const cue of cues) audio.play(cue);
+  assert.equal(audio.master.gain.value, 0);
+  assert.equal(audio.context.nodes.length, nodeCount);
+  audio.dispose();
+  assert.equal(audio.voices.size, 0);
+  assert.ok(audio.context.nodes.every(node => !node.connected));
+  assert.ok(audio.context.sources.every(source => source.stopped));
+});
+
+test('a failed spell audio device disconnects partially created layers without interrupting later cues', () => {
+  const audio = new VaultAudio(); audio.start();
+  const context = audio.context;
+  const createOscillator = context.createOscillator.bind(context);
+  context.createOscillator = () => { throw new Error('optional device unavailable'); };
+  assert.doesNotThrow(() => audio.play('spell-fizzle'));
+  assert.equal(audio.voices.size, 0);
+  assert.ok(context.nodes.filter(node => node !== audio.master).every(node => !node.connected));
+  context.createOscillator = createOscillator;
+  audio.play('spell-launch'); assert.equal(audio.voices.size, 1);
+  audio.dispose();
+});

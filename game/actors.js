@@ -17,6 +17,12 @@ const heavyPoses = [
   [-1.05, .15, -.05, -.08, -.52, -.02, .14, .16, .06, .085],
   [.28, .25, .18, -.18, -.10, .02, .23, .22, .11, .10],
 ];
+// Cinderbolt gathers before input, then opens the shield-side hand on the
+// already-successful cast. These original poses never drive gameplay timing.
+// Left shoulder XYZ, elbow X, shield XY and torso YX; sword joints are absent.
+const cinderReadyPose = [-.55, .24, -.22, -.68, -.16, .22, -.075, -.025];
+const cinderReleasePose = [-1.48, -.08, -.19, .04, -.32, .52, .10, .065];
+const cinderFollowPose = [-1.12, .28, -.32, -.22, -.18, .34, .06, .035];
 
 export function createFighter(scene, { kind = 'hero', name = kind } = {}) {
   const guardian = kind === 'guardian';
@@ -34,7 +40,9 @@ export function createFighter(scene, { kind = 'hero', name = kind } = {}) {
   let death = 0;
   let moveBlend = 0;
   let guardBlend = 0;
+  let spellBlend = 0;
   const strikePose = new Float32Array(restPose.length);
+  const castPose = new Float32Array(cinderReadyPose.length);
   let currentWeaponId = null;
   let currentShieldId = null;
 
@@ -366,6 +374,33 @@ export function createFighter(scene, { kind = 'hero', name = kind } = {}) {
     arms[1].elbow.rotation.x += (-.32 - arms[1].elbow.rotation.x) * guardBlend;
     shield.rotation.x = .4 * guardBlend;
     shield.rotation.y = .08 - .35 * guardBlend;
+    // Melee, guard, dodge and defeat retain their exact WO-01 poses. A cast
+    // cannot lock an action or postpone a projectile: castAge is presentation
+    // time supplied only after the immediate cast has already succeeded.
+    const canPoseSpell = !attacking && !blocking && !dodging && !dead && !victory;
+    const spellReady = canPoseSpell ? Math.max(0, Math.min(1, state.spellReady || 0)) : 0;
+    const castAge = Number.isFinite(state.castAge) ? Math.max(0, state.castAge) : Infinity;
+    spellBlend = canPoseSpell && castAge >= .4 ? spellBlend + (spellReady - spellBlend) * transition : 0;
+    castPose.fill(0);
+    if (canPoseSpell && castAge < .4) {
+      const from = castAge < .11 ? cinderReleasePose : cinderFollowPose;
+      const to = castAge < .11 ? cinderFollowPose : restPose;
+      const weight = smooth(castAge < .11 ? castAge / .11 : (castAge - .11) / .29);
+      for (let i = 0; i < castPose.length; i++) castPose[i] = from[i] + (to[i] - from[i]) * weight;
+    } else if (canPoseSpell) {
+      for (let i = 0; i < castPose.length; i++) castPose[i] = cinderReadyPose[i] * smooth(spellBlend);
+    }
+    if (canPoseSpell && (castAge < .4 || spellBlend > 0)) {
+      arms[1].shoulder.rotation.x += castPose[0];
+      arms[1].shoulder.rotation.y += castPose[1];
+      arms[1].shoulder.rotation.z += castPose[2];
+      arms[1].elbow.rotation.x += castPose[3];
+      shield.rotation.x += castPose[4];
+      shield.rotation.y += castPose[5];
+      const castMotion = reducedMotion ? .3 : 1;
+      torso.rotation.y += castPose[6] * castMotion;
+      torso.rotation.x += castPose[7] * castMotion;
+    }
     // Flinch only the visual rig. Physics, facing and committed enemy windups
     // remain authoritative; a light hit cannot manufacture a stagger.
     const reaction = state.reaction;
@@ -401,7 +436,7 @@ export function createFighter(scene, { kind = 'hero', name = kind } = {}) {
   }
 
   return {
-    root, weapon, shield, name,
+    root, weapon, shield, focus: spellOrb, name,
     update, equip,
     setVisible(visible) { root.setEnabled(!!visible); },
     dispose() {
