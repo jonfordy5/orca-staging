@@ -145,14 +145,18 @@ export class SpellFeedback {
     fighter.focus.computeWorldMatrix(true);
     this.focusPosition.copyFrom(fighter.focus.getAbsolutePosition());
     const yaw = fighter.root.rotation.y;
-    this.focusPosition.x += Math.sin(yaw) * .15; this.focusPosition.z += Math.cos(yaw) * .15;
-    const ready = this.chargeReadiness, reduced = settings.reducedMotion;
+    // Lift the gathering energy beyond the shield/shoulder silhouette, where
+    // the following camera can read it without moving the hand or its rig.
+    this.focusPosition.x += Math.sin(yaw) * .15 + Math.cos(yaw) * .29;
+    this.focusPosition.y += .13;
+    this.focusPosition.z += Math.cos(yaw) * .15 - Math.sin(yaw) * .29;
+    const ready = this.chargeReadiness, reduced = settings.reducedMotion, low = settings.quality === 'low';
     this.chargeHalo.position.copyFrom(this.focusPosition);
-    this.chargeHalo.scaling.setAll((reduced ? .19 : .27) + ready * (reduced ? .1 : .22));
-    this.chargeHalo.visibility = .24 + ready * .32; this.chargeHalo.setEnabled(true);
+    this.chargeHalo.scaling.setAll(reduced ? .19 + ready * .1 : low ? .24 + ready * .26 : .28 + ready * .34);
+    this.chargeHalo.visibility = reduced ? .24 + ready * .32 : .3 + ready * .48; this.chargeHalo.setEnabled(true);
     this.chargeRing.position.copyFrom(this.focusPosition);
-    this.chargeRing.scaling.setAll(.075 + ready * .075);
-    this.chargeRing.rotation.z = this.time * .65; this.chargeRing.visibility = .22 + ready * .34;
+    this.chargeRing.scaling.setAll(low ? .065 + ready * .1 : .085 + ready * .125);
+    this.chargeRing.rotation.z = this.time * .65; this.chargeRing.visibility = .3 + ready * .45;
     this.chargeRing.setEnabled(!reduced);
     this.chargeEmber.position.set(this.focusPosition.x + Math.cos(this.time * 2.4) * .12,
       this.focusPosition.y + Math.sin(this.time * 2.4) * .12, this.focusPosition.z);
