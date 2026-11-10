@@ -1,0 +1,420 @@
+{
+  "label": "after",
+  "viewport": {
+    "width": 960,
+    "height": 640
+  },
+  "renderer": "Chromium --use-angle=swiftshader (software WebGL)",
+  "samples": [
+    {
+      "quality": "high",
+      "reducedMotion": false,
+      "elapsedMs": 4609.999999999989,
+      "frames": 12,
+      "meanFrameMs": 384.1666666666658,
+      "p50FrameMs": 399.89999999999964,
+      "p95FrameMs": 900.0000000000009,
+      "snapshot": {
+        "phase": "explore",
+        "modal": null,
+        "player": {
+          "x": 0,
+          "z": 5.8,
+          "yaw": 0,
+          "vx": 0,
+          "vz": 0,
+          "health": 100,
+          "maxHealth": 100,
+          "stamina": 72,
+          "maxStamina": 100,
+          "mana": 100,
+          "maxMana": 100,
+          "action": {
+            "type": "heavy",
+            "elapsed": 0.5499999999999999,
+            "duration": 0.94,
+            "dealt": true,
+            "sounded": true
+          },
+          "blockTime": 99,
+          "blocking": false,
+          "hit": 0,
+          "reaction": null,
+          "regenDelay": 0.1499999999999999,
+          "spellCooldown": 0
+        },
+        "camera": {
+          "yaw": 0,
+          "pitch": 0.56,
+          "position": [
+            0,
+            6.06196406253542,
+            -1.3169429325126956
+          ]
+        },
+        "chests": [],
+        "chestLids": {
+          "management": 0,
+          "positioning": 0,
+          "earnings": 0
+        },
+        "equipmentAppearance": {
+          "weapon": "#AEBAC6",
+          "shield": "#657F93"
+        },
+        "equipped": {
+          "weapon": "starter-vaultsteel",
+          "shield": "starter-watchshield",
+          "spell": "starter-cinder"
+        },
+        "items": [
+          {
+            "ticker": "NVDA",
+            "category": "weapon",
+            "researchArea": "Training",
+            "source": {
+              "id": "sec:nvda:1045810",
+              "label": "NVIDIA filings on SEC EDGAR — source to investigate",
+              "url": "https://www.sec.gov/edgar/browse/?CIK=1045810&owner=exclude"
+            },
+            "sourceReference": "sec:nvda:1045810",
+            "attribution": "ORCA Legends prototype authors — demonstration fixture; no researcher discovery credit claimed",
+            "verification": "demonstration",
+            "verificationState": "demonstration",
+            "balanceNote": "Fantasy game values. Rarity and statistics do not measure investment merit or performance.",
+            "summary": "DEMONSTRATION — an authored research exercise, not a verified financial finding or investment advice.",
+            "researchSummary": "DEMONSTRATION — an authored research exercise, not a verified financial finding or investment advice.",
+            "id": "starter-vaultsteel",
+            "name": "Vaultsteel Longsword",
+            "slot": "weapon",
+            "rarity": "COMMON",
+            "ability": "A reliable blade. Light strikes are quick; heavy strikes punish an exposed guardian.",
+            "appearance": {
+              "color": "#aebac6",
+              "style": "steel"
+            },
+            "stats": {
+              "damage": 17,
+              "defense": 0,
+              "spellDamage": 0
+            }
+          },
+          {
+            "ticker": "NVDA",
+            "category": "shield",
+            "researchArea": "Training",
+            "source": {
+              "id": "sec:nvda:1045810",
+              "label": "NVIDIA filings on SEC EDGAR — source to investigate",
+              "url": "https://www.sec.gov/edgar/browse/?CIK=1045810&owner=exclude"
+            },
+            "sourceReference": "sec:nvda:1045810",
+            "attribution": "ORCA Legends prototype authors — demonstration fixture; no researcher discovery credit claimed",
+            "verification": "demonstration",
+            "verificationState": "demonstration",
+            "balanceNote": "Fantasy game values. Rarity and statistics do not measure investment merit or performance.",
+            "summary": "DEMONSTRATION — an authored research exercise, not a verified financial finding or investment advice.",
+            "researchSummary": "DEMONSTRATION — an authored research exercise, not a verified financial finding or investment advice.",
+            "id": "starter-watchshield",
+            "name": "Watchkeeper Shield",
+            "slot": "shield",
+            "rarity": "COMMON",
+            "ability": "Reduces frontal damage while blocking. A block timed just before impact can stagger the attacker.",
+            "appearance": {
+              "color": "#657f93",
+              "style": "iron"
+            },
+            "stats": {
+              "damage": 0,
+              "defense": 0.45,
+              "spellDamage": 0
+            }
+          },
+          {
+            "ticker": "NVDA",
+            "category": "spell",
+            "researchArea": "Training",
+            "source": {
+              "id": "sec:nvda:1045810",
+              "label": "NVIDIA filings on SEC EDGAR — source to investigate",
+              "url": "https://www.sec.gov/edgar/browse/?CIK=1045810&owner=exclude"
+            },
+            "sourceReference": "sec:nvda:1045810",
+            "attribution": "ORCA Legends prototype authors — demonstration fixture; no researcher discovery credit claimed",
+            "verification": "demonstration",
+            "verificationState": "demonstration",
+            "balanceNote": "Fantasy game values. Rarity and statistics do not measure investment merit or performance.",
+            "summary": "DEMONSTRATION — an authored research exercise, not a verified financial finding or investment advice.",
+            "researchSummary": "DEMONSTRATION — an authored research exercise, not a verified financial finding or investment advice.",
+            "id": "starter-cinder",
+            "name": "Cinderbolt",
+            "slot": "spell",
+            "rarity": "COMMON",
+            "ability": "Launch a bolt of arcane fire. Uses mana and has a recovery cooldown.",
+            "appearance": {
+              "color": "#f8af52",
+              "style": "cinder"
+            },
+            "stats": {
+              "damage": 0,
+              "defense": 0,
+              "spellDamage": 23
+            }
+          }
+        ],
+        "guardian": {
+          "health": 117,
+          "dead": false,
+          "x": 0,
+          "z": 8,
+          "yaw": 3.141592653589793,
+          "action": null,
+          "guard": true,
+          "reaction": {
+            "remaining": 0.28,
+            "duration": 0.38,
+            "x": 0,
+            "z": 1,
+            "strength": 1.6,
+            "kind": "guard-break"
+          },
+          "stagger": 0.6499999999999999,
+          "cooldown": 0.8499999999999994
+        },
+        "gladiator": {
+          "health": 215,
+          "dead": false,
+          "x": 0,
+          "z": 43,
+          "action": null
+        },
+        "actorPositions": {
+          "hero": [
+            0,
+            0,
+            5.8
+          ],
+          "guardian": [
+            0,
+            0,
+            8
+          ]
+        },
+        "arenaUnlocked": false,
+        "meshes": 486,
+        "materials": 60,
+        "feedback": {
+          "activeSparks": 12,
+          "activeFlashes": 1,
+          "trailActive": true,
+          "cameraImpulse": 0.03181980515339463,
+          "lastEvent": "guard-break",
+          "poolMeshes": 20,
+          "poolMaterials": 5
+        },
+        "fps": 2.6593664450527963,
+        "effects": 1,
+        "projectiles": 0
+      }
+    },
+    {
+      "quality": "low",
+      "reducedMotion": true,
+      "elapsedMs": 4159.3,
+      "frames": 24,
+      "meanFrameMs": 173.30416666666667,
+      "p50FrameMs": 183.30000000000018,
+      "p95FrameMs": 216.69999999999982,
+      "snapshot": {
+        "phase": "explore",
+        "modal": null,
+        "player": {
+          "x": 0,
+          "z": 5.8,
+          "yaw": 0,
+          "vx": 0,
+          "vz": 0,
+          "health": 100,
+          "maxHealth": 100,
+          "stamina": 82,
+          "maxStamina": 100,
+          "mana": 100,
+          "maxMana": 100,
+          "action": null,
+          "blockTime": 99,
+          "blocking": false,
+          "hit": 0,
+          "reaction": null,
+          "regenDelay": 0,
+          "spellCooldown": 0
+        },
+        "camera": {
+          "yaw": 0,
+          "pitch": 0.56,
+          "position": [
+            0,
+            6.06196406253542,
+            -1.3169429325126956
+          ]
+        },
+        "chests": [],
+        "chestLids": {
+          "management": 0,
+          "positioning": 0,
+          "earnings": 0
+        },
+        "equipmentAppearance": {
+          "weapon": "#AEBAC6",
+          "shield": "#657F93"
+        },
+        "equipped": {
+          "weapon": "starter-vaultsteel",
+          "shield": "starter-watchshield",
+          "spell": "starter-cinder"
+        },
+        "items": [
+          {
+            "ticker": "NVDA",
+            "category": "weapon",
+            "researchArea": "Training",
+            "source": {
+              "id": "sec:nvda:1045810",
+              "label": "NVIDIA filings on SEC EDGAR — source to investigate",
+              "url": "https://www.sec.gov/edgar/browse/?CIK=1045810&owner=exclude"
+            },
+            "sourceReference": "sec:nvda:1045810",
+            "attribution": "ORCA Legends prototype authors — demonstration fixture; no researcher discovery credit claimed",
+            "verification": "demonstration",
+            "verificationState": "demonstration",
+            "balanceNote": "Fantasy game values. Rarity and statistics do not measure investment merit or performance.",
+            "summary": "DEMONSTRATION — an authored research exercise, not a verified financial finding or investment advice.",
+            "researchSummary": "DEMONSTRATION — an authored research exercise, not a verified financial finding or investment advice.",
+            "id": "starter-vaultsteel",
+            "name": "Vaultsteel Longsword",
+            "slot": "weapon",
+            "rarity": "COMMON",
+            "ability": "A reliable blade. Light strikes are quick; heavy strikes punish an exposed guardian.",
+            "appearance": {
+              "color": "#aebac6",
+              "style": "steel"
+            },
+            "stats": {
+              "damage": 17,
+              "defense": 0,
+              "spellDamage": 0
+            }
+          },
+          {
+            "ticker": "NVDA",
+            "category": "shield",
+            "researchArea": "Training",
+            "source": {
+              "id": "sec:nvda:1045810",
+              "label": "NVIDIA filings on SEC EDGAR — source to investigate",
+              "url": "https://www.sec.gov/edgar/browse/?CIK=1045810&owner=exclude"
+            },
+            "sourceReference": "sec:nvda:1045810",
+            "attribution": "ORCA Legends prototype authors — demonstration fixture; no researcher discovery credit claimed",
+            "verification": "demonstration",
+            "verificationState": "demonstration",
+            "balanceNote": "Fantasy game values. Rarity and statistics do not measure investment merit or performance.",
+            "summary": "DEMONSTRATION — an authored research exercise, not a verified financial finding or investment advice.",
+            "researchSummary": "DEMONSTRATION — an authored research exercise, not a verified financial finding or investment advice.",
+            "id": "starter-watchshield",
+            "name": "Watchkeeper Shield",
+            "slot": "shield",
+            "rarity": "COMMON",
+            "ability": "Reduces frontal damage while blocking. A block timed just before impact can stagger the attacker.",
+            "appearance": {
+              "color": "#657f93",
+              "style": "iron"
+            },
+            "stats": {
+              "damage": 0,
+              "defense": 0.45,
+              "spellDamage": 0
+            }
+          },
+          {
+            "ticker": "NVDA",
+            "category": "spell",
+            "researchArea": "Training",
+            "source": {
+              "id": "sec:nvda:1045810",
+              "label": "NVIDIA filings on SEC EDGAR — source to investigate",
+              "url": "https://www.sec.gov/edgar/browse/?CIK=1045810&owner=exclude"
+            },
+            "sourceReference": "sec:nvda:1045810",
+            "attribution": "ORCA Legends prototype authors — demonstration fixture; no researcher discovery credit claimed",
+            "verification": "demonstration",
+            "verificationState": "demonstration",
+            "balanceNote": "Fantasy game values. Rarity and statistics do not measure investment merit or performance.",
+            "summary": "DEMONSTRATION — an authored research exercise, not a verified financial finding or investment advice.",
+            "researchSummary": "DEMONSTRATION — an authored research exercise, not a verified financial finding or investment advice.",
+            "id": "starter-cinder",
+            "name": "Cinderbolt",
+            "slot": "spell",
+            "rarity": "COMMON",
+            "ability": "Launch a bolt of arcane fire. Uses mana and has a recovery cooldown.",
+            "appearance": {
+              "color": "#f8af52",
+              "style": "cinder"
+            },
+            "stats": {
+              "damage": 0,
+              "defense": 0,
+              "spellDamage": 23
+            }
+          }
+        ],
+        "guardian": {
+          "health": 117,
+          "dead": false,
+          "x": 0,
+          "z": 8,
+          "yaw": 3.141592653589793,
+          "action": null,
+          "guard": false,
+          "reaction": null,
+          "stagger": 0.09460000000003492,
+          "cooldown": 0.1643000000000458
+        },
+        "gladiator": {
+          "health": 215,
+          "dead": false,
+          "x": 0,
+          "z": 43,
+          "action": null
+        },
+        "actorPositions": {
+          "hero": [
+            0,
+            0,
+            5.8
+          ],
+          "guardian": [
+            0,
+            0,
+            8
+          ]
+        },
+        "arenaUnlocked": false,
+        "meshes": 427,
+        "materials": 60,
+        "feedback": {
+          "activeSparks": 0,
+          "activeFlashes": 0,
+          "trailActive": false,
+          "cameraImpulse": 0,
+          "lastEvent": "heavy",
+          "poolMeshes": 20,
+          "poolMaterials": 5
+        },
+        "fps": 5.7341641500056815,
+        "effects": 1,
+        "projectiles": 0
+      }
+    }
+  ],
+  "errors": []
+}

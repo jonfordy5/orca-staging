@@ -40,6 +40,8 @@ jobs:
         run: NODE_PATH="$RUNNER_TEMP/orca-browser/node_modules" node scripts/test-orca-legends-browser.cjs
       - name: Verify sword feedback timing, reduced motion and bounded effects
         run: NODE_PATH="$RUNNER_TEMP/orca-browser/node_modules" node scripts/test-orca-legends-feedback-browser.cjs
+      - name: Render original sword audio and verify signal and cleanup
+        run: NODE_PATH="$RUNNER_TEMP/orca-browser/node_modules" node scripts/check-orca-legends-audio-browser.cjs
       - name: Verify contributor authentication, eligibility recheck and Vault entry
         run: NODE_PATH="$RUNNER_TEMP/orca-browser/node_modules" node scripts/test-orca-legends-access-browser.cjs
   deploy-pages:
