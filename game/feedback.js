@@ -70,7 +70,7 @@ export class CombatFeedback {
     flash.size = settings.reducedMotion ? .45 : strong ? 1.15 : .7;
     flash.mesh.position.set(x, y, z); flash.mesh.material = material;
     flash.mesh.scaling.setAll(flash.size); flash.mesh.visibility = .9; flash.mesh.setEnabled(true);
-    if (!settings.reducedMotion && (kind === 'heavy' || kind === 'parry')) {
+    if (!settings.reducedMotion && (kind === 'heavy' || kind === 'parry' || kind === 'guard-break')) {
       // A single damped camera nod, at most 0.06 world units, never cumulative.
       this.pulse = this.pulseDuration = kind === 'parry' ? .16 : .20;
       this.pulseStrength = kind === 'parry' ? .045 : .06;
