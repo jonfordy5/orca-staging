@@ -380,7 +380,7 @@ export function createFighter(scene, { kind = 'hero', name = kind } = {}) {
       rig.rotation.z -= localX * .14 * recoil;
       torso.rotation.y += localX * .12 * recoil;
       head.rotation.x -= localZ * .10 * recoil;
-      if (reaction.kind === 'blocked' || reaction.kind === 'parried') shield.rotation.x -= .16 * recoil;
+      if (reaction.kind === 'block' || reaction.kind === 'parry') shield.rotation.x -= .16 * recoil;
     }
     if (victory && !dead) {
       arms[-1].shoulder.rotation.x = -2.7 + Math.sin(time * 3) * .07;
