@@ -60,3 +60,16 @@ Chromium used `--use-angle=swiftshader --enable-unsafe-swiftshader`, a 960 × 64
 | Low, reduced motion on | 22 / 4,126.8 ms | 187.58 ms | 200.0 ms | 383.3 ms |
 
 Both samples ended in `explore` with player health 100 and Warden health 122. These are short, variable measurements of software WebGL on a shared cloud executor. The rows differ in both quality and motion settings and do not isolate their costs. Repeat the same harness after the change; a hardware browser and longer matched traces are needed to assess a consumer frame-rate target or claim a performance improvement/regression.
+
+## Final comparative capture
+
+Final before measurements and matching close-contact stills were refreshed from the same frozen main source after the harness added shader-ready rendering and close-contact views. Preserve the raw JSON as the authoritative sample: the initial table above records the earlier baseline run, not this refreshed sample.
+
+| Setting | Refreshed before mean interval | Final after mean interval |
+|---|---:|---:|
+| High, reduced motion off | 324.58 ms | 326.91 ms |
+| Low, reduced motion on | 187.58 ms | 165.79 ms |
+
+The final after capture uses committed source `53e9683`, including the charge visibility correction. It records 13 frames over 4,249.8 ms for High and 25 over 4,144.7 ms for Low/reduced, with empty error lists. The charge now sits visibly beyond the shield silhouette; close-contact and afterglow comparisons use matching cameras, coordinates and real projectile collisions. Both samples still deal exactly 23 damage. These small, variable software-renderer samples establish neither an improvement nor a regression on consumer hardware.
+
+See the [WO-02 handoff](orca-legends-wo-02-handoff.md) for final validation, selected before/after images and review instructions. No owner approval or subjective sound evaluation is claimed.
