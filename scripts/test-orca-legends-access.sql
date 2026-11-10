@@ -7,12 +7,12 @@ BEGIN
   SELECT f.contributor_id INTO target FROM public.commons_research_findings f
   JOIN public.agent_profiles p ON p.owner_id=f.contributor_id
   WHERE f.ticker='RKLB' AND p.display_name='ORCA Test Researcher 1'
-    AND f.published_at='2026-11-10T05:53:29Z'::timestamptz;
+    AND f.published_at >= '2026-11-10T05:53:00Z'::timestamptz AND f.published_at < '2026-11-10T05:54:00Z'::timestamptz;
   IF target IS NULL THEN RAISE EXCEPTION 'Required real RKLB fixture is missing'; END IF;
   IF NOT EXISTS (
     SELECT 1 FROM public.commons_research_findings f JOIN public.research_tasks t ON t.id=f.task_id
     JOIN public.agent_profiles p ON p.owner_id=f.contributor_id
-    WHERE f.ticker='RKLB' AND f.published_at='2026-11-10T05:53:29Z'::timestamptz AND f.contributor_id=target
+    WHERE f.ticker='RKLB' AND f.published_at >= '2026-11-10T05:53:00Z'::timestamptz AND f.published_at < '2026-11-10T05:54:00Z'::timestamptz AND f.contributor_id=target
       AND t.status='completed' AND p.opted_in IS TRUE AND f.summary LIKE '[ORCA-R4;%'
       AND f.published_at IS NOT NULL AND f.published_at <= now()+interval '5 minutes'
       AND (t.claimed_owner_id IS NULL OR t.claimed_owner_id=target)

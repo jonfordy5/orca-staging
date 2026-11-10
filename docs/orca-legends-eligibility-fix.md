@@ -2,7 +2,7 @@
 
 The completed RKLB research did not need to be repeated. The public game selected **and filtered** `commons_research_findings.contributor_id`, but the authenticated API role deliberately lacks SELECT permission on that ownership column. PostgREST rejected the request; the catch block discarded the error and displayed a generic contributor denial. The earlier alias correction could not repair this permission boundary.
 
-Read-only staging inspection confirmed the reported RKLB publication at `2026-11-10T05:53:29Z` (November 9, 11:53 PM Central), its completed assignment, opted-in owner, ORCA-R4 BUY marker and HTTPS source. It remains unexpired. The live game assets matched the latest prior commits, so a missing deployment was not the primary fault.
+Read-only staging inspection confirmed the reported RKLB publication at `2026-11-10T05:53:29.125927Z` (November 9, 11:53 PM Central), its completed assignment, opted-in owner, ORCA-R4 BUY marker and HTTPS source. It remains unexpired. The live game assets matched the latest prior commits, so a missing deployment was not the primary fault.
 
 ## Correction
 
