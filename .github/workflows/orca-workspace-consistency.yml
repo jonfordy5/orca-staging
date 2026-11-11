@@ -51,6 +51,8 @@ jobs:
         run: NODE_PATH="$RUNNER_TEMP/orca-browser/node_modules" node scripts/test-orca-company-codex-browser.cjs
       - name: Verify Commons homepage, contributor navigation, stock search and mobile layouts
         run: NODE_PATH="$RUNNER_TEMP/orca-browser/node_modules" node scripts/test-orca-commons-r5-browser.cjs
+      - name: Verify Guild Hall owner data, active mission, privacy and responsive layout
+        run: NODE_PATH="$RUNNER_TEMP/orca-browser/node_modules" node scripts/test-orca-guild-hall-browser.cjs
       - name: Exercise ORCA Legends dungeon, equipment, combat, underdog victory and replay
         run: NODE_PATH="$RUNNER_TEMP/orca-browser/node_modules" node scripts/test-orca-legends-browser.cjs
       - name: Verify sword feedback timing, reduced motion and bounded effects
