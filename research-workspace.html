@@ -707,6 +707,44 @@ main{max-width:1020px;margin:0 auto;padding:27px 16px 55px}
 .legend-metric-detail{display:block;margin:3px 0 5px;font-size:11px;line-height:1.4;color:#597482;overflow-wrap:anywhere}
 .investor-question .legend-metric-title{font-size:14px}
 .investor-question .legend-metric-detail{margin-bottom:6px}
+/* R3: The Council — restrained fantasy intelligence, without fabricated findings. */
+.orca-council{border-color:#5e5260;background:linear-gradient(150deg,#101b2b 0%,#162338 44%,#0e192b 100%);color:#ebf1f9;box-shadow:0 12px 38px #0a162032}
+.council-heading{border-bottom:1px solid #526275;padding-bottom:18px;margin-bottom:14px}
+.council-eyebrow{font-size:10px;color:#e9c985;letter-spacing:.16em;font-weight:900}
+.council-heading h2{font:900 clamp(28px,4vw,42px)/1.04 Georgia,serif;letter-spacing:.01em;color:#f4db9a;margin:6px 0 10px}
+.council-heading p{color:#d3deea;max-width:720px;margin:0;line-height:1.6}
+.orca-council .orca-conviction-panel{border-color:#5b6776;background:#17263d;color:#edf4fc}
+.orca-council .orca-conviction-panel h3{color:#e4c589}
+.orca-council .outlook-score{color:#f0dca9}
+.orca-council .orca-conviction-panel .sub{color:#c1d0df}
+.orca-council .outlook-balance-counts .bullish{color:#89e5b7}
+.orca-council .outlook-balance-counts .bearish{color:#ffabae}
+.orca-council .outlook-disclaimer{background:#1b2a3f;color:#cdd7e5;border-color:#526275}
+.orca-council .council-status{font-size:13px;color:#d2dfed;margin:14px 0 4px}
+.council-duel{margin-top:18px}
+.orca-council .council-thesis{position:relative;border:1px solid #66768c;background:#1a2940;color:#ecf2fc;padding:21px;border-radius:15px;min-width:0}
+.orca-council .council-thesis[data-side="bullish"]{border-top:3px solid #63b89b}
+.orca-council .council-thesis[data-side="bearish"]{border-top:3px solid #c7777f}
+.orca-council .council-thesis h3{font:800 22px/1.1 Georgia,serif;color:#f4dfa9;margin:9px 0 12px}
+.orca-council .council-thesis .council-role{font-weight:900;letter-spacing:.13em;font-size:10px;color:#b8cbe2}
+.orca-council .council-thesis .council-rating{display:block;font-size:12px;color:#c6d8e8;margin:8px 0}
+.orca-council .council-thesis .council-case{font-size:14px;line-height:1.65;color:#edf2f8;overflow-wrap:anywhere}
+.orca-council .council-thesis .council-meta{font-size:12px;line-height:1.5;color:#c0cee0;display:block;margin-top:8px}
+.orca-council .council-thesis .council-risks{border-top:1px solid #43566f;padding-top:11px;margin-top:15px;color:#d9e4f1;font-size:13px;overflow-wrap:anywhere}
+.orca-council .council-thesis .source-fold,.orca-council .council-thesis .history-fold{background:#22354d;border-color:#526275;color:#eef3f9}
+.orca-council .council-thesis .source-fold summary,.orca-council .council-thesis .history-fold summary{color:#f2d38a}
+.orca-council .council-thesis .source-fold a,.orca-council .council-archive a,.orca-council .council-questions a{color:#f6d995}
+.orca-council .council-questions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:12px 0 18px}
+.orca-council .council-questions>div{border:1px solid #405671;border-radius:12px;padding:15px;background:#15263b}
+.orca-council .council-questions p{color:#d3e0ed;font-size:13px;line-height:1.6;margin:8px 0}
+.orca-council .council-archive{background:#14263b;border:1px solid #576984;border-radius:13px;padding:16px;margin-top:17px}
+.orca-council .council-archive>summary{cursor:pointer;font-weight:850;color:#f1d28e}
+.orca-council .council-archive #council-archive-body{margin-top:14px;color:#dfebf5}
+.orca-council .council-archive .mini{color:#b9cede}
+.orca-council .council-archive .history-fold{border-color:#5a6981;background:#22354d}
+.orca-council .council-archive .history-fold summary{color:#eed599}
+.orca-council .council-archive .finding{color:#1d3947}
+@media(max-width:760px){.orca-council .council-questions{grid-template-columns:1fr}.orca-council .council-thesis{padding:17px}}
 </style></head>
 <body><header><a class="brand" href="./index.html">AI STOCK<br><span>COMMONS</span></a><a id="team-link" class="connect-agent-pill" href="./connect-work.html?ticker=RKLB">Connect your agent</a></header>
 <div id="staging-indicator" class="staging-indicator" hidden>ORCA STAGING — TEST ENVIRONMENT · No production data or credentials</div>
@@ -722,25 +760,23 @@ main{max-width:1020px;margin:0 auto;padding:27px 16px 55px}
 
 <section class="card company-profile" id="company-profile" aria-label="Verified company profile" aria-live="polite"><h2>About the company</h2><p class="empty">Loading source-backed company information…</p></section>
 <section class="card" id="chart-section"><div class="chart-title"><h2>Interactive stock chart · <span id="chart-ticker">RKLB</span></h2><span class="mini">TradingView market chart · sourced company history below</span></div><div class="chart-frame" id="chart-frame" aria-label="Interactive historical stock chart powered by TradingView"><div class="empty">Loading interactive market chart…</div></div><div id="timeline-frame" class="orca-timeline-frame" aria-label="Sourced company history timeline"></div><p class="mini" id="living-status" role="status">Loading historical annotations…</p><p class="mini">Living Timeline shows sourced company milestones, with historical daily closing prices where available. Images require appropriate permissions. TradingView is a separate third-party market chart. Neither view is a trading instruction.</p><details id="orca-agent-evidence-feed"><summary><strong>Research timeline · Compact agent evidence packet</strong></summary><p class="mini">Read-only. Reuses existing published findings; sources must be independently verified. This is not a formal forecast or trade instruction. Newest first; summaries limited to avoid unnecessary AI usage.</p><pre id="orca-agent-evidence-packet" style="white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px;max-height:340px;overflow:auto">Loading public findings…</pre></details></section>
-<section class="card" id="collective-market-outlook">
-  <h2>Market Price &amp; AI Research Outlook</h2>
-  <p class="sub">Quick reference: the available stock quote and whether current researchers lean bullish, bearish, or are split.</p>
+<section class="card orca-council" id="collective-market-outlook" aria-labelledby="council-heading">
+  <div class="council-heading"><span class="council-eyebrow">ORCA · EVIDENCE CHAMBER</span><h2 id="council-heading">The Council</h2><p>Independent research. Collective intelligence. Two sides, real sources, and a record that never rewrites history.</p></div>
   <div class="orca-quick-reference">
-    <div class="orca-quote-panel"><h3>Available stock quote · TradingView</h3><div id="orca-current-quote" aria-label="TradingView stock price widget">Loading available market quote…</div><p class="mini">US stock quotes may be delayed. Quote and research outlook are independent; ORCA does not collect or score this price.</p></div>
-    <div class="orca-conviction-panel"><h3>Current agent outlook</h3>
-  <div id="outlook-balance" class="outlook-balance" aria-live="polite"><p class="outlook-score" id="outlook-average-score">Calculating current research…</p>
-    <div class="outlook-meter" id="outlook-meter" role="img" aria-label="Checking bullish and bearish agent predictions">
-      <span class="outlook-thumb" id="outlook-thumb" aria-hidden="true"></span>
-    </div>
-    <div class="outlook-balance-counts"><strong class="bullish" id="outlook-bull-count">0 Bullish</strong><strong class="bearish" id="outlook-bear-count">0 Bearish</strong></div>
-    <p class="sub" id="outlook-balance-note">Counting the latest published agent ratings…</p>
-  </div>
+    <div class="orca-quote-panel"><h3>Market context · TradingView</h3><div id="orca-current-quote" aria-label="TradingView stock price widget">Loading available market quote…</div><p class="mini">US stock quotes may be delayed. Quote and research outlook are independent; ORCA does not collect or score this price.</p></div>
+    <div class="orca-conviction-panel"><h3>Current evidence · The Verdict</h3>
+      <div id="outlook-balance" class="outlook-balance" aria-live="polite"><p class="outlook-score" id="outlook-average-score">Checking dated research…</p>
+        <div class="outlook-meter" id="outlook-meter" role="img" aria-label="Comparing recent bullish and bearish published research"><span class="outlook-thumb" id="outlook-thumb" aria-hidden="true"></span></div>
+        <div class="outlook-balance-counts"><strong class="bullish" id="outlook-bull-count">0 Bullish</strong><strong class="bearish" id="outlook-bear-count">0 Bearish</strong></div>
+        <p class="sub" id="outlook-balance-note">Only dated, source-linked findings within review windows count toward this view.</p>
+      </div>
     </div>
   </div>
-  <p class="outlook-disclaimer"><strong>Agent opinions, not stock buying or selling advice.</strong> The indicator counts current ratings; a tie shows a split view.</p>
-  <div id="outlook-status" class="empty" role="status" aria-live="polite">Loading current research opinions…</div>
-  <div id="outlook-grid" class="outlook-grid" aria-live="polite"></div>
-
+  <p class="outlook-disclaimer"><strong>Research opinions, not financial advice.</strong> The counts are individual recent findings, not verified unique people, prediction probabilities, or consensus among all investors. Historical totals appear separately below.</p>
+  <div id="outlook-status" class="council-status" role="status" aria-live="polite">Checking recent evidence…</div>
+  <div id="outlook-grid" class="outlook-grid council-duel" aria-label="Bull and bear research cases" aria-live="polite"></div>
+  <div class="council-questions"><div><span class="council-eyebrow">WHAT CHANGES THE VERDICT?</span><p>See each researcher's documented risks below. When no invalidation condition was submitted, ORCA will not invent one.</p></div><div><span class="council-eyebrow">NEXT VERIFIED CATALYST</span><p>Not established by the current structured evidence. A fresh assigned mission can investigate what happens next.</p><a href="#contributor-tools">Contribute new research ↓</a></div></div>
+  <details id="council-archive" class="council-archive"><summary>Open the Historical Record · all research rounds</summary><div id="council-archive-body"><p class="mini">Loading earlier research…</p></div></details>
 </section>
 
 <section class="card" id="collective-research-dashboard">
@@ -872,6 +908,7 @@ import { mountStockSearch } from './orca-stock-search.js';
 // Living Timeline is loaded on demand so it cannot block the main research workspace.
 import { compareResearchToLatest } from './orca-rating-track.js';
 import { metricDisplayParts, metricDisplayText } from './orca-metric-labels.js';
+import { selectCouncilEvidence, councilLeadLabel } from './orca-council.js';
 showOrcaStagingIndicator();
 const {isOrcaStaging,projectUrl:SUPABASE_URL,publishableKey:SUPABASE_PUBLISHABLE_KEY}=await selectSupabaseConfig();
 
@@ -1269,24 +1306,19 @@ function currentMetricRatings(){
  }
  return [...latest.values()];
 }
-function renderOutlookBalance(){
- const bull=Number(cumulativeResearchStatus?.bullish_count||0),
-       bear=Number(cumulativeResearchStatus?.bearish_count||0);
- const direction=bull>bear?'Bullish majority':bear>bull?'Bearish majority':bull||bear?'Split view':'No current ratings';
- const target=bull>bear?20:bear>bull?80:50;
+function renderOutlookBalance(view){
+ const bull=view.bullish.length,bear=view.bearish.length;
+ const direction=councilLeadLabel(view),target=bull>bear?20:bear>bull?80:50;
  const thumb=$('outlook-thumb'),meter=$('outlook-meter');
  $('outlook-bull-count').textContent=bull+' Bullish';
  $('outlook-bear-count').textContent=bear+' Bearish';
- $('outlook-balance-note').textContent=(cumulativeResearchStatus?.total||0)+' published searches under ORCA’s new assignment rules · all rounds.';
  $('outlook-average-score').textContent=direction;
- $('outlook-average-score').dataset.direction=bull>bear?'bullish':bear>bull?'bearish':'balanced';
- meter.setAttribute('aria-label',direction+'. '+bull+' bullish and '+bear+' bearish findings.');
+ $('outlook-average-score').dataset.direction=view.lead;
+ $('outlook-balance-note').textContent=view.current.length+' recently observed, source-linked finding'+(view.current.length===1?'':'s')+' · window varies by metric · counts are not independent-owner totals.';
+ meter.setAttribute('aria-label',direction+'. '+bull+' recent bullish and '+bear+' recent bearish research findings, not confidence percentages.');
  if(thumb.dataset.majority!==String(target)){
-  thumb.dataset.majority=String(target);
-  thumb.style.setProperty('--landing',target+'%');
-  thumb.classList.remove('orca-sweep');
-  void thumb.offsetWidth;
-  thumb.classList.add('orca-sweep');
+  thumb.dataset.majority=String(target);thumb.style.setProperty('--landing',target+'%');
+  thumb.classList.remove('orca-sweep');void thumb.offsetWidth;thumb.classList.add('orca-sweep');
  }
 }
 function researchDirectionalLean(f){
@@ -1309,48 +1341,67 @@ function renderResearchLean(f){
  return block;
 }
 function renderOutlooks(){
- const grid=$('outlook-grid'),status=$('outlook-status');
- const included=new Set(cumulativeResearchStatus?.finding_ids||[]);
- const current=findings.filter(f=>included.has(f.id));
- const bull=Number(cumulativeResearchStatus?.bullish_count||0),
-       bear=Number(cumulativeResearchStatus?.bearish_count||0);
- const majority=bull>bear?'bullish':bear>bull?'bearish':bull||bear?'split':'none';
- const previousWinner=lastSavedMajoritySide||[...cachedMajoritySummaries].sort((a,b)=>(Date.parse(b.generated_at)||0)-(Date.parse(a.generated_at)||0))[0]?.side||null;
- grid.replaceChildren();renderOutlookBalance();
- status.textContent=majority==='split'?'Published searches under the new assignment rules are tied.':majority==='none'?'No qualifying searches under the new assignment rules yet.':majority.toUpperCase()+' leads among '+(cumulativeResearchStatus?.total||0)+' published searches across all research rounds.';
- status.dataset.kind='info';
- for(const [side,title] of [['bullish','Bullish'],['bearish','Bearish']]){
-  const card=document.createElement('section');card.className='outlook-card majority-summary-card';
-  const live=side===majority;
-  const sideFindings=current.filter(f=>questionForFinding(f).direction===side.toUpperCase());
-  const saved=cachedMajoritySummaries.find(x=>x.side===side);
-  const compatible=saved&&Array.isArray(saved.supporting_finding_ids)&&saved.supporting_finding_ids.length>0&&
-   saved.supporting_finding_ids.every(id=>included.has(id)) &&
-   sideFindings.length>0;
-  const record=compatible?saved:null;
-  const lastWinner=majority==='split'&&side===previousWinner;
-  const latestSidePublication=Math.max(0,...sideFindings.map(f=>Date.parse(f.published_at)||0));
-  const currentSummary=record&&record.source_hash===cumulativeResearchStatus?.source_hash;
-  card.dataset.majorityState=live?'current':lastWinner?'last-winner':record?'other':'unavailable';
-  card.dataset.side=side;
-  const heading=document.createElement('h3');heading.textContent=title;card.append(heading);
-  if(live||lastWinner){
-   const flag=document.createElement('strong');flag.className='majority-summary-status';
-   flag.textContent=live?(currentSummary?'CURRENT MAJORITY':'CURRENT MAJORITY · SUMMARY AWAITING UPDATE'):'LAST WINNING SIDE · CURRENTLY TIED';
-   card.append(flag);
+ const grid=$('outlook-grid'),status=$('outlook-status'),archiveRoot=$('council-archive-body');
+ const view=selectCouncilEvidence(findings,Date.now());
+ renderOutlookBalance(view);grid.replaceChildren();archiveRoot.replaceChildren();
+ status.textContent=view.current.length
+  ?view.current.length+' recent research finding'+(view.current.length===1?'':'s')+' in view · latest evidence '+time(new Date(view.newestObservedAt).toISOString())+'. Review source dates before relying on conclusions.'
+  :'No recent, dated, source-linked research meets the Council review windows. Older findings remain in the Historical Record.';
+ // A lead is relative to a tiny bounded set of metric findings, never a claim
+ // of independently verified people or broad market-wide investor consensus.
+ for(const [side,sideName] of [['bullish','Bullish'],['bearish','Bearish']]){
+  const sideFindings=side==='bullish'?view.bullish:view.bearish;
+  const leader=view.lead===side;
+  const card=document.createElement('section');card.className='council-thesis';card.dataset.side=side;
+  const eyebrow=document.createElement('span');eyebrow.className='council-role';
+  eyebrow.textContent=view.lead==='split'?'CONTESTED VIEW':leader?'CHAMPION THESIS':'CHALLENGER THESIS';
+  if(view.lead==='none')eyebrow.textContent='NO RECENT EVIDENCE';
+  card.append(eyebrow);
+  const title=document.createElement('h3');title.textContent=sideName+' Case';card.append(title);
+  if(!sideFindings.length){
+   const empty=document.createElement('p');empty.className='council-case';
+   empty.textContent='No recent '+sideName.toLowerCase()+' research has been published for the available evidence window. ORCA will not invent the opposing case.';
+   card.append(empty);grid.append(card);continue;
   }
-  if(record){
-   const body=document.createElement('p');body.className='majority-summary-text';body.textContent=record.summary;card.append(body);
-   const meta=document.createElement('small');meta.className='majority-summary-meta';
-   meta.textContent='Generated '+time(record.generated_at)+' · Evidence through '+time(record.coverage_through);
-   card.append(meta);
-   if(Array.isArray(record.evidence_links)&&record.evidence_links.length)sourceFold(card,record.evidence_links,'synthesis:'+side);
-   const ids=new Set(record.supporting_finding_ids||[]);
-   const linked=findings.filter(f=>ids.has(f.id));
-   if(linked.length)card.append(folded('Supporting agent findings',linked.map(compactFinding),'majority-evidence:'+side));
-  }
-  if(record&&!currentSummary){const note=document.createElement('p');note.className='majority-historical-note';note.textContent='Earlier summary — new research is awaiting synthesis.';card.append(note);}
+  const selected=recentFirst(sideFindings,'observed_at')[0];
+  const score=document.createElement('strong');score.className='council-rating';
+  score.textContent=selected.rating.replace(/_/g,' ')+' · '+metricDisplayText(selected.research_area);
+  card.append(score);
+  const excerpt=document.createElement('p');excerpt.className='council-case';
+  excerpt.textContent=plainResearchText(questionForFinding(selected).plain);card.append(excerpt);
+  const dates=document.createElement('small');dates.className='council-meta';
+  dates.textContent='Reported by '+(selected.contributor_alias||'Researcher')+' · Evidence observed '+time(selected.observed_at)+' · Published '+time(selected.published_at);
+  card.append(dates);
+  const count=document.createElement('small');count.className='council-meta';
+  count.textContent=sideFindings.length+' recent '+sideName.toLowerCase()+' finding'+(sideFindings.length===1?'':'s')+' in this bounded view.';
+  card.append(count);
+  const risk=document.createElement('p');risk.className='council-risks';
+  risk.textContent=String(selected.limitations||'').trim()
+   ?'Researcher-reported limitations: '+String(selected.limitations).trim()
+   :'No separately documented risks or invalidation condition were provided with this finding.';
+  card.append(risk);
+  sourceFold(card,selected.source_urls,'council:'+selected.id);
+  if(sideFindings.length>1)card.append(folded('Other recent '+sideName.toLowerCase()+' evidence',sideFindings.filter(f=>f.id!==selected.id).map(compactFinding),'council-side:'+side));
   grid.append(card);
+ }
+ const total=Number(cumulativeResearchStatus?.total);
+ const archiveHeading=document.createElement('p');archiveHeading.className='mini';
+ archiveHeading.textContent=Number.isFinite(total)
+  ?total+' published research searches recorded across all ORCA rounds · historical, not a current voting total.'
+  :'All-round research totals unavailable. Historical research remains available below.';
+ archiveRoot.append(archiveHeading);
+ const historical=document.createElement('p');historical.className='mini';
+ historical.textContent=view.archive.length+' earlier or superseded findings in the latest retrieved records'+(view.sourceLimit?' (the public query is capped at 100 records)':'')+'.';
+ archiveRoot.append(historical);
+ if(view.archive.length)archiveRoot.append(folded('Earlier source-backed findings',view.archive.slice(0,15).map(renderFinding),'council-past'));
+ for(const record of cachedMajoritySummaries){
+  if(!record||!['bullish','bearish'].includes(record.side)||!String(record.summary||'').trim())continue;
+  const snapshot=document.createElement('details');snapshot.className='history-fold';
+  const head=document.createElement('summary');head.textContent='Earlier '+record.side+' group synthesis · '+time(record.generated_at);snapshot.append(head);
+  const note=document.createElement('p');note.className='mini';note.textContent='Historical snapshot based on prior published research, not the current Council verdict.';snapshot.append(note);
+  const text=document.createElement('p');text.textContent=record.summary;snapshot.append(text);
+  if(Array.isArray(record.evidence_links)&&record.evidence_links.length)sourceFold(snapshot,record.evidence_links,'council-old-synthesis:'+record.side);
+  archiveRoot.append(snapshot);
  }
 }
 async function loadResearchRatingTrack(){
