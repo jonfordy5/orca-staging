@@ -13,8 +13,9 @@ const root = path.resolve(process.env.ANIMATION_CAPTURE_ROOT || checkout);
 const output = path.resolve(process.env.CAPTURE_DIR || path.join(checkout, 'work/wo-03-capture'));
 const frameDirectory = path.join(output, 'frames');
 const enemiesOnly = Boolean(process.env.CAPTURE_ENEMIES_ONLY);
+const movieOnly = Boolean(process.env.CAPTURE_MOVIE_ONLY);
 const video = process.env.CAPTURE_VIDEO !== '0' && !enemiesOnly;
-const stillsOnly = Boolean(process.env.CAPTURE_STILLS_ONLY) || enemiesOnly;
+const stillsOnly = Boolean(process.env.CAPTURE_STILLS_ONLY) || enemiesOnly || movieOnly;
 const captureFps = 15;
 const stepSeconds = 4 / 60;
 const mime = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.webp': 'image/webp', '.png': 'image/png' };
@@ -83,6 +84,8 @@ let browser;
     return page;
   }
   async function capture(page, name, meta = {}) {
+    // A movie refresh updates only the changed sprint-to-dodge/cast stills.
+    if (movieOnly && !/^(dodge|landing|dodge-recovered|cast|cast-recovered)(-reduced)?$/.test(name)) return;
     await ready(page);
     const state = await snapshot(page);
     await page.screenshot({ path: path.join(output, name + '.png') });
@@ -124,10 +127,11 @@ let browser;
     assert((await snapshot(page)).player.blocking, 'Real Q must hold guard');
     await page.keyboard.up('KeyQ');
     await step(page, 1 / 60);
-    await segment(page, 'directional-dodge-and-landing', 12, async index => {
-      if (index === 0) { await page.keyboard.down('KeyA'); await page.keyboard.press('Space'); assert.equal((await snapshot(page)).player.action.type, 'dodge'); }
-      if (index === 3) await page.keyboard.up('KeyA');
-    }, { 1: 'dodge', 5: 'landing', 11: 'dodge-recovered' }, suffix, settings);
+    await segment(page, 'sprint-to-directional-dodge-and-landing', 18, async index => {
+      if (index === 0) { await page.keyboard.down('KeyW'); await page.keyboard.down('ShiftLeft'); }
+      if (index === 4) { await page.keyboard.up('KeyW'); await page.keyboard.down('KeyA'); await page.keyboard.press('Space'); assert.equal((await snapshot(page)).player.action.type, 'dodge'); }
+      if (index === 7) { await page.keyboard.up('KeyA'); await page.keyboard.up('ShiftLeft'); }
+    }, { 5: 'dodge', 9: 'landing', 15: 'dodge-recovered' }, suffix, settings);
     await segment(page, 'cast-and-recover', 6, async index => {
       if (index === 0) {
         const before = await snapshot(page); await page.keyboard.press('KeyF'); const after = await snapshot(page);
@@ -146,6 +150,7 @@ let browser;
     assert((await snapshot(enemy)).player.health < 100, 'Actual AI strike must deal damage');
     await enemy.close();
 
+    if (movieOnly) continue;
     const melee = await open(quality, reducedMotion);
     await melee.evaluate(() => window.__ORCA_TEST__.position(0, 5.8));
     await pageMouseAttack(melee);
@@ -161,7 +166,7 @@ let browser;
 
   // Reach Varr through actual R attacks, chest interaction and arena entry.
   // This route uses no health, loot, AI, action or entitlement mutation hooks.
-  for (const [quality, reducedMotion, suffix] of [['high', false, ''], ['low', true, '-reduced']]) {
+  for (const [quality, reducedMotion, suffix] of (movieOnly ? [] : [['high', false, ''], ['low', true, '-reduced']])) {
     const page = await open(quality, reducedMotion);
     for (let attack = 0; attack < 12 && !(await snapshot(page)).guardian.dead; attack++) {
       const state = await snapshot(page);
@@ -229,7 +234,7 @@ let browser;
     if (!results.movie.encoded) console.warn('ffmpeg unavailable/failed; original PNG frames retained:', results.movie.encodingError);
   }
   results.errors = errors;
-  fs.writeFileSync(path.join(output, enemiesOnly ? 'measurements-enemies.json' : 'measurements.json'), JSON.stringify(results, null, 2) + '\n');
+  fs.writeFileSync(path.join(output, enemiesOnly ? 'measurements-enemies.json' : movieOnly ? 'measurements-movie.json' : 'measurements.json'), JSON.stringify(results, null, 2) + '\n');
   assert.deepEqual(errors, [], 'Capture must have no browser JavaScript/console errors');
   console.log(`Evidence saved to ${output}`);
 })().catch(error => { console.error(error); process.exitCode = 1; }).finally(async () => { await browser?.close(); server.close(); });

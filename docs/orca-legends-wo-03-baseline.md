@@ -1,6 +1,6 @@
 # WO-03 character motion baseline
 
-Measured November 11, 2026 against merged main `fdb37c87f6e3f781d5a866b9811878d84e432471` (approved WO-02, PR #50), before WO-03 runtime edits. A complete `git archive` of that commit was frozen in `work/wo03-baseline-source/` before parallel implementation began. The capture server serves only that source directory; it cannot fall back to edited checkout files.
+Measured November 10, 2026 (America/Chicago; November 11 UTC) against merged main `fdb37c87f6e3f781d5a866b9811878d84e432471` (approved WO-02, PR #50), before WO-03 runtime edits. A complete `git archive` of that commit was frozen in `work/wo03-baseline-source/` before parallel implementation began. The capture server serves only that source directory; it cannot fall back to edited checkout files.
 
 WO-03 covers original procedural character animation: movement transitions, directional dodging, melee and casting blends, enemy telegraphs and reactions, and consistent silhouettes. The existing Vault, equipment, three demonstration relics, controls, combat rules, account/consent eligibility and research behavior remain the reference. This evidence makes no claim of owner approval, production deployment, multiplayer or consumer-hardware performance.
 
@@ -26,15 +26,15 @@ CAPTURE_REVISION=fdb37c87f6e3f781d5a866b9811878d84e432471 \
 node scripts/capture-orca-legends-animation.cjs
 ```
 
-For after evidence, set `ANIMATION_CAPTURE_ROOT` to a frozen archive of the reviewed candidate and supply its revision. Matching filenames and inputs make the two sources comparable. `CAPTURE_STILLS_ONLY=1` skips real RAF performance sampling; `CAPTURE_VIDEO=0` skips frame capture/encoding. Both default to enabled. `ffmpeg` is optional: a failed/missing encoder is recorded and the original PNG frames remain available.
+For after evidence, set `ANIMATION_CAPTURE_ROOT` to a frozen archive of the reviewed candidate and supply its revision. Matching filenames and inputs make the two sources comparable. `CAPTURE_STILLS_ONLY=1` skips real RAF performance sampling; `CAPTURE_VIDEO=0` skips frame capture/encoding. RAF sampling and video capture are enabled by default. `ffmpeg` is optional: a failed/missing encoder is recorded and the original PNG frames remain available.
 
-Every screenshot renders the actual Babylon scene, waits for shader/material readiness while simulation is frozen, then renders again. The camera starts at the normal gameplay zoom; the movement sequence uses a real 50-pixel middle-mouse horizontal drag. The UI and transient start toast are preserved. Both high quality / normal motion and low quality / reduced motion have matching stills. The latter filenames end in `-reduced`.
+Every screenshot renders the actual Babylon scene, waits for shader/material readiness while simulation is frozen, then renders again. The camera starts at the normal gameplay zoom; the movement sequence uses a real 50-pixel middle-mouse horizontal drag. The UI and transient start toast are preserved. `CAPTURE_MOVIE_ONLY=1` refreshes the movie and ten changed dodge/cast stills, skips melee/champion/RAF work and writes `measurements-movie.json`. Baseline evidence combines same-source supplements by capture name and keeps the existing independent RAF measurements. Both high quality / normal motion and low quality / reduced motion have matching stills. The latter filenames end in `-reduced`.
 
 | Stills | Actual state |
 |---|---|
 | `idle`, `walk`, `sprint` | Idle readiness, W walking, then W + Shift sprinting. |
 | `turn`, `brake`, `guard` | Switch W to D during sprint, release direction/Shift, then hold Q. |
-| `dodge`, `landing`, `dodge-recovered` | A + Space directional dodge, its late 0.4-second pose (the file named `landing`), then recovery at 0.8 seconds. |
+| `dodge`, `landing`, `dodge-recovered` | A renewed sprint directly into A + Space directional dodge, its late 0.4-second pose (the file named `landing`), then recovery at 0.8 seconds. |
 | `cast`, `cast-recovered` | Real F press after dodge recovery, immediate projectile and subsequent follow-through. |
 | `enemy-windup`, `enemy-commit` | Warden AI's own early and late windup from `(0, 5.8)`. |
 | `enemy-contact`, `enemy-recovery` | The same AI strike damages the hero and enters recovery. |
@@ -42,7 +42,7 @@ Every screenshot renders the actual Babylon scene, waits for shader/material rea
 
 ## Motion playback and performance boundaries
 
-`motion-fixed-step.webm` is a **3.6-second offline simulation playback**, containing 54 original 960 × 640 screenshot frames encoded at 15 fps. Each frame advances four fixed 1/60-second simulation updates. The video joins movement/guard (1.2 seconds), directional dodge/landing (0.8), cast/recovery (0.4) and Warden windup/contact/recovery (1.2). Cuts arrange those independent scenes; no generated/interpolated frames, altered poses or retimed attacks are used. Raw frames and the frame-by-frame snapshots remain in the local capture directory. The baseline and candidate use the same schedule.
+`motion-fixed-step.webm` is a **4.0-second offline simulation playback**, containing 60 original 960 × 640 screenshot frames encoded at 15 fps. Each frame advances four fixed 1/60-second simulation updates. The video joins movement/guard (1.2 seconds), renewed sprint directly into directional dodge/landing (1.2), cast/recovery (0.4) and Warden windup/contact/recovery (1.2). Cuts arrange those independent scenes; no generated/interpolated frames, altered poses or retimed attacks are used. Raw frames and the frame-by-frame snapshots remain in the local capture directory. The baseline and candidate use the same schedule.
 
 Software WebGL renders too slowly here for a truthful real-time animation-feel judgment. Fixed-step playback lets reviewers inspect motion timing without presenting cloud wall-clock rendering speed as gameplay performance. It is silent because sound is outside WO-03. A hardware browser remains necessary for subjective keyboard/mouse feel and real-time smoothness review.
 
@@ -59,4 +59,4 @@ The complete idle scene contains 522 meshes / 64 materials on High and 463 / 64 
 
 The baseline capture completed without JavaScript/console errors. Both settings produced actual light damage 145 → 128 and heavy damage 128 → 100; the real Warden strike damaged the hero. Additional `champion-strike` and `champion-shockwave` stills (plus reduced variants) reach Varr by real starter R attacks, E chest interactions and arena traversal, then capture his own strike and third-attack Ember Ring before contact. No hook changes health, actions, inventory or AI. Those four stills were appended from a same-source `CAPTURE_ENEMIES_ONLY=1` run; the flag provides a bounded way to refresh only Varr and writes `measurements-enemies.json`.
 
-All 40 baseline stills, the 54 original video frames, WebM and bounded measurement JSON are in `work/wo03-before/`. The complete original snapshot output is retained locally as `measurements-full-local.json`; review JSON omits repeated inventory, item descriptions, chest lids and equipment colors. Video frame tuples document coordinates/actions without repeating the whole scene. Selected review artifacts are preserved in [`docs/evidence/wo-03/before/`](./evidence/wo-03/before/).
+All 40 baseline stills, the 60 original video frames, WebM and bounded measurement JSON are in `work/wo03-before/`. Review JSON omits repeated inventory, item descriptions, chest lids and equipment colors. Video frame tuples document coordinates/actions without repeating the whole scene. Selected review artifacts are preserved in [`docs/evidence/wo-03/before/`](./evidence/wo-03/before/).
