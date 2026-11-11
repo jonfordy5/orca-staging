@@ -52,8 +52,8 @@ The final baseline samples were captured with the same harness and frozen source
 
 | Setting | Frames / elapsed | Mean interval | Median interval | 95th percentile |
 |---|---:|---:|---:|---:|
-| High, reduced motion off | 18 / 4,048.7 ms | 224.93 ms | 233.3 ms | 383.3 ms |
-| Low, reduced motion on | 26 / 4,328.4 ms | 166.48 ms | 166.7 ms | 216.7 ms |
+| High, reduced motion off | 18 / 4,048.7 ms | 224.93 ms | 216.7 ms | 483.3 ms |
+| Low, reduced motion on | 26 / 4,328.4 ms | 166.48 ms | 166.7 ms | 333.4 ms |
 
 The complete idle scene contains 522 meshes / 64 materials on High and 463 / 64 on Low/reduced. A live projectile adds one mesh/material. The source, settings and full precision sample values in JSON are authoritative. These short, variable shared-executor samples establish neither consumer FPS nor a performance improvement/regression.
 
