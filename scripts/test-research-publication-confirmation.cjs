@@ -335,6 +335,8 @@ test('My assignment exposes the exact task ID beside the metric and deadline', (
     assignedResearchBoard: { task_id: localTaskId, board_key: 'execution', board_label: 'Management' },
     answerChoices: { execution: ['STRONG_BUY', 'BUY', 'SELL', 'STRONG_SELL'], pricing: ['BUY', 'SELL'] },
     time: value => value,
+    // R2 only changes display text; this fixture tests receipt/rating preservation.
+    metricDisplayText: value => value,
     // Model the real updateResearchAnswers rebuilding the dropdown, clearing the selection.
     updateResearchAnswers: () => {
       fields['research-answer'].value = '';
