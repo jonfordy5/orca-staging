@@ -67,6 +67,7 @@ test('block mitigates damage; dodge evades, stamina and mana cannot go negative'
   assert.equal(m.players[1].health,100-Math.max(1,Math.round(PVP_RULES.lightDamage*.45)));
   ticks(m,16);
   send(m,1,1,'dodge',{block:false});
+  ticks(m,1); // dodge must be accepted by the server before the incoming strike
   send(m,0,1,'heavy');ticks(m,1);
   assert.ok(m.events.some(e=>e.type==='evade'));
   assert.ok(m.players.every(p=>p.stamina>=0&&p.mana>=0));
