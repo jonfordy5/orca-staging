@@ -97,6 +97,8 @@ class VaultGame {
   resetPlayer() {
     this.player = { x: 0, z: -14, yaw: 0, vx: 0, vz: 0, health: 100, maxHealth: 100, stamina: 100, maxStamina: 100, mana: 100, maxMana: 100, action: null, blockTime: 99, blocking: false, hit: 0, reaction: null, regenDelay: 0, spellCooldown: 0, castAge: 1, spellReady: 0 };
     this.hero.root.position.set(0, 0, -14); this.hero.root.rotation.y = 0; this.yaw = 0;
+    this.hero.resetMotion?.();
+    this.nextStep = 0;
   }
   equipHero() {
     const e = this.inventory.equipped;
@@ -116,6 +118,7 @@ class VaultGame {
       enemy.health = enemy.maxHealth; enemy.dead = false; enemy.stagger = 0; enemy.cooldown = 1.6; enemy.action = null; enemy.hit = 0; enemy.reaction = null; enemy.attacks = 0; enemy.guard = false;
       enemy.x = 0; enemy.z = enemy.kind === 'guardian' ? 8 : 43; enemy.yaw = Math.PI; enemy.actor.root.position.set(enemy.x, 0, enemy.z); enemy.actor.root.rotation.set(0, Math.PI, 0);
       enemy.actor.setVisible(enemy.kind === 'guardian');
+      enemy.actor.resetMotion?.();
     }
     for (const chest of this.world.chests) chest.lid.rotation.x = 0;
     this.world.setGateOpen(false); this.clearEffects(); this.phase = 'explore'; this.time = 0; this.introTimer = 0; this.yaw = 0;
@@ -265,6 +268,8 @@ class VaultGame {
   }
   updatePlayer(dt) {
     const p = this.player, vector = this.movementVector();
+    const previousX = p.x, previousZ = p.z, previousYaw = p.yaw;
+    const visualDodge = p.action?.type === 'dodge' ? p.action : null;
     const wasBlocking = p.blocking;
     p.blocking = (this.mouseBlock || this.keys.has('KeyQ')) && !p.action && p.stamina > 2 && this.phase !== 'intro';
     p.blockTime = p.blocking ? (wasBlocking ? p.blockTime + dt : 0) : 99;
@@ -299,9 +304,15 @@ class VaultGame {
       if (p.action === action && action.elapsed >= action.duration) p.action = null;
     }
     this.hero.root.position.set(p.x, 0, p.z); this.hero.root.rotation.y = p.yaw;
-    this.hero.update(dt, { moving: Math.hypot(p.vx, p.vz) > .25, sprinting, attacking: !!ATTACKS[p.action?.type], attackProgress: p.action ? p.action.elapsed / p.action.duration : 0, attackImpact: ATTACKS[p.action?.type]?.impact / (p.action?.duration || 1), heavy: p.action?.type === 'heavy', blocking: p.blocking, dodging: p.action?.type === 'dodge', hit: p.hit / .25, reaction: p.reaction, castAge: p.castAge, spellReady: p.spellReady, reducedMotion: settings.reducedMotion, time: this.time });
+    // Feed animation the distance actually covered after collision resolution.
+    // These measurements never write back to movement, facing or action rules.
+    const vx = dt > 0 ? (p.x - previousX) / dt : 0, vz = dt > 0 ? (p.z - previousZ) / dt : 0;
+    const actualSpeed = Math.hypot(vx, vz), c = Math.cos(p.yaw), s = Math.sin(p.yaw);
+    const turnRate = dt > 0 ? Math.atan2(Math.sin(p.yaw - previousYaw), Math.cos(p.yaw - previousYaw)) / dt : 0;
+    this.hero.update(dt, { moving: actualSpeed > .02, speed: actualSpeed, localVelocityX: c * vx - s * vz, localVelocityZ: s * vx + c * vz, turnRate,
+      sprinting, attacking: !!ATTACKS[p.action?.type], attackProgress: p.action ? p.action.elapsed / p.action.duration : 0, attackImpact: ATTACKS[p.action?.type]?.impact / (p.action?.duration || 1), heavy: p.action?.type === 'heavy', blocking: p.blocking, dodging: !!visualDodge, dodgeProgress: visualDodge ? Math.min(1, visualDodge.elapsed / DODGE.duration) : 0, hit: p.hit / .25, reaction: p.reaction, castAge: p.castAge, spellReady: p.spellReady, reducedMotion: settings.reducedMotion, time: this.time });
     this.spellFeedback.charge(this.hero, p.spellReady, settings);
-    if (Math.hypot(p.vx, p.vz) > 1 && this.time > (this.nextStep || 0)) { this.audio.play('step'); this.nextStep = this.time + (sprinting ? .27 : .42); }
+    if (!visualDodge && actualSpeed > 1 && this.time > (this.nextStep || 0)) { this.audio.play('step'); this.nextStep = this.time + (sprinting ? .27 : .42); }
   }
   meleeImpact(type) {
     const enemy = this.activeEnemy(), p = this.player, spec = ATTACKS[type];
@@ -352,6 +363,7 @@ class VaultGame {
     }
   }
   updateEnemy(enemy, dt) {
+    const previousX = enemy.x, previousZ = enemy.z, previousYaw = enemy.yaw;
     enemy.hit = Math.max(0, enemy.hit - dt);
     if (enemy.reaction) { enemy.reaction.remaining = Math.max(0, enemy.reaction.remaining - dt); if (!enemy.reaction.remaining) enemy.reaction = null; }
     if (enemy.dead) { enemy.actor.update(dt, { dead: true, time: this.time }); return; }
@@ -383,7 +395,11 @@ class VaultGame {
     }
     enemy.actor.root.position.set(enemy.x, 0, enemy.z); enemy.actor.root.rotation.y = enemy.yaw;
     const a = enemy.action;
-    enemy.actor.update(dt, { moving: !a && enemy.stagger === 0 && distance > 2.4 && distance < 20, attacking: !!a, attackProgress: a ? a.elapsed / a.duration : 0, attackImpact: a ? a.windup / a.duration : undefined, heavy: true, blocking: enemy.guard, hit: enemy.hit / .23, reaction: enemy.reaction, reducedMotion: settings.reducedMotion, time: this.time });
+    const vx = dt > 0 ? (enemy.x - previousX) / dt : 0, vz = dt > 0 ? (enemy.z - previousZ) / dt : 0;
+    const actualSpeed = Math.hypot(vx, vz), c = Math.cos(enemy.yaw), s = Math.sin(enemy.yaw);
+    const turnRate = dt > 0 ? Math.atan2(Math.sin(enemy.yaw - previousYaw), Math.cos(enemy.yaw - previousYaw)) / dt : 0;
+    enemy.actor.update(dt, { moving: actualSpeed > .02, speed: actualSpeed, localVelocityX: c * vx - s * vz, localVelocityZ: s * vx + c * vz, turnRate,
+      attacking: !!a, attackType: a?.type, attackProgress: a ? a.elapsed / a.duration : 0, attackImpact: a ? a.windup / a.duration : undefined, heavy: true, blocking: enemy.guard, hit: enemy.hit / .23, reaction: enemy.reaction, reducedMotion: settings.reducedMotion, time: this.time });
   }
   hurtPlayer(enemy, damage, area = false) {
     const p = this.player;
@@ -410,6 +426,7 @@ class VaultGame {
   enterArena() {
     this.phase = 'intro'; this.introTimer = 3; this.player.health = 100; this.player.stamina = 100; this.player.mana = 100; this.player.action = null;
     this.player.z = 32; this.player.x = 0; this.gladiator.actor.setVisible(true); this.yaw = 0;
+    this.hero.resetMotion?.();
     this.ui.showIntro('VARR · THE GILDED OATH', 'Coliseum champion · His armor is earned. Your victory is not yet written.', 3000);
     this.audio.play('chest');
   }
@@ -531,12 +548,13 @@ class VaultGame {
         guardian: { health: this.guardian.health, dead: this.guardian.dead, x: this.guardian.x, z: this.guardian.z, yaw: this.guardian.yaw, action: this.guardian.action, guard: this.guardian.guard, reaction: this.guardian.reaction, stagger: this.guardian.stagger, cooldown: this.guardian.cooldown },
         gladiator: { health: this.gladiator.health, dead: this.gladiator.dead, x: this.gladiator.x, z: this.gladiator.z, action: this.gladiator.action },
         actorPositions: { hero: this.hero.root.position.asArray(), guardian: this.guardian.actor.root.position.asArray() },
+        animation: { hero: this.hero.motionSnapshot?.(), guardian: this.guardian.actor.motionSnapshot?.(), gladiator: this.gladiator.actor.motionSnapshot?.() },
         arenaUnlocked: this.arenaUnlocked(), meshes: this.scene.meshes.length, materials: this.scene.materials.length,
         feedback: this.feedback.snapshot(), spellFeedback: this.spellFeedback.snapshot(), lights: this.scene.lights.length,
         projectileStates: this.projectiles.map(p => ({ x: p.mesh.position.x, y: p.mesh.position.y, z: p.mesh.position.z, life: p.life, dx: p.dx, dz: p.dz, damage: p.damage, cinder: p.cinder })),
         fps: this.engine.getFps(), effects: this.effects.length, projectiles: this.projectiles.length,
       }),
-      position: (x, z, yaw = 0) => { if (!this.world.isWalkable(x, z, .48)) throw new Error('Test position is outside collision geometry'); Object.assign(this.player, { x, z, yaw, vx: 0, vz: 0 }); this.yaw = yaw; this.updateCamera(1, true); },
+      position: (x, z, yaw = 0) => { if (!this.world.isWalkable(x, z, .48)) throw new Error('Test position is outside collision geometry'); Object.assign(this.player, { x, z, yaw, vx: 0, vz: 0 }); this.hero.resetMotion?.(); this.yaw = yaw; this.updateCamera(1, true); },
       step: (seconds) => { for (let t = 0; t < seconds; t += 1 / 60) this.frame(1 / 60); },
       manualClock: () => this.engine.stopRenderLoop(),
       render: () => this.scene.render(),

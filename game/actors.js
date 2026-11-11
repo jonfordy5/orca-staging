@@ -1,6 +1,8 @@
 /* Original ORCA Legends character meshes and hierarchical animation rig.
  * No downloaded models, textures, character designs, or animation clips.
  */
+import { createMotionState, advanceMotion, resetMotion as clearMotion } from './motion.js';
+
 const B = window.BABYLON;
 const sides = [-1, 1];
 const smooth = t => { t = Math.max(0, Math.min(1, t)); return t * t * (3 - 2 * t); };
@@ -16,6 +18,21 @@ const heavyPoses = [
   [-2.55, -.15, -.28, -.65, -.12, .06, -.14, -.15, -.04, -.065],
   [-1.05, .15, -.05, -.08, -.52, -.02, .14, .16, .06, .085],
   [.28, .25, .18, -.18, -.10, .02, .23, .22, .11, .10],
+];
+// Enemy-only anticipation and recovery. Strike contact retains WO-01's heavy
+// key pose; the radial attack has a distinct, original overhead ground strike.
+const guardianPoses = [
+  [-2.35, -.38, -.42, -.78, -.18, .10, -.22, -.17, -.08, -.045],
+  heavyPoses[1], [.40, .40, .26, -.12, -.07, .04, .28, .24, .14, .10],
+];
+const gladiatorPoses = [
+  [-2.65, .28, -.12, -.78, -.10, .02, -.08, -.12, -.055, -.055],
+  heavyPoses[1], [.32, .45, .22, -.16, -.10, .02, .27, .22, .13, .10],
+];
+const shockwavePoses = [
+  [-2.75, -.10, -.10, -.80, -.22, .02, -.04, -.21, -.02, -.07],
+  [-.55, .05, -.06, -.08, -.54, -.02, .04, .26, .015, .105],
+  [.42, .08, .08, -.15, -.08, 0, .08, .30, .04, .12],
 ];
 // Cinderbolt gathers before input, then opens the shield-side hand on the
 // already-successful cast. These original poses never drive gameplay timing.
@@ -36,11 +53,17 @@ export function createFighter(scene, { kind = 'hero', name = kind } = {}) {
   const animatedMaterials = [];
   const meshes = [];
   let disposed = false;
-  let stride = 0;
   let death = 0;
-  let moveBlend = 0;
   let guardBlend = 0;
   let spellBlend = 0;
+  let renderedBob = 0;
+  let wasDodging = false;
+  let previousDodgeProgress = 0;
+  let dodgeEntryGait = 0;
+  let dodgeEntryPelvisY = .92;
+  let dodgeEntryBob = 0;
+  const dodgeEntryLegs = new Float32Array(10);
+  const motion = createMotionState();
   const strikePose = new Float32Array(restPose.length);
   const castPose = new Float32Array(cinderReadyPose.length);
   let currentWeaponId = null;
@@ -232,10 +255,13 @@ export function createFighter(scene, { kind = 'hero', name = kind } = {}) {
     sphere(`knee-rivet-${side}`, knee, .04, gold, 0, 0, .148);
     cylinder(`greave-${side}`, knee, .29, .18, .12, steel, 0, -.18, 0);
     box(`greave-ridge-${side}`, knee, [.028, .25, .035], gold, 0, -.18, .091);
-    const foot = box(`sabatons-${side}`, knee, [.18, .13, .31], darkSteel, 0, -.365, .062);
-    for (let i = 0; i < 3; i++) box(`foot-lame-${side}-${i}`, knee,
-      [.175, .018, .057], steel, 0, -.301 - i * .004, .025 + i * .065);
-    legs[side] = { hip, knee, foot };
+    // The boot keeps its original geometry and neutral location. This local
+    // ankle lets it stay level through the planted part of each stride.
+    const ankle = node(`ankle-${side}`, knee, 0, -.365, .062);
+    const foot = box(`sabatons-${side}`, ankle, [.18, .13, .31], darkSteel);
+    for (let i = 0; i < 3; i++) box(`foot-lame-${side}-${i}`, ankle,
+      [.175, .018, .057], steel, 0, .064 - i * .004, -.037 + i * .065);
+    legs[side] = { hip, knee, ankle, foot };
   }
 
   // Blade is a tapered, double-edged, ridged forged mesh. Its tip starts at
@@ -306,60 +332,111 @@ export function createFighter(scene, { kind = 'hero', name = kind } = {}) {
   function update(dt, state = {}) {
     if (disposed) return;
     const time = state.time || 0;
-    const moving = !!state.moving;
-    const sprinting = !!state.sprinting;
     const attacking = !!state.attacking;
     const blocking = !!state.blocking;
     const dodging = !!state.dodging;
     const dead = !!state.dead;
     const victory = !!state.victory;
     const attack = Math.max(0, Math.min(1, state.attackProgress || 0));
+    const dodgeProgress = Math.max(0, Math.min(1, state.dodgeProgress || 0));
     const heavy = !!state.heavy;
     const reducedMotion = !!state.reducedMotion;
+    const bodyMotion = reducedMotion ? .3 : 1;
     const transition = 1 - Math.exp(-12 * dt);
-    moveBlend += ((moving && !dead ? 1 : 0) - moveBlend) * transition;
+    // Start the dodge from the visible incoming foot pose. Its progress
+    // envelope must blend that pose, rather than discard a sprinting knee or
+    // planted ankle as soon as the authoritative action flag changes.
+    if (dodging && (!wasDodging || dodgeProgress < previousDodgeProgress) && !dead) {
+      dodgeEntryGait = motion.blend;
+      dodgeEntryPelvisY = pelvis.position.y;
+      dodgeEntryBob = renderedBob;
+      for (const side of sides) {
+        const i = side === -1 ? 0 : 5;
+        dodgeEntryLegs[i] = legs[side].hip.rotation.x;
+        dodgeEntryLegs[i + 1] = legs[side].hip.rotation.z;
+        dodgeEntryLegs[i + 2] = legs[side].knee.rotation.x;
+        dodgeEntryLegs[i + 3] = legs[side].ankle.rotation.x;
+        dodgeEntryLegs[i + 4] = legs[side].ankle.rotation.z;
+      }
+    }
+    wasDodging = dodging && !dead;
+    previousDodgeProgress = dodging ? dodgeProgress : 0;
+    advanceMotion(motion, dt, state, scale);
+    const stride = motion.phase;
+    const moveBlend = motion.blend;
+    const moving = motion.speed >= .02;
     guardBlend += ((blocking && !dead && !dodging && !attacking ? 1 : 0) - guardBlend) * (1 - Math.exp(-22 * dt));
     // The blade reaches the authored contact pose at the actual damage tick.
     // The longer heavy anticipation therefore never moves the hit window.
     strikePose.fill(0);
     if (attacking && !dead) {
       const impact = Math.max(.2, Math.min(.8, state.attackImpact || (heavy ? .48 / .94 : .22 / .56)));
-      const windEnd = impact - (heavy ? .14 : .13);
+      const enemyAttack = guardian || gladiator;
+      const shockwave = enemyAttack && state.attackType === 'shockwave';
+      const windEnd = impact - (shockwave ? .11 : heavy ? .14 : .13);
       const followEnd = Math.min(.9, impact + (heavy ? .13 : .15));
-      const poses = heavy ? heavyPoses : lightPoses;
+      const readyEnd = enemyAttack ? windEnd * .72 : windEnd;
+      const recoverStart = enemyAttack ? Math.min(.94, followEnd + .045) : followEnd;
+      const poses = shockwave ? shockwavePoses : guardian ? guardianPoses : gladiator ? gladiatorPoses : heavy ? heavyPoses : lightPoses;
       let from, to, weight;
-      if (attack < windEnd) { from = restPose; to = poses[0]; weight = smooth(attack / windEnd); }
+      if (attack < readyEnd) { from = restPose; to = poses[0]; weight = smooth(attack / readyEnd); }
+      else if (attack < windEnd) { from = to = poses[0]; weight = 0; }
       else if (attack < impact) { from = poses[0]; to = poses[1]; weight = smooth((attack - windEnd) / (impact - windEnd)); }
       else if (attack < followEnd) { from = poses[1]; to = poses[2]; weight = smooth((attack - impact) / (followEnd - impact)); }
-      else { from = poses[2]; to = restPose; weight = smooth((attack - followEnd) / (1 - followEnd)); }
+      else if (attack < recoverStart) { from = to = poses[2]; weight = 0; }
+      else { from = poses[2]; to = restPose; weight = smooth((attack - recoverStart) / (1 - recoverStart)); }
       for (let i = 0; i < strikePose.length; i++) strikePose[i] = from[i] + (to[i] - from[i]) * weight;
     }
-    stride += dt * (moving ? (sprinting ? 13.8 : 9) : 1.2);
     death = B.Scalar.Lerp(death, dead ? 1 : 0, Math.min(1, dt * 5));
     const attackWeight = attacking ? smooth(attack / .12) * smooth((1 - attack) / .18) : 0;
-    const gait = !dodging && !dead ? moveBlend * (sprinting ? .66 : .43) * (1 - attackWeight) : 0;
-    const bob = !dodging ? Math.abs(Math.sin(stride)) * (sprinting ? .05 : .026) * moveBlend + Math.sin(time * 1.6) * .009 * (1 - moveBlend) : 0;
-    rig.position.y = bob - (dodging ? .35 : 0) - death * .20;
-    rig.rotation.x = dodging ? -.65 : sprinting && moving ? -.13 : 0;
-    rig.rotation.z = death * -1.48;
+    const dodge = motion.dodge;
+    const entryPose = dodging && !dead ? 1 - smooth(dodgeProgress / .36) : 0;
+    const ambientPose = dodging && !dead ? 1 - smooth((1 - dodgeProgress) / .24) : 1;
+    const locomotion = !dead ? (1 - attackWeight) * (dodging ? entryPose : 1) : 0;
+    const gait = !dodging ? moveBlend * locomotion * (1 - .35 * guardBlend) : 0;
+    const upperGait = dodging ? dodgeEntryGait * locomotion : gait;
+    const bob = dodging ? dodgeEntryBob * entryPose : (motion.bob * locomotion + Math.sin(time * 1.6) * .009 * (1 - moveBlend)) * bodyMotion;
+    renderedBob = bob;
+    const crouch = gait * (.10 + motion.sprint * .055) + attackWeight * .045 + guardBlend * .035;
+    rig.position.y = bob - .35 * dodge * bodyMotion - death * .20;
+    rig.rotation.x = (motion.forwardLean * locomotion - .65 * dodge) * bodyMotion;
+    rig.rotation.z = motion.sideLean * locomotion * bodyMotion + death * -1.48;
+    rig.rotation.y = -motion.turn * .009 * moveBlend * locomotion * bodyMotion;
     rig.position.x = death * -.17;
     rig.position.z = strikePose[9];
-    pelvis.rotation.y = Math.sin(stride) * .045 * moveBlend * (1 - attackWeight) + strikePose[8];
-    torso.rotation.y = -Math.sin(stride) * .04 * moveBlend * (1 - attackWeight) + strikePose[6];
-    torso.rotation.x = (dodging ? .7 : -.10 * guardBlend) + strikePose[7];
+    pelvis.position.y = dodgeEntryPelvisY * entryPose + .92 * dodge + (.92 - crouch) * ambientPose;
+    pelvis.rotation.y = Math.sin(stride) * .045 * upperGait * bodyMotion + strikePose[8];
+    torso.rotation.y = (-Math.sin(stride) * .04 * upperGait + motion.turn * .009 * moveBlend * locomotion) * bodyMotion + strikePose[6];
+    torso.rotation.x = (.7 * dodge - .10 * guardBlend) * bodyMotion + strikePose[7];
     head.rotation.x = dead ? .24 : -.06 * guardBlend + Math.sin(time * .8) * .018 * (1 - guardBlend);
-    cape.rotation.x = .12 + (sprinting && moving ? .40 : moving ? .16 : 0) + Math.sin(time * 3) * .025;
-    cape.rotation.z = Math.sin(time * 2.3) * .035;
-    tabard.rotation.x = moving ? .08 + Math.abs(Math.sin(stride)) * .12 : .01;
+    head.rotation.y = motion.turn * .012 * moveBlend * locomotion * bodyMotion;
+    cape.rotation.x = .12 + (moveBlend * .16 + motion.sprint * .24 + Math.sin(time * 3) * .025) * bodyMotion;
+    cape.rotation.z = (Math.sin(time * 2.3) * .035 - motion.sideLean * .35) * bodyMotion;
+    tabard.rotation.x = .01 + (moveBlend * .07 + Math.abs(Math.sin(stride)) * .12 * gait) * bodyMotion;
     for (const side of sides) {
       const phase = stride + (side === -1 ? Math.PI : 0);
-      legs[side].hip.rotation.x = Math.sin(phase) * gait;
-      legs[side].knee.rotation.x = Math.max(0, -Math.sin(phase)) * gait * 1.3;
-      if (dodging) {
-        legs[side].hip.rotation.x = side * .8;
-        legs[side].knee.rotation.x = 1.1;
-      }
-      arms[side].shoulder.rotation.set(Math.sin(phase + Math.PI) * gait * .65, 0, side * -.09);
+      const cycle = (phase / (Math.PI * 2)) % 1;
+      const stance = cycle < .5;
+      const step = stance ? cycle * 2 : (cycle - .5) * 2;
+      const reach = .29 + motion.sprint * .065;
+      const travel = (stance ? 1 - 2 * step : -1 + 2 * smooth(step)) * reach * gait;
+      const swingHeight = Math.sin(step * Math.PI);
+      const lift = stance ? 0 : swingHeight * swingHeight * (.10 + motion.sprint * .07) * gait;
+      const footZ = .062 + travel * motion.directionZ + side * (.10 * attackWeight + .065 * guardBlend);
+      const footX = travel * motion.directionX;
+      const vertical = Math.hypot(.765 - crouch - lift, footX);
+      const lower = .3702283;
+      const bend = Math.acos(Math.max(-1, Math.min(1, (vertical * vertical + footZ * footZ - .16 - lower * lower) / (.8 * lower))));
+      const planted = Math.max(gait, attackWeight, guardBlend);
+      const hip = (-Math.atan2(footZ, vertical) - Math.atan2(lower * Math.sin(bend), .4 + lower * Math.cos(bend))) * planted;
+      const hipZ = Math.atan2(footX, .765 - crouch - lift) * planted;
+      const knee = (bend + .168267) * planted;
+      const i = side === -1 ? 0 : 5;
+      legs[side].hip.rotation.set(dodgeEntryLegs[i] * entryPose + side * .8 * dodge + hip * ambientPose, 0, dodgeEntryLegs[i + 1] * entryPose + hipZ * ambientPose);
+      legs[side].knee.rotation.x = dodgeEntryLegs[i + 2] * entryPose + 1.1 * dodge + knee * ambientPose;
+      legs[side].ankle.rotation.x = dodgeEntryLegs[i + 3] * entryPose - (hip + knee + rig.rotation.x) * ambientPose;
+      legs[side].ankle.rotation.z = dodgeEntryLegs[i + 4] * entryPose - (hipZ + rig.rotation.z) * ambientPose;
+      arms[side].shoulder.rotation.set(Math.sin(phase + Math.PI) * upperGait * (.26 + .15 * motion.sprint), 0, side * -.09);
       arms[side].elbow.rotation.x = moving ? -.12 : -.06;
     }
     arms[-1].shoulder.rotation.x += strikePose[0];
@@ -374,8 +451,11 @@ export function createFighter(scene, { kind = 'hero', name = kind } = {}) {
     arms[1].elbow.rotation.x += (-.32 - arms[1].elbow.rotation.x) * guardBlend;
     shield.rotation.x = .4 * guardBlend;
     shield.rotation.y = .08 - .35 * guardBlend;
-    // Melee, guard, dodge and defeat retain their exact WO-01 poses. A cast
-    // cannot lock an action or postpone a projectile: castAge is presentation
+    if ((guardian || gladiator) && attacking && !dead && state.attackType === 'shockwave') {
+      arms[1].shoulder.rotation.x -= .9 * attackWeight * smooth((1 - attack) / .3);
+      arms[1].elbow.rotation.x -= .25 * attackWeight;
+    }
+    // A cast cannot lock an action or postpone a projectile: castAge is presentation
     // time supplied only after the immediate cast has already succeeded.
     const canPoseSpell = !attacking && !blocking && !dodging && !dead && !victory;
     const spellReady = canPoseSpell ? Math.max(0, Math.min(1, state.spellReady || 0)) : 0;
@@ -428,6 +508,8 @@ export function createFighter(scene, { kind = 'hero', name = kind } = {}) {
       arms[1].shoulder.rotation.z = .42;
       legs[-1].hip.rotation.x = -.1;
       legs[1].hip.rotation.x = .1;
+      legs[-1].ankle.rotation.set(0, 0, 0);
+      legs[1].ankle.rotation.set(0, 0, 0);
     }
     const hit = Math.max(0, Math.min(1, typeof state.hit === 'number' ? state.hit : state.hit ? 1 : 0));
     const flash = hit * (reducedMotion ? .45 : 1);
@@ -435,9 +517,32 @@ export function createFighter(scene, { kind = 'hero', name = kind } = {}) {
     spellOrb.scaling.setAll(1 + Math.sin(time * 4) * .12);
   }
 
+  function resetMotion() {
+    clearMotion(motion);
+    death = guardBlend = spellBlend = 0;
+    wasDodging = false;
+    previousDodgeProgress = 0;
+    dodgeEntryGait = dodgeEntryBob = 0;
+    dodgeEntryPelvisY = .92;
+    dodgeEntryLegs.fill(0);
+    strikePose.fill(0);
+    castPose.fill(0);
+    update(0);
+  }
+
   return {
     root, weapon, shield, focus: spellOrb, name,
-    update, equip,
+    update, equip, resetMotion,
+    // Read-only values allocated only when explicit developer diagnostics ask.
+    motionSnapshot() {
+      return { phase: motion.phase, distance: motion.distance, speed: motion.speed,
+        moveBlend: motion.blend, sprintBlend: motion.sprint,
+        directionX: motion.directionX, directionZ: motion.directionZ,
+        turnRate: motion.turn, turnLean: motion.sideLean, forwardLean: motion.forwardLean,
+        bob: renderedBob, dodgeEnvelope: motion.dodge,
+        rigPosition: { x: rig.position.x, y: rig.position.y, z: rig.position.z },
+        rigRotation: { x: rig.rotation.x, y: rig.rotation.y, z: rig.rotation.z } };
+    },
     setVisible(visible) { root.setEnabled(!!visible); },
     dispose() {
       if (disposed) return;

@@ -1,0 +1,7134 @@
+{
+  "label": "after",
+  "revision": "da1e9f6",
+  "sourceRoot": "/workspace/orca-staging/work/wo03-after-source",
+  "viewport": {
+    "width": 960,
+    "height": 640
+  },
+  "renderer": "Chromium --use-angle=swiftshader (software WebGL)",
+  "frameTupleKeys": {
+    "player": [
+      "x",
+      "z",
+      "yaw",
+      "actionType",
+      "actionElapsed",
+      "health",
+      "stamina"
+    ],
+    "guardian": [
+      "x",
+      "z",
+      "health",
+      "actionType",
+      "actionElapsed"
+    ]
+  },
+  "simulation": "Manual captures advance four fixed 1/60 s updates per screenshot, encoded at 15 fps. This offline simulation playback is not a live frame-rate recording. RAF samples use the unchanged real-time loop.",
+  "captures": [
+    {
+      "name": "idle",
+      "quality": "high",
+      "reducedMotion": false,
+      "snapshot": {
+        "phase": "explore",
+        "player": {
+          "x": 0,
+          "z": -14,
+          "yaw": 0,
+          "vx": 0,
+          "vz": 0,
+          "health": 100,
+          "stamina": 100,
+          "mana": 100,
+          "action": null,
+          "blocking": false,
+          "castAge": 1,
+          "spellCooldown": 0
+        },
+        "guardian": {
+          "x": 0,
+          "z": 8,
+          "health": 145,
+          "action": null,
+          "guard": false,
+          "stagger": 0,
+          "reaction": null
+        },
+        "gladiator": {
+          "x": 0,
+          "z": 43,
+          "health": 215,
+          "action": null
+        },
+        "camera": {
+          "yaw": 0,
+          "pitch": 0.56,
+          "position": [
+            0,
+            6.06196406253542,
+            -21.116942932512696
+          ]
+        },
+        "animation": {
+          "hero": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": 0.008800781421917848,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": 0.008800781421917848,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          },
+          "guardian": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": 0.008800781421917848,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": 0.008800781421917848,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          },
+          "gladiator": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": 0,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          }
+        },
+        "scene": {
+          "meshes": 522,
+          "materials": 64,
+          "lights": 9,
+          "effects": 0,
+          "projectiles": 0
+        }
+      }
+    },
+    {
+      "name": "walk",
+      "quality": "high",
+      "reducedMotion": false,
+      "segment": "walk-sprint-turn-brake-guard",
+      "segmentSeconds": 0.3333333333333333,
+      "snapshot": {
+        "phase": "explore",
+        "player": {
+          "x": 0.17005318008274287,
+          "z": -13.038207623336174,
+          "yaw": 0.1748603635339792,
+          "vx": 0.6064364327412124,
+          "vz": 3.429903149461256,
+          "health": 100,
+          "stamina": 100,
+          "mana": 100,
+          "action": null,
+          "blocking": false,
+          "castAge": 1,
+          "spellCooldown": 0
+        },
+        "guardian": {
+          "x": 0,
+          "z": 8,
+          "health": 145,
+          "action": null,
+          "guard": false,
+          "stagger": 0,
+          "reaction": null
+        },
+        "gladiator": {
+          "x": 0,
+          "z": 43,
+          "health": 215,
+          "action": null
+        },
+        "camera": {
+          "yaw": 0.17500000000000002,
+          "pitch": 0.56,
+          "position": [
+            -1.076341653928497,
+            6.06196406253542,
+            -20.34149835074716
+          ]
+        },
+        "animation": {
+          "hero": {
+            "phase": 2.55702111654764,
+            "distance": 0.9767101206933944,
+            "speed": 3.4831021750215805,
+            "moveBlend": 0.9914676636432983,
+            "sprintBlend": 0,
+            "directionX": 0.001751935056587111,
+            "directionZ": 0.9999692945690261,
+            "turnRate": 0.07189683168304173,
+            "turnLean": -0.003438241649248992,
+            "forwardLean": -0.06357159568771217,
+            "bob": -0.011790482949675975,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": -0.011790482949675975,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": -0.06357159568771217,
+              "y": -0.0006415504535892677,
+              "z": -0.003438241649248992
+            }
+          },
+          "guardian": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": 0.008535908760198028,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": 0.008535908760198028,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          },
+          "gladiator": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": 0,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          }
+        },
+        "scene": {
+          "meshes": 522,
+          "materials": 64,
+          "lights": 9,
+          "effects": 0,
+          "projectiles": 0
+        }
+      }
+    },
+    {
+      "name": "sprint",
+      "quality": "high",
+      "reducedMotion": false,
+      "segment": "walk-sprint-turn-brake-guard",
+      "segmentSeconds": 0.6666666666666666,
+      "snapshot": {
+        "phase": "explore",
+        "player": {
+          "x": 0.49448622311483753,
+          "z": -11.203268533256905,
+          "yaw": 0.17499988858089918,
+          "vx": 1.0425331580423618,
+          "vz": 5.896393371394295,
+          "health": 100,
+          "stamina": 94.66666666666669,
+          "mana": 100,
+          "action": null,
+          "blocking": false,
+          "castAge": 1,
+          "spellCooldown": 0
+        },
+        "guardian": {
+          "x": 0,
+          "z": 8,
+          "health": 145,
+          "action": null,
+          "guard": false,
+          "stagger": 0,
+          "reaction": null
+        },
+        "gladiator": {
+          "x": 0,
+          "z": 43,
+          "health": 215,
+          "action": null
+        },
+        "camera": {
+          "yaw": 0.17500000000000002,
+          "pitch": 0.56,
+          "position": [
+            -0.8356542586558507,
+            6.06196406253542,
+            -18.73537814076437
+          ]
+        },
+        "animation": {
+          "hero": {
+            "phase": 0.7984211158628771,
+            "distance": 2.840109772864662,
+            "speed": 5.987848543161401,
+            "moveBlend": 0.9999588063067393,
+            "sprintBlend": 0.939397960616227,
+            "directionX": 0.000009856816409451887,
+            "directionZ": 0.9999998517361525,
+            "turnRate": 0.0010009226274496675,
+            "turnLean": -0.00016674684056417608,
+            "forwardLean": -0.12645913981151455,
+            "bob": 0.019099062690938112,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": 0.019099062690938112,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": -0.12645913981151455,
+              "y": -0.000009007932561749772,
+              "z": -0.00016674684056417608
+            }
+          },
+          "guardian": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": 0.005900053753146317,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": 0.005900053753146317,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          },
+          "gladiator": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": 0,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          }
+        },
+        "scene": {
+          "meshes": 522,
+          "materials": 64,
+          "lights": 9,
+          "effects": 0,
+          "projectiles": 0
+        }
+      }
+    },
+    {
+      "name": "turn",
+      "quality": "high",
+      "reducedMotion": false,
+      "segment": "walk-sprint-turn-brake-guard",
+      "segmentSeconds": 0.7333333333333333,
+      "snapshot": {
+        "phase": "explore",
+        "player": {
+          "x": 0.7143378117982562,
+          "z": -11.024647215996605,
+          "yaw": 1.3686481019797159,
+          "vx": 4.233766763356615,
+          "vz": 1.3441371313134085,
+          "health": 100,
+          "stamina": 93.60000000000002,
+          "mana": 100,
+          "action": null,
+          "blocking": false,
+          "castAge": 1,
+          "spellCooldown": 0
+        },
+        "guardian": {
+          "x": 0,
+          "z": 8,
+          "health": 145,
+          "action": null,
+          "guard": false,
+          "stagger": 0,
+          "reaction": null
+        },
+        "gladiator": {
+          "x": 0,
+          "z": 43,
+          "health": 215,
+          "action": null
+        },
+        "camera": {
+          "yaw": 0.17500000000000002,
+          "pitch": 0.56,
+          "position": [
+            -0.7252291575107107,
+            6.06196406253542,
+            -18.41274030187277
+          ]
+        },
+        "animation": {
+          "hero": {
+            "phase": 1.5086685177683374,
+            "distance": 3.13676751245749,
+            "speed": 4.442013691365504,
+            "moveBlend": 0.9999858230344694,
+            "sprintBlend": 0.6357931794936489,
+            "directionX": -0.09408626615387343,
+            "directionZ": 0.9928658023823861,
+            "turnRate": 4.637617662141857,
+            "turnLean": -0.025811507659397007,
+            "forwardLean": -0.12359580718183544,
+            "bob": 0.0021233977610662586,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": 0.0021233977610662586,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": -0.12359580718183544,
+              "y": -0.041737967233165044,
+              "z": -0.025811507659397007
+            }
+          },
+          "guardian": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": 0.005142958634117232,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": 0.005142958634117232,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          },
+          "gladiator": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": 0,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          }
+        },
+        "scene": {
+          "meshes": 522,
+          "materials": 64,
+          "lights": 9,
+          "effects": 0,
+          "projectiles": 0
+        }
+      }
+    },
+    {
+      "name": "brake",
+      "quality": "high",
+      "reducedMotion": false,
+      "segment": "walk-sprint-turn-brake-guard",
+      "segmentSeconds": 0.9333333333333333,
+      "snapshot": {
+        "phase": "explore",
+        "player": {
+          "x": 1.6258430963867483,
+          "z": -11.076332416333246,
+          "yaw": 1.724054482159269,
+          "vx": 1.9651241245002704,
+          "vz": -0.26214766882672713,
+          "health": 100,
+          "stamina": 91.4666666666667,
+          "mana": 100,
+          "action": null,
+          "blocking": false,
+          "castAge": 1,
+          "spellCooldown": 0
+        },
+        "guardian": {
+          "x": 0,
+          "z": 8,
+          "health": 145,
+          "action": null,
+          "guard": false,
+          "stagger": 0,
+          "reaction": null
+        },
+        "gladiator": {
+          "x": 0,
+          "z": 43,
+          "health": 215,
+          "action": null
+        },
+        "camera": {
+          "yaw": 0.17500000000000002,
+          "pitch": 0.56,
+          "position": [
+            0.04140325308964199,
+            6.06196406253542,
+            -18.106271541290212
+          ]
+        },
+        "animation": {
+          "hero": {
+            "phase": 3.723571438402666,
+            "distance": 4.0537252069038345,
+            "speed": 1.9825322758947104,
+            "moveBlend": 0.9181132302430912,
+            "sprintBlend": 0.4377410820050337,
+            "directionX": -0.02756197965835905,
+            "directionZ": 0.9993647038966192,
+            "turnRate": 0.973518566020722,
+            "turnLean": -0.031473490031441564,
+            "forwardLean": -0.11332321767245367,
+            "bob": 0.013569862637756546,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": 0.013569862637756546,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": -0.11332321767245367,
+              "y": -0.008044202478158163,
+              "z": -0.031473490031441564
+            }
+          },
+          "guardian": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": 0.0025585541732793897,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": 0.0025585541732793897,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          },
+          "gladiator": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": 0,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          }
+        },
+        "scene": {
+          "meshes": 522,
+          "materials": 64,
+          "lights": 9,
+          "effects": 0,
+          "projectiles": 0
+        }
+      }
+    },
+    {
+      "name": "guard",
+      "quality": "high",
+      "reducedMotion": false,
+      "segment": "walk-sprint-turn-brake-guard",
+      "segmentSeconds": 1.2,
+      "snapshot": {
+        "phase": "explore",
+        "player": {
+          "x": 1.73151083496764,
+          "z": -11.090428498608057,
+          "yaw": 1.724054482159269,
+          "vx": 0.027567678656604068,
+          "vz": -0.0036775298845974154,
+          "health": 100,
+          "stamina": 91.4666666666667,
+          "mana": 100,
+          "action": null,
+          "blocking": true,
+          "castAge": 1,
+          "spellCooldown": 0
+        },
+        "guardian": {
+          "x": 0,
+          "z": 8,
+          "health": 145,
+          "action": null,
+          "guard": false,
+          "stagger": 0,
+          "reaction": null
+        },
+        "gladiator": {
+          "x": 0,
+          "z": 43,
+          "health": 215,
+          "action": null
+        },
+        "camera": {
+          "yaw": 0.17500000000000002,
+          "pitch": 0.56,
+          "position": [
+            0.45378053263062756,
+            6.06196406253542,
+            -18.098228529155403
+          ]
+        },
+        "animation": {
+          "hero": {
+            "phase": 3.994244483417329,
+            "distance": 4.160329008488478,
+            "speed": 0.027811888331534352,
+            "moveBlend": 0.05007957768134448,
+            "sprintBlend": 0.030415761119713152,
+            "directionX": -0.02073671084788153,
+            "directionZ": 0.9997810568604465,
+            "turnRate": 0.030394152239838927,
+            "turnLean": -0.0020415179315819362,
+            "forwardLean": -0.021878158133160297,
+            "bob": -0.0005245438752248941,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": -0.0005245438752248941,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": -0.021878158133160297,
+              "y": -0.000013699136773382613,
+              "z": -0.0020415179315819362
+            }
+          },
+          "guardian": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": -0.00124169280544101,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": -0.00124169280544101,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          },
+          "gladiator": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": 0,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          }
+        },
+        "scene": {
+          "meshes": 522,
+          "materials": 64,
+          "lights": 9,
+          "effects": 0,
+          "projectiles": 0
+        }
+      }
+    },
+    {
+      "name": "dodge",
+      "quality": "high",
+      "reducedMotion": false,
+      "segment": "sprint-to-directional-dodge-and-landing",
+      "segmentSeconds": 0.4,
+      "snapshot": {
+        "phase": "explore",
+        "player": {
+          "x": 0.7080784959015511,
+          "z": -9.61222900619233,
+          "yaw": 0.18014796200541283,
+          "vx": -0.7894689556042374,
+          "vz": 0.8511358905696957,
+          "health": 100,
+          "stamina": 63.200000000000045,
+          "mana": 100,
+          "action": {
+            "type": "dodge",
+            "elapsed": 0.13333333333333333,
+            "duration": 0.48,
+            "dx": -0.9847265389049334,
+            "dz": 0.17410813759359597
+          },
+          "blocking": false,
+          "castAge": 1,
+          "spellCooldown": 0
+        },
+        "guardian": {
+          "x": 0,
+          "z": 8,
+          "health": 145,
+          "action": null,
+          "guard": false,
+          "stagger": 0,
+          "reaction": null
+        },
+        "gladiator": {
+          "x": 0,
+          "z": 43,
+          "health": 215,
+          "action": null
+        },
+        "camera": {
+          "yaw": 0.17500000000000002,
+          "pitch": 0.56,
+          "position": [
+            0.07989989712043243,
+            6.06196406253542,
+            -16.85398714999976
+          ]
+        },
+        "animation": {
+          "hero": {
+            "phase": 0.8893266500410648,
+            "distance": 5.438105945414282,
+            "speed": 0,
+            "moveBlend": 0.1521270441029935,
+            "sprintBlend": 0.21082288826452109,
+            "directionX": -0.03968820769275687,
+            "directionZ": 0.9934471038835828,
+            "turnRate": -0.19309767463402105,
+            "turnLean": 0.008565926280161746,
+            "forwardLean": -0.022951396270396225,
+            "bob": 0.0023131737116183714,
+            "dodgeEnvelope": 0.8673352262998151,
+            "rigPosition": {
+              "x": 0,
+              "y": -0.30125415549331686,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": -0.5668127388871952,
+              "y": 0.00003507370142802942,
+              "z": 0.0011363966714901248
+            }
+          },
+          "guardian": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": -0.006487937462878514,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": -0.006487937462878514,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          },
+          "gladiator": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": 0,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          }
+        },
+        "scene": {
+          "meshes": 522,
+          "materials": 64,
+          "lights": 9,
+          "effects": 0,
+          "projectiles": 0
+        }
+      }
+    },
+    {
+      "name": "landing",
+      "quality": "high",
+      "reducedMotion": false,
+      "segment": "sprint-to-directional-dodge-and-landing",
+      "segmentSeconds": 0.6666666666666666,
+      "snapshot": {
+        "phase": "explore",
+        "player": {
+          "x": -1.7865620693242805,
+          "z": -9.171155057621881,
+          "yaw": 0.18014796200541283,
+          "vx": -0.03871673052645108,
+          "vz": 0.016827420873929164,
+          "health": 100,
+          "stamina": 63.200000000000045,
+          "mana": 100,
+          "action": {
+            "type": "dodge",
+            "elapsed": 0.39999999999999997,
+            "duration": 0.48,
+            "dx": -0.9847265389049334,
+            "dz": 0.17410813759359597
+          },
+          "blocking": false,
+          "castAge": 1,
+          "spellCooldown": 0
+        },
+        "guardian": {
+          "x": 0,
+          "z": 8,
+          "health": 145,
+          "action": null,
+          "guard": false,
+          "stagger": 0,
+          "reaction": null
+        },
+        "gladiator": {
+          "x": 0,
+          "z": 43,
+          "health": 215,
+          "action": null
+        },
+        "camera": {
+          "yaw": 0.17500000000000002,
+          "pitch": 0.56,
+          "position": [
+            -2.1832671408440967,
+            6.06196406253542,
+            -16.3370633612169
+          ]
+        },
+        "animation": {
+          "hero": {
+            "phase": 0.8893266500410648,
+            "distance": 5.438105945414282,
+            "speed": 0,
+            "moveBlend": 0.0036378129198745518,
+            "sprintBlend": 0.014648701873378005,
+            "directionX": -0.03968820769275687,
+            "directionZ": 0.9934471038835828,
+            "turnRate": -0.00602868843475184,
+            "turnLean": 0.00045587298028574544,
+            "forwardLean": -0.0012214582611732568,
+            "bob": 0,
+            "dodgeEnvelope": 0.7769633058984915,
+            "rigPosition": {
+              "x": 0,
+              "y": -0.271937157064472,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": -0.5050261488340195,
+              "y": 0,
+              "z": 0
+            }
+          },
+          "guardian": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": -0.008487622571623953,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": -0.008487622571623953,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          },
+          "gladiator": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": 0,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          }
+        },
+        "scene": {
+          "meshes": 522,
+          "materials": 64,
+          "lights": 9,
+          "effects": 0,
+          "projectiles": 0
+        }
+      }
+    },
+    {
+      "name": "dodge-recovered",
+      "quality": "high",
+      "reducedMotion": false,
+      "segment": "sprint-to-directional-dodge-and-landing",
+      "segmentSeconds": 1.0666666666666667,
+      "snapshot": {
+        "phase": "explore",
+        "player": {
+          "x": -2.5666903173833706,
+          "z": -9.033079067712777,
+          "yaw": 0.18014796200541283,
+          "vx": -0.00006433006519974006,
+          "vz": 0.000027959723541835903,
+          "health": 100,
+          "stamina": 63.61666666666671,
+          "mana": 100,
+          "action": null,
+          "blocking": false,
+          "castAge": 1,
+          "spellCooldown": 0
+        },
+        "guardian": {
+          "x": 0,
+          "z": 8,
+          "health": 145,
+          "action": null,
+          "guard": false,
+          "stagger": 0,
+          "reaction": null
+        },
+        "gladiator": {
+          "x": 0,
+          "z": 43,
+          "health": 215,
+          "action": null
+        },
+        "camera": {
+          "yaw": 0.17500000000000002,
+          "pitch": 0.56,
+          "position": [
+            -3.7698445649930776,
+            6.06196406253542,
+            -16.04785265495966
+          ]
+        },
+        "animation": {
+          "hero": {
+            "phase": 0.8893266500410648,
+            "distance": 5.438105945414282,
+            "speed": 0,
+            "moveBlend": 0.000013452136403756931,
+            "sprintBlend": 0.0002683003337015159,
+            "directionX": -0.03968820769275687,
+            "directionZ": 0.9934471038835828,
+            "turnRate": -0.00003325764812300398,
+            "turnLean": 0.000005596907531592922,
+            "forwardLean": -0.000014996258249835038,
+            "bob": -0.008595226125659055,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": -0.008595226125659055,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": -0.000014996258249835038,
+              "y": 4.026477771169202e-12,
+              "z": 0.000005596907531592922
+            }
+          },
+          "guardian": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": -0.008595512890225608,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": -0.008595512890225608,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          },
+          "gladiator": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": 0,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          }
+        },
+        "scene": {
+          "meshes": 522,
+          "materials": 64,
+          "lights": 9,
+          "effects": 0,
+          "projectiles": 0
+        }
+      }
+    },
+    {
+      "name": "cast",
+      "quality": "high",
+      "reducedMotion": false,
+      "segment": "cast-and-recover",
+      "segmentSeconds": 0.06666666666666667,
+      "snapshot": {
+        "phase": "explore",
+        "player": {
+          "x": -2.566693682718537,
+          "z": -9.033077605039907,
+          "yaw": 0.14956348618125256,
+          "vx": -0.0000026222352396134023,
+          "vz": 0.0000011396999541910427,
+          "health": 100,
+          "stamina": 68.61666666666676,
+          "mana": 72.33333333333331,
+          "action": null,
+          "blocking": false,
+          "castAge": 0.06666666666666667,
+          "spellCooldown": 3.5333333333333337
+        },
+        "guardian": {
+          "x": 0,
+          "z": 8,
+          "health": 145,
+          "action": null,
+          "guard": false,
+          "stagger": 0,
+          "reaction": null
+        },
+        "gladiator": {
+          "x": 0,
+          "z": 43,
+          "health": 215,
+          "action": null
+        },
+        "camera": {
+          "yaw": 0.17500000000000002,
+          "pitch": 0.56,
+          "position": [
+            -3.800943424722327,
+            6.06196406253542,
+            -16.04220441677539
+          ]
+        },
+        "animation": {
+          "hero": {
+            "phase": 0.8893266500410648,
+            "distance": 5.438105945414282,
+            "speed": 0,
+            "moveBlend": 8.180252571554333e-7,
+            "sprintBlend": 0.00003631050165397239,
+            "directionX": -0.03968820769275687,
+            "directionZ": 0.9934471038835828,
+            "turnRate": -0.000002470164529088732,
+            "turnLean": 6.201550315624302e-7,
+            "forwardLean": -0.0000016616327776989291,
+            "bob": -0.007319948130574781,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": -0.007319948130574781,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": -0.0000016616327776989291,
+              "y": 1.8185912767116355e-14,
+              "z": 6.201550315624302e-7
+            }
+          },
+          "guardian": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": -0.007319964524108275,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": -0.007319964524108275,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          },
+          "gladiator": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": 0,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          }
+        },
+        "scene": {
+          "meshes": 523,
+          "materials": 65,
+          "lights": 9,
+          "effects": 0,
+          "projectiles": 1
+        }
+      }
+    },
+    {
+      "name": "cast-recovered",
+      "quality": "high",
+      "reducedMotion": false,
+      "segment": "cast-and-recover",
+      "segmentSeconds": 0.4,
+      "snapshot": {
+        "phase": "explore",
+        "player": {
+          "x": -2.5666938250358946,
+          "z": -9.033077543184628,
+          "yaw": 0.14956348618125256,
+          "vx": -1.2660020608916106e-8,
+          "vz": 5.502414386806335e-9,
+          "health": 100,
+          "stamina": 76.95000000000019,
+          "mana": 73.99999999999989,
+          "action": null,
+          "blocking": false,
+          "castAge": 0.39999999999999997,
+          "spellCooldown": 3.2000000000000015
+        },
+        "guardian": {
+          "x": 0,
+          "z": 8,
+          "health": 145,
+          "action": null,
+          "guard": false,
+          "stagger": 0,
+          "reaction": null
+        },
+        "gladiator": {
+          "x": 0,
+          "z": 43,
+          "health": 215,
+          "action": null
+        },
+        "camera": {
+          "yaw": 0.17500000000000002,
+          "pitch": 0.56,
+          "position": [
+            -3.805637834761148,
+            6.06196406253542,
+            -16.041351673440566
+          ]
+        },
+        "animation": {
+          "hero": {
+            "phase": 0.8893266500410648,
+            "distance": 5.438105945414282,
+            "speed": 0,
+            "moveBlend": 7.692351674364066e-9,
+            "sprintBlend": 0.0000012953405944392103,
+            "directionX": -0.03968820769275687,
+            "directionZ": 0.9934471038835828,
+            "turnRate": -3.2417769215374044e-8,
+            "turnLean": 1.5852113432465722e-8,
+            "forwardLean": -4.247388142417236e-8,
+            "bob": -0.003641212652881304,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": -0.003641212652881304,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": -4.247388142417236e-8,
+              "y": 2.2443199317272737e-18,
+              "z": 1.5852113432465722e-8
+            }
+          },
+          "guardian": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": -0.0036412127787389566,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": -0.0036412127787389566,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          },
+          "gladiator": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": 0,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          }
+        },
+        "scene": {
+          "meshes": 523,
+          "materials": 65,
+          "lights": 9,
+          "effects": 0,
+          "projectiles": 1
+        }
+      }
+    },
+    {
+      "name": "enemy-windup",
+      "quality": "high",
+      "reducedMotion": false,
+      "segment": "warden-windup-contact-recovery",
+      "segmentSeconds": 0.2,
+      "snapshot": {
+        "phase": "explore",
+        "player": {
+          "x": 0,
+          "z": 5.8,
+          "yaw": 0,
+          "vx": 0,
+          "vz": 0,
+          "health": 100,
+          "stamina": 100,
+          "mana": 100,
+          "action": null,
+          "blocking": false,
+          "castAge": 1,
+          "spellCooldown": 0
+        },
+        "guardian": {
+          "x": 0,
+          "z": 8,
+          "health": 145,
+          "action": {
+            "type": "strike",
+            "elapsed": 0.19999999999999998,
+            "windup": 0.9,
+            "duration": 1.55,
+            "dealt": false
+          },
+          "guard": false,
+          "stagger": 0,
+          "reaction": null
+        },
+        "gladiator": {
+          "x": 0,
+          "z": 43,
+          "health": 215,
+          "action": null
+        },
+        "camera": {
+          "yaw": 0,
+          "pitch": 0.56,
+          "position": [
+            0,
+            6.06196406253542,
+            -1.3169429325126956
+          ]
+        },
+        "animation": {
+          "hero": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": 0.0020949390548642664,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": 0.0020949390548642664,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          },
+          "guardian": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": 0.0020949390548642664,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": 0.0020949390548642664,
+              "z": -0.016275504603981972
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          },
+          "gladiator": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": 0,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          }
+        },
+        "scene": {
+          "meshes": 522,
+          "materials": 64,
+          "lights": 9,
+          "effects": 0,
+          "projectiles": 0
+        }
+      }
+    },
+    {
+      "name": "enemy-commit",
+      "quality": "high",
+      "reducedMotion": false,
+      "segment": "warden-windup-contact-recovery",
+      "segmentSeconds": 0.6666666666666666,
+      "snapshot": {
+        "phase": "explore",
+        "player": {
+          "x": 0,
+          "z": 5.8,
+          "yaw": 0,
+          "vx": 0,
+          "vz": 0,
+          "health": 100,
+          "stamina": 100,
+          "mana": 100,
+          "action": null,
+          "blocking": false,
+          "castAge": 1,
+          "spellCooldown": 0
+        },
+        "guardian": {
+          "x": 0,
+          "z": 8,
+          "health": 145,
+          "action": {
+            "type": "strike",
+            "elapsed": 0.6666666666666671,
+            "windup": 0.9,
+            "duration": 1.55,
+            "dealt": false
+          },
+          "guard": false,
+          "stagger": 0,
+          "reaction": null
+        },
+        "gladiator": {
+          "x": 0,
+          "z": 43,
+          "health": 215,
+          "action": null
+        },
+        "camera": {
+          "yaw": 0,
+          "pitch": 0.56,
+          "position": [
+            0,
+            6.06196406253542,
+            -1.3169429325126956
+          ]
+        },
+        "animation": {
+          "hero": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": -0.004407261076992967,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": -0.004407261076992967,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          },
+          "guardian": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": -0.004407261076992967,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": -0.004407261076992967,
+              "z": -0.04500000178813934
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          },
+          "gladiator": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": 0,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          }
+        },
+        "scene": {
+          "meshes": 522,
+          "materials": 64,
+          "lights": 9,
+          "effects": 0,
+          "projectiles": 0
+        }
+      }
+    },
+    {
+      "name": "enemy-contact",
+      "quality": "high",
+      "reducedMotion": false,
+      "segment": "warden-windup-contact-recovery",
+      "segmentSeconds": 1,
+      "snapshot": {
+        "phase": "explore",
+        "player": {
+          "x": 0,
+          "z": 5.8,
+          "yaw": 0,
+          "vx": 0,
+          "vz": 0,
+          "health": 77,
+          "stamina": 100,
+          "mana": 100,
+          "action": null,
+          "blocking": false,
+          "castAge": 1,
+          "spellCooldown": 0
+        },
+        "guardian": {
+          "x": 0,
+          "z": 8,
+          "health": 145,
+          "action": {
+            "type": "strike",
+            "elapsed": 1.0000000000000013,
+            "windup": 0.9,
+            "duration": 1.55,
+            "dealt": true
+          },
+          "guard": false,
+          "stagger": 0,
+          "reaction": null
+        },
+        "gladiator": {
+          "x": 0,
+          "z": 43,
+          "health": 215,
+          "action": null
+        },
+        "camera": {
+          "yaw": 0,
+          "pitch": 0.56,
+          "position": [
+            0,
+            6.06196406253542,
+            -1.3169429325126956
+          ]
+        },
+        "animation": {
+          "hero": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": -0.007784655146007262,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": -0.007784655146007262,
+              "z": -0.03306122448979593
+            },
+            "rigRotation": {
+              "x": -0.06612244897959187,
+              "y": 0,
+              "z": 0
+            }
+          },
+          "guardian": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": -0.007784655146007262,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": -0.007784655146007262,
+              "z": 0.09241625666618347
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          },
+          "gladiator": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": 0,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          }
+        },
+        "scene": {
+          "meshes": 523,
+          "materials": 65,
+          "lights": 9,
+          "effects": 1,
+          "projectiles": 0
+        }
+      }
+    },
+    {
+      "name": "enemy-recovery",
+      "quality": "high",
+      "reducedMotion": false,
+      "segment": "warden-windup-contact-recovery",
+      "segmentSeconds": 1.2,
+      "snapshot": {
+        "phase": "explore",
+        "player": {
+          "x": 0,
+          "z": 5.8,
+          "yaw": 0,
+          "vx": 0,
+          "vz": 0,
+          "health": 77,
+          "stamina": 100,
+          "mana": 100,
+          "action": null,
+          "blocking": false,
+          "castAge": 1,
+          "spellCooldown": 0
+        },
+        "guardian": {
+          "x": 0,
+          "z": 8,
+          "health": 145,
+          "action": {
+            "type": "strike",
+            "elapsed": 1.2000000000000006,
+            "windup": 0.9,
+            "duration": 1.55,
+            "dealt": true
+          },
+          "guard": false,
+          "stagger": 0,
+          "reaction": null
+        },
+        "gladiator": {
+          "x": 0,
+          "z": 43,
+          "health": 215,
+          "action": null
+        },
+        "camera": {
+          "yaw": 0,
+          "pitch": 0.56,
+          "position": [
+            0,
+            6.06196406253542,
+            -1.3169429325126956
+          ]
+        },
+        "animation": {
+          "hero": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": -0.008810223207965453,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": -0.008810223207965453,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          },
+          "guardian": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": -0.008810223207965453,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": -0.008810223207965453,
+              "z": 0.0983588844537735
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          },
+          "gladiator": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": 0,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          }
+        },
+        "scene": {
+          "meshes": 523,
+          "materials": 65,
+          "lights": 9,
+          "effects": 1,
+          "projectiles": 0
+        }
+      }
+    },
+    {
+      "name": "light-anticipation",
+      "quality": "high",
+      "reducedMotion": false,
+      "snapshot": {
+        "phase": "explore",
+        "player": {
+          "x": 0,
+          "z": 5.8,
+          "yaw": 0,
+          "vx": 0,
+          "vz": 0,
+          "health": 100,
+          "stamina": 86,
+          "mana": 100,
+          "action": {
+            "type": "light",
+            "elapsed": 0.11666666666666665,
+            "duration": 0.56,
+            "dealt": false
+          },
+          "blocking": false,
+          "castAge": 1,
+          "spellCooldown": 0
+        },
+        "guardian": {
+          "x": 0,
+          "z": 8,
+          "health": 145,
+          "action": null,
+          "guard": false,
+          "stagger": 0,
+          "reaction": null
+        },
+        "gladiator": {
+          "x": 0,
+          "z": 43,
+          "health": 215,
+          "action": null
+        },
+        "camera": {
+          "yaw": 0,
+          "pitch": 0.56,
+          "position": [
+            0,
+            6.06196406253542,
+            -1.3169429325126956
+          ]
+        },
+        "animation": {
+          "hero": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": 0.008997380044883464,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": 0.008997380044883464,
+              "z": -0.031106987968087196
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          },
+          "guardian": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": 0.008997380044883464,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": 0.008997380044883464,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          },
+          "gladiator": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": 0,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          }
+        },
+        "scene": {
+          "meshes": 522,
+          "materials": 64,
+          "lights": 9,
+          "effects": 0,
+          "projectiles": 0
+        }
+      }
+    },
+    {
+      "name": "light-contact",
+      "quality": "high",
+      "reducedMotion": false,
+      "snapshot": {
+        "phase": "explore",
+        "player": {
+          "x": 0,
+          "z": 5.8,
+          "yaw": 0,
+          "vx": 0,
+          "vz": 0,
+          "health": 100,
+          "stamina": 86,
+          "mana": 100,
+          "action": {
+            "type": "light",
+            "elapsed": 0.26666666666666666,
+            "duration": 0.56,
+            "dealt": true,
+            "sounded": true
+          },
+          "blocking": false,
+          "castAge": 1,
+          "spellCooldown": 0
+        },
+        "guardian": {
+          "x": 0,
+          "z": 8,
+          "health": 128,
+          "action": null,
+          "guard": false,
+          "stagger": 0.27,
+          "reaction": {
+            "remaining": 0.19,
+            "duration": 0.24,
+            "x": 0,
+            "z": 1,
+            "strength": 1,
+            "kind": "hit"
+          }
+        },
+        "gladiator": {
+          "x": 0,
+          "z": 43,
+          "health": 215,
+          "action": null
+        },
+        "camera": {
+          "yaw": 0,
+          "pitch": 0.56,
+          "position": [
+            0,
+            6.06196406253542,
+            -1.3169429325126956
+          ]
+        },
+        "animation": {
+          "hero": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": 0.00879111305488156,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": 0.00879111305488156,
+              "z": 0.06374485790729523
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          },
+          "guardian": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": 0.00879111305488156,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": -6.140242979058259e-18,
+              "y": 0.00879111305488156,
+              "z": -0.0501388888888889
+            },
+            "rigRotation": {
+              "x": -0.1002777777777778,
+              "y": 0,
+              "z": 1.0745425213351954e-17
+            }
+          },
+          "gladiator": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": 0,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          }
+        },
+        "scene": {
+          "meshes": 523,
+          "materials": 65,
+          "lights": 9,
+          "effects": 1,
+          "projectiles": 0
+        }
+      }
+    },
+    {
+      "name": "heavy-reaction",
+      "quality": "high",
+      "reducedMotion": false,
+      "snapshot": {
+        "phase": "explore",
+        "player": {
+          "x": 0,
+          "z": 5.8,
+          "yaw": 0,
+          "vx": 0,
+          "vz": 0,
+          "health": 100,
+          "stamina": 58,
+          "mana": 100,
+          "action": {
+            "type": "heavy",
+            "elapsed": 0.5333333333333333,
+            "duration": 0.94,
+            "dealt": true,
+            "sounded": true
+          },
+          "blocking": false,
+          "castAge": 1,
+          "spellCooldown": 0
+        },
+        "guardian": {
+          "x": 0,
+          "z": 8,
+          "health": 100,
+          "action": null,
+          "guard": false,
+          "stagger": 0.6833333333333331,
+          "reaction": {
+            "remaining": 0.31333333333333335,
+            "duration": 0.38,
+            "x": 0,
+            "z": 1,
+            "strength": 1.6,
+            "kind": "heavy"
+          }
+        },
+        "gladiator": {
+          "x": 0,
+          "z": 43,
+          "health": 215,
+          "action": null
+        },
+        "camera": {
+          "yaw": 0,
+          "pitch": 0.56,
+          "position": [
+            0,
+            6.06196406253542,
+            -1.3169429325126956
+          ]
+        },
+        "animation": {
+          "hero": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": -0.0014789280455828329,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": -0.0014789280455828329,
+              "z": 0.09107767045497894
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          },
+          "guardian": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": -0.0014789280455828329,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": -1.0657781832948983e-17,
+              "y": -0.0014789280455828329,
+              "z": -0.08702739304401355
+            },
+            "rigRotation": {
+              "x": -0.1740547860880271,
+              "y": 0,
+              "z": 1.8651118207660723e-17
+            }
+          },
+          "gladiator": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": 0,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          }
+        },
+        "scene": {
+          "meshes": 523,
+          "materials": 65,
+          "lights": 9,
+          "effects": 1,
+          "projectiles": 0
+        }
+      }
+    },
+    {
+      "name": "idle-reduced",
+      "quality": "low",
+      "reducedMotion": true,
+      "snapshot": {
+        "phase": "explore",
+        "player": {
+          "x": 0,
+          "z": -14,
+          "yaw": 0,
+          "vx": 0,
+          "vz": 0,
+          "health": 100,
+          "stamina": 100,
+          "mana": 100,
+          "action": null,
+          "blocking": false,
+          "castAge": 1,
+          "spellCooldown": 0
+        },
+        "guardian": {
+          "x": 0,
+          "z": 8,
+          "health": 145,
+          "action": null,
+          "guard": false,
+          "stagger": 0,
+          "reaction": null
+        },
+        "gladiator": {
+          "x": 0,
+          "z": 43,
+          "health": 215,
+          "action": null
+        },
+        "camera": {
+          "yaw": 0,
+          "pitch": 0.56,
+          "position": [
+            0,
+            6.06196406253542,
+            -21.116942932512696
+          ]
+        },
+        "animation": {
+          "hero": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": 0.0026402344265753545,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": 0.0026402344265753545,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          },
+          "guardian": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": 0.0026402344265753545,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": 0.0026402344265753545,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          },
+          "gladiator": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": 0,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          }
+        },
+        "scene": {
+          "meshes": 463,
+          "materials": 64,
+          "lights": 9,
+          "effects": 0,
+          "projectiles": 0
+        }
+      }
+    },
+    {
+      "name": "walk-reduced",
+      "quality": "low",
+      "reducedMotion": true,
+      "segment": "walk-sprint-turn-brake-guard",
+      "segmentSeconds": 0.3333333333333333,
+      "snapshot": {
+        "phase": "explore",
+        "player": {
+          "x": 0.17005318008274287,
+          "z": -13.038207623336174,
+          "yaw": 0.1748603635339792,
+          "vx": 0.6064364327412124,
+          "vz": 3.429903149461256,
+          "health": 100,
+          "stamina": 100,
+          "mana": 100,
+          "action": null,
+          "blocking": false,
+          "castAge": 1,
+          "spellCooldown": 0
+        },
+        "guardian": {
+          "x": 0,
+          "z": 8,
+          "health": 145,
+          "action": null,
+          "guard": false,
+          "stagger": 0,
+          "reaction": null
+        },
+        "gladiator": {
+          "x": 0,
+          "z": 43,
+          "health": 215,
+          "action": null
+        },
+        "camera": {
+          "yaw": 0.17500000000000002,
+          "pitch": 0.56,
+          "position": [
+            -1.076341653928497,
+            6.06196406253542,
+            -20.34149835074716
+          ]
+        },
+        "animation": {
+          "hero": {
+            "phase": 2.55702111654764,
+            "distance": 0.9767101206933944,
+            "speed": 3.4831021750215805,
+            "moveBlend": 0.9914676636432983,
+            "sprintBlend": 0,
+            "directionX": 0.001751935056587111,
+            "directionZ": 0.9999692945690261,
+            "turnRate": 0.07189683168304173,
+            "turnLean": -0.003438241649248992,
+            "forwardLean": -0.06357159568771217,
+            "bob": -0.0035371448849027924,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": -0.0035371448849027924,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": -0.019071478706313653,
+              "y": -0.0001924651360767803,
+              "z": -0.0010314724947746976
+            }
+          },
+          "guardian": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": 0.002560772628059408,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": 0.002560772628059408,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          },
+          "gladiator": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": 0,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          }
+        },
+        "scene": {
+          "meshes": 463,
+          "materials": 64,
+          "lights": 9,
+          "effects": 0,
+          "projectiles": 0
+        }
+      }
+    },
+    {
+      "name": "sprint-reduced",
+      "quality": "low",
+      "reducedMotion": true,
+      "segment": "walk-sprint-turn-brake-guard",
+      "segmentSeconds": 0.6666666666666666,
+      "snapshot": {
+        "phase": "explore",
+        "player": {
+          "x": 0.49448622311483753,
+          "z": -11.203268533256905,
+          "yaw": 0.17499988858089918,
+          "vx": 1.0425331580423618,
+          "vz": 5.896393371394295,
+          "health": 100,
+          "stamina": 94.66666666666669,
+          "mana": 100,
+          "action": null,
+          "blocking": false,
+          "castAge": 1,
+          "spellCooldown": 0
+        },
+        "guardian": {
+          "x": 0,
+          "z": 8,
+          "health": 145,
+          "action": null,
+          "guard": false,
+          "stagger": 0,
+          "reaction": null
+        },
+        "gladiator": {
+          "x": 0,
+          "z": 43,
+          "health": 215,
+          "action": null
+        },
+        "camera": {
+          "yaw": 0.17500000000000002,
+          "pitch": 0.56,
+          "position": [
+            -0.8356542586558507,
+            6.06196406253542,
+            -18.73537814076437
+          ]
+        },
+        "animation": {
+          "hero": {
+            "phase": 0.7984211158628771,
+            "distance": 2.840109772864662,
+            "speed": 5.987848543161401,
+            "moveBlend": 0.9999588063067393,
+            "sprintBlend": 0.939397960616227,
+            "directionX": 0.000009856816409451887,
+            "directionZ": 0.9999998517361525,
+            "turnRate": 0.0010009226274496675,
+            "turnLean": -0.00016674684056417608,
+            "forwardLean": -0.12645913981151455,
+            "bob": 0.0057297188072814335,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": 0.0057297188072814335,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": -0.03793774194345436,
+              "y": -0.0000027023797685249313,
+              "z": -0.00005002405216925282
+            }
+          },
+          "guardian": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": 0.001770016125943895,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": 0.001770016125943895,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          },
+          "gladiator": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": 0,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          }
+        },
+        "scene": {
+          "meshes": 463,
+          "materials": 64,
+          "lights": 9,
+          "effects": 0,
+          "projectiles": 0
+        }
+      }
+    },
+    {
+      "name": "turn-reduced",
+      "quality": "low",
+      "reducedMotion": true,
+      "segment": "walk-sprint-turn-brake-guard",
+      "segmentSeconds": 0.7333333333333333,
+      "snapshot": {
+        "phase": "explore",
+        "player": {
+          "x": 0.7143378117982562,
+          "z": -11.024647215996605,
+          "yaw": 1.3686481019797159,
+          "vx": 4.233766763356615,
+          "vz": 1.3441371313134085,
+          "health": 100,
+          "stamina": 93.60000000000002,
+          "mana": 100,
+          "action": null,
+          "blocking": false,
+          "castAge": 1,
+          "spellCooldown": 0
+        },
+        "guardian": {
+          "x": 0,
+          "z": 8,
+          "health": 145,
+          "action": null,
+          "guard": false,
+          "stagger": 0,
+          "reaction": null
+        },
+        "gladiator": {
+          "x": 0,
+          "z": 43,
+          "health": 215,
+          "action": null
+        },
+        "camera": {
+          "yaw": 0.17500000000000002,
+          "pitch": 0.56,
+          "position": [
+            -0.7252291575107107,
+            6.06196406253542,
+            -18.41274030187277
+          ]
+        },
+        "animation": {
+          "hero": {
+            "phase": 1.5086685177683374,
+            "distance": 3.13676751245749,
+            "speed": 4.442013691365504,
+            "moveBlend": 0.9999858230344694,
+            "sprintBlend": 0.6357931794936489,
+            "directionX": -0.09408626615387343,
+            "directionZ": 0.9928658023823861,
+            "turnRate": 4.637617662141857,
+            "turnLean": -0.025811507659397007,
+            "forwardLean": -0.12359580718183544,
+            "bob": 0.0006370193283198775,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": 0.0006370193283198775,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": -0.03707874215455063,
+              "y": -0.012521390169949513,
+              "z": -0.0077434522978191015
+            }
+          },
+          "guardian": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": 0.0015428875902351697,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": 0.0015428875902351697,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          },
+          "gladiator": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": 0,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          }
+        },
+        "scene": {
+          "meshes": 463,
+          "materials": 64,
+          "lights": 9,
+          "effects": 0,
+          "projectiles": 0
+        }
+      }
+    },
+    {
+      "name": "brake-reduced",
+      "quality": "low",
+      "reducedMotion": true,
+      "segment": "walk-sprint-turn-brake-guard",
+      "segmentSeconds": 0.9333333333333333,
+      "snapshot": {
+        "phase": "explore",
+        "player": {
+          "x": 1.6258430963867483,
+          "z": -11.076332416333246,
+          "yaw": 1.724054482159269,
+          "vx": 1.9651241245002704,
+          "vz": -0.26214766882672713,
+          "health": 100,
+          "stamina": 91.4666666666667,
+          "mana": 100,
+          "action": null,
+          "blocking": false,
+          "castAge": 1,
+          "spellCooldown": 0
+        },
+        "guardian": {
+          "x": 0,
+          "z": 8,
+          "health": 145,
+          "action": null,
+          "guard": false,
+          "stagger": 0,
+          "reaction": null
+        },
+        "gladiator": {
+          "x": 0,
+          "z": 43,
+          "health": 215,
+          "action": null
+        },
+        "camera": {
+          "yaw": 0.17500000000000002,
+          "pitch": 0.56,
+          "position": [
+            0.04140325308964199,
+            6.06196406253542,
+            -18.106271541290212
+          ]
+        },
+        "animation": {
+          "hero": {
+            "phase": 3.723571438402666,
+            "distance": 4.0537252069038345,
+            "speed": 1.9825322758947104,
+            "moveBlend": 0.9181132302430912,
+            "sprintBlend": 0.4377410820050337,
+            "directionX": -0.02756197965835905,
+            "directionZ": 0.9993647038966192,
+            "turnRate": 0.973518566020722,
+            "turnLean": -0.031473490031441564,
+            "forwardLean": -0.11332321767245367,
+            "bob": 0.0040709587913269635,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": 0.0040709587913269635,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": -0.0339969653017361,
+              "y": -0.0024132607434474485,
+              "z": -0.009442047009432469
+            }
+          },
+          "guardian": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": 0.0007675662519838169,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": 0.0007675662519838169,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          },
+          "gladiator": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": 0,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          }
+        },
+        "scene": {
+          "meshes": 463,
+          "materials": 64,
+          "lights": 9,
+          "effects": 0,
+          "projectiles": 0
+        }
+      }
+    },
+    {
+      "name": "guard-reduced",
+      "quality": "low",
+      "reducedMotion": true,
+      "segment": "walk-sprint-turn-brake-guard",
+      "segmentSeconds": 1.2,
+      "snapshot": {
+        "phase": "explore",
+        "player": {
+          "x": 1.73151083496764,
+          "z": -11.090428498608057,
+          "yaw": 1.724054482159269,
+          "vx": 0.027567678656604068,
+          "vz": -0.0036775298845974154,
+          "health": 100,
+          "stamina": 91.4666666666667,
+          "mana": 100,
+          "action": null,
+          "blocking": true,
+          "castAge": 1,
+          "spellCooldown": 0
+        },
+        "guardian": {
+          "x": 0,
+          "z": 8,
+          "health": 145,
+          "action": null,
+          "guard": false,
+          "stagger": 0,
+          "reaction": null
+        },
+        "gladiator": {
+          "x": 0,
+          "z": 43,
+          "health": 215,
+          "action": null
+        },
+        "camera": {
+          "yaw": 0.17500000000000002,
+          "pitch": 0.56,
+          "position": [
+            0.45378053263062756,
+            6.06196406253542,
+            -18.098228529155403
+          ]
+        },
+        "animation": {
+          "hero": {
+            "phase": 3.994244483417329,
+            "distance": 4.160329008488478,
+            "speed": 0.027811888331534352,
+            "moveBlend": 0.05007957768134448,
+            "sprintBlend": 0.030415761119713152,
+            "directionX": -0.02073671084788153,
+            "directionZ": 0.9997810568604465,
+            "turnRate": 0.030394152239838927,
+            "turnLean": -0.0020415179315819362,
+            "forwardLean": -0.021878158133160297,
+            "bob": -0.00015736316256746824,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": -0.00015736316256746824,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": -0.006563447439948089,
+              "y": -0.000004109741032014784,
+              "z": -0.0006124553794745808
+            }
+          },
+          "guardian": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": -0.000372507841632303,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": -0.000372507841632303,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          },
+          "gladiator": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": 0,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          }
+        },
+        "scene": {
+          "meshes": 463,
+          "materials": 64,
+          "lights": 9,
+          "effects": 0,
+          "projectiles": 0
+        }
+      }
+    },
+    {
+      "name": "dodge-reduced",
+      "quality": "low",
+      "reducedMotion": true,
+      "segment": "sprint-to-directional-dodge-and-landing",
+      "segmentSeconds": 0.4,
+      "snapshot": {
+        "phase": "explore",
+        "player": {
+          "x": 0.7080784959015511,
+          "z": -9.61222900619233,
+          "yaw": 0.18014796200541283,
+          "vx": -0.7894689556042374,
+          "vz": 0.8511358905696957,
+          "health": 100,
+          "stamina": 63.200000000000045,
+          "mana": 100,
+          "action": {
+            "type": "dodge",
+            "elapsed": 0.13333333333333333,
+            "duration": 0.48,
+            "dx": -0.9847265389049334,
+            "dz": 0.17410813759359597
+          },
+          "blocking": false,
+          "castAge": 1,
+          "spellCooldown": 0
+        },
+        "guardian": {
+          "x": 0,
+          "z": 8,
+          "health": 145,
+          "action": null,
+          "guard": false,
+          "stagger": 0,
+          "reaction": null
+        },
+        "gladiator": {
+          "x": 0,
+          "z": 43,
+          "health": 215,
+          "action": null
+        },
+        "camera": {
+          "yaw": 0.17500000000000002,
+          "pitch": 0.56,
+          "position": [
+            0.07989989712043243,
+            6.06196406253542,
+            -16.85398714999976
+          ]
+        },
+        "animation": {
+          "hero": {
+            "phase": 0.8893266500410648,
+            "distance": 5.438105945414282,
+            "speed": 0,
+            "moveBlend": 0.1521270441029935,
+            "sprintBlend": 0.21082288826452109,
+            "directionX": -0.03968820769275687,
+            "directionZ": 0.9934471038835828,
+            "turnRate": -0.19309767463402105,
+            "turnLean": 0.008565926280161746,
+            "forwardLean": -0.022951396270396225,
+            "bob": 0.0006939521134855113,
+            "dodgeEnvelope": 0.8673352262998151,
+            "rigPosition": {
+              "x": 0,
+              "y": -0.09037624664799505,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": -0.17004382166615856,
+              "y": 0.000010522110428408827,
+              "z": 0.00034091900144703744
+            }
+          },
+          "guardian": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": -0.0019463812388635542,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": -0.0019463812388635542,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          },
+          "gladiator": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": 0,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          }
+        },
+        "scene": {
+          "meshes": 463,
+          "materials": 64,
+          "lights": 9,
+          "effects": 0,
+          "projectiles": 0
+        }
+      }
+    },
+    {
+      "name": "landing-reduced",
+      "quality": "low",
+      "reducedMotion": true,
+      "segment": "sprint-to-directional-dodge-and-landing",
+      "segmentSeconds": 0.6666666666666666,
+      "snapshot": {
+        "phase": "explore",
+        "player": {
+          "x": -1.7865620693242805,
+          "z": -9.171155057621881,
+          "yaw": 0.18014796200541283,
+          "vx": -0.03871673052645108,
+          "vz": 0.016827420873929164,
+          "health": 100,
+          "stamina": 63.200000000000045,
+          "mana": 100,
+          "action": {
+            "type": "dodge",
+            "elapsed": 0.39999999999999997,
+            "duration": 0.48,
+            "dx": -0.9847265389049334,
+            "dz": 0.17410813759359597
+          },
+          "blocking": false,
+          "castAge": 1,
+          "spellCooldown": 0
+        },
+        "guardian": {
+          "x": 0,
+          "z": 8,
+          "health": 145,
+          "action": null,
+          "guard": false,
+          "stagger": 0,
+          "reaction": null
+        },
+        "gladiator": {
+          "x": 0,
+          "z": 43,
+          "health": 215,
+          "action": null
+        },
+        "camera": {
+          "yaw": 0.17500000000000002,
+          "pitch": 0.56,
+          "position": [
+            -2.1832671408440967,
+            6.06196406253542,
+            -16.3370633612169
+          ]
+        },
+        "animation": {
+          "hero": {
+            "phase": 0.8893266500410648,
+            "distance": 5.438105945414282,
+            "speed": 0,
+            "moveBlend": 0.0036378129198745518,
+            "sprintBlend": 0.014648701873378005,
+            "directionX": -0.03968820769275687,
+            "directionZ": 0.9934471038835828,
+            "turnRate": -0.00602868843475184,
+            "turnLean": 0.00045587298028574544,
+            "forwardLean": -0.0012214582611732568,
+            "bob": 0,
+            "dodgeEnvelope": 0.7769633058984915,
+            "rigPosition": {
+              "x": 0,
+              "y": -0.0815811471193416,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": -0.15150784465020586,
+              "y": 0,
+              "z": 0
+            }
+          },
+          "guardian": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": -0.002546286771487186,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": -0.002546286771487186,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          },
+          "gladiator": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": 0,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          }
+        },
+        "scene": {
+          "meshes": 463,
+          "materials": 64,
+          "lights": 9,
+          "effects": 0,
+          "projectiles": 0
+        }
+      }
+    },
+    {
+      "name": "dodge-recovered-reduced",
+      "quality": "low",
+      "reducedMotion": true,
+      "segment": "sprint-to-directional-dodge-and-landing",
+      "segmentSeconds": 1.0666666666666667,
+      "snapshot": {
+        "phase": "explore",
+        "player": {
+          "x": -2.5666903173833706,
+          "z": -9.033079067712777,
+          "yaw": 0.18014796200541283,
+          "vx": -0.00006433006519974006,
+          "vz": 0.000027959723541835903,
+          "health": 100,
+          "stamina": 63.61666666666671,
+          "mana": 100,
+          "action": null,
+          "blocking": false,
+          "castAge": 1,
+          "spellCooldown": 0
+        },
+        "guardian": {
+          "x": 0,
+          "z": 8,
+          "health": 145,
+          "action": null,
+          "guard": false,
+          "stagger": 0,
+          "reaction": null
+        },
+        "gladiator": {
+          "x": 0,
+          "z": 43,
+          "health": 215,
+          "action": null
+        },
+        "camera": {
+          "yaw": 0.17500000000000002,
+          "pitch": 0.56,
+          "position": [
+            -3.7698445649930776,
+            6.06196406253542,
+            -16.04785265495966
+          ]
+        },
+        "animation": {
+          "hero": {
+            "phase": 0.8893266500410648,
+            "distance": 5.438105945414282,
+            "speed": 0,
+            "moveBlend": 0.000013452136403756931,
+            "sprintBlend": 0.0002683003337015159,
+            "directionX": -0.03968820769275687,
+            "directionZ": 0.9934471038835828,
+            "turnRate": -0.00003325764812300398,
+            "turnLean": 0.000005596907531592922,
+            "forwardLean": -0.000014996258249835038,
+            "bob": -0.0025785678376977167,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": -0.0025785678376977167,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": -0.000004498877474950511,
+              "y": 1.2079433313507604e-12,
+              "z": 0.0000016790722594778767
+            }
+          },
+          "guardian": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": -0.002578653867067682,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": -0.002578653867067682,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          },
+          "gladiator": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": 0,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          }
+        },
+        "scene": {
+          "meshes": 463,
+          "materials": 64,
+          "lights": 9,
+          "effects": 0,
+          "projectiles": 0
+        }
+      }
+    },
+    {
+      "name": "cast-reduced",
+      "quality": "low",
+      "reducedMotion": true,
+      "segment": "cast-and-recover",
+      "segmentSeconds": 0.06666666666666667,
+      "snapshot": {
+        "phase": "explore",
+        "player": {
+          "x": -2.566693682718537,
+          "z": -9.033077605039907,
+          "yaw": 0.14956348618125256,
+          "vx": -0.0000026222352396134023,
+          "vz": 0.0000011396999541910427,
+          "health": 100,
+          "stamina": 68.61666666666676,
+          "mana": 72.33333333333331,
+          "action": null,
+          "blocking": false,
+          "castAge": 0.06666666666666667,
+          "spellCooldown": 3.5333333333333337
+        },
+        "guardian": {
+          "x": 0,
+          "z": 8,
+          "health": 145,
+          "action": null,
+          "guard": false,
+          "stagger": 0,
+          "reaction": null
+        },
+        "gladiator": {
+          "x": 0,
+          "z": 43,
+          "health": 215,
+          "action": null
+        },
+        "camera": {
+          "yaw": 0.17500000000000002,
+          "pitch": 0.56,
+          "position": [
+            -3.800943424722327,
+            6.06196406253542,
+            -16.04220441677539
+          ]
+        },
+        "animation": {
+          "hero": {
+            "phase": 0.8893266500410648,
+            "distance": 5.438105945414282,
+            "speed": 0,
+            "moveBlend": 8.180252571554333e-7,
+            "sprintBlend": 0.00003631050165397239,
+            "directionX": -0.03968820769275687,
+            "directionZ": 0.9934471038835828,
+            "turnRate": -0.000002470164529088732,
+            "turnLean": 6.201550315624302e-7,
+            "forwardLean": -0.0000016616327776989291,
+            "bob": -0.0021959844391724343,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": -0.0021959844391724343,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": -4.984898333096787e-7,
+              "y": 5.455773830134906e-15,
+              "z": 1.8604650946872907e-7
+            }
+          },
+          "guardian": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": -0.0021959893572324825,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": -0.0021959893572324825,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          },
+          "gladiator": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": 0,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          }
+        },
+        "scene": {
+          "meshes": 464,
+          "materials": 65,
+          "lights": 9,
+          "effects": 0,
+          "projectiles": 1
+        }
+      }
+    },
+    {
+      "name": "cast-recovered-reduced",
+      "quality": "low",
+      "reducedMotion": true,
+      "segment": "cast-and-recover",
+      "segmentSeconds": 0.4,
+      "snapshot": {
+        "phase": "explore",
+        "player": {
+          "x": -2.5666938250358946,
+          "z": -9.033077543184628,
+          "yaw": 0.14956348618125256,
+          "vx": -1.2660020608916106e-8,
+          "vz": 5.502414386806335e-9,
+          "health": 100,
+          "stamina": 76.95000000000019,
+          "mana": 73.99999999999989,
+          "action": null,
+          "blocking": false,
+          "castAge": 0.39999999999999997,
+          "spellCooldown": 3.2000000000000015
+        },
+        "guardian": {
+          "x": 0,
+          "z": 8,
+          "health": 145,
+          "action": null,
+          "guard": false,
+          "stagger": 0,
+          "reaction": null
+        },
+        "gladiator": {
+          "x": 0,
+          "z": 43,
+          "health": 215,
+          "action": null
+        },
+        "camera": {
+          "yaw": 0.17500000000000002,
+          "pitch": 0.56,
+          "position": [
+            -3.805637834761148,
+            6.06196406253542,
+            -16.041351673440566
+          ]
+        },
+        "animation": {
+          "hero": {
+            "phase": 0.8893266500410648,
+            "distance": 5.438105945414282,
+            "speed": 0,
+            "moveBlend": 7.692351674364066e-9,
+            "sprintBlend": 0.0000012953405944392103,
+            "directionX": -0.03968820769275687,
+            "directionZ": 0.9934471038835828,
+            "turnRate": -3.2417769215374044e-8,
+            "turnLean": 1.5852113432465722e-8,
+            "forwardLean": -4.247388142417236e-8,
+            "bob": -0.0010923637958643912,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": -0.0010923637958643912,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": -1.2742164427251707e-8,
+              "y": 6.732959795181821e-19,
+              "z": 4.755634029739717e-9
+            }
+          },
+          "guardian": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": -0.001092363833621687,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": -0.001092363833621687,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          },
+          "gladiator": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": 0,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          }
+        },
+        "scene": {
+          "meshes": 464,
+          "materials": 65,
+          "lights": 9,
+          "effects": 0,
+          "projectiles": 1
+        }
+      }
+    },
+    {
+      "name": "enemy-windup-reduced",
+      "quality": "low",
+      "reducedMotion": true,
+      "segment": "warden-windup-contact-recovery",
+      "segmentSeconds": 0.2,
+      "snapshot": {
+        "phase": "explore",
+        "player": {
+          "x": 0,
+          "z": 5.8,
+          "yaw": 0,
+          "vx": 0,
+          "vz": 0,
+          "health": 100,
+          "stamina": 100,
+          "mana": 100,
+          "action": null,
+          "blocking": false,
+          "castAge": 1,
+          "spellCooldown": 0
+        },
+        "guardian": {
+          "x": 0,
+          "z": 8,
+          "health": 145,
+          "action": {
+            "type": "strike",
+            "elapsed": 0.19999999999999998,
+            "windup": 0.9,
+            "duration": 1.55,
+            "dealt": false
+          },
+          "guard": false,
+          "stagger": 0,
+          "reaction": null
+        },
+        "gladiator": {
+          "x": 0,
+          "z": 43,
+          "health": 215,
+          "action": null
+        },
+        "camera": {
+          "yaw": 0,
+          "pitch": 0.56,
+          "position": [
+            0,
+            6.06196406253542,
+            -1.3169429325126956
+          ]
+        },
+        "animation": {
+          "hero": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": 0.0006284817164592799,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": 0.0006284817164592799,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          },
+          "guardian": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": 0.0006284817164592799,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": 0.0006284817164592799,
+              "z": -0.016275504603981972
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          },
+          "gladiator": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": 0,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          }
+        },
+        "scene": {
+          "meshes": 463,
+          "materials": 64,
+          "lights": 9,
+          "effects": 0,
+          "projectiles": 0
+        }
+      }
+    },
+    {
+      "name": "enemy-commit-reduced",
+      "quality": "low",
+      "reducedMotion": true,
+      "segment": "warden-windup-contact-recovery",
+      "segmentSeconds": 0.6666666666666666,
+      "snapshot": {
+        "phase": "explore",
+        "player": {
+          "x": 0,
+          "z": 5.8,
+          "yaw": 0,
+          "vx": 0,
+          "vz": 0,
+          "health": 100,
+          "stamina": 100,
+          "mana": 100,
+          "action": null,
+          "blocking": false,
+          "castAge": 1,
+          "spellCooldown": 0
+        },
+        "guardian": {
+          "x": 0,
+          "z": 8,
+          "health": 145,
+          "action": {
+            "type": "strike",
+            "elapsed": 0.6666666666666671,
+            "windup": 0.9,
+            "duration": 1.55,
+            "dealt": false
+          },
+          "guard": false,
+          "stagger": 0,
+          "reaction": null
+        },
+        "gladiator": {
+          "x": 0,
+          "z": 43,
+          "health": 215,
+          "action": null
+        },
+        "camera": {
+          "yaw": 0,
+          "pitch": 0.56,
+          "position": [
+            0,
+            6.06196406253542,
+            -1.3169429325126956
+          ]
+        },
+        "animation": {
+          "hero": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": -0.00132217832309789,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": -0.00132217832309789,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          },
+          "guardian": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": -0.00132217832309789,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": -0.00132217832309789,
+              "z": -0.04500000178813934
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          },
+          "gladiator": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": 0,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          }
+        },
+        "scene": {
+          "meshes": 463,
+          "materials": 64,
+          "lights": 9,
+          "effects": 0,
+          "projectiles": 0
+        }
+      }
+    },
+    {
+      "name": "enemy-contact-reduced",
+      "quality": "low",
+      "reducedMotion": true,
+      "segment": "warden-windup-contact-recovery",
+      "segmentSeconds": 1,
+      "snapshot": {
+        "phase": "explore",
+        "player": {
+          "x": 0,
+          "z": 5.8,
+          "yaw": 0,
+          "vx": 0,
+          "vz": 0,
+          "health": 77,
+          "stamina": 100,
+          "mana": 100,
+          "action": null,
+          "blocking": false,
+          "castAge": 1,
+          "spellCooldown": 0
+        },
+        "guardian": {
+          "x": 0,
+          "z": 8,
+          "health": 145,
+          "action": {
+            "type": "strike",
+            "elapsed": 1.0000000000000013,
+            "windup": 0.9,
+            "duration": 1.55,
+            "dealt": true
+          },
+          "guard": false,
+          "stagger": 0,
+          "reaction": null
+        },
+        "gladiator": {
+          "x": 0,
+          "z": 43,
+          "health": 215,
+          "action": null
+        },
+        "camera": {
+          "yaw": 0,
+          "pitch": 0.56,
+          "position": [
+            0,
+            6.06196406253542,
+            -1.3169429325126956
+          ]
+        },
+        "animation": {
+          "hero": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": -0.0023353965438021786,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": -0.0023353965438021786,
+              "z": -0.009918367346938779
+            },
+            "rigRotation": {
+              "x": -0.019836734693877558,
+              "y": 0,
+              "z": 0
+            }
+          },
+          "guardian": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": -0.0023353965438021786,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": -0.0023353965438021786,
+              "z": 0.09241625666618347
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          },
+          "gladiator": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": 0,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          }
+        },
+        "scene": {
+          "meshes": 464,
+          "materials": 65,
+          "lights": 9,
+          "effects": 1,
+          "projectiles": 0
+        }
+      }
+    },
+    {
+      "name": "enemy-recovery-reduced",
+      "quality": "low",
+      "reducedMotion": true,
+      "segment": "warden-windup-contact-recovery",
+      "segmentSeconds": 1.2,
+      "snapshot": {
+        "phase": "explore",
+        "player": {
+          "x": 0,
+          "z": 5.8,
+          "yaw": 0,
+          "vx": 0,
+          "vz": 0,
+          "health": 77,
+          "stamina": 100,
+          "mana": 100,
+          "action": null,
+          "blocking": false,
+          "castAge": 1,
+          "spellCooldown": 0
+        },
+        "guardian": {
+          "x": 0,
+          "z": 8,
+          "health": 145,
+          "action": {
+            "type": "strike",
+            "elapsed": 1.2000000000000006,
+            "windup": 0.9,
+            "duration": 1.55,
+            "dealt": true
+          },
+          "guard": false,
+          "stagger": 0,
+          "reaction": null
+        },
+        "gladiator": {
+          "x": 0,
+          "z": 43,
+          "health": 215,
+          "action": null
+        },
+        "camera": {
+          "yaw": 0,
+          "pitch": 0.56,
+          "position": [
+            0,
+            6.06196406253542,
+            -1.3169429325126956
+          ]
+        },
+        "animation": {
+          "hero": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": -0.0026430669623896358,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": -0.0026430669623896358,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          },
+          "guardian": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": -0.0026430669623896358,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": -0.0026430669623896358,
+              "z": 0.0983588844537735
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          },
+          "gladiator": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": 0,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          }
+        },
+        "scene": {
+          "meshes": 464,
+          "materials": 65,
+          "lights": 9,
+          "effects": 1,
+          "projectiles": 0
+        }
+      }
+    },
+    {
+      "name": "light-anticipation-reduced",
+      "quality": "low",
+      "reducedMotion": true,
+      "snapshot": {
+        "phase": "explore",
+        "player": {
+          "x": 0,
+          "z": 5.8,
+          "yaw": 0,
+          "vx": 0,
+          "vz": 0,
+          "health": 100,
+          "stamina": 86,
+          "mana": 100,
+          "action": {
+            "type": "light",
+            "elapsed": 0.11666666666666665,
+            "duration": 0.56,
+            "dealt": false
+          },
+          "blocking": false,
+          "castAge": 1,
+          "spellCooldown": 0
+        },
+        "guardian": {
+          "x": 0,
+          "z": 8,
+          "health": 145,
+          "action": null,
+          "guard": false,
+          "stagger": 0,
+          "reaction": null
+        },
+        "gladiator": {
+          "x": 0,
+          "z": 43,
+          "health": 215,
+          "action": null
+        },
+        "camera": {
+          "yaw": 0,
+          "pitch": 0.56,
+          "position": [
+            0,
+            6.06196406253542,
+            -1.3169429325126956
+          ]
+        },
+        "animation": {
+          "hero": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": 0.002699214013465039,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": 0.002699214013465039,
+              "z": -0.031106987968087196
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          },
+          "guardian": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": 0.002699214013465039,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": 0.002699214013465039,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          },
+          "gladiator": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": 0,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          }
+        },
+        "scene": {
+          "meshes": 463,
+          "materials": 64,
+          "lights": 9,
+          "effects": 0,
+          "projectiles": 0
+        }
+      }
+    },
+    {
+      "name": "light-contact-reduced",
+      "quality": "low",
+      "reducedMotion": true,
+      "snapshot": {
+        "phase": "explore",
+        "player": {
+          "x": 0,
+          "z": 5.8,
+          "yaw": 0,
+          "vx": 0,
+          "vz": 0,
+          "health": 100,
+          "stamina": 86,
+          "mana": 100,
+          "action": {
+            "type": "light",
+            "elapsed": 0.26666666666666666,
+            "duration": 0.56,
+            "dealt": true,
+            "sounded": true
+          },
+          "blocking": false,
+          "castAge": 1,
+          "spellCooldown": 0
+        },
+        "guardian": {
+          "x": 0,
+          "z": 8,
+          "health": 128,
+          "action": null,
+          "guard": false,
+          "stagger": 0.27,
+          "reaction": {
+            "remaining": 0.19,
+            "duration": 0.24,
+            "x": 0,
+            "z": 1,
+            "strength": 1,
+            "kind": "hit"
+          }
+        },
+        "gladiator": {
+          "x": 0,
+          "z": 43,
+          "health": 215,
+          "action": null
+        },
+        "camera": {
+          "yaw": 0,
+          "pitch": 0.56,
+          "position": [
+            0,
+            6.06196406253542,
+            -1.3169429325126956
+          ]
+        },
+        "animation": {
+          "hero": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": 0.002637333916464468,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": 0.002637333916464468,
+              "z": 0.06374485790729523
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          },
+          "guardian": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": 0.002637333916464468,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": -1.8420728937174775e-18,
+              "y": 0.002637333916464468,
+              "z": -0.015041666666666672
+            },
+            "rigRotation": {
+              "x": -0.030083333333333344,
+              "y": 0,
+              "z": 3.223627564005586e-18
+            }
+          },
+          "gladiator": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": 0,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          }
+        },
+        "scene": {
+          "meshes": 464,
+          "materials": 65,
+          "lights": 9,
+          "effects": 1,
+          "projectiles": 0
+        }
+      }
+    },
+    {
+      "name": "heavy-reaction-reduced",
+      "quality": "low",
+      "reducedMotion": true,
+      "snapshot": {
+        "phase": "explore",
+        "player": {
+          "x": 0,
+          "z": 5.8,
+          "yaw": 0,
+          "vx": 0,
+          "vz": 0,
+          "health": 100,
+          "stamina": 58,
+          "mana": 100,
+          "action": {
+            "type": "heavy",
+            "elapsed": 0.5333333333333333,
+            "duration": 0.94,
+            "dealt": true,
+            "sounded": true
+          },
+          "blocking": false,
+          "castAge": 1,
+          "spellCooldown": 0
+        },
+        "guardian": {
+          "x": 0,
+          "z": 8,
+          "health": 100,
+          "action": null,
+          "guard": false,
+          "stagger": 0.6833333333333331,
+          "reaction": {
+            "remaining": 0.31333333333333335,
+            "duration": 0.38,
+            "x": 0,
+            "z": 1,
+            "strength": 1.6,
+            "kind": "heavy"
+          }
+        },
+        "gladiator": {
+          "x": 0,
+          "z": 43,
+          "health": 215,
+          "action": null
+        },
+        "camera": {
+          "yaw": 0,
+          "pitch": 0.56,
+          "position": [
+            0,
+            6.06196406253542,
+            -1.3169429325126956
+          ]
+        },
+        "animation": {
+          "hero": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": -0.00044367841367484983,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": -0.00044367841367484983,
+              "z": 0.09107767045497894
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          },
+          "guardian": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": -0.00044367841367484983,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": -3.197334549884695e-18,
+              "y": -0.00044367841367484983,
+              "z": -0.026108217913204067
+            },
+            "rigRotation": {
+              "x": -0.052216435826408135,
+              "y": 0,
+              "z": 5.595335462298217e-18
+            }
+          },
+          "gladiator": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": 0,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          }
+        },
+        "scene": {
+          "meshes": 464,
+          "materials": 65,
+          "lights": 9,
+          "effects": 1,
+          "projectiles": 0
+        }
+      }
+    },
+    {
+      "name": "champion-strike",
+      "quality": "high",
+      "reducedMotion": false,
+      "windupSeconds": 0.72,
+      "elapsedSeconds": 0.5166666666666666,
+      "snapshot": {
+        "phase": "arena",
+        "player": {
+          "x": 0,
+          "z": 40.7,
+          "yaw": 7.24618002263675e-17,
+          "vx": 0,
+          "vz": 0,
+          "health": 100,
+          "stamina": 100,
+          "mana": 100,
+          "action": null,
+          "blocking": true,
+          "castAge": 1,
+          "spellCooldown": 0
+        },
+        "guardian": {
+          "x": 0,
+          "z": 8,
+          "health": 0,
+          "action": null,
+          "guard": false,
+          "stagger": 0.75,
+          "reaction": null
+        },
+        "gladiator": {
+          "x": 1.047073013270987e-16,
+          "z": 42.14499999999997,
+          "health": 215,
+          "action": {
+            "type": "strike",
+            "elapsed": 0.5166666666666666,
+            "windup": 0.72,
+            "duration": 1.37,
+            "dealt": false
+          }
+        },
+        "camera": {
+          "yaw": 0,
+          "pitch": 0.56,
+          "position": [
+            0,
+            6.06196406253542,
+            33.58305706748731
+          ]
+        },
+        "animation": {
+          "hero": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 1.7406047447885144e-25,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": 0.008050287626994517,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": 0.008050287626994517,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          },
+          "guardian": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": -0.006598024975855638,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": -0.16999996517640176,
+              "y": -0.2065979840069165,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": -1.4799996968298503
+            }
+          },
+          "gladiator": {
+            "phase": 1.946421535376358,
+            "distance": 0.8550000000000324,
+            "speed": 0,
+            "moveBlend": 7.502489128512147e-12,
+            "sprintBlend": 0,
+            "directionX": 4.608973475697626e-30,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": -5.0636696134220755e-40,
+            "forwardLean": -1.1345097836042689e-10,
+            "bob": 0.00805028762693412,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": 0.00805028762693412,
+              "z": -0.054999999701976776
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          }
+        },
+        "scene": {
+          "meshes": 522,
+          "materials": 64,
+          "lights": 9,
+          "effects": 0,
+          "projectiles": 0
+        }
+      }
+    },
+    {
+      "name": "champion-shockwave",
+      "quality": "high",
+      "reducedMotion": false,
+      "windupSeconds": 1.1,
+      "elapsedSeconds": 0.7833333333333341,
+      "snapshot": {
+        "phase": "arena",
+        "player": {
+          "x": 0,
+          "z": 40.7,
+          "yaw": 7.246180022636764e-17,
+          "vx": 0,
+          "vz": 0,
+          "health": 70,
+          "stamina": 100,
+          "mana": 100,
+          "action": null,
+          "blocking": true,
+          "castAge": 1,
+          "spellCooldown": 0
+        },
+        "guardian": {
+          "x": 0,
+          "z": 8,
+          "health": 0,
+          "action": null,
+          "guard": false,
+          "stagger": 0.75,
+          "reaction": null
+        },
+        "gladiator": {
+          "x": 1.047073013270987e-16,
+          "z": 42.14499999999997,
+          "health": 215,
+          "action": {
+            "type": "shockwave",
+            "elapsed": 0.7833333333333341,
+            "windup": 1.1,
+            "duration": 1.75,
+            "dealt": false
+          }
+        },
+        "camera": {
+          "yaw": 0,
+          "pitch": 0.56,
+          "position": [
+            0,
+            6.06196406253542,
+            33.58305706748731
+          ]
+        },
+        "animation": {
+          "hero": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 5.0735975864096755e-52,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": 0.006440629391003691,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": 0.006440629391003691,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          },
+          "guardian": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": -0.006598024975855638,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": -0.16999996517640176,
+              "y": -0.2065979840069165,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": -1.4799996968298503
+            }
+          },
+          "gladiator": {
+            "phase": 1.946421535376358,
+            "distance": 0.8550000000000324,
+            "speed": 0,
+            "moveBlend": 1.9889710667129125e-40,
+            "sprintBlend": 0,
+            "directionX": 4.608973475697626e-30,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": -1.7841881366612555e-62,
+            "forwardLean": -3.9974545169129076e-33,
+            "bob": 0.006440629391003691,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": 0.006440629391003691,
+              "z": -0.07000000029802322
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          }
+        },
+        "scene": {
+          "meshes": 522,
+          "materials": 64,
+          "lights": 9,
+          "effects": 0,
+          "projectiles": 0
+        }
+      }
+    },
+    {
+      "name": "champion-strike-reduced",
+      "quality": "low",
+      "reducedMotion": true,
+      "windupSeconds": 0.72,
+      "elapsedSeconds": 0.5166666666666666,
+      "snapshot": {
+        "phase": "arena",
+        "player": {
+          "x": 0,
+          "z": 40.7,
+          "yaw": 7.24618002263675e-17,
+          "vx": 0,
+          "vz": 0,
+          "health": 100,
+          "stamina": 100,
+          "mana": 100,
+          "action": null,
+          "blocking": true,
+          "castAge": 1,
+          "spellCooldown": 0
+        },
+        "guardian": {
+          "x": 0,
+          "z": 8,
+          "health": 0,
+          "action": null,
+          "guard": false,
+          "stagger": 0.75,
+          "reaction": null
+        },
+        "gladiator": {
+          "x": 1.047073013270987e-16,
+          "z": 42.14499999999997,
+          "health": 215,
+          "action": {
+            "type": "strike",
+            "elapsed": 0.5166666666666666,
+            "windup": 0.72,
+            "duration": 1.37,
+            "dealt": false
+          }
+        },
+        "camera": {
+          "yaw": 0,
+          "pitch": 0.56,
+          "position": [
+            0,
+            6.06196406253542,
+            33.58305706748731
+          ]
+        },
+        "animation": {
+          "hero": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 1.7406047447885144e-25,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": 0.002415086288098355,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": 0.002415086288098355,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          },
+          "guardian": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": -0.006598024975855638,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": -0.16999996517640176,
+              "y": -0.2065979840069165,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": -1.4799996968298503
+            }
+          },
+          "gladiator": {
+            "phase": 1.946421535376358,
+            "distance": 0.8550000000000324,
+            "speed": 0,
+            "moveBlend": 7.502489128512147e-12,
+            "sprintBlend": 0,
+            "directionX": 4.608973475697626e-30,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": -5.0636696134220755e-40,
+            "forwardLean": -1.1345097836042689e-10,
+            "bob": 0.002415086288080236,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": 0.002415086288080236,
+              "z": -0.054999999701976776
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          }
+        },
+        "scene": {
+          "meshes": 463,
+          "materials": 64,
+          "lights": 9,
+          "effects": 0,
+          "projectiles": 0
+        }
+      }
+    },
+    {
+      "name": "champion-shockwave-reduced",
+      "quality": "low",
+      "reducedMotion": true,
+      "windupSeconds": 1.1,
+      "elapsedSeconds": 0.7833333333333341,
+      "snapshot": {
+        "phase": "arena",
+        "player": {
+          "x": 0,
+          "z": 40.7,
+          "yaw": 7.246180022636764e-17,
+          "vx": 0,
+          "vz": 0,
+          "health": 70,
+          "stamina": 100,
+          "mana": 100,
+          "action": null,
+          "blocking": true,
+          "castAge": 1,
+          "spellCooldown": 0
+        },
+        "guardian": {
+          "x": 0,
+          "z": 8,
+          "health": 0,
+          "action": null,
+          "guard": false,
+          "stagger": 0.75,
+          "reaction": null
+        },
+        "gladiator": {
+          "x": 1.047073013270987e-16,
+          "z": 42.14499999999997,
+          "health": 215,
+          "action": {
+            "type": "shockwave",
+            "elapsed": 0.7833333333333341,
+            "windup": 1.1,
+            "duration": 1.75,
+            "dealt": false
+          }
+        },
+        "camera": {
+          "yaw": 0,
+          "pitch": 0.56,
+          "position": [
+            0,
+            6.06196406253542,
+            33.58305706748731
+          ]
+        },
+        "animation": {
+          "hero": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 5.0735975864096755e-52,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": 0.0019321888173011073,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": 0.0019321888173011073,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          },
+          "guardian": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": -0.006598024975855638,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": -0.16999996517640176,
+              "y": -0.2065979840069165,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": -1.4799996968298503
+            }
+          },
+          "gladiator": {
+            "phase": 1.946421535376358,
+            "distance": 0.8550000000000324,
+            "speed": 0,
+            "moveBlend": 1.9889710667129125e-40,
+            "sprintBlend": 0,
+            "directionX": 4.608973475697626e-30,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": -1.7841881366612555e-62,
+            "forwardLean": -3.9974545169129076e-33,
+            "bob": 0.0019321888173011073,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": 0.0019321888173011073,
+              "z": -0.07000000029802322
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          }
+        },
+        "scene": {
+          "meshes": 463,
+          "materials": 64,
+          "lights": 9,
+          "effects": 0,
+          "projectiles": 0
+        }
+      }
+    }
+  ],
+  "movie": {
+    "fps": 15,
+    "frames": [
+      {
+        "frame": 0,
+        "file": "frames/frame-0000.png",
+        "segment": "walk-sprint-turn-brake-guard",
+        "segmentSeconds": 0.06666666666666667,
+        "snapshot": {
+          "phase": "explore",
+          "player": [
+            0.018829213034339883,
+            -13.893505116774671,
+            0.1329825,
+            null,
+            0,
+            100,
+            100
+          ],
+          "guardian": [
+            0,
+            8,
+            145,
+            null,
+            0
+          ]
+        }
+      },
+      {
+        "frame": 1,
+        "file": "frames/frame-0001.png",
+        "segment": "walk-sprint-turn-brake-guard",
+        "segmentSeconds": 0.13333333333333333,
+        "snapshot": {
+          "phase": "explore",
+          "player": [
+            0.05195326263769452,
+            -13.706161026077636,
+            0.16491159825,
+            null,
+            0,
+            100,
+            100
+          ],
+          "guardian": [
+            0,
+            8,
+            145,
+            null,
+            0
+          ]
+        }
+      },
+      {
+        "frame": 2,
+        "file": "frames/frame-0002.png",
+        "segment": "walk-sprint-turn-brake-guard",
+        "segmentSeconds": 0.2,
+        "snapshot": {
+          "phase": "explore",
+          "player": [
+            0.08999693437889776,
+            -13.490992374464144,
+            0.172577774739825,
+            null,
+            0,
+            100,
+            100
+          ],
+          "guardian": [
+            0,
+            8,
+            145,
+            null,
+            0
+          ]
+        }
+      },
+      {
+        "frame": 3,
+        "file": "frames/frame-0003.png",
+        "segment": "walk-sprint-turn-brake-guard",
+        "segmentSeconds": 0.26666666666666666,
+        "snapshot": {
+          "phase": "explore",
+          "player": [
+            0.12973371270878853,
+            -13.266247794843384,
+            0.174418423715032,
+            null,
+            0,
+            100,
+            100
+          ],
+          "guardian": [
+            0,
+            8,
+            145,
+            null,
+            0
+          ]
+        }
+      },
+      {
+        "frame": 4,
+        "file": "frames/frame-0004.png",
+        "segment": "walk-sprint-turn-brake-guard",
+        "segmentSeconds": 0.3333333333333333,
+        "snapshot": {
+          "phase": "explore",
+          "player": [
+            0.17005318008274287,
+            -13.038207623336174,
+            0.1748603635339792,
+            null,
+            0,
+            100,
+            100
+          ],
+          "guardian": [
+            0,
+            8,
+            145,
+            null,
+            0
+          ]
+        }
+      },
+      {
+        "frame": 5,
+        "file": "frames/frame-0005.png",
+        "segment": "walk-sprint-turn-brake-guard",
+        "segmentSeconds": 0.4,
+        "snapshot": {
+          "phase": "explore",
+          "player": [
+            0.224022619979448,
+            -12.732965487668904,
+            0.17496647328450843,
+            null,
+            0,
+            100,
+            98.93333333333334
+          ],
+          "guardian": [
+            0,
+            8,
+            145,
+            null,
+            0
+          ]
+        }
+      },
+      {
+        "frame": 6,
+        "file": "frames/frame-0006.png",
+        "segment": "walk-sprint-turn-brake-guard",
+        "segmentSeconds": 0.4666666666666667,
+        "snapshot": {
+          "phase": "explore",
+          "player": [
+            0.2882716721815746,
+            -12.369583582162557,
+            0.17499195023561048,
+            null,
+            0,
+            100,
+            97.86666666666667
+          ],
+          "guardian": [
+            0,
+            8,
+            145,
+            null,
+            0
+          ]
+        }
+      },
+      {
+        "frame": 7,
+        "file": "frames/frame-0007.png",
+        "segment": "walk-sprint-turn-brake-guard",
+        "segmentSeconds": 0.5333333333333333,
+        "snapshot": {
+          "phase": "explore",
+          "player": [
+            0.35605849188612027,
+            -11.986192654698604,
+            0.17499806725157008,
+            null,
+            0,
+            100,
+            96.80000000000001
+          ],
+          "guardian": [
+            0,
+            8,
+            145,
+            null,
+            0
+          ]
+        }
+      },
+      {
+        "frame": 8,
+        "file": "frames/frame-0008.png",
+        "segment": "walk-sprint-turn-brake-guard",
+        "segmentSeconds": 0.6,
+        "snapshot": {
+          "phase": "explore",
+          "player": [
+            0.42506284767367286,
+            -11.595915546556473,
+            0.174999535947102,
+            null,
+            0,
+            100,
+            95.73333333333335
+          ],
+          "guardian": [
+            0,
+            8,
+            145,
+            null,
+            0
+          ]
+        }
+      },
+      {
+        "frame": 9,
+        "file": "frames/frame-0009.png",
+        "segment": "walk-sprint-turn-brake-guard",
+        "segmentSeconds": 0.6666666666666666,
+        "snapshot": {
+          "phase": "explore",
+          "player": [
+            0.49448622311483753,
+            -11.203268533256905,
+            0.17499988858089918,
+            null,
+            0,
+            100,
+            94.66666666666669
+          ],
+          "guardian": [
+            0,
+            8,
+            145,
+            null,
+            0
+          ]
+        }
+      },
+      {
+        "frame": 10,
+        "file": "frames/frame-0010.png",
+        "segment": "walk-sprint-turn-brake-guard",
+        "segmentSeconds": 0.7333333333333333,
+        "snapshot": {
+          "phase": "explore",
+          "player": [
+            0.7143378117982562,
+            -11.024647215996605,
+            1.3686481019797159,
+            null,
+            0,
+            100,
+            93.60000000000002
+          ],
+          "guardian": [
+            0,
+            8,
+            145,
+            null,
+            0
+          ]
+        }
+      },
+      {
+        "frame": 11,
+        "file": "frames/frame-0011.png",
+        "segment": "walk-sprint-turn-brake-guard",
+        "segmentSeconds": 0.8,
+        "snapshot": {
+          "phase": "explore",
+          "player": [
+            1.0483322371976038,
+            -11.008849278333257,
+            1.6552430380167715,
+            null,
+            0,
+            100,
+            92.53333333333336
+          ],
+          "guardian": [
+            0,
+            8,
+            145,
+            null,
+            0
+          ]
+        }
+      },
+      {
+        "frame": 12,
+        "file": "frames/frame-0012.png",
+        "segment": "walk-sprint-turn-brake-guard",
+        "segmentSeconds": 0.8666666666666667,
+        "snapshot": {
+          "phase": "explore",
+          "player": [
+            1.4216093520962987,
+            -11.049087623348422,
+            1.724054482159269,
+            null,
+            0,
+            100,
+            91.4666666666667
+          ],
+          "guardian": [
+            0,
+            8,
+            145,
+            null,
+            0
+          ]
+        }
+      },
+      {
+        "frame": 13,
+        "file": "frames/frame-0013.png",
+        "segment": "walk-sprint-turn-brake-guard",
+        "segmentSeconds": 0.9333333333333333,
+        "snapshot": {
+          "phase": "explore",
+          "player": [
+            1.6258430963867483,
+            -11.076332416333246,
+            1.724054482159269,
+            null,
+            0,
+            100,
+            91.4666666666667
+          ],
+          "guardian": [
+            0,
+            8,
+            145,
+            null,
+            0
+          ]
+        }
+      },
+      {
+        "frame": 14,
+        "file": "frames/frame-0014.png",
+        "segment": "walk-sprint-turn-brake-guard",
+        "segmentSeconds": 1,
+        "snapshot": {
+          "phase": "explore",
+          "player": [
+            1.6961309128900088,
+            -11.085708815011337,
+            1.724054482159269,
+            null,
+            0,
+            100,
+            91.4666666666667
+          ],
+          "guardian": [
+            0,
+            8,
+            145,
+            null,
+            0
+          ]
+        }
+      },
+      {
+        "frame": 15,
+        "file": "frames/frame-0015.png",
+        "segment": "walk-sprint-turn-brake-guard",
+        "segmentSeconds": 1.0666666666666667,
+        "snapshot": {
+          "phase": "explore",
+          "player": [
+            1.7203207311101072,
+            -11.088935738123562,
+            1.724054482159269,
+            null,
+            0,
+            100,
+            91.4666666666667
+          ],
+          "guardian": [
+            0,
+            8,
+            145,
+            null,
+            0
+          ]
+        }
+      },
+      {
+        "frame": 16,
+        "file": "frames/frame-0016.png",
+        "segment": "walk-sprint-turn-brake-guard",
+        "segmentSeconds": 1.1333333333333333,
+        "snapshot": {
+          "phase": "explore",
+          "player": [
+            1.72864574865414,
+            -11.090046295932558,
+            1.724054482159269,
+            null,
+            0,
+            100,
+            91.4666666666667
+          ],
+          "guardian": [
+            0,
+            8,
+            145,
+            null,
+            0
+          ]
+        }
+      },
+      {
+        "frame": 17,
+        "file": "frames/frame-0017.png",
+        "segment": "walk-sprint-turn-brake-guard",
+        "segmentSeconds": 1.2,
+        "snapshot": {
+          "phase": "explore",
+          "player": [
+            1.73151083496764,
+            -11.090428498608057,
+            1.724054482159269,
+            null,
+            0,
+            100,
+            91.4666666666667
+          ],
+          "guardian": [
+            0,
+            8,
+            145,
+            null,
+            0
+          ]
+        }
+      },
+      {
+        "frame": 18,
+        "file": "frames/frame-0018.png",
+        "segment": "sprint-to-directional-dodge-and-landing",
+        "segmentSeconds": 0.06666666666666667,
+        "snapshot": {
+          "phase": "explore",
+          "player": [
+            1.764896628874778,
+            -10.908013534587692,
+            0.5469279811664405,
+            null,
+            0,
+            100,
+            90.40000000000003
+          ],
+          "guardian": [
+            0,
+            8,
+            145,
+            null,
+            0
+          ]
+        }
+      },
+      {
+        "frame": 19,
+        "file": "frames/frame-0019.png",
+        "segment": "sprint-to-directional-dodge-and-landing",
+        "segmentSeconds": 0.13333333333333333,
+        "snapshot": {
+          "phase": "explore",
+          "player": [
+            1.8219406286754583,
+            -10.586886908894378,
+            0.26429990827806243,
+            null,
+            0,
+            100,
+            89.33333333333337
+          ],
+          "guardian": [
+            0,
+            8,
+            145,
+            null,
+            0
+          ]
+        }
+      },
+      {
+        "frame": 20,
+        "file": "frames/frame-0020.png",
+        "segment": "sprint-to-directional-dodge-and-landing",
+        "segmentSeconds": 0.2,
+        "snapshot": {
+          "phase": "explore",
+          "player": [
+            1.8872478023114823,
+            -10.218038295993141,
+            0.1964409079775628,
+            null,
+            0,
+            100,
+            88.26666666666671
+          ],
+          "guardian": [
+            0,
+            8,
+            145,
+            null,
+            0
+          ]
+        }
+      },
+      {
+        "frame": 21,
+        "file": "frames/frame-0021.png",
+        "segment": "sprint-to-directional-dodge-and-landing",
+        "segmentSeconds": 0.26666666666666666,
+        "snapshot": {
+          "phase": "explore",
+          "player": [
+            1.9553987785144673,
+            -9.832765980477554,
+            0.18014796200541283,
+            null,
+            0,
+            100,
+            87.20000000000005
+          ],
+          "guardian": [
+            0,
+            8,
+            145,
+            null,
+            0
+          ]
+        }
+      },
+      {
+        "frame": 22,
+        "file": "frames/frame-0022.png",
+        "segment": "sprint-to-directional-dodge-and-landing",
+        "segmentSeconds": 0.3333333333333333,
+        "snapshot": {
+          "phase": "explore",
+          "player": [
+            1.3317386372080091,
+            -9.722497493334942,
+            0.18014796200541283,
+            "dodge",
+            0.06666666666666667,
+            100,
+            63.200000000000045
+          ],
+          "guardian": [
+            0,
+            8,
+            145,
+            null,
+            0
+          ]
+        }
+      },
+      {
+        "frame": 23,
+        "file": "frames/frame-0023.png",
+        "segment": "sprint-to-directional-dodge-and-landing",
+        "segmentSeconds": 0.4,
+        "snapshot": {
+          "phase": "explore",
+          "player": [
+            0.7080784959015511,
+            -9.61222900619233,
+            0.18014796200541283,
+            "dodge",
+            0.13333333333333333,
+            100,
+            63.200000000000045
+          ],
+          "guardian": [
+            0,
+            8,
+            145,
+            null,
+            0
+          ]
+        }
+      },
+      {
+        "frame": 24,
+        "file": "frames/frame-0024.png",
+        "segment": "sprint-to-directional-dodge-and-landing",
+        "segmentSeconds": 0.4666666666666667,
+        "snapshot": {
+          "phase": "explore",
+          "player": [
+            0.08441835459509334,
+            -9.501960519049717,
+            0.18014796200541283,
+            "dodge",
+            0.19999999999999998,
+            100,
+            63.200000000000045
+          ],
+          "guardian": [
+            0,
+            8,
+            145,
+            null,
+            0
+          ]
+        }
+      },
+      {
+        "frame": 25,
+        "file": "frames/frame-0025.png",
+        "segment": "sprint-to-directional-dodge-and-landing",
+        "segmentSeconds": 0.5333333333333333,
+        "snapshot": {
+          "phase": "explore",
+          "player": [
+            -0.5392417867113645,
+            -9.391692031907105,
+            0.18014796200541283,
+            "dodge",
+            0.26666666666666666,
+            100,
+            63.200000000000045
+          ],
+          "guardian": [
+            0,
+            8,
+            145,
+            null,
+            0
+          ]
+        }
+      },
+      {
+        "frame": 26,
+        "file": "frames/frame-0026.png",
+        "segment": "sprint-to-directional-dodge-and-landing",
+        "segmentSeconds": 0.6,
+        "snapshot": {
+          "phase": "explore",
+          "player": [
+            -1.1629019280178223,
+            -9.281423544764493,
+            0.18014796200541283,
+            "dodge",
+            0.3333333333333333,
+            100,
+            63.200000000000045
+          ],
+          "guardian": [
+            0,
+            8,
+            145,
+            null,
+            0
+          ]
+        }
+      },
+      {
+        "frame": 27,
+        "file": "frames/frame-0027.png",
+        "segment": "sprint-to-directional-dodge-and-landing",
+        "segmentSeconds": 0.6666666666666666,
+        "snapshot": {
+          "phase": "explore",
+          "player": [
+            -1.7865620693242805,
+            -9.171155057621881,
+            0.18014796200541283,
+            "dodge",
+            0.39999999999999997,
+            100,
+            63.200000000000045
+          ],
+          "guardian": [
+            0,
+            8,
+            145,
+            null,
+            0
+          ]
+        }
+      },
+      {
+        "frame": 28,
+        "file": "frames/frame-0028.png",
+        "segment": "sprint-to-directional-dodge-and-landing",
+        "segmentSeconds": 0.7333333333333333,
+        "snapshot": {
+          "phase": "explore",
+          "player": [
+            -2.4102222106307383,
+            -9.06088657047927,
+            0.18014796200541283,
+            "dodge",
+            0.4666666666666666,
+            100,
+            63.200000000000045
+          ],
+          "guardian": [
+            0,
+            8,
+            145,
+            null,
+            0
+          ]
+        }
+      },
+      {
+        "frame": 29,
+        "file": "frames/frame-0029.png",
+        "segment": "sprint-to-directional-dodge-and-landing",
+        "segmentSeconds": 0.8,
+        "snapshot": {
+          "phase": "explore",
+          "player": [
+            -2.5664437383152867,
+            -9.033186238171151,
+            0.18014796200541283,
+            null,
+            0,
+            100,
+            63.200000000000045
+          ],
+          "guardian": [
+            0,
+            8,
+            145,
+            null,
+            0
+          ]
+        }
+      },
+      {
+        "frame": 30,
+        "file": "frames/frame-0030.png",
+        "segment": "sprint-to-directional-dodge-and-landing",
+        "segmentSeconds": 0.8666666666666667,
+        "snapshot": {
+          "phase": "explore",
+          "player": [
+            -2.566607757196772,
+            -9.033114950779048,
+            0.18014796200541283,
+            null,
+            0,
+            100,
+            63.200000000000045
+          ],
+          "guardian": [
+            0,
+            8,
+            145,
+            null,
+            0
+          ]
+        }
+      },
+      {
+        "frame": 31,
+        "file": "frames/frame-0031.png",
+        "segment": "sprint-to-directional-dodge-and-landing",
+        "segmentSeconds": 0.9333333333333333,
+        "snapshot": {
+          "phase": "explore",
+          "player": [
+            -2.566664204915952,
+            -9.0330904169531,
+            0.18014796200541283,
+            null,
+            0,
+            100,
+            63.200000000000045
+          ],
+          "guardian": [
+            0,
+            8,
+            145,
+            null,
+            0
+          ]
+        }
+      },
+      {
+        "frame": 32,
+        "file": "frames/frame-0032.png",
+        "segment": "sprint-to-directional-dodge-and-landing",
+        "segmentSeconds": 1,
+        "snapshot": {
+          "phase": "explore",
+          "player": [
+            -2.5666836316122676,
+            -9.033081973543993,
+            0.18014796200541283,
+            null,
+            0,
+            100,
+            63.200000000000045
+          ],
+          "guardian": [
+            0,
+            8,
+            145,
+            null,
+            0
+          ]
+        }
+      },
+      {
+        "frame": 33,
+        "file": "frames/frame-0033.png",
+        "segment": "sprint-to-directional-dodge-and-landing",
+        "segmentSeconds": 1.0666666666666667,
+        "snapshot": {
+          "phase": "explore",
+          "player": [
+            -2.5666903173833706,
+            -9.033079067712777,
+            0.18014796200541283,
+            null,
+            0,
+            100,
+            63.61666666666671
+          ],
+          "guardian": [
+            0,
+            8,
+            145,
+            null,
+            0
+          ]
+        }
+      },
+      {
+        "frame": 34,
+        "file": "frames/frame-0034.png",
+        "segment": "sprint-to-directional-dodge-and-landing",
+        "segmentSeconds": 1.1333333333333333,
+        "snapshot": {
+          "phase": "explore",
+          "player": [
+            -2.5666926183168144,
+            -9.033078067659957,
+            0.18014796200541283,
+            null,
+            0,
+            100,
+            65.28333333333339
+          ],
+          "guardian": [
+            0,
+            8,
+            145,
+            null,
+            0
+          ]
+        }
+      },
+      {
+        "frame": 35,
+        "file": "frames/frame-0035.png",
+        "segment": "sprint-to-directional-dodge-and-landing",
+        "segmentSeconds": 1.2,
+        "snapshot": {
+          "phase": "explore",
+          "player": [
+            -2.566693410191772,
+            -9.033077723487994,
+            0.18014796200541283,
+            null,
+            0,
+            100,
+            66.95000000000007
+          ],
+          "guardian": [
+            0,
+            8,
+            145,
+            null,
+            0
+          ]
+        }
+      },
+      {
+        "frame": 36,
+        "file": "frames/frame-0036.png",
+        "segment": "cast-and-recover",
+        "segmentSeconds": 0.06666666666666667,
+        "snapshot": {
+          "phase": "explore",
+          "player": [
+            -2.566693682718537,
+            -9.033077605039907,
+            0.14956348618125256,
+            null,
+            0,
+            100,
+            68.61666666666676
+          ],
+          "guardian": [
+            0,
+            8,
+            145,
+            null,
+            0
+          ]
+        }
+      },
+      {
+        "frame": 37,
+        "file": "frames/frame-0037.png",
+        "segment": "cast-and-recover",
+        "segmentSeconds": 0.13333333333333333,
+        "snapshot": {
+          "phase": "explore",
+          "player": [
+            -2.566693776509656,
+            -9.03307756427555,
+            0.14956348618125256,
+            null,
+            0,
+            100,
+            70.28333333333345
+          ],
+          "guardian": [
+            0,
+            8,
+            145,
+            null,
+            0
+          ]
+        }
+      },
+      {
+        "frame": 38,
+        "file": "frames/frame-0038.png",
+        "segment": "cast-and-recover",
+        "segmentSeconds": 0.2,
+        "snapshot": {
+          "phase": "explore",
+          "player": [
+            -2.5666938087882243,
+            -9.033077550246341,
+            0.14956348618125256,
+            null,
+            0,
+            100,
+            71.95000000000013
+          ],
+          "guardian": [
+            0,
+            8,
+            145,
+            null,
+            0
+          ]
+        }
+      },
+      {
+        "frame": 39,
+        "file": "frames/frame-0039.png",
+        "segment": "cast-and-recover",
+        "segmentSeconds": 0.26666666666666666,
+        "snapshot": {
+          "phase": "explore",
+          "player": [
+            -2.5666938198970164,
+            -9.033077545418136,
+            0.14956348618125256,
+            null,
+            0,
+            100,
+            73.61666666666682
+          ],
+          "guardian": [
+            0,
+            8,
+            145,
+            null,
+            0
+          ]
+        }
+      },
+      {
+        "frame": 40,
+        "file": "frames/frame-0040.png",
+        "segment": "cast-and-recover",
+        "segmentSeconds": 0.3333333333333333,
+        "snapshot": {
+          "phase": "explore",
+          "player": [
+            -2.566693823720149,
+            -9.033077543756491,
+            0.14956348618125256,
+            null,
+            0,
+            100,
+            75.2833333333335
+          ],
+          "guardian": [
+            0,
+            8,
+            145,
+            null,
+            0
+          ]
+        }
+      },
+      {
+        "frame": 41,
+        "file": "frames/frame-0041.png",
+        "segment": "cast-and-recover",
+        "segmentSeconds": 0.4,
+        "snapshot": {
+          "phase": "explore",
+          "player": [
+            -2.5666938250358946,
+            -9.033077543184628,
+            0.14956348618125256,
+            null,
+            0,
+            100,
+            76.95000000000019
+          ],
+          "guardian": [
+            0,
+            8,
+            145,
+            null,
+            0
+          ]
+        }
+      },
+      {
+        "frame": 42,
+        "file": "frames/frame-0042.png",
+        "segment": "warden-windup-contact-recovery",
+        "segmentSeconds": 0.06666666666666667,
+        "snapshot": {
+          "phase": "explore",
+          "player": [
+            0,
+            5.8,
+            0,
+            null,
+            0,
+            100,
+            100
+          ],
+          "guardian": [
+            0,
+            8,
+            145,
+            "strike",
+            0.06666666666666667
+          ]
+        }
+      },
+      {
+        "frame": 43,
+        "file": "frames/frame-0043.png",
+        "segment": "warden-windup-contact-recovery",
+        "segmentSeconds": 0.13333333333333333,
+        "snapshot": {
+          "phase": "explore",
+          "player": [
+            0,
+            5.8,
+            0,
+            null,
+            0,
+            100,
+            100
+          ],
+          "guardian": [
+            0,
+            8,
+            145,
+            "strike",
+            0.13333333333333333
+          ]
+        }
+      },
+      {
+        "frame": 44,
+        "file": "frames/frame-0044.png",
+        "segment": "warden-windup-contact-recovery",
+        "segmentSeconds": 0.2,
+        "snapshot": {
+          "phase": "explore",
+          "player": [
+            0,
+            5.8,
+            0,
+            null,
+            0,
+            100,
+            100
+          ],
+          "guardian": [
+            0,
+            8,
+            145,
+            "strike",
+            0.19999999999999998
+          ]
+        }
+      },
+      {
+        "frame": 45,
+        "file": "frames/frame-0045.png",
+        "segment": "warden-windup-contact-recovery",
+        "segmentSeconds": 0.26666666666666666,
+        "snapshot": {
+          "phase": "explore",
+          "player": [
+            0,
+            5.8,
+            0,
+            null,
+            0,
+            100,
+            100
+          ],
+          "guardian": [
+            0,
+            8,
+            145,
+            "strike",
+            0.26666666666666666
+          ]
+        }
+      },
+      {
+        "frame": 46,
+        "file": "frames/frame-0046.png",
+        "segment": "warden-windup-contact-recovery",
+        "segmentSeconds": 0.3333333333333333,
+        "snapshot": {
+          "phase": "explore",
+          "player": [
+            0,
+            5.8,
+            0,
+            null,
+            0,
+            100,
+            100
+          ],
+          "guardian": [
+            0,
+            8,
+            145,
+            "strike",
+            0.3333333333333333
+          ]
+        }
+      },
+      {
+        "frame": 47,
+        "file": "frames/frame-0047.png",
+        "segment": "warden-windup-contact-recovery",
+        "segmentSeconds": 0.4,
+        "snapshot": {
+          "phase": "explore",
+          "player": [
+            0,
+            5.8,
+            0,
+            null,
+            0,
+            100,
+            100
+          ],
+          "guardian": [
+            0,
+            8,
+            145,
+            "strike",
+            0.39999999999999997
+          ]
+        }
+      },
+      {
+        "frame": 48,
+        "file": "frames/frame-0048.png",
+        "segment": "warden-windup-contact-recovery",
+        "segmentSeconds": 0.4666666666666667,
+        "snapshot": {
+          "phase": "explore",
+          "player": [
+            0,
+            5.8,
+            0,
+            null,
+            0,
+            100,
+            100
+          ],
+          "guardian": [
+            0,
+            8,
+            145,
+            "strike",
+            0.4666666666666666
+          ]
+        }
+      },
+      {
+        "frame": 49,
+        "file": "frames/frame-0049.png",
+        "segment": "warden-windup-contact-recovery",
+        "segmentSeconds": 0.5333333333333333,
+        "snapshot": {
+          "phase": "explore",
+          "player": [
+            0,
+            5.8,
+            0,
+            null,
+            0,
+            100,
+            100
+          ],
+          "guardian": [
+            0,
+            8,
+            145,
+            "strike",
+            0.5333333333333333
+          ]
+        }
+      },
+      {
+        "frame": 50,
+        "file": "frames/frame-0050.png",
+        "segment": "warden-windup-contact-recovery",
+        "segmentSeconds": 0.6,
+        "snapshot": {
+          "phase": "explore",
+          "player": [
+            0,
+            5.8,
+            0,
+            null,
+            0,
+            100,
+            100
+          ],
+          "guardian": [
+            0,
+            8,
+            145,
+            "strike",
+            0.6000000000000002
+          ]
+        }
+      },
+      {
+        "frame": 51,
+        "file": "frames/frame-0051.png",
+        "segment": "warden-windup-contact-recovery",
+        "segmentSeconds": 0.6666666666666666,
+        "snapshot": {
+          "phase": "explore",
+          "player": [
+            0,
+            5.8,
+            0,
+            null,
+            0,
+            100,
+            100
+          ],
+          "guardian": [
+            0,
+            8,
+            145,
+            "strike",
+            0.6666666666666671
+          ]
+        }
+      },
+      {
+        "frame": 52,
+        "file": "frames/frame-0052.png",
+        "segment": "warden-windup-contact-recovery",
+        "segmentSeconds": 0.7333333333333333,
+        "snapshot": {
+          "phase": "explore",
+          "player": [
+            0,
+            5.8,
+            0,
+            null,
+            0,
+            100,
+            100
+          ],
+          "guardian": [
+            0,
+            8,
+            145,
+            "strike",
+            0.733333333333334
+          ]
+        }
+      },
+      {
+        "frame": 53,
+        "file": "frames/frame-0053.png",
+        "segment": "warden-windup-contact-recovery",
+        "segmentSeconds": 0.8,
+        "snapshot": {
+          "phase": "explore",
+          "player": [
+            0,
+            5.8,
+            0,
+            null,
+            0,
+            100,
+            100
+          ],
+          "guardian": [
+            0,
+            8,
+            145,
+            "strike",
+            0.8000000000000008
+          ]
+        }
+      },
+      {
+        "frame": 54,
+        "file": "frames/frame-0054.png",
+        "segment": "warden-windup-contact-recovery",
+        "segmentSeconds": 0.8666666666666667,
+        "snapshot": {
+          "phase": "explore",
+          "player": [
+            0,
+            5.8,
+            0,
+            null,
+            0,
+            100,
+            100
+          ],
+          "guardian": [
+            0,
+            8,
+            145,
+            "strike",
+            0.8666666666666677
+          ]
+        }
+      },
+      {
+        "frame": 55,
+        "file": "frames/frame-0055.png",
+        "segment": "warden-windup-contact-recovery",
+        "segmentSeconds": 0.9333333333333333,
+        "snapshot": {
+          "phase": "explore",
+          "player": [
+            0,
+            5.8,
+            0,
+            null,
+            0,
+            77,
+            100
+          ],
+          "guardian": [
+            0,
+            8,
+            145,
+            "strike",
+            0.9333333333333346
+          ]
+        }
+      },
+      {
+        "frame": 56,
+        "file": "frames/frame-0056.png",
+        "segment": "warden-windup-contact-recovery",
+        "segmentSeconds": 1,
+        "snapshot": {
+          "phase": "explore",
+          "player": [
+            0,
+            5.8,
+            0,
+            null,
+            0,
+            77,
+            100
+          ],
+          "guardian": [
+            0,
+            8,
+            145,
+            "strike",
+            1.0000000000000013
+          ]
+        }
+      },
+      {
+        "frame": 57,
+        "file": "frames/frame-0057.png",
+        "segment": "warden-windup-contact-recovery",
+        "segmentSeconds": 1.0666666666666667,
+        "snapshot": {
+          "phase": "explore",
+          "player": [
+            0,
+            5.8,
+            0,
+            null,
+            0,
+            77,
+            100
+          ],
+          "guardian": [
+            0,
+            8,
+            145,
+            "strike",
+            1.0666666666666678
+          ]
+        }
+      },
+      {
+        "frame": 58,
+        "file": "frames/frame-0058.png",
+        "segment": "warden-windup-contact-recovery",
+        "segmentSeconds": 1.1333333333333333,
+        "snapshot": {
+          "phase": "explore",
+          "player": [
+            0,
+            5.8,
+            0,
+            null,
+            0,
+            77,
+            100
+          ],
+          "guardian": [
+            0,
+            8,
+            145,
+            "strike",
+            1.1333333333333342
+          ]
+        }
+      },
+      {
+        "frame": 59,
+        "file": "frames/frame-0059.png",
+        "segment": "warden-windup-contact-recovery",
+        "segmentSeconds": 1.2,
+        "snapshot": {
+          "phase": "explore",
+          "player": [
+            0,
+            5.8,
+            0,
+            null,
+            0,
+            77,
+            100
+          ],
+          "guardian": [
+            0,
+            8,
+            145,
+            "strike",
+            1.2000000000000006
+          ]
+        }
+      }
+    ],
+    "segments": [
+      {
+        "name": "walk-sprint-turn-brake-guard",
+        "firstFrame": 0,
+        "frames": 18,
+        "simulatedSeconds": 1.2
+      },
+      {
+        "name": "sprint-to-directional-dodge-and-landing",
+        "firstFrame": 18,
+        "frames": 18,
+        "simulatedSeconds": 1.2
+      },
+      {
+        "name": "cast-and-recover",
+        "firstFrame": 36,
+        "frames": 6,
+        "simulatedSeconds": 0.4
+      },
+      {
+        "name": "warden-windup-contact-recovery",
+        "firstFrame": 42,
+        "frames": 18,
+        "simulatedSeconds": 1.2
+      }
+    ],
+    "encoded": true,
+    "encodingError": null,
+    "durationSeconds": 4
+  },
+  "samples": [
+    {
+      "quality": "high",
+      "reducedMotion": false,
+      "input": "W + Shift held for the real RAF sample",
+      "elapsedMs": 4031.9000000007454,
+      "frames": 13,
+      "meanFrameMs": 310.1461538462112,
+      "p50FrameMs": 316.59999999999945,
+      "p95FrameMs": 466.6999999999998,
+      "snapshot": {
+        "phase": "explore",
+        "player": {
+          "x": 0,
+          "z": -10.118590107999536,
+          "yaw": 0,
+          "vx": 0,
+          "vz": 5.999900109955386,
+          "health": 100,
+          "stamina": 88.99679999998216,
+          "mana": 100,
+          "action": null,
+          "blocking": false,
+          "castAge": 1,
+          "spellCooldown": 0
+        },
+        "guardian": {
+          "x": 0,
+          "z": 8,
+          "health": 145,
+          "action": null,
+          "guard": false,
+          "stagger": 0,
+          "reaction": null
+        },
+        "gladiator": {
+          "x": 0,
+          "z": 43,
+          "health": 215,
+          "action": null
+        },
+        "camera": {
+          "yaw": 0,
+          "pitch": 0.56,
+          "position": [
+            0,
+            6.06196406253542,
+            -17.69918622215231
+          ]
+        },
+        "animation": {
+          "hero": {
+            "phase": 2.9566755529593474,
+            "distance": 3.8814098920004643,
+            "speed": 5.999900109955405,
+            "moveBlend": 0.999983351659231,
+            "sprintBlend": 0.9974303412985287,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": -0.13911882854052773,
+            "bob": -0.0070421860220262296,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": -0.0070421860220262296,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": -0.13911882854052773,
+              "y": 0,
+              "z": 0
+            }
+          },
+          "guardian": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": 0.008762019234755123,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": 0.008762019234755123,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          },
+          "gladiator": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": 0,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          }
+        },
+        "scene": {
+          "meshes": 522,
+          "materials": 64,
+          "lights": 9,
+          "effects": 0,
+          "projectiles": 0
+        }
+      }
+    },
+    {
+      "quality": "low",
+      "reducedMotion": true,
+      "input": "W + Shift held for the real RAF sample",
+      "elapsedMs": 4004.0000000011178,
+      "frames": 27,
+      "meanFrameMs": 148.2962962963377,
+      "p50FrameMs": 150,
+      "p95FrameMs": 183.39999999999964,
+      "snapshot": {
+        "phase": "explore",
+        "player": {
+          "x": 0,
+          "z": -6.144789866172963,
+          "yaw": 0,
+          "vx": 0,
+          "vz": 5.999999997503162,
+          "health": 100,
+          "stamina": 78.40000000000008,
+          "mana": 100,
+          "action": null,
+          "blocking": false,
+          "castAge": 1,
+          "spellCooldown": 0
+        },
+        "guardian": {
+          "x": 3.765788907378111e-17,
+          "z": 7.6925,
+          "health": 145,
+          "action": null,
+          "guard": false,
+          "stagger": 0,
+          "reaction": null
+        },
+        "gladiator": {
+          "x": 0,
+          "z": 43,
+          "health": 215,
+          "action": null
+        },
+        "camera": {
+          "yaw": 0,
+          "pitch": 0.56,
+          "position": [
+            0,
+            6.06196406253542,
+            -13.724179676638991
+          ]
+        },
+        "animation": {
+          "hero": {
+            "phase": 5.921207100631802,
+            "distance": 7.855210133827037,
+            "speed": 5.999999997503167,
+            "moveBlend": 0.9999999995838602,
+            "sprintBlend": 0.999996583810731,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": -0.13999839212763085,
+            "bob": -0.003874766236956959,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": -0.003874766236956959,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": -0.041999517638289255,
+              "y": 0,
+              "z": 0
+            }
+          },
+          "guardian": {
+            "phase": 0.5791605161743776,
+            "distance": 0.3075000000000001,
+            "speed": 2.0500000000000007,
+            "moveBlend": 0.47893838534344946,
+            "sprintBlend": 0,
+            "directionX": 6.560643827463368e-32,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": -1.4576945193925921e-33,
+            "forwardLean": -0.02422459066324769,
+            "bob": 0.0023876579720758287,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": 0.0023876579720758287,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": -0.007267377198974307,
+              "y": 0,
+              "z": -4.3730835581777765e-34
+            }
+          },
+          "gladiator": {
+            "phase": 0,
+            "distance": 0,
+            "speed": 0,
+            "moveBlend": 0,
+            "sprintBlend": 0,
+            "directionX": 0,
+            "directionZ": 1,
+            "turnRate": 0,
+            "turnLean": 0,
+            "forwardLean": 0,
+            "bob": 0,
+            "dodgeEnvelope": 0,
+            "rigPosition": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "rigRotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          }
+        },
+        "scene": {
+          "meshes": 463,
+          "materials": 64,
+          "lights": 9,
+          "effects": 0,
+          "projectiles": 0
+        }
+      }
+    }
+  ],
+  "errors": []
+}

@@ -29,7 +29,7 @@ jobs:
       - name: Validate isolated ORCA Legends syntax and combat/data contracts
         run: |
           for file in game/*.js; do node --check "$file" || exit; done
-          node --test scripts/test-orca-legends.mjs scripts/test-orca-legends-access.mjs scripts/test-orca-legends-audio.mjs
+          node --test scripts/test-orca-legends.mjs scripts/test-orca-legends-access.mjs scripts/test-orca-legends-audio.mjs scripts/test-orca-legends-animation.mjs
       - name: Install browser for offline mobile layout regression
         run: |
           npm install --prefix "$RUNNER_TEMP/orca-browser" --no-save --package-lock=false playwright@1.62.1
@@ -42,6 +42,8 @@ jobs:
         run: NODE_PATH="$RUNNER_TEMP/orca-browser/node_modules" node scripts/test-orca-legends-feedback-browser.cjs
       - name: Verify Cinderbolt rules, spell feedback and resource budgets
         run: NODE_PATH="$RUNNER_TEMP/orca-browser/node_modules" node scripts/test-orca-legends-spell-browser.cjs
+      - name: Verify animation transitions, measured motion and enemy telegraphs
+        run: NODE_PATH="$RUNNER_TEMP/orca-browser/node_modules" node scripts/test-orca-legends-animation-browser.cjs
       - name: Render original sword audio and verify signal and cleanup
         run: NODE_PATH="$RUNNER_TEMP/orca-browser/node_modules" node scripts/check-orca-legends-audio-browser.cjs
       - name: Verify contributor authentication, eligibility recheck and Vault entry
