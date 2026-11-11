@@ -1,4 +1,5 @@
-/* Local transport fixtures only. This script does not sign in or contact a backend. */
+/* Local client contract and transport fixtures only; these do not verify deployed definitions.
+ * This script does not sign in or contact a backend. */
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
@@ -36,7 +37,7 @@ function setup(options = {}) {
   const context = {
     ready: true, loading: false, user: { id: localOwnerId }, alias: localAlias,
     claim: { id: localTaskId, status: 'claimed' }, findings: [], tasks: [],
-    isOrcaStaging: true, independentPublishingEnabled: false, ticker: 'LOCAL',
+    isOrcaStaging: true, independentPublishingEnabled: options.independentPublishingEnabled === true, ticker: 'LOCAL',
     assignedResearchBoard: { task_id: localTaskId, board_key: 'execution' },
     answerChoices: { execution: ['STRONG_BUY', 'BUY', 'SELL', 'STRONG_SELL'] },
     $: id => fields[id], Date,
@@ -52,7 +53,7 @@ function setup(options = {}) {
     rpc: async (name, args) => {
       state.rpcCalls.push({ name, args });
       if (options.rpcError) throw new Error('Local transport failure');
-      return options.rpcResponse; // undefined explicitly exercises legacy void returns.
+      return options.rpcResponse; // null and undefined fixtures exercise legacy empty returns.
     },
     refresh: async refreshOptions => {
       state.refreshOptions = refreshOptions;
@@ -94,17 +95,54 @@ function expectUnconfirmed(fixture) {
   assert.equal(fixture.fields.sources.value, localSources.join('\n'));
 }
 
-test('void RPC result succeeds only after matching board evidence and completed task', async () => {
-  const fixture = setup();
-  await fixture.run();
-  assert.equal(fixture.state.rpcCalls.length, 1);
-  assert.deepEqual(Array.from(fixture.state.rpcCalls[0].args.p_source_urls), localSources);
-  assert.equal(fixture.state.authCalls, 2);
-  assert.equal(fixture.state.refreshOptions.forcePermissions, true);
-  assert.equal(fixture.state.resetCount, 1);
-  assert.equal(fixture.state.messages.at(-1).kind, 'success');
-  assert.match(fixture.state.messages.at(-1).message, /Publication and completed assignment confirmed on the board/);
-});
+for (const [description, rpcResponse] of [['undefined', undefined], ['null', null]]) {
+  test(`legacy ${description} RPC result succeeds after matching board evidence and completed task`, async () => {
+    const fixture = setup({ rpcResponse });
+    await fixture.run();
+    assert.equal(fixture.state.rpcCalls.length, 1);
+    assert.equal(fixture.state.authCalls, 2);
+    assert.equal(fixture.state.refreshOptions.forcePermissions, true);
+    assert.equal(fixture.state.resetCount, 1);
+    assert.equal(fixture.state.messages.at(-1).kind, 'success');
+    assert.match(fixture.state.messages.at(-1).message, /Publication and completed assignment confirmed on the board/);
+  });
+}
+
+for (const [description, independentPublishingEnabled, rpcName] of [
+  ['regular', false, 'commons_publish_finding'],
+  ['independent', true, 'commons_publish_independent_finding']
+]) {
+  test(`${description} client contract sends exactly the existing five arguments without owner or alias`, async () => {
+    const fixture = setup({ independentPublishingEnabled });
+    await fixture.run();
+    assert.equal(fixture.state.rpcCalls.length, 1);
+    const { name, args } = fixture.state.rpcCalls[0];
+    assert.equal(name, rpcName);
+    assert.deepEqual({ ...args, p_source_urls: Array.from(args.p_source_urls) }, {
+      p_task_id: localTaskId,
+      p_summary: taggedSummary,
+      p_source_urls: localSources,
+      p_observed_at: localObservedAt,
+      p_limitations: ''
+    });
+    assert.equal(fixture.state.resetCount, 1);
+  });
+}
+
+for (const [description, rpcResponse] of [
+  ['object', { success: false, message: 'Local publication rejection' }],
+  ['array', [{ success: false, message: 'Local publication rejection' }]]
+]) {
+  test(`an explicit ${description} RPC failure retains the draft without confirming publication`, async () => {
+    const fixture = setup({ rpcResponse });
+    await fixture.run();
+    expectUnconfirmed(fixture);
+    assert.equal(fixture.state.rpcCalls.length, 1);
+    assert.equal(fixture.state.refreshOptions, null);
+    assert.equal(fixture.state.messages.some(item => item.kind === 'success'), false);
+    assert.match(fixture.state.messages.at(-1).message, /Local publication rejection/);
+  });
+}
 
 test('source URL order does not affect confirmation', async () => {
   const fixture = setup({ mutateRow: row => row.source_urls.reverse() });
