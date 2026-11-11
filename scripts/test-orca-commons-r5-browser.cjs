@@ -61,7 +61,7 @@ async function main(){
   assert.match(await page.locator('h1').innerText(),/ORCA COMMONS/);
   assert.equal(await page.locator('.realm').count(),3);
   assert.equal(await page.locator('.journey-step').count(),4);
-  assert.equal(await page.locator('.orca-global-nav a').count(),4);
+  assert.equal(await page.locator('.orca-global-nav a').count(),5);
   await page.locator('.realm').last().scrollIntoViewIfNeeded();
   await page.waitForFunction(()=>[...document.querySelectorAll('.realm img')].every(img=>img.complete&&img.naturalWidth>0));
   const imageInfo=await page.locator('.realm img').evaluateAll(els=>els.map(x=>({loaded:x.complete&&x.naturalWidth>0,alt:x.alt})));
@@ -87,7 +87,7 @@ async function main(){
   for(const name of Object.keys(authIDs)){
    await page.goto(origin+'/orca-staging/'+name);
    assert.equal(await page.locator('header.orca-site-header').count(),1,name+' has unified header');
-   assert.equal(await page.locator('header.orca-site-header .orca-global-nav a').count(),4,name+' has four usable nav links');
+   assert.equal(await page.locator('header.orca-site-header .orca-global-nav a').count(),5,name+' has five usable nav links');
    assert.match(await page.locator('header.orca-site-header').innerText(),/ORCA\s+COMMONS/);
    for(const id of authIDs[name])assert.equal(await page.locator('#'+id).count(),1,name+' preserves '+id);
    // Auth screens preserve their original forms/ids and remain visually readable.
