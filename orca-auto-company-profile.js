@@ -213,16 +213,59 @@ export function renderUnifiedCompanyProfile(root,ticker,profile={}){
  const missionText=polish(profile.mission||'Official company mission or focus has not yet been verified.');
  const operations=polish(profile.operations||'An independently sourced description of this company’s activities is not yet available.');
  const lines=Array.isArray(profile.businessLines)?profile.businessLines:[];
+ root.classList.add('company-codex');
+ const masthead=$(root,'div','codex-masthead');
+ $(masthead,'span','codex-overline','ORCA  /  COMPANY INTELLIGENCE');
+ $(masthead,'h2','codex-title','The Company Codex');
+ $(masthead,'p','codex-intro','The business behind the ticker — what it does, where revenue comes from, and the evidence worth investigating.');
  const layout=$(root,'div','company-profile-grid');
  const body=$(layout,'div','company-profile-copy');
  $(body,'p','company-eyebrow',profile.eyebrow||'ABOUT THE COMPANY');
- $(body,'h2','company-name',name);
+ $(body,'h3','company-name',name);
  $(body,'p','company-description',description);
- const mission=$(body,'div','company-mission');
+ const highlights=$(body,'dl','codex-highlights');
+ for(const [label,value] of [['Industry',profile.industry],['Headquarters',profile.headquarters],['Founded',profile.founded],['Listing',profile.listing||ticker]]){
+  if(!value)continue;
+  const item=$(highlights,'div','codex-highlight');
+  $(item,'dt',null,label);$(item,'dd',null,String(value));
+ }
+ const insightGrid=$(body,'div','codex-insight-grid');
+ const makeInsight=(number,title)=>{
+  const panel=$(insightGrid,'section','codex-insight');
+  $(panel,'span','codex-panel-kicker',number);
+  $(panel,'h4',null,title);
+  return panel;
+ };
+ const revenue=makeInsight('01  /  REVENUE ENGINE','How the business makes money');
+ $(revenue,'p',null,operations);
+ const method=profile.how?polish(profile.how).trim():'';
+ if(method&&method!==operations)$(revenue,'p','codex-method',method);
+ if(profile.businessSource)urlLink(revenue,profile.businessSourceLabel||'Business model source',profile.businessSource);
+ const capabilities=makeInsight('02  /  COMPANY CAPABILITIES','Strengths & advantages');
+ const strengths=Array.isArray(profile.strengths)?profile.strengths.filter(x=>typeof x==='string'&&x.trim()):[];
+ if(strengths.length){
+  const list=$(capabilities,'ul','codex-list');
+  for(const strength of strengths.slice(0,4))$(list,'li',null,polish(strength));
+  $(capabilities,'small','codex-evidence-caution','Business capabilities are not a guarantee of competitive or investment performance.');
+ }else $(capabilities,'p',null,'Specific competitive advantages are not independently established in this profile. Check company filings and current research.');
+ const drivers=makeInsight('03  /  THE WATCHTOWER','What investors watch');
+ $(drivers,'p',null,polish(profile.investorFocus||'Company-specific catalysts and financial results require independent research using recent filings and dated sources.'));
+ const risks=makeInsight('04  /  VULNERABILITIES','Risks & unknowns');
+ const reportedRisks=Array.isArray(profile.risks)?profile.risks.filter(x=>typeof x==='string'&&x.trim()):[];
+ if(reportedRisks.length){
+  const list=$(risks,'ul','codex-list');
+  for(const risk of reportedRisks.slice(0,4))$(list,'li',null,polish(risk));
+ }else $(risks,'p',null,'Specific company risks are not yet established from the available profile. Review current company disclosures before drawing a conclusion.');
+ if(profile.businessSource)urlLink(risks,'Read source context',profile.businessSource);
+ const dossier=$(body,'details','codex-dossier');
+ $(dossier,'summary',null,'Explore the full company dossier');
+ const dossierBody=$(dossier,'div','codex-dossier-body');
+ $(dossierBody,'p','codex-dossier-intro','Original sourced narrative, company facts and reported size data are preserved here.');
+ const mission=$(dossierBody,'div','company-mission');
  $(mission,'strong',null,profile.missionHeading||'Mission');
  $(mission,'p',null,missionText);
  if(profile.missionNote)$(mission,'small','company-auto-notice',profile.missionNote);
- const facts=$(body,'dl','company-facts');
+ const facts=$(dossierBody,'dl','company-facts');
  for(const [title,value] of [
   ['Headquarters',profile.headquarters],
   ['Founded',profile.founded],
@@ -234,7 +277,7 @@ export function renderUnifiedCompanyProfile(root,ticker,profile={}){
   const entry=$(facts,'div','company-fact');
   $(entry,'dt',null,title);$(entry,'dd',null,String(value));
  }
- const what=$(body,'div','company-business');
+ const what=$(dossierBody,'div','company-business');
  $(what,'strong',null,'The mission and the method');
  $(what,'p',null,operations);
  if(profile.how&&polish(profile.how).trim()!==operations)$(what,'p','company-business-method',polish(profile.how));
@@ -243,7 +286,7 @@ export function renderUnifiedCompanyProfile(root,ticker,profile={}){
   const block=$(what,'div','company-business-line');
   $(block,'h4',null,String(item.name));$(block,'p',null,polish(item.detail));
  }
- const breakdown=$(body,'section','company-business-breakdown');
+ const breakdown=$(dossierBody,'section','company-business-breakdown');
  const heading=$(breakdown,'div','company-business-heading');
  $(heading,'h3',null,'Company size and impact');
  const list=$(breakdown,'ul','company-impact-list');
@@ -258,8 +301,9 @@ export function renderUnifiedCompanyProfile(root,ticker,profile={}){
   if(entry?.source)urlLink(item,'Source',entry.source);
  }
  $(breakdown,'p','company-impact-note','Figures show their reported periods and linked sources. Annual revenue means sales, not net profit.');
- if(profile.notice)$(body,'p','company-auto-notice',profile.notice);
+ if(profile.notice)$(dossierBody,'p','company-auto-notice',profile.notice);
  const side=$(layout,'aside','company-visual');
+ $(side,'p','codex-photo-kicker','THE COMPANY IN FOCUS');
  const frame=$(side,'div','company-logo-frame');
  const fallback=$(frame,'span','company-logo-fallback',ticker);
  const fallbackLogo=profile.logo||null;
@@ -299,12 +343,16 @@ export function renderUnifiedCompanyProfile(root,ticker,profile={}){
   $(hq,'strong',null,'HQ: ');
   hq.append(document.createTextNode(String(profile.headquartersAddress||profile.headquarters)));
  }
- const links=$(side,'div','company-source-links');
+ const sources=$(root,'section','codex-source-footer');
+ $(sources,'h3',null,'Sources & verification');
+ $(sources,'p','codex-source-note','Company descriptions may reflect earlier reporting periods. Open original sources to confirm facts, operations and risks.');
+ const links=$(sources,'div','company-source-links');
+ if(profile.businessSource)urlLink(links,profile.businessSourceLabel||'Business description source',profile.businessSource);
  for(const link of profile.links||[]){
   if(link?.label&&link.url)urlLink(links,String(link.label),link.url);
  }
- if(!links.childElementCount)$(side,'p','company-asof','Verified company links are not yet available.');
- if(profile.sourceNote)$(side,'p','company-asof',profile.sourceNote);
+ if(!links.childElementCount)$(sources,'p','company-asof','Verified company links are not yet available.');
+ if(profile.sourceNote)$(sources,'p','company-asof',profile.sourceNote);
  const photo=profile.photo;
  if(photo?.url&&photo?.source){
   const picture=$(side,'figure','company-activity-photo');
@@ -320,10 +368,17 @@ export function renderUnifiedCompanyProfile(root,ticker,profile={}){
   const credit=$(picture,'figcaption');
   credit.append(document.createTextNode([photo.caption,photo.credit,photo.license].filter(Boolean).join(' · ')+' · '));
   urlLink(credit,'Photo source',photo.source);
- }else $(side,'p','company-asof','No verified source-linked company photograph is currently available.');
+  side.insertBefore(picture,side.firstChild.nextSibling);
+ }else{
+  const art=$(side,'div','codex-photo-fallback');
+  $(art,'span',null,'ORCA  /  COMPANY FILE');
+  $(art,'strong',null,ticker);
+  $(art,'small',null,'No verified company photograph is currently available');
+  side.insertBefore(art,side.firstChild.nextSibling);
+ }
  if(profile.sourceUpdated){
   const date=new Date(profile.sourceUpdated);
-  if(!Number.isNaN(date.getTime()))$(side,'p','company-asof','Source updated '+date.toLocaleDateString());
+  if(!Number.isNaN(date.getTime()))$(sources,'p','company-asof','Source updated '+date.toLocaleDateString());
  }
 }
 function logoDevImage(ticker){
