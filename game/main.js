@@ -269,6 +269,7 @@ class VaultGame {
   updatePlayer(dt) {
     const p = this.player, vector = this.movementVector();
     const previousX = p.x, previousZ = p.z, previousYaw = p.yaw;
+    const visualDodge = p.action?.type === 'dodge' ? p.action : null;
     const wasBlocking = p.blocking;
     p.blocking = (this.mouseBlock || this.keys.has('KeyQ')) && !p.action && p.stamina > 2 && this.phase !== 'intro';
     p.blockTime = p.blocking ? (wasBlocking ? p.blockTime + dt : 0) : 99;
@@ -309,7 +310,7 @@ class VaultGame {
     const actualSpeed = Math.hypot(vx, vz), c = Math.cos(p.yaw), s = Math.sin(p.yaw);
     const turnRate = dt > 0 ? Math.atan2(Math.sin(p.yaw - previousYaw), Math.cos(p.yaw - previousYaw)) / dt : 0;
     this.hero.update(dt, { moving: actualSpeed > .02, speed: actualSpeed, localVelocityX: c * vx - s * vz, localVelocityZ: s * vx + c * vz, turnRate,
-      sprinting, attacking: !!ATTACKS[p.action?.type], attackProgress: p.action ? p.action.elapsed / p.action.duration : 0, attackImpact: ATTACKS[p.action?.type]?.impact / (p.action?.duration || 1), heavy: p.action?.type === 'heavy', blocking: p.blocking, dodging: p.action?.type === 'dodge', dodgeProgress: p.action?.type === 'dodge' ? p.action.elapsed / DODGE.duration : 0, hit: p.hit / .25, reaction: p.reaction, castAge: p.castAge, spellReady: p.spellReady, reducedMotion: settings.reducedMotion, time: this.time });
+      sprinting, attacking: !!ATTACKS[p.action?.type], attackProgress: p.action ? p.action.elapsed / p.action.duration : 0, attackImpact: ATTACKS[p.action?.type]?.impact / (p.action?.duration || 1), heavy: p.action?.type === 'heavy', blocking: p.blocking, dodging: !!visualDodge, dodgeProgress: visualDodge ? Math.min(1, visualDodge.elapsed / DODGE.duration) : 0, hit: p.hit / .25, reaction: p.reaction, castAge: p.castAge, spellReady: p.spellReady, reducedMotion: settings.reducedMotion, time: this.time });
     this.spellFeedback.charge(this.hero, p.spellReady, settings);
     if (actualSpeed > 1 && this.time > (this.nextStep || 0)) { this.audio.play('step'); this.nextStep = this.time + (sprinting ? .27 : .42); }
   }
