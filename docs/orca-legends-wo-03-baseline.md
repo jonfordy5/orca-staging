@@ -60,3 +60,18 @@ The complete idle scene contains 522 meshes / 64 materials on High and 463 / 64 
 The baseline capture completed without JavaScript/console errors. Both settings produced actual light damage 145 → 128 and heavy damage 128 → 100; the real Warden strike damaged the hero. Additional `champion-strike` and `champion-shockwave` stills (plus reduced variants) reach Varr by real starter R attacks, E chest interactions and arena traversal, then capture his own strike and third-attack Ember Ring before contact. No hook changes health, actions, inventory or AI. Those four stills were appended from a same-source `CAPTURE_ENEMIES_ONLY=1` run; the flag provides a bounded way to refresh only Varr and writes `measurements-enemies.json`.
 
 All 40 baseline stills, the 60 original video frames, WebM and bounded measurement JSON are in `work/wo03-before/`. Review JSON omits repeated inventory, item descriptions, chest lids and equipment colors. Video frame tuples document coordinates/actions without repeating the whole scene. Selected review artifacts are preserved in [`docs/evidence/wo-03/before/`](./evidence/wo-03/before/).
+
+## Final paired capture
+
+The final after capture serves the complete frozen candidate `da1e9f6` from `work/wo03-after-source/`, including the dodge continuity fixes and their regression tests. It completed all 40 matching stills and a 60-frame, 4.0-second VP9 clip at 960 × 640 / 15 fps, with no JavaScript/console errors. Before and after positions, velocities, facing, health, stamina, mana, action objects, guard state, spell timing and enemy health/actions match across all 40 capture snapshots. Complete scene mesh/material/light/effect/projectile counts also match at those states. This comparison supports preservation of the sampled behavior; the broader gameplay suites cover encounter completion and eligibility.
+
+| Setting | Before mean / median / p95 | After mean / median / p95 |
+|---|---:|---:|
+| High, reduced motion off | 224.93 / 216.7 / 483.3 ms | 310.15 / 316.6 / 466.7 ms |
+| Low, reduced motion on | 166.48 / 166.7 / 333.4 ms | 148.30 / 150.0 / 183.4 ms |
+
+The after High sample recorded 13 frames over 4,031.9 ms; Low/reduced recorded 27 over 4,004.0 ms. These remain short shared-executor software-renderer samples, with a slower High mean and faster Low/reduced mean in this run. They establish no consumer-hardware frame-rate target or causal performance change.
+
+Original movie frame `0012` provides the near-profile sprint/turn view; frames `0021`–`0025` show the renewed sprint directly entering a directional dodge. Visual inspection found coherent equipment/silhouette and progressive body lowering. The normal follow camera and cape partly obscure the knees during the forward-facing transition, so exhaustive adjacent-frame joint checks are the stronger evidence for the repaired knee discontinuity. Hardware review of keyboard/mouse feel remains an owner acceptance step.
+
+All final local output is in `work/wo03-after/`. Selected matching stills, both clips and bounded raw JSON are the review artifacts under [`docs/evidence/wo-03/`](./evidence/wo-03/); original screenshot frames remain local and unmodified.
