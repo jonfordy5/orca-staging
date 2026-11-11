@@ -62,6 +62,8 @@ async function main(){
   assert.equal(await page.locator('.realm').count(),3);
   assert.equal(await page.locator('.journey-step').count(),4);
   assert.equal(await page.locator('.orca-global-nav a').count(),4);
+  await page.locator('.realm').last().scrollIntoViewIfNeeded();
+  await page.waitForFunction(()=>[...document.querySelectorAll('.realm img')].every(img=>img.complete&&img.naturalWidth>0));
   const imageInfo=await page.locator('.realm img').evaluateAll(els=>els.map(x=>({loaded:x.complete&&x.naturalWidth>0,alt:x.alt})));
   assert(imageInfo.every(x=>x.loaded&&x.alt),'approved realm images must load with descriptive alt');
   const metrics=await page.evaluate(()=>({
