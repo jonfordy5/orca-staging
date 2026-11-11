@@ -16,6 +16,8 @@ jobs:
           node-version: '24'
       - name: Validate common stock research layout and controls
         run: node scripts/check-shared-research-workspace.cjs
+      - name: Verify Legends-themed research labels preserve server metric contracts
+        run: node --test scripts/test-orca-metric-labels.mjs
       - name: Verify research publication confirmation and session isolation
         run: node --test scripts/test-research-publication-confirmation.cjs
       - name: Exercise business illustrations, authorization and cache preservation
