@@ -24,7 +24,7 @@ export function advanceMotion(motion, dt, state, scale = 1) {
   const measured = Number.isFinite(state.speed) ? state.speed : state.moving ? (state.sprinting ? 6 : 3.5) : 0;
   const speed = active ? clamp(measured, 0, 18) : 0;
   const walking = speed >= .02 && !state.dodging;
-  const response = 1 - Math.exp(-(walking ? 20 : 14) * dt);
+  const response = 1 - Math.exp(-(walking ? 16 : 14) * dt);
   motion.speed = walking ? speed : 0;
   motion.blend += ((walking ? Math.min(1, speed / (2.8 * scale)) : 0) - motion.blend) * response;
   const running = walking ? ease((speed / scale - 3.5) / 2.5) : 0;
@@ -49,7 +49,7 @@ export function advanceMotion(motion, dt, state, scale = 1) {
   // Entry and exit are tied to authoritative dodge progress; they never add
   // an animation delay or extend invulnerability beyond the original action.
   const progress = clamp(finite(state.dodgeProgress), 0, 1);
-  motion.dodge = state.dodging && active ? ease(progress / .18) * ease((1 - progress) / .24) : 0;
+  motion.dodge = state.dodging && active ? ease(progress / .36) * ease((1 - progress) / .24) : 0;
   motion.bob = Math.sin(motion.phase * 2) * .013 * motion.blend * (1 + .5 * motion.sprint);
   return motion;
 }

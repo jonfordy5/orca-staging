@@ -57,6 +57,11 @@ export function createFighter(scene, { kind = 'hero', name = kind } = {}) {
   let guardBlend = 0;
   let spellBlend = 0;
   let renderedBob = 0;
+  let wasDodging = false;
+  let dodgeEntryGait = 0;
+  let dodgeEntryPelvisY = .92;
+  let dodgeEntryBob = 0;
+  const dodgeEntryLegs = new Float32Array(10);
   const motion = createMotionState();
   const strikePose = new Float32Array(restPose.length);
   const castPose = new Float32Array(cinderReadyPose.length);
@@ -336,6 +341,23 @@ export function createFighter(scene, { kind = 'hero', name = kind } = {}) {
     const reducedMotion = !!state.reducedMotion;
     const bodyMotion = reducedMotion ? .3 : 1;
     const transition = 1 - Math.exp(-12 * dt);
+    // Start the dodge from the visible incoming foot pose. Its progress
+    // envelope must blend that pose, rather than discard a sprinting knee or
+    // planted ankle as soon as the authoritative action flag changes.
+    if (dodging && !wasDodging && !dead) {
+      dodgeEntryGait = motion.blend;
+      dodgeEntryPelvisY = pelvis.position.y;
+      dodgeEntryBob = renderedBob;
+      for (const side of sides) {
+        const i = side === -1 ? 0 : 5;
+        dodgeEntryLegs[i] = legs[side].hip.rotation.x;
+        dodgeEntryLegs[i + 1] = legs[side].hip.rotation.z;
+        dodgeEntryLegs[i + 2] = legs[side].knee.rotation.x;
+        dodgeEntryLegs[i + 3] = legs[side].ankle.rotation.x;
+        dodgeEntryLegs[i + 4] = legs[side].ankle.rotation.z;
+      }
+    }
+    wasDodging = dodging && !dead;
     advanceMotion(motion, dt, state, scale);
     const stride = motion.phase;
     const moveBlend = motion.blend;
@@ -364,10 +386,14 @@ export function createFighter(scene, { kind = 'hero', name = kind } = {}) {
     }
     death = B.Scalar.Lerp(death, dead ? 1 : 0, Math.min(1, dt * 5));
     const attackWeight = attacking ? smooth(attack / .12) * smooth((1 - attack) / .18) : 0;
-    const locomotion = !dodging && !dead ? (1 - attackWeight) : 0;
-    const gait = moveBlend * locomotion * (1 - .35 * guardBlend);
     const dodge = motion.dodge;
-    const bob = !dodging ? (motion.bob * locomotion + Math.sin(time * 1.6) * .009 * (1 - moveBlend)) * bodyMotion : 0;
+    const dodgeProgress = Math.max(0, Math.min(1, state.dodgeProgress || 0));
+    const entryPose = dodging && !dead ? 1 - smooth(dodgeProgress / .36) : 0;
+    const ambientPose = dodging && !dead ? 1 - smooth((1 - dodgeProgress) / .24) : 1;
+    const locomotion = !dead ? (1 - attackWeight) * (dodging ? entryPose : 1) : 0;
+    const gait = !dodging ? moveBlend * locomotion * (1 - .35 * guardBlend) : 0;
+    const upperGait = dodging ? dodgeEntryGait * locomotion : gait;
+    const bob = dodging ? dodgeEntryBob * entryPose : (motion.bob * locomotion + Math.sin(time * 1.6) * .009 * (1 - moveBlend)) * bodyMotion;
     renderedBob = bob;
     const crouch = gait * (.10 + motion.sprint * .055) + attackWeight * .045 + guardBlend * .035;
     rig.position.y = bob - .35 * dodge * bodyMotion - death * .20;
@@ -376,9 +402,9 @@ export function createFighter(scene, { kind = 'hero', name = kind } = {}) {
     rig.rotation.y = -motion.turn * .009 * moveBlend * locomotion * bodyMotion;
     rig.position.x = death * -.17;
     rig.position.z = strikePose[9];
-    pelvis.position.y = .92 - crouch;
-    pelvis.rotation.y = Math.sin(stride) * .045 * gait * bodyMotion + strikePose[8];
-    torso.rotation.y = (-Math.sin(stride) * .04 * gait + motion.turn * .009 * moveBlend * locomotion) * bodyMotion + strikePose[6];
+    pelvis.position.y = dodgeEntryPelvisY * entryPose + .92 * dodge + (.92 - crouch) * ambientPose;
+    pelvis.rotation.y = Math.sin(stride) * .045 * upperGait * bodyMotion + strikePose[8];
+    torso.rotation.y = (-Math.sin(stride) * .04 * upperGait + motion.turn * .009 * moveBlend * locomotion) * bodyMotion + strikePose[6];
     torso.rotation.x = (.7 * dodge - .10 * guardBlend) * bodyMotion + strikePose[7];
     head.rotation.x = dead ? .24 : -.06 * guardBlend + Math.sin(time * .8) * .018 * (1 - guardBlend);
     head.rotation.y = motion.turn * .012 * moveBlend * locomotion * bodyMotion;
@@ -401,11 +427,14 @@ export function createFighter(scene, { kind = 'hero', name = kind } = {}) {
       const bend = Math.acos(Math.max(-1, Math.min(1, (vertical * vertical + footZ * footZ - .16 - lower * lower) / (.8 * lower))));
       const planted = Math.max(gait, attackWeight, guardBlend);
       const hip = (-Math.atan2(footZ, vertical) - Math.atan2(lower * Math.sin(bend), .4 + lower * Math.cos(bend))) * planted;
-      legs[side].hip.rotation.set(hip * (1 - dodge) + side * .8 * dodge, 0, Math.atan2(footX, .765 - crouch - lift) * planted * (1 - dodge));
-      legs[side].knee.rotation.x = (bend + .168267) * planted * (1 - dodge) + 1.1 * dodge;
-      legs[side].ankle.rotation.x = -(legs[side].hip.rotation.x + legs[side].knee.rotation.x + rig.rotation.x) * (1 - dodge);
-      legs[side].ankle.rotation.z = -(legs[side].hip.rotation.z + rig.rotation.z) * (1 - dodge);
-      arms[side].shoulder.rotation.set(Math.sin(phase + Math.PI) * gait * (.26 + .15 * motion.sprint), 0, side * -.09);
+      const hipZ = Math.atan2(footX, .765 - crouch - lift) * planted;
+      const knee = (bend + .168267) * planted;
+      const i = side === -1 ? 0 : 5;
+      legs[side].hip.rotation.set(dodgeEntryLegs[i] * entryPose + side * .8 * dodge + hip * ambientPose, 0, dodgeEntryLegs[i + 1] * entryPose + hipZ * ambientPose);
+      legs[side].knee.rotation.x = dodgeEntryLegs[i + 2] * entryPose + 1.1 * dodge + knee * ambientPose;
+      legs[side].ankle.rotation.x = dodgeEntryLegs[i + 3] * entryPose - (hip + knee + rig.rotation.x) * ambientPose;
+      legs[side].ankle.rotation.z = dodgeEntryLegs[i + 4] * entryPose - (hipZ + rig.rotation.z) * ambientPose;
+      arms[side].shoulder.rotation.set(Math.sin(phase + Math.PI) * upperGait * (.26 + .15 * motion.sprint), 0, side * -.09);
       arms[side].elbow.rotation.x = moving ? -.12 : -.06;
     }
     arms[-1].shoulder.rotation.x += strikePose[0];
@@ -489,6 +518,10 @@ export function createFighter(scene, { kind = 'hero', name = kind } = {}) {
   function resetMotion() {
     clearMotion(motion);
     death = guardBlend = spellBlend = 0;
+    wasDodging = false;
+    dodgeEntryGait = dodgeEntryBob = 0;
+    dodgeEntryPelvisY = .92;
+    dodgeEntryLegs.fill(0);
     strikePose.fill(0);
     castPose.fill(0);
     update(0);
