@@ -12,7 +12,7 @@ const question=part('function questionForFinding(f){','function plainResearchTex
 const plain=part('function plainResearchText(text){','function plainSummaryParts(');
 const recent=part('function recentFirst(items,field){','function keepOpen(');
 const helpers=part('function folded(title,items,key,css=','const investorQuestions=');
-const fixture=`<!doctype html><html lang="en"><head><meta name="viewport" content="width=device-width, initial-scale=1"><style>${css}</style></head><body><main>${html}</main>
+const fixture=`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><style>${css}</style></head><body><main>${html}</main>
 <script type="module">
 import { selectCouncilEvidence,councilLeadLabel } from '/orca-council.js';
 import {metricDisplayText} from '/orca-metric-labels.js';
@@ -66,6 +66,7 @@ async function main(){
    assert.equal(await page.locator('#outlook-grid .council-thesis > .source-fold a').count(),2);
    await page.locator('#council-archive summary').first().click();
    assert.match(await page.locator('#council-archive').innerText(),/42 published research searches recorded across all ORCA rounds/);
+   await page.locator('#council-archive .history-fold > summary').last().click();
    assert.match(await page.locator('#council-archive').innerText(),/OLD CACHED MAJORITY/);
    const measured=await page.evaluate(()=>({
     overflow:document.documentElement.scrollWidth>innerWidth,
@@ -81,7 +82,6 @@ async function main(){
    assert.match(await page.locator('.council-thesis').last().innerText(),/No recent bearish research/);
    assert.equal(await page.locator('#outlook-bear-count').innerText(),'0 Bearish');
    assert.doesNotMatch(await page.locator('#outlook-grid').innerText(),/cash pressure/);
-   await page.locator('#council-archive summary').first().click();
    assert.match(await page.locator('#council-archive').innerText(),/earlier or superseded findings/);
    await page.evaluate(()=>window.drawCouncil([],4));
    assert.match(await page.locator('#outlook-average-score').innerText(),/Fresh research needed/);
