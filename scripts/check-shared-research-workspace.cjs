@@ -51,6 +51,30 @@ check('Company profiles use one shared renderer, including RKLB', () =>
 check('Shared research panels are present exactly once', () =>
   ['execution','pricing','positioning'].every(key =>
     (workspace.match(new RegExp('id="investor-answer-' + key + '"','g')) || []).length === 1));
+check('Approved realm portraits remain original, uncropped and integrated with findings', () => {
+ const {createHash}=require('node:crypto');
+ const realms=[
+  ['management',"The King's Keep",'Management','execution','f67d169c28506be9fff319ef45e719da543dae088e110203e6ea5e1ed7c04f47'],
+  ['earnings','The Vault','Earnings','pricing','9d6448459ffe3e6581293993c1ef9a845b9b5a6342f2123230bc61dcdefe5728'],
+  ['positioning','The Frontier','Positioning','positioning','81bba89a1d8f011fd451e52b20720145a6de2afe5a5e867d7c8016d87fd3487f']
+ ];
+ assert.equal((workspace.match(/class="orca-realm-art"/g)||[]).length,3);
+ for(const [key,title,category,answer,hash] of realms){
+  const file='assets/orca-world-'+key+'.webp';
+  assert.equal(createHash('sha256').update(fs.readFileSync(path.join(root,file))).digest('hex'),hash);
+  assert.ok(workspace.includes('data-realm="'+key+'"><img src="./'+file+'?v=full-portrait-v2"'));
+  assert.ok(workspace.includes('<h3 class="pillar-heading">'+title+'</h3><p class="orca-realm-subtitle">'+category+'</p></div></div><div id="investor-answer-'+answer+'"'));
+ }
+ return workspace.includes('.investor-question .orca-realm-art{aspect-ratio:3/4;') &&
+  /\.investor-question \.orca-realm-art img\{[^}]*object-fit:contain/.test(workspace) &&
+  /\.investor-question \.orca-realm-label\{[^}]*bottom:0/.test(workspace);
+});
+check('Both external market widgets use dark themes and retain provider and delay disclosures', () =>
+ workspace.includes("theme:'dark'") && workspace.includes("colorTheme:'dark'") &&
+ !workspace.includes("theme:'light'") && !workspace.includes("colorTheme:'light'") &&
+ workspace.includes("support_host:'https://www.tradingview.com'") &&
+ workspace.includes("a.textContent='Stock quote by TradingView'") &&
+ workspace.includes('US stock quotes may be delayed. Quote and research outlook are independent; ORCA does not collect or score this price.'));
 const elementIds = new Set([...workspace.matchAll(/\bid=["']([^"']+)["']/g)].map(m => m[1]));
 check('No reference to a deleted literal DOM element ($)', () =>
   [...workspace.matchAll(/\$\(['"]([^'"]+)['"]\)/g)].every(m => elementIds.has(m[1])));

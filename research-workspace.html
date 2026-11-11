@@ -56,6 +56,13 @@ main{max-width:1020px;margin:0 auto;padding:27px 16px 55px}
 .orca-quick-reference h3{margin:0 0 11px;font-size:15px}
 #orca-current-quote{min-height:128px;min-width:0;overflow:hidden}
 #orca-current-quote .tradingview-widget-container{width:100%;min-height:120px}
+/* R1: market context only; preserve the independent research and timeline layouts. */
+#chart-section,.orca-quote-panel{background:#101b2b;border-color:#756344;color:#edf2f7}
+#chart-section>.chart-title h2,.orca-quote-panel h3{color:#e4c589}
+#chart-section>.chart-title .mini,#chart-section>.mini,#orca-agent-evidence-feed .mini,
+.orca-quote-panel .mini,#chart-frame .empty{color:#bdcbd9}
+#chart-section>.chart-frame{background:#101b2b;border-color:#46576c}
+.orca-quote-panel a{color:#e4c589}
 @media(max-width:700px){.orca-quick-reference{grid-template-columns:1fr}}
 
 .outlook-meter{position:relative;width:100%;height:28px;border-radius:999px;overflow:visible;background:linear-gradient(to right,#168b5f 0%,#168b5f 42%,#51866a 46%,#87726a 50%,#b2575b 54%,#cd4048 58%,#cd4048 100%);box-shadow:inset 0 2px 5px #092a3226}
@@ -886,7 +893,7 @@ function createMarketChart(){
   const inner=document.createElement('div');inner.className='tradingview-widget-container__widget';inner.style.cssText='height:100%;width:100%';outer.append(inner);
   const script=document.createElement('script');script.async=true;
   script.src='https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js';
-  script.textContent=JSON.stringify({autosize:true,symbol:ticker==='RKLB'?'NASDAQ:RKLB':ticker,interval:'D',timezone:'exchange',theme:'light',style:'1',hide_top_toolbar:false,hide_side_toolbar:false,allow_symbol_change:true,hide_volume:false,withdateranges:true,locale:'en',save_image:false,support_host:'https://www.tradingview.com'});
+  script.textContent=JSON.stringify({autosize:true,symbol:ticker==='RKLB'?'NASDAQ:RKLB':ticker,interval:'D',timezone:'exchange',theme:'dark',style:'1',hide_top_toolbar:false,hide_side_toolbar:false,allow_symbol_change:true,hide_volume:false,withdateranges:true,locale:'en',save_image:false,support_host:'https://www.tradingview.com'});
   outer.append(script);host.append(outer);
 }
 
@@ -902,7 +909,7 @@ function createMarketQuote(){
  const a=document.createElement('a');a.href='https://www.tradingview.com/symbols/'+encodeURIComponent(symbol.replace(':','-'))+'/';a.target='_blank';a.rel='noopener nofollow noreferrer';a.textContent='Stock quote by TradingView';
  credit.append(a);outer.append(credit);
  const script=document.createElement('script');script.async=true;script.src='https://s3.tradingview.com/external-embedding/embed-widget-symbol-info.js';
- script.textContent=JSON.stringify({symbol,width:'100%',locale:'en',colorTheme:'light',isTransparent:true});
+ script.textContent=JSON.stringify({symbol,width:'100%',locale:'en',colorTheme:'dark',isTransparent:true});
  outer.append(script);host.append(outer);
 }
 let sb=null,user=null,ready=false,loading=false,claim=null,alias='',publicationAlias='',tasks=[],findings=[],freshnessTimer=null;
