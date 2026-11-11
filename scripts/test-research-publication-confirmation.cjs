@@ -13,7 +13,9 @@ assert.ok(publicationStart >= 0 && publicationEnd > publicationStart, 'productio
 const publicationSource = source.slice(publicationStart, publicationEnd);
 const localOwnerId = 'local-owner-fixture';
 const localTaskId = 'local-task-fixture';
-const localAlias = 'Local confirmation fixture';
+const localFindingId = '123e4567-e89b-12d3-a456-426614174000'; // Valid UUID, deliberately not v4.
+const localAlias = 'Local profile confirmation fixture';
+const localMembershipAlias = 'Different local membership fixture';
 const localSummary = 'Local validation fixture only. This text contains no financial research.';
 const taggedSummary = '[ORCA-R4;Q:execution;A:BUY;D:BULLISH] ' + localSummary;
 const localObservedAt = '2026-11-11T00:00:00.000Z';
@@ -30,12 +32,13 @@ function setup(options = {}) {
     'submit-form': { reset: () => { state.resetCount++; } }
   };
   const row = {
-    id: 'local-finding-fixture', task_id: localTaskId, summary: taggedSummary,
+    id: localFindingId, task_id: localTaskId, summary: taggedSummary,
     contributor_alias: localAlias, source_urls: [...localSources], observed_at: localObservedAt
   };
   if (options.mutateRow) options.mutateRow(row);
   const context = {
-    ready: true, loading: false, user: { id: localOwnerId }, alias: localAlias,
+    ready: true, loading: false, user: { id: localOwnerId },
+    alias: localMembershipAlias, publicationAlias: localAlias,
     claim: { id: localTaskId, status: 'claimed' }, findings: [], tasks: [],
     isOrcaStaging: true, independentPublishingEnabled: options.independentPublishingEnabled === true, ticker: 'LOCAL',
     assignedResearchBoard: { task_id: localTaskId, board_key: 'execution' },
@@ -53,7 +56,7 @@ function setup(options = {}) {
     rpc: async (name, args) => {
       state.rpcCalls.push({ name, args });
       if (options.rpcError) throw new Error('Local transport failure');
-      return options.rpcResponse; // null and undefined fixtures exercise legacy empty returns.
+      return Object.hasOwn(options, 'rpcResponse') ? options.rpcResponse : localFindingId;
     },
     refresh: async refreshOptions => {
       state.refreshOptions = refreshOptions;
@@ -90,21 +93,34 @@ function setup(options = {}) {
 function expectUnconfirmed(fixture) {
   assert.equal(fixture.state.resetCount, 0, 'unconfirmed publication retains the form');
   assert.equal(fixture.state.messages.at(-1).kind, 'error');
-  assert.match(fixture.state.messages.at(-1).message, /Draft retained/);
+  assert.match(fixture.state.messages.at(-1).message, /draft retained/i);
   assert.equal(fixture.fields.summary.value, localSummary);
   assert.equal(fixture.fields.sources.value, localSources.join('\n'));
 }
 
-for (const [description, rpcResponse] of [['undefined', undefined], ['null', null]]) {
-  test(`legacy ${description} RPC result succeeds after matching board evidence and completed task`, async () => {
+test('the scalar finding UUID confirms a matching row with the profile alias despite a different membership name', async () => {
+  const fixture = setup();
+  await fixture.run();
+  assert.notEqual(fixture.context.alias, fixture.context.publicationAlias);
+  assert.equal(fixture.state.rpcCalls.length, 1);
+  assert.equal(fixture.state.authCalls, 2);
+  assert.equal(fixture.state.refreshOptions.forcePermissions, true);
+  assert.equal(fixture.state.resetCount, 1);
+  assert.equal(fixture.state.messages.at(-1).kind, 'success');
+  assert.match(fixture.state.messages.at(-1).message, new RegExp('Finding ID: ' + localFindingId));
+});
+
+for (const [description, rpcResponse] of [
+  ['undefined', undefined], ['null', null], ['empty', ''], ['malformed', 'not-a-uuid'],
+  ['object', { id: localFindingId }], ['array', [localFindingId]]
+]) {
+  test(`${description} RPC return cannot confirm publication without the scalar finding UUID`, async () => {
     const fixture = setup({ rpcResponse });
     await fixture.run();
+    expectUnconfirmed(fixture);
     assert.equal(fixture.state.rpcCalls.length, 1);
-    assert.equal(fixture.state.authCalls, 2);
-    assert.equal(fixture.state.refreshOptions.forcePermissions, true);
-    assert.equal(fixture.state.resetCount, 1);
-    assert.equal(fixture.state.messages.at(-1).kind, 'success');
-    assert.match(fixture.state.messages.at(-1).message, /Publication and completed assignment confirmed on the board/);
+    assert.equal(fixture.state.refreshOptions, null);
+    assert.match(fixture.state.messages.at(-1).message, /did not return a finding UUID/);
   });
 }
 
@@ -144,8 +160,15 @@ for (const [description, rpcResponse] of [
   });
 }
 
-test('source URL order does not affect confirmation', async () => {
-  const fixture = setup({ mutateRow: row => row.source_urls.reverse() });
+test('an unchanged source array preserves duplicate URLs in the receipt', async () => {
+  const fixture = setup({ mutateRow: row => { row.source_urls = [localSources[0], localSources[0]]; } });
+  fixture.fields.sources.value = [localSources[0], localSources[0]].join('\n');
+  await fixture.run();
+  assert.equal(fixture.state.resetCount, 1);
+});
+
+test('an equivalent observation timestamp confirms the same instant', async () => {
+  const fixture = setup({ mutateRow: row => { row.observed_at = '2026-11-11T01:00:00+01:00'; } });
   await fixture.run();
   assert.equal(fixture.state.resetCount, 1);
 });
@@ -179,8 +202,13 @@ test('a different refreshed claim is preserved after confirmed publication', asy
 
 for (const [description, options] of [
   ['finding missing', { missingRow: true }],
+  ['matching metadata belongs to a different finding ID', { mutateRow: row => { row.id = '123e4567-e89b-12d3-a456-426614174001'; } }],
   ['different alias', { mutateRow: row => { row.contributor_alias = 'Different local fixture'; } }],
+  ['only the membership alias matches', { mutateRow: row => { row.contributor_alias = localMembershipAlias; } }],
   ['different sources', { mutateRow: row => { row.source_urls = ['https://example.invalid/different']; } }],
+  ['source URLs are reordered', { mutateRow: row => { row.source_urls.reverse(); } }],
+  ['source URL normalization changes stored text', { mutateRow: row => { row.source_urls[0] = 'https://EXAMPLE.invalid/local-a'; } }],
+  ['source duplicate count changes', { mutateRow: row => { row.source_urls.push(localSources[0]); } }],
   ['missing sources', { mutateRow: row => { delete row.source_urls; } }],
   ['unsafe extra source', { mutateRow: row => { row.source_urls.push('javascript:localFixture()'); } }],
   ['different observation time', { mutateRow: row => { row.observed_at = '2026-11-10T00:00:00Z'; } }],
@@ -200,6 +228,17 @@ for (const [description, options] of [
     expectUnconfirmed(fixture);
     assert.match(fixture.state.messages.at(-1).message, /may already be published.*check the board before retrying/);
     if (options.claimAfterRefresh) assert.equal(fixture.context.claim, options.claimAfterRefresh);
+  });
+}
+
+for (const [description, publicationAlias] of [['missing', undefined], ['blank', ' '], ['nonstring', 42]]) {
+  test(`a ${description} profile publication alias prevents sending a publish request`, async () => {
+    const fixture = setup();
+    fixture.context.publicationAlias = publicationAlias;
+    await fixture.run();
+    expectUnconfirmed(fixture);
+    assert.equal(fixture.state.rpcCalls.length, 0);
+    assert.match(fixture.state.messages.at(-1).message, /profile name could not be verified/);
   });
 }
 
@@ -223,6 +262,52 @@ test('a failed publish transport retains the draft and requires board inspection
   expectUnconfirmed(fixture);
   assert.equal(fixture.state.rpcCalls.length, 1);
   assert.match(fixture.state.messages.at(-1).message, /check the board before retrying/);
+});
+
+test('permission checks read the publication alias from the owned profile and clear it after sign-out', async () => {
+  const begin = source.indexOf('async function checkReady(){');
+  const end = source.indexOf('async function refresh(', begin);
+  assert.ok(begin >= 0 && end > begin, 'production permission check found');
+  const queries = [];
+  const fields = new Map();
+  const context = {
+    user: { id: localOwnerId }, ticker: 'LOCAL', isOrcaStaging: true,
+    ready: false, independentPublishingEnabled: false,
+    alias: '', publicationAlias: 'Stale fixture alias', lastPermissionCheck: 0, outlookAccessMessage: '', Date,
+    $: id => {
+      if (!fields.has(id)) fields.set(id, { textContent: '', classList: { toggle() {} } });
+      return fields.get(id);
+    },
+    sb: { from: table => {
+      const query = { table, columns: '', filters: [] };
+      queries.push(query);
+      return {
+        select(columns) { query.columns = columns; return this; },
+        eq(column, value) { query.filters.push([column, value]); return this; },
+        async maybeSingle() {
+          assert.ok(['stock_research_memberships', 'agent_profiles'].includes(table));
+          return { data: table === 'stock_research_memberships'
+            ? { display_name: localMembershipAlias }
+            : { id: 'local-profile-fixture', display_name: localAlias, opted_in: true, independent_publish_enabled: false },
+          error: null };
+        }
+      };
+    } }
+  };
+  vm.createContext(context);
+  vm.runInContext(source.slice(begin, end), context);
+  await context.checkReady();
+  assert.equal(context.alias, localMembershipAlias);
+  assert.equal(context.publicationAlias, localAlias);
+  assert.equal(context.ready, true);
+  assert.deepEqual(queries, [
+    { table: 'stock_research_memberships', columns: 'display_name', filters: [['ticker', 'LOCAL'], ['user_id', localOwnerId]] },
+    { table: 'agent_profiles', columns: 'id,display_name,opted_in,independent_publish_enabled', filters: [['owner_id', localOwnerId]] }
+  ]);
+  context.user = null;
+  await context.checkReady();
+  assert.equal(context.publicationAlias, '');
+  assert.equal(context.ready, false);
 });
 
 test('My assignment exposes the exact task ID beside the metric and deadline', () => {
