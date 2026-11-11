@@ -1458,7 +1458,7 @@ function renderClaim(){
  select.value=assigned?.board_key||'';
  select.disabled=true;
  updateResearchAnswers();
- area.textContent='Metric: '+claim.research_area+'\nResearch board: '+(assigned?.board_label||'Legacy claim — no board assigned')+
+ area.textContent='Task ID: '+claim.id+'\nMetric: '+claim.research_area+'\nResearch board: '+(assigned?.board_label||'Legacy claim — no board assigned')+
   '\nResearch question: '+(claim.research_question||'Investigate independently')+
   '\nDeadline: '+time(claim.claimed_until);
  area.style.whiteSpace='pre-wrap';control();
@@ -1525,6 +1525,11 @@ async function claimTask(id){if(!ready||loading)return;loading=true;control();if
  msg('Claiming the selected assignment…');let failure=null;try{claim=await rpc('commons_claim_task',{p_task_id:id});$('observed').value=localDateTime();renderClaim();msg('Assignment reserved. Research it independently in this workspace; no AI is launched by the website.','success');}catch(e){failure=e;}finally{loading=false;const refreshed=await refresh({announce:false});if(failure)msg('Action failed while claiming: '+errorInfo(failure),'error');else if(!refreshed)msg('The claim RPC succeeded, but the active assignment could not be confirmed. Refresh before continuing.','error');}}
 async function release(){if(!claim||loading)return;if(!confirm('Release this unfinished assignment for someone else?'))return;loading=true;control();if(!isOrcaStaging){try{await rpc('commons_release_task',{p_task_id:claim.id});claim=null;msg('Assignment released.','success');}catch(e){msg('Could not release assignment: '+e.message,'error');}finally{loading=false;await refresh();}return;}
  msg('Releasing the active assignment…');let failure=null;try{await rpc('commons_release_task',{p_task_id:claim.id});claim=null;}catch(e){failure=e;}finally{loading=false;const refreshed=await refresh({announce:false});if(failure)msg('Action failed while releasing: '+errorInfo(failure),'error');else if(!refreshed)msg('The release RPC succeeded, but assignment status could not be confirmed. Refresh before continuing.','error');else if(claim)msg('The release RPC returned, but an active assignment is still shown. Refresh and verify before continuing.','error');else msg('Assignment released. No active assignment.','success');}}
+function samePublicationSources(actual,expected){
+ if(!Array.isArray(actual))return false;
+ const actualSet=new Set(actual.map(safeLink).filter(Boolean)),expectedSet=new Set(expected.map(safeLink).filter(Boolean));
+ return actual.every(url=>safeLink(url))&&actualSet.size===expectedSet.size&&[...expectedSet].every(url=>actualSet.has(url));
+}
 async function publish(e){e.preventDefault();if(!ready||!claim||loading)return;
  const summary=$('summary').value.trim(),question=$('research-question').value,answer=$('research-answer').value;
  if(isOrcaStaging&&(!assignedResearchBoard||assignedResearchBoard.task_id!==claim.id||question!==assignedResearchBoard.board_key)){
@@ -1543,13 +1548,23 @@ async function publish(e){e.preventDefault();if(!ready||!claim||loading)return;
  if(sources.length<1||sources.length>5||sources.some(x=>!safeLink(x)||x.length>500)){msg('Provide 1–5 valid http(s) source URLs on separate lines.','error');return;}
  if(!observed||!Number.isFinite(Date.parse(observed))){msg('Enter the observation date and time.','error');return;}
  if(!$('self-reviewed').checked&&!independentPublishingEnabled){publishMsg('Researcher verification is required unless the owner enabled independent publishing.','error');return;}
- const taskId=claim.id;publishMsg('Publishing checked summary…');loading=true;control();let result;
- try{result=await rpc(independentPublishingEnabled?'commons_publish_independent_finding':'commons_publish_finding',{p_task_id:taskId,p_summary:publicSummary,p_source_urls:sources,p_observed_at:new Date(observed).toISOString(),p_limitations:limitations});
+ const submitted={ownerId:user?.id,alias,taskId:claim.id,summary:publicSummary,sources:[...sources],observedAt:new Date(observed).toISOString()};
+ const taskId=submitted.taskId;publishMsg('Publishing checked summary…');loading=true;control();let result,publishRequested=false;
+ try{
+  const auth=await sb.auth.getUser();
+  if(auth.error||!submitted.ownerId||auth.data?.user?.id!==submitted.ownerId)throw auth.error||new Error('The signed-in account changed. Reload and check your assignment before publishing.');
+  publishRequested=true;
+  result=await rpc(independentPublishingEnabled?'commons_publish_independent_finding':'commons_publish_finding',{p_task_id:taskId,p_summary:publicSummary,p_source_urls:submitted.sources,p_observed_at:submitted.observedAt,p_limitations:limitations});
   const response=Array.isArray(result)?result[0]:result;if(response&&typeof response==='object'&&response.success===false)throw {code:response.code,message:response.message||response.error,details:response.details,hint:response.hint};
- }catch(err){loading=false;control();publishMsg('Publish failed. Draft retained.\n'+errorInfo(err),'error');return;}
- loading=false;control();const refreshed=await refresh({announce:false});
- if(!refreshed||!findings.some(f=>f.task_id===taskId&&f.summary===publicSummary)){publishMsg('The publish request returned, but the submitted finding was not confirmed on the refreshed public board. Draft retained; refresh and verify before retrying.','error');return;}
- const newlyPublished=findings.find(f=>f.task_id===taskId&&f.summary===publicSummary);
+ }catch(err){loading=false;control();publishMsg((publishRequested?'The publish request was not confirmed. Draft retained; check the board before retrying.\n':'Publish was not sent. Draft retained.\n')+errorInfo(err),'error');return;}
+ loading=false;control();const refreshed=await refresh({announce:false,forcePermissions:true});
+ loading=true;control();
+ let confirmedOwner=null;
+ if(refreshed){try{const auth=await sb.auth.getUser();if(!auth.error)confirmedOwner=auth.data?.user?.id||null;}catch{/* Keep the publication unconfirmed when authentication cannot be rechecked. */}}
+ const newlyPublished=findings.find(f=>f.task_id===taskId&&f.summary===submitted.summary&&f.contributor_alias===submitted.alias&&samePublicationSources(f.source_urls,submitted.sources)&&Date.parse(f.observed_at)===Date.parse(submitted.observedAt));
+ const completedTask=tasks.some(task=>task.id===taskId&&task.status==='completed');
+ loading=false;control();
+ if(!refreshed||!ready||user?.id!==submitted.ownerId||confirmedOwner!==submitted.ownerId||!newlyPublished||!completedTask||claim?.id===taskId){publishMsg('The publish request returned, but the publication and completed assignment were not confirmed for the same account on the refreshed board. It may already be published. Draft retained; check the board before retrying.','error');return;}
  if(newlyPublished){const item=[...$('outlook-supporting-findings').querySelectorAll('input[type="checkbox"]')].find(input=>input.value===newlyPublished.id);if(item)item.checked=true;}
  // Synthesis is a separate, nonblocking action. It never changes the saved finding.
  if(newlyPublished&&isOrcaStaging){
@@ -1557,7 +1572,7 @@ async function publish(e){e.preventDefault();if(!ready||!claim||loading)return;
    .then(({data,error})=>{if(!error&&data?.status==='ready')refresh({announce:false});})
    .catch(()=>{});
  }
- claim=null;$('submit-form').reset();updateResearchAnswers();$('observed').value=localDateTime();renderClaim();control();publishMsg('Four-level research rating published and verified. A separate Bullish or Bearish price forecast is optional and requires a verified baseline, deadline, and supporting evidence.','success');}
+ $('submit-form').reset();updateResearchAnswers();$('observed').value=localDateTime();renderClaim();control();publishMsg('Publication and completed assignment confirmed on the board. A separate Bullish or Bearish price forecast is optional and requires a verified baseline, deadline, and supporting evidence.','success');}
 $('refresh').addEventListener('click',()=>refresh({announce:true}));$('release').addEventListener('click',release);
 $('request-assignment').addEventListener('click',()=>requestAssignment());
 $('submit-form').addEventListener('submit',publish);$('research-question').addEventListener('change',updateResearchAnswers);$('research-answer').addEventListener('change',updateRatingDirection);updateResearchAnswers();$('summary').addEventListener('input',updatePublishedLength);
