@@ -173,9 +173,44 @@ const rootMatchesPlayer = state => assert.deepEqual(state.actorPositions.hero, [
   await frames(14);
   state = await snapshot();
   assert.equal(state.player.action, null);
+  near(state.animation.hero.phase, 0, 'The final dodge displacement cannot advance ordinary footwork');
+  near(state.animation.hero.speed, 0, 'The last evasive tick cannot be presented as a sprint');
   rootMatchesPlayer(state);
   await render();
   pass('Space dodges immediately at the original cost, speed and duration without adding a spell cancel');
+
+  await restart();
+  await position(-2, -12);
+  await page.keyboard.down('KeyW');
+  await page.keyboard.down('ShiftLeft');
+  await frames(24);
+  const sprint = await snapshot();
+  assert(sprint.animation.hero.speed > 5.9);
+  await page.keyboard.up('KeyW');
+  await page.keyboard.down('KeyA');
+  await page.keyboard.press('Space');
+  state = await snapshot();
+  assert.equal(state.player.action.type, 'dodge');
+  near(state.player.stamina, sprint.player.stamina - 24, 'A moving directional dodge retains its original cost');
+  let previousMotion = sprint.animation.hero;
+  for (let i = 0; i < 29; i++) {
+    await frames(1);
+    state = await snapshot();
+    const motion = state.animation.hero;
+    near(motion.phase, sprint.animation.hero.phase, 'Directional dodge does not run the walk cycle');
+    for (const axis of ['x', 'y', 'z']) {
+      assert(Math.abs(motion.rigRotation[axis] - previousMotion.rigRotation[axis]) < .31, 'Sprint-to-dodge body rotation stays continuous.');
+      assert(Math.abs(motion.rigPosition[axis] - previousMotion.rigPosition[axis]) < .12, 'Sprint-to-dodge body position stays continuous.');
+    }
+    rootMatchesPlayer(state);
+    previousMotion = motion;
+  }
+  assert.equal(state.player.action, null);
+  assert(state.player.x < sprint.player.x - 4.5, 'Real A+Space retains the existing lateral dodge distance.');
+  await releaseKeys();
+  await frames(30);
+  await render();
+  pass('Real sprint to A+Space blends continuously and keeps the final evasive tick out of the gait cycle');
 
   await restart();
   await position(0, 5.8);

@@ -35,6 +35,7 @@ test('distance advances footwork; held movement at a wall and idle do not run in
   const f = fixture(t);
   f.frames(90, { moving: true, speed: 3.5, localVelocityZ: 3.5 });
   const moving = f.actor.motionSnapshot();
+  assert(moving.distance > 5 && moving.phase > 0, 'Actual travel advances the footwork.');
   f.frames(90, { moving: true, sprinting: true, speed: 0 }); // Sprint input still held against collision.
   const stopped = f.actor.motionSnapshot();
   near(stopped.phase, moving.phase, 'Blocked feet must stop advancing');
@@ -81,6 +82,39 @@ test('walk, sprint, stop and turning blend continuously without moving the colli
     previous = current;
   }
   assert(f.actor.motionSnapshot().moveBlend < .01);
+});
+
+test('sprint enters and exits a dodge without snapping knees, ankles or pelvis', t => {
+  // Enter with either foot planted or lifted, including the reported 87-frame
+  // sprint case that previously jumped the knee by almost two radians.
+  for (const entryFrames of [24, 40, 64, 87]) {
+    const f = fixture(t);
+    f.frames(entryFrames, { moving: true, sprinting: true, speed: 6, localVelocityZ: 6 });
+    const nodes = ['rig', 'pelvis', 'torso', 'hip--1', 'hip-1', 'knee--1', 'knee-1', 'ankle--1', 'ankle-1'].map(f.node);
+    let previous = nodes.map(pose);
+    const adjacentFrame = state => {
+      f.update(state);
+      const current = nodes.map(pose);
+      for (let n = 0; n < current.length; n++) for (let axis = 0; axis < 6; axis++) {
+        const limit = axis < 3 ? (n === 0 ? .12 : .09) : .31;
+        assert(Math.abs(current[n][axis] - previous[n][axis]) < limit, `${nodes[n].name} axis ${axis} after ${entryFrames} sprint frames cannot snap across a dodge boundary: ${previous[n][axis]} -> ${current[n][axis]}`);
+      }
+      previous = current;
+    };
+    const displacement = { moving: true, speed: 9.5, localVelocityX: entryFrames === 87 ? -9.5 : 0, localVelocityZ: entryFrames === 87 ? 0 : 9.5 };
+    for (let i = 0; i < 28; i++) adjacentFrame({ ...displacement, dodging: true, dodgeProgress: (i + 1) * dt / .48 });
+    // The action clears after moving tick 29; presentation finishes that
+    // authoritative dodge tick at progress 1 before ordinary gait resumes.
+    adjacentFrame({ ...displacement, dodging: true, dodgeProgress: 1 });
+    if (entryFrames === 87) {
+      // A fresh legal Space press can begin immediately: there need not be a
+      // false dodging flag between the old progress 1 and the new progress 0.
+      for (let i = 0; i < 28; i++) adjacentFrame({ ...displacement, dodging: true, dodgeProgress: (i + 1) * dt / .48 });
+      adjacentFrame({ ...displacement, dodging: true, dodgeProgress: 1 });
+    }
+    for (let i = 0; i < 45; i++) adjacentFrame({ moving: true, sprinting: true, speed: 6, localVelocityZ: 6 });
+    near(f.actor.motionSnapshot().dodgeEnvelope, 0, 'Dodge exit does not retain a crouch envelope');
+  }
 });
 
 test('reduced motion attenuates bob and turn lean while retaining readable legs', t => {
