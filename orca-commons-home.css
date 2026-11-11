@@ -1,0 +1,86 @@
+/* ORCA Commons public landing — cinematic, accessible, zero paid page-load requests. */
+body.orca-commons-home{font:15px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;margin:0}
+.orca-home{max-width:1160px;margin:0 auto;padding:0 20px 76px}
+.orca-home a{color:#f0d795}
+.orca-home .home-overline{font-size:11px;letter-spacing:.17em;font-weight:900;color:#e9c987}
+.orca-home .home-hero{min-height:475px;display:grid;grid-template-columns:1.08fr .92fr;gap:20px;align-items:stretch;padding:39px 0 10px}
+.orca-home .home-hero-copy{display:flex;flex-direction:column;justify-content:center;align-items:flex-start;min-width:0;padding:24px 15px 24px 0}
+.orca-home .home-hero h1{font:900 clamp(47px,6.4vw,86px)/.99 Georgia,"Times New Roman",serif;letter-spacing:-.045em;color:#fff0cb;margin:13px 0 19px;max-width:650px}
+.orca-home .home-hero h1 em{display:block;font-style:normal;color:#f8f7f4;font-size:.62em;line-height:1.12;letter-spacing:-.028em;margin-top:12px}
+.orca-home .hero-lead{font-size:clamp(16px,1.75vw,19px);line-height:1.7;color:#d2deed;max-width:585px;margin:0 0 24px}
+.orca-home .hero-actions{display:flex;flex-wrap:wrap;gap:10px}
+.orca-home .home-button{display:inline-flex;align-items:center;justify-content:center;min-height:45px;padding:12px 19px;text-decoration:none;border-radius:10px;font-size:14px;font-weight:850;border:1px solid #e5c787;transition:transform .15s,background .15s}
+.orca-home .home-button:hover{transform:translateY(-1px);text-decoration:none}
+.orca-home .home-button.primary{background:linear-gradient(135deg,#f5df9f,#d5af69);color:#14243a}
+.orca-home .home-button.secondary{color:#f3ddb1;background:#1b2c44;border-color:#796744}
+.orca-home .home-hero-art{position:relative;overflow:hidden;border:1px solid #8d7248;border-radius:20px;min-height:400px;background:#111f32;box-shadow:0 15px 40px #03081188}
+.orca-home .home-hero-art img{width:100%;height:100%;min-height:400px;object-fit:cover;object-position:center;display:block;opacity:.9}
+.orca-home .home-hero-art:after{content:"";position:absolute;inset:0;background:linear-gradient(0deg,#111d32 0%,transparent 43%),linear-gradient(90deg,#101d31aa,transparent 65%);pointer-events:none}
+.orca-home .home-hero-art .art-caption{position:absolute;z-index:1;bottom:19px;left:20px;right:20px;display:flex;justify-content:space-between;gap:8px;align-items:end}
+.orca-home .art-caption strong{font:800 26px/1.15 Georgia,serif;color:#f5dca5}
+.orca-home .art-caption small{font-size:10px;letter-spacing:.1em;color:#c7d7e7}
+.orca-home .gold-rule{height:1px;border:0;background:linear-gradient(90deg,transparent,#a99161,transparent);margin:22px 0 35px}
+.orca-home .home-search{scroll-margin-top:20px;border:1px solid #8b7046;background:radial-gradient(ellipse at 95% 0%,#29445a,#182840 65%);border-radius:18px;padding:27px 31px;box-shadow:0 14px 32px #040c1b70}
+.orca-home .home-search-header{display:flex;gap:20px;justify-content:space-between;align-items:end;flex-wrap:wrap}
+.orca-home h2{font:850 clamp(26px,3.2vw,39px)/1.13 Georgia,serif;color:#f3dea7;letter-spacing:-.02em;margin:7px 0 10px}
+.orca-home h3{font:800 23px/1.2 Georgia,serif;color:#f4dba1;margin:7px 0 10px}
+.orca-home .home-search p{font-size:13px;color:#c2d2e3;max-width:670px;margin:0}
+.orca-home .home-search .orca-lookup{margin:16px 0 3px}
+.orca-home .home-search .orca-lookup label{color:#e8c98c}
+.orca-home .home-search .orca-lookup input{background:#f6f7f7;color:#162c3c;border:1px solid #c4b080;min-height:46px}
+.orca-home .home-search .orca-lookup button{background:#ebcc89;color:#172a3d;min-height:46px}
+.orca-home .home-search .orca-lookup button:hover{background:#f5dda8}
+.orca-home .home-search .orca-lookup-status{color:#c4d7e7}
+.orca-home .home-search .orca-lookup-results{background:#fbfaf6;border-color:#c8b78f}
+.orca-home .home-search .orca-lookup-results a,.orca-home .home-search .orca-lookup-results button{color:#193448}
+.orca-home .home-search .small{font-size:12px;color:#b4c7d7}
+.orca-home .home-section{scroll-margin-top:16px;margin-top:54px}
+.orca-home .section-intro{display:flex;align-items:end;justify-content:space-between;gap:25px;flex-wrap:wrap;margin-bottom:19px}
+.orca-home .section-intro p{font-size:14px;color:#c6d6e6;line-height:1.7;max-width:540px;margin:0}
+.orca-home .realm-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.orca-home .realm{display:block;position:relative;min-width:0;min-height:400px;border:1px solid #8a744c;border-radius:15px;overflow:hidden;background:#1b293d;text-decoration:none;box-shadow:0 12px 30px #04081180;transition:transform .2s,border-color .2s}
+.orca-home .realm:hover,.orca-home .realm:focus-visible{transform:translateY(-3px);border-color:#d4b97c}
+.orca-home .realm img{width:100%;height:400px;display:block;object-fit:cover}
+.orca-home .realm:after{content:"";position:absolute;inset:0;background:linear-gradient(0deg,#071424 0%,#0c1b2d50 45%,transparent 75%);pointer-events:none}
+.orca-home .realm-content{position:absolute;z-index:1;bottom:18px;left:18px;right:18px}
+.orca-home .realm-content span{display:block;color:#e6c488;font-weight:850;font-size:10px;letter-spacing:.16em;margin-bottom:5px}
+.orca-home .realm-content strong{font:850 27px/1.1 Georgia,serif;color:#f7e2b4;display:block}
+.orca-home .realm-content small{display:block;color:#d8e4f0;font-size:12px;line-height:1.5;margin-top:9px}
+.orca-home .journey{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.orca-home .journey-step{background:linear-gradient(145deg,#20344b,#18283c);border:1px solid #59647a;border-radius:14px;padding:22px;display:grid;grid-template-columns:53px 1fr;gap:12px}
+.orca-home .journey-num{display:grid;place-items:center;width:48px;height:48px;border-radius:50%;font:800 22px Georgia,serif;color:#f4d99a;background:#223b54;border:1px solid #bea06c}
+.orca-home .journey-step h3{font-size:20px;margin:4px 0 6px}
+.orca-home .journey-step p{font-size:13px;line-height:1.65;color:#d0ddea;margin:0}
+.orca-home .journey-step a{display:inline-block;margin-top:10px;text-decoration:none;font-size:12px;font-weight:850;color:#f0d295}
+.orca-home .legends-feature{display:grid;grid-template-columns:1.25fr .75fr;gap:20px;align-items:center;background:radial-gradient(ellipse at 90% 50%,#3c4a51,#1a2b40 65%,#102035);border:1px solid #8b744d;border-radius:18px;padding:29px;box-shadow:0 12px 32px #03091750}
+.orca-home .legends-feature p{color:#d0dce8;font-size:14px;line-height:1.7}
+.orca-home .legends-mark{display:grid;place-items:center;text-align:center;min-height:190px;border:1px solid #806c4b;border-radius:14px;background:radial-gradient(circle at 50% 45%,#4d5b69,#17263d 65%);position:relative;overflow:hidden}
+.orca-home .legends-mark:before{content:"";width:155px;height:155px;position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);border-radius:50%;border:1px solid #e6c58970;box-shadow:0 0 0 16px #e6c58912,0 0 0 35px #e6c58909}
+.orca-home .legends-mark strong{position:relative;color:#f0daa7;font:900 38px/1.1 Georgia,serif}
+.orca-home .legends-mark small{position:relative;color:#d0dced;font-weight:750;letter-spacing:.14em;font-size:10px}
+.orca-home .fine-print{font-size:12px;color:#b3c5d6;line-height:1.7;margin:28px 0 5px}
+body.orca-commons-home>footer{background:#0a1424;border-top:1px solid #62563e;padding:24px 20px;color:#b9cadd;text-align:center;font-size:12px}
+body.orca-commons-home>footer a{color:#e5cb93}
+@media(max-width:850px){
+ .orca-home .home-hero{grid-template-columns:1fr;padding-top:16px}
+ .orca-home .home-hero-copy{padding:22px 0 6px}
+ .orca-home .home-hero-art,.orca-home .home-hero-art img{min-height:330px;height:330px}
+ .orca-home .realm-grid{gap:10px}
+ .orca-home .realm,.orca-home .realm img{min-height:310px;height:310px}
+ .orca-home .realm-content strong{font-size:22px}
+ .orca-home .realm-content{left:12px;right:12px}
+}
+@media(max-width:620px){
+ .orca-home{padding:0 14px 45px}
+ .orca-home .home-hero h1{font-size:clamp(44px,12vw,62px)}
+ .orca-home .home-hero-art,.orca-home .home-hero-art img{min-height:285px;height:285px}
+ .orca-home .home-hero-art .art-caption strong{font-size:20px}
+ .orca-home .home-search{padding:20px 16px}
+ .orca-home .realm-grid,.orca-home .journey,.orca-home .legends-feature{grid-template-columns:1fr}
+ .orca-home .realm,.orca-home .realm img{height:340px;min-height:340px}
+ .orca-home .section-intro{align-items:start}
+ .orca-home .home-section{margin-top:38px}
+ .orca-home .legends-feature{padding:22px}
+ .orca-home .legends-mark{min-height:160px}
+}
+@media(prefers-reduced-motion:reduce){.orca-home .home-button,.orca-home .realm{transition:none}}
