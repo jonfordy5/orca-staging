@@ -1,93 +1,161 @@
-/* R6 ORCA Guild Hall — visual-only styling; no client permission rules live here. */
-body.orca-guild-page{background:radial-gradient(ellipse at 14% 0%,#283e55,#101c2e 46%,#091422 100%);color:#e8f0f9;min-height:100vh}
-.guild-page{max-width:1160px;margin:auto;padding:26px 20px 64px}
-.guild-page h1,.guild-page h2,.guild-page h3{letter-spacing:-.01em}
-.guild-eyebrow{display:block;color:#e3c58b;font-size:10px;font-weight:900;letter-spacing:.17em;text-transform:uppercase}
-.guild-hero{border:1px solid #866f49;border-radius:19px;overflow:hidden;min-height:365px;display:grid;grid-template-columns:1.12fr .88fr;background:linear-gradient(135deg,#132237,#253b52);box-shadow:0 15px 39px #020c1d84}
-.guild-intro{padding:36px 36px 34px;align-self:center;min-width:0}
-.guild-intro h1{font:900 clamp(39px,5.4vw,65px)/1.06 Georgia,"Times New Roman",serif;color:#f4dba2;margin:10px 0 15px}
-.guild-intro h1 em{display:block;font:800 clamp(20px,2.45vw,29px)/1.25 system-ui,-apple-system,"Segoe UI",sans-serif;color:#f6f0e4;margin-top:12px}
-.guild-intro p{line-height:1.72;color:#cfdeeb;max-width:600px;margin:0 0 17px;font-size:15px}
-.guild-hero-art{position:relative;min-height:365px;overflow:hidden;background:#1a2e46}
-.guild-hero-art img{height:100%;width:100%;position:absolute;inset:0;object-fit:cover;object-position:center;display:block}
-.guild-hero-art:before{content:"";position:absolute;inset:0;z-index:1;background:linear-gradient(90deg,#1b2b43 0%,transparent 49%),linear-gradient(0deg,#111c2d 0%,transparent 40%);pointer-events:none}
-.guild-art-caption{position:absolute;z-index:2;left:24px;right:20px;bottom:21px;display:flex;gap:6px;flex-direction:column}
-.guild-art-caption strong{color:#f6dfad;font:900 23px/1.18 Georgia,serif}
-.guild-art-caption small{font-size:10px;color:#c8d9eb;letter-spacing:.13em;font-weight:800}
-.guild-hero-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:16px}
-.guild-button{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:#e8c681;border:1px solid #f3dba7;border-radius:10px;padding:11px 16px;min-height:42px;color:#14283b!important;font-size:13px;font-weight:850;text-decoration:none!important;cursor:pointer}
-.guild-button:hover,.guild-button:focus-visible{background:#f7dfa6}
-.guild-button.secondary{background:#263b51;color:#f2dbad!important;border-color:#8a744c}
-.guild-button.secondary:hover{background:#344d66}
-.guild-loading{margin:17px 0;background:#243950;border:1px solid #59708a;border-radius:10px;color:#dce6f1;padding:12px 15px;font-size:13px;line-height:1.55}
-.guild-loading[data-kind="error"]{border-color:#bd7472;background:#472b37;color:#fff2e9}
-.guild-loading[data-kind="success"]{border-color:#6f9e88}
-.guild-locked{border:1px solid #866d48;border-radius:16px;background:#1d3045;padding:24px;margin:20px 0;display:flex;flex-direction:column;align-items:start;gap:7px}
-.guild-locked h2{font:900 25px Georgia,serif;color:#f5dda4;margin:0}
-.guild-locked p{color:#d2e0ed;font-size:14px;line-height:1.6;margin:0 0 8px}
-.guild-main-grid{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(260px,.74fr);gap:17px;margin-top:20px;align-items:start}
+/* R6 Guild Hall — scoped presentation; authorization stays with the ORCA Engine. */
+body.orca-guild-page{margin:0;font:14px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;background:radial-gradient(ellipse at 6% 4%,#25374880,transparent 44%),radial-gradient(ellipse at 100% 45%,#143d442e,transparent 45%),#0b1420;color:#e8edf3;min-height:100vh}
+.orca-guild-page *{box-sizing:border-box}
+.guild-page{max-width:1240px;margin:auto;padding:32px 28px 42px}
+.guild-page h1,.guild-page h2,.guild-page h3{letter-spacing:-.025em}
+.guild-page a{color:#e4c88e}
+.guild-skip{position:absolute;top:8px;left:12px;z-index:30;padding:12px 18px;background:#f0d39b;color:#102434;transform:translateY(-180%)}
+.guild-skip:focus{transform:none}
+.guild-eyebrow{display:block;color:#d8bb83;font-size:10px;font-weight:750;letter-spacing:.17em;text-transform:uppercase}
+.guild-sigil{font:30px/1 Georgia,serif;vertical-align:middle;margin-right:10px;color:#edcf93}
+.guild-hero{position:relative;isolation:isolate;border:1px solid #8a714b;border-radius:16px;overflow:hidden;min-height:448px;display:grid;grid-template-columns:1.06fr 1fr;background:#101c2b;box-shadow:0 24px 60px #02081280,inset 0 0 60px #b78a4210}
+.guild-intro{position:relative;z-index:2;padding:45px 0 45px 40px;align-self:center;min-width:0}
+.guild-intro h1{font:500 clamp(43px,5vw,65px)/1.04 Georgia,"Times New Roman",serif;color:#f3dfb6;margin:18px 0 20px;letter-spacing:-.04em!important}
+body.orca-guild-page .guild-intro h1 em{display:block;font:400 clamp(26px,2.9vw,36px)/1.18 Georgia,serif;color:#f1eee5;margin-top:12px;letter-spacing:-.02em}
+.guild-intro p{line-height:1.8;color:#c0cedb;max-width:445px;margin:0 0 22px;font-size:14px}
+.guild-hero-art{position:absolute;inset:0 0 0 36%;z-index:-1;overflow:hidden;background:#132130}
+.guild-hero-art img{height:100%;width:100%;object-fit:cover;object-position:50% 44%;display:block;opacity:.9}
+.guild-hero-art:before{content:"";position:absolute;inset:0;z-index:1;background:linear-gradient(90deg,#101c2b 0%,#101c2bea 9%,#101c2b4a 48%,#101c2b08 80%),linear-gradient(0deg,#0b1627d9,transparent 44%),radial-gradient(ellipse at 83% 70%,#d49a402e,transparent 65%);pointer-events:none}
+.guild-hero:after{content:"";position:absolute;inset:14px;border:1px solid #d7b77426;border-radius:8px;pointer-events:none}
+.guild-art-caption{position:absolute;z-index:2;right:30px;bottom:30px;display:flex;gap:13px;align-items:center;text-shadow:0 2px 8px #000}
+.guild-art-star{font:44px/1 Georgia,serif;color:#d5ba7d}
+.guild-art-caption strong{display:block;color:#f3dfb8;font:400 24px/1.3 Georgia,serif;margin-top:3px}
+.guild-art-caption small{font-size:9px;color:#e3d5ba;letter-spacing:.18em;font-weight:700}
+.guild-hero-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.guild-button{display:inline-flex;align-items:center;justify-content:center;gap:12px;background:linear-gradient(135deg,#edd5a0,#cba96b);border:1px solid #e4c58b;border-radius:6px;padding:11px 16px;min-height:44px;color:#162435!important;font-size:12px;line-height:1.5;font-weight:750;text-decoration:none!important;cursor:pointer;transition:background .15s,border-color .15s}
+.guild-button:hover{background:#f3dda9}
+.guild-button.secondary{background:#142537cc;color:#e8d4ab!important;border-color:#756347}
+.guild-button.secondary:hover{background:#29394b;border-color:#c7a56a}
+.guild-loading{margin:20px 0;background:#162636;border:1px solid #435565;border-radius:8px;color:#cbd8e4;padding:12px 16px;font-size:12px;line-height:1.65}
+.guild-loading[data-kind="error"]{border-color:#b06b6a;background:#38232d;color:#fff2e9}
+.guild-loading[data-kind="success"]{border-color:#3e645e;background:linear-gradient(90deg,#17302f70,#132334);color:#c3ded5}
+.guild-locked{position:relative;border:1px solid #786544;border-radius:12px;background:radial-gradient(ellipse at 100% 0%,#29424775,transparent 60%),#152332;padding:30px;margin:24px 0;display:flex;flex-direction:column;align-items:start;gap:10px}
+.guild-locked h2{font:400 29px/1.2 Georgia,serif;color:#f1dcb1;margin:0}
+.guild-locked p{color:#c2cfdc;font-size:14px;line-height:1.8;max-width:760px;margin:0 0 8px}
+.guild-desk-heading{display:flex;align-items:end;justify-content:space-between;gap:20px;margin:34px 0 20px}
+.guild-desk-heading h2{font:400 30px/1.2 Georgia,serif;color:#f1e2c8;margin:6px 0 0}
+.guild-read-only{font-size:11px;color:#b3c6c8;text-align:right}
+.guild-read-only span{color:#bda16d;margin-right:5px}
+.guild-main-grid{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(290px,1fr);gap:20px;align-items:start}
 .guild-main-grid>div{min-width:0}
-.guild-card{background:linear-gradient(155deg,#22364b,#182940 80%);border:1px solid #506880;border-radius:15px;padding:22px;margin-bottom:17px;min-width:0;box-shadow:0 9px 25px #05132664}
-.guild-card.gold{border-color:#92784e;background:radial-gradient(ellipse at 90% 5%,#34506b 0%,#1d3048 62%,#1a2a41 100%)}
-.guild-card-header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;border-bottom:1px solid #4d6175;padding-bottom:12px;margin-bottom:14px}
-.guild-card-header h2{font:900 26px/1.16 Georgia,serif;color:#f4d99e;margin:6px 0 2px}
-.guild-card-header p{font-size:12px;color:#c7d7e7;margin:4px 0 0}
-.guild-card .guild-small{color:#c5d7e7;font-size:12px;line-height:1.6}
+.guild-card{position:relative;background:linear-gradient(135deg,#1b2b3b,#142232 80%);border:1px solid #45525e;border-radius:12px;padding:25px;margin-bottom:20px;min-width:0;box-shadow:0 12px 30px #02091440}
+.guild-card.gold{border-color:#8a734d;background:radial-gradient(ellipse at 100% 0%,#3b494444,transparent 65%),linear-gradient(135deg,#1b2c3d,#142333)}
+.guild-card.gold:before{content:"";position:absolute;top:-1px;left:25px;right:25px;height:1px;background:linear-gradient(90deg,transparent,#e4c58a,transparent)}
+.guild-card-header{display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;border-bottom:1px solid #b2c2cc26;padding-bottom:18px;margin-bottom:20px}
+.guild-card-header h2{font:400 27px/1.2 Georgia,serif;color:#efdab1;margin:7px 0 4px}
+.guild-card-header p{font-size:12px;color:#b5c5d5;margin:6px 0 0;line-height:1.6}
+.guild-card .guild-small{color:#b9c9d8;font-size:12px;line-height:1.6}
 .guild-card .guild-small strong{color:#f4dca6}
-.guild-card .guild-big{font:900 clamp(26px,3vw,33px)/1.2 Georgia,serif;color:#f9ebcb;margin:6px 0 10px;overflow-wrap:anywhere}
-.guild-card .guild-copy{font-size:14px;line-height:1.67;color:#d8e5ef;margin:9px 0}
-.guild-pill{display:inline-flex;align-items:center;gap:6px;border:1px solid #788061;border-radius:999px;background:#283e4d;color:#f2db9e;font-size:11px;font-weight:900;line-height:1.2;padding:6px 11px}
-.guild-pill[data-kind="on"]{border-color:#69a38f;background:#23473d;color:#baf1d1}
-.guild-pill[data-kind="off"]{border-color:#b88575;background:#503636;color:#ffd9cd}
-.guild-pill[data-kind="unknown"]{border-color:#7c8ca3;color:#ccddea}
-.guild-kv{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
-.guild-kv>div{min-width:0;background:#283d54;border:1px solid #4a6176;border-radius:10px;padding:12px}
-.guild-kv dt{font-size:10px;letter-spacing:.1em;color:#d7c08f;text-transform:uppercase;font-weight:850}
-.guild-kv dd{font-size:13px;color:#ebf3fc;margin:5px 0 0;overflow-wrap:anywhere}
-.guild-ticker-select{min-width:120px;max-width:100%;padding:9px 10px;background:#eef4f8;border:1px solid #d7bd88;border-radius:10px;color:#172e40;font:700 13px system-ui,sans-serif;cursor:pointer}
-.guild-mission-details{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:13px 0}
-.guild-mission-details div{background:#263b53;border:1px solid #506881;border-radius:10px;padding:12px;min-width:0}
-.guild-mission-details small{display:block;font-size:10px;font-weight:900;letter-spacing:.09em;color:#f2cd88;text-transform:uppercase}
-.guild-mission-details strong{font-size:13px;color:#f1f7ff;line-height:1.5;display:block;margin-top:5px;overflow-wrap:anywhere}
-.guild-mission-empty{padding:15px;border:1px dashed #7187a0;border-radius:10px;background:#253a50;color:#dfebf5;line-height:1.65;font-size:13px}
-.guild-mission-note{border-left:2px solid #e7c88a;padding-left:13px;color:#d6e2ed;font-size:13px;line-height:1.65;margin-top:14px;overflow-wrap:anywhere}
-.guild-action-row{display:flex;gap:9px;flex-wrap:wrap;margin-top:15px}
-.guild-evidence-list{list-style:none;padding:0;margin:6px 0 0}
-.guild-evidence-list li{padding:12px 0;border-top:1px solid #455e73}
-.guild-evidence-list li:first-child{border-top:0}
-.guild-evidence-list strong{display:block;font-size:14px;color:#f4dfa9;margin:0 0 3px;overflow-wrap:anywhere}
-.guild-evidence-list small{font-size:12px;color:#c3d3e3;display:block}
-.guild-evidence-list a{display:inline-block;color:#f4d594;font-size:12px;margin-top:6px;font-weight:850}
-.guild-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
-.guild-stats>div{border:1px solid #677282;border-radius:12px;background:#2b4054;padding:14px;min-width:0}
-.guild-stats strong{display:block;color:#f2db9e;font:900 28px Georgia,serif;line-height:1.2}
-.guild-stats small{display:block;color:#c4d4e4;font-size:12px;line-height:1.55;margin-top:5px}
-.guild-aside-art{position:relative;overflow:hidden;min-height:195px;border:1px solid #7e6c4b;border-radius:12px;margin:18px 0}
-.guild-aside-art img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center}
-.guild-aside-art:after{content:"";position:absolute;inset:0;background:linear-gradient(0deg,#142237c9,transparent 75%);pointer-events:none}
-.guild-aside-art span{position:absolute;z-index:1;bottom:13px;left:15px;color:#f5dda6;font:900 17px Georgia,serif}
-.guild-quick-links{display:grid;gap:9px}
-.guild-quick-links a{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:12px 13px;border:1px solid #68798c;border-radius:11px;background:#293e54;color:#f4d995!important;text-decoration:none;font-size:13px;font-weight:850}
-.guild-quick-links a:hover{background:#36526d;border-color:#bc9b66}
-.guild-footnote{color:#b7c9db;font-size:12px;line-height:1.65;margin:9px 0 0}
-.guild-source-note{border-top:1px solid #506078;padding-top:13px;margin:16px 0 0;font-size:11px;color:#c0d1e4;line-height:1.65}
-.guild-page footer{text-align:center;color:#b6c6d9;font-size:12px;margin-top:32px}
-.guild-page a:focus-visible,.guild-page button:focus-visible,.guild-page select:focus-visible{outline:3px solid #f2d99c;outline-offset:3px}
-[hidden]{display:none!important}
-@media(max-width:920px){
- .guild-hero{grid-template-columns:1fr}
- .guild-hero-art{order:-1;min-height:240px}
- .guild-hero-art img{object-position:center 47%}
- .guild-intro{padding:26px}
- .guild-main-grid{grid-template-columns:1fr}
+.guild-card .guild-big{font:400 clamp(26px,3vw,34px)/1.2 Georgia,serif;color:#f3e7ce;margin:12px 0 17px;overflow-wrap:anywhere}
+.guild-profile-label{font-size:9px!important;letter-spacing:.14em;margin:0}
+.guild-pill{display:inline-flex;align-items:center;gap:6px;border:1px solid #8b7855;border-radius:5px;background:#3e3e2f55;color:#ead4a6;font-size:10px;font-weight:700;line-height:1.4;padding:5px 8px}
+.guild-pill[data-kind="on"]{border-color:#497d72;background:#163e36;color:#c2ead7}
+.guild-pill[data-kind="off"]{border-color:#956c60;background:#48332e;color:#f4cbbd}
+.guild-pill[data-kind="unknown"]{border-color:#627486;background:#283647;color:#cfdae4}
+.guild-kv{display:grid;gap:0;margin:0}
+.guild-kv>div{display:flex;align-items:center;justify-content:space-between;gap:12px;min-width:0;padding:13px 0;border-bottom:1px solid #b2c2cc1f}
+.guild-kv dt{font-size:12px;color:#bccbd9}
+.guild-kv dd{font-size:12px;color:#ebf3fc;margin:0;text-align:right;overflow-wrap:anywhere}
+.guild-card-header>label{min-width:0;max-width:100%}
+.guild-ticker-select{display:block;min-width:120px;max-width:100%;margin-top:5px;padding:9px 30px 9px 11px;background:#102030;border:1px solid #89734e;border-radius:6px;color:#eddbb7;font:650 12px system-ui,sans-serif;cursor:pointer;min-height:44px}
+.guild-ticker-select:disabled{opacity:.75;cursor:default}
+.guild-mission-details{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0;margin:17px 0;border:1px solid #56657380;border-radius:8px;overflow:hidden;background:#101d2c66}
+.guild-mission-details div{padding:16px;min-width:0}
+.guild-mission-details div:nth-child(-n+2){border-bottom:1px solid #56657360}
+.guild-mission-details div:nth-child(odd){border-right:1px solid #56657360}
+.guild-mission-details dt{display:block;font-size:9px;font-weight:700;letter-spacing:.12em;color:#c6b58f;text-transform:uppercase}
+.guild-mission-details dd{font-size:13px;font-weight:550;color:#e7eef5;line-height:1.6;display:block;margin:7px 0 0;overflow-wrap:anywhere}
+.guild-mission-empty{padding:20px;border:1px dashed #657580;border-radius:8px;background:#112132;color:#c8d7e5;line-height:1.8;font-size:13px}
+.guild-mission-note{border-left:2px solid #cfad70;padding:4px 0 4px 16px;color:#d1dce6;font:400 17px/1.65 Georgia,serif;margin:20px 0;overflow-wrap:anywhere}
+.guild-action-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}
+.guild-work-guide{margin-top:25px;padding-top:22px;border-top:1px solid #b2c2cc26}
+.guild-work-guide h3{font-size:13px;font-weight:650;color:#e7dbbf;margin:0 0 17px;letter-spacing:0}
+.guild-work-steps{list-style:none;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:17px;padding:0;margin:0}
+.guild-work-steps li{min-width:0}
+.guild-work-steps li>span{display:block;color:#9fc3bd;font:400 20px/1 Georgia,serif;margin-bottom:10px}
+.guild-work-steps strong{color:#dedfda;font-size:11px;font-weight:650}
+.guild-work-steps p{font-size:11px;line-height:1.7;color:#b2c3d3;margin:5px 0 0}
+.guild-evidence-list{list-style:none;padding:0;margin:6px 0 22px}
+.guild-evidence-list li{position:relative;padding:17px 0 17px 21px;border-bottom:1px solid #b2c2cc26}
+.guild-evidence-list li:before{content:"";position:absolute;left:0;top:23px;width:6px;height:6px;border:1px solid #c3a56d;transform:rotate(45deg)}
+.guild-evidence-list strong{display:block;font-size:14px;font-weight:600;color:#ecdbb7;margin:0 0 5px;overflow-wrap:anywhere}
+.guild-evidence-list small{overflow-wrap:anywhere;font-size:11px;line-height:1.7;color:#afc0d1;display:block}
+.guild-evidence-list a{display:inline-flex;align-items:center;min-height:36px;color:#e2c68f;font-size:11px;margin-top:5px;font-weight:650;text-underline-offset:4px}
+.guild-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.guild-stats>div{border:1px solid #68736980;border-radius:8px;background:#101d2c70;padding:17px;min-width:0}
+.guild-stats strong{display:block;color:#efd6a1;font:400 38px/1.1 Georgia,serif}
+.guild-stats small{display:block;color:#b9c9d8;font-size:11px;line-height:1.6;margin-top:8px}
+.guild-aside-art{position:relative;overflow:hidden;height:135px;border:1px solid #7e6c4b;border-radius:8px;margin:22px 0}
+.guild-aside-art img{width:100%;height:100%;display:block;object-fit:cover;object-position:center 48%}
+.guild-aside-art:after{content:"";position:absolute;inset:0;background:linear-gradient(0deg,#0c1927e6,transparent 95%);pointer-events:none}
+.guild-aside-art span{position:absolute;z-index:1;bottom:15px;left:17px;color:#f0dbb1;font:400 21px/1.2 Georgia,serif}
+.guild-quick-links{display:grid}
+.guild-quick-links a{display:flex;justify-content:space-between;align-items:center;gap:12px;min-height:46px;padding:11px 0;border-bottom:1px solid #b2c2cc26;color:#e3c995!important;text-decoration:none;font-size:12px;font-weight:550}
+.guild-quick-links a:last-child{border-bottom:0;padding-bottom:0}
+.guild-quick-links a span{color:#b4c6cf}
+.guild-quick-links a:hover{color:#fff1cf!important}
+.guild-footnote{color:#acbfd0;font-size:11px;line-height:1.8;margin:15px 0 0}
+.guild-source-note{margin:22px 0 0;font-size:11px;color:#aabecf;line-height:1.8}
+.guild-page footer{text-align:center;border-top:1px solid #bca27333;padding-top:26px;color:#c7b897;font-size:12px;line-height:2;margin-top:28px}
+.guild-page footer span{color:#9eb1c4;font-size:10px}
+.guild-page :focus-visible{outline:3px solid #f2d99c;outline-offset:4px}
+.orca-guild-page [hidden]{display:none!important}
+@media(max-width:1000px){
+ .guild-main-grid{grid-template-columns:minmax(0,1.3fr) minmax(270px,1fr);gap:16px}
+ .guild-card{padding:21px}
+ .guild-intro{padding-left:30px}
+ .guild-hero{min-height:430px}
+ .guild-work-steps{grid-template-columns:1fr;gap:14px}
+ .guild-work-steps li{display:flex;gap:14px}
+ .guild-work-steps li>span{margin:3px 0 0;font-size:18px}
+ .guild-work-steps p{margin-top:2px}
 }
-@media(max-width:520px){
- .guild-page{padding:17px 12px 48px}
- .guild-intro{padding:20px 17px}
+@media(max-width:760px){
+ .guild-page{padding:20px 18px 35px}
+ .guild-hero{grid-template-columns:1fr;min-height:0}
+ .guild-hero-art{position:relative;inset:auto;order:-1;height:240px;z-index:0}
+ .guild-hero-art img{object-position:50% 37%}
+ .guild-hero-art:before{background:linear-gradient(0deg,#101c2b,transparent 65%),linear-gradient(90deg,#101c2b44,transparent)}
+ .guild-intro{padding:8px 28px 30px}
+ .guild-intro h1{font-size:51px;margin-top:13px}
+ body.orca-guild-page .guild-intro h1 em{font-size:30px}
+ .guild-intro h1 br{display:none}
+ .guild-art-caption{right:25px;bottom:30px}
+ .guild-art-caption strong{font-size:22px}
+ .guild-art-star{font-size:34px}
+ .guild-intro p{max-width:100%}
+ .guild-main-grid{grid-template-columns:1fr}
+ .guild-desk-heading{align-items:start;flex-direction:column;gap:12px;margin-top:28px}
+ .guild-read-only{text-align:left}
+ .guild-work-steps{grid-template-columns:repeat(3,minmax(0,1fr))}
+ .guild-work-steps li{display:block}
+ .guild-work-steps li>span{margin-bottom:9px}
+ .guild-kv{grid-template-columns:1fr 1fr;gap:0 24px}
+}
+@media(max-width:450px){
+ .guild-page{padding:16px 12px 30px}
+ .guild-hero-art{height:220px}
+ .guild-intro{padding:7px 22px 27px}
+ .guild-intro .guild-eyebrow{font-size:8px;letter-spacing:.12em}
+ .guild-sigil{font-size:24px;margin-right:5px}
  .guild-intro h1{font-size:43px}
- .guild-hero-art{min-height:200px}
- .guild-card{padding:17px}
- .guild-kv,.guild-mission-details{grid-template-columns:1fr}
- .guild-card-header h2{font-size:23px}
+ body.orca-guild-page .guild-intro h1 em{font-size:27px}
+ .guild-intro p{font-size:13px}
+ .guild-hero-actions{align-items:stretch;flex-direction:column}
+ .guild-hero-actions .guild-button{width:100%}
+ .guild-card{padding:20px 18px}
+ .guild-card-header h2{font-size:25px}
+ .guild-desk-heading h2{font-size:27px}
+ .guild-mission-details,.guild-kv{grid-template-columns:1fr}
+ .guild-mission-details div:nth-child(odd){border-right:0}
+ .guild-mission-details div:not(:last-child){border-bottom:1px solid #56657360}
+ .guild-work-steps{grid-template-columns:1fr;gap:15px}
+ .guild-work-steps li{display:flex;gap:13px}
+ .guild-work-steps li>span{margin:3px 0 0}
+ .guild-work-steps strong{font-size:12px}
+ .guild-action-row .guild-button{width:100%;padding-left:10px;padding-right:10px}
+ .guild-locked{padding:24px 20px}
+ .guild-locked h2{font-size:26px}
+ .guild-locked p{font-size:13px}
 }
 @media(prefers-reduced-motion:reduce){.guild-button{transition:none}}
