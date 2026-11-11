@@ -1452,12 +1452,24 @@ function renderClaim(){
  const area=$('myclaim'),select=$('research-question');
  if(!claim){
   area.textContent=!user?'Sign in to check for an active assignment.':!ready?'Complete research permission checks.':'No active assignment. ORCA will select the next metric and board.';
-  select.value='';select.disabled=true;control();return;
+  select.value='';select.disabled=true;
+  select.dataset.renderedTaskId='';
+  updateResearchAnswers();control();return;
  }
  const assigned=assignedResearchBoard?.task_id===claim.id?assignedResearchBoard:null;
- select.value=assigned?.board_key||'';
+ const boardKey=assigned?.board_key||'';
+ // Refreshes re-render the option list. Preserve the owner's chosen rating only
+ // when the original claim and assigned board are unchanged.
+ const sameAssignment=select.dataset.renderedTaskId===claim.id&&select.value===boardKey;
+ const savedAnswer=sameAssignment?$('research-answer').value:'';
+ select.value=boardKey;
  select.disabled=true;
  updateResearchAnswers();
+ if(savedAnswer&&(answerChoices[boardKey]||[]).includes(savedAnswer)){
+  $('research-answer').value=savedAnswer;
+  updateRatingDirection();
+ }
+ select.dataset.renderedTaskId=claim.id;
  area.textContent='Task ID: '+claim.id+'\nMetric: '+claim.research_area+'\nResearch board: '+(assigned?.board_label||'Legacy claim — no board assigned')+
   '\nResearch question: '+(claim.research_question||'Investigate independently')+
   '\nDeadline: '+time(claim.claimed_until);

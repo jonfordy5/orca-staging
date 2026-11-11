@@ -323,12 +323,28 @@ test('permission checks read the publication alias from the owned profile and cl
 test('My assignment exposes the exact task ID beside the metric and deadline', () => {
   const begin = source.indexOf('function renderClaim(){');
   const end = source.indexOf('async function checkReady()', begin);
-  const fields = { myclaim: { textContent: '', style: {} }, 'research-question': {} };
+  const fields = {
+    myclaim: { textContent: '', style: {} },
+    'research-question': { value: '', disabled: false, dataset: {} },
+    'research-answer': { value: '' },
+    'research-direction': { value: '' }
+  };
   const context = {
     $: id => fields[id], user: { id: localOwnerId }, ready: true,
     claim: { id: localTaskId, research_area: 'Local audit metric', claimed_until: localObservedAt },
     assignedResearchBoard: { task_id: localTaskId, board_key: 'execution', board_label: 'Management' },
-    time: value => value, updateResearchAnswers: () => {}, control: () => {}
+    answerChoices: { execution: ['STRONG_BUY', 'BUY', 'SELL', 'STRONG_SELL'], pricing: ['BUY', 'SELL'] },
+    time: value => value,
+    // Model the real updateResearchAnswers rebuilding the dropdown, clearing the selection.
+    updateResearchAnswers: () => {
+      fields['research-answer'].value = '';
+      fields['research-direction'].value = '';
+    },
+    updateRatingDirection: () => {
+      const rating = fields['research-answer'].value;
+      fields['research-direction'].value = rating === 'BUY' ? 'BULLISH' : rating === 'SELL' ? 'BEARISH' : '';
+    },
+    control: () => {}
   };
   vm.createContext(context);
   vm.runInContext(source.slice(begin, end), context);
@@ -336,4 +352,25 @@ test('My assignment exposes the exact task ID beside the metric and deadline', (
   assert.match(fields.myclaim.textContent, /Task ID: local-task-fixture/);
   assert.match(fields.myclaim.textContent, /Research board: Management/);
   assert.match(fields.myclaim.textContent, /Deadline:/);
+
+  fields['research-answer'].value = 'BUY';
+  context.renderClaim();
+  assert.equal(fields['research-answer'].value, 'BUY', 'same assignment refresh must preserve the chosen rating');
+  assert.equal(fields['research-direction'].value, 'BULLISH', 'restored BUY must restore direction');
+
+  context.assignedResearchBoard = { task_id: localTaskId, board_key: 'pricing', board_label: 'Earnings' };
+  context.renderClaim();
+  assert.equal(fields['research-answer'].value, '', 'changed board must clear stale rating');
+
+  fields['research-answer'].value = 'SELL';
+  context.claim = { ...context.claim, id: 'different-local-task-fixture' };
+  context.assignedResearchBoard = { task_id: 'different-local-task-fixture', board_key: 'pricing', board_label: 'Earnings' };
+  context.renderClaim();
+  assert.equal(fields['research-answer'].value, '', 'changed task must clear stale rating');
+
+  fields['research-answer'].value = 'BUY';
+  context.claim = null;
+  context.renderClaim();
+  assert.equal(fields['research-answer'].value, '', 'no assignment must clear stale rating');
+  assert.equal(fields['research-question'].dataset.renderedTaskId, '');
 });
