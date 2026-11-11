@@ -1,0 +1,51 @@
+/* R5 ORCA Commons — shared presentation shell.
+   No authentication, Supabase, team/assignment, timeline or game behavior lives here. */
+:root{--orca-night:#0b1526;--orca-navy:#15253d;--orca-panel:#1d3049;--orca-gold:#e5c486;--orca-line:#6c5b42;--orca-paper:#faf8f3}
+body.orca-commons-home,body.orca-auth-shell{background:radial-gradient(ellipse at 5% 6%,#203752 0%,#101c30 42%,#0a1424 100%);background-attachment:fixed;color:#ebf2fa}
+body.orca-auth-shell{min-height:100vh}
+header.orca-site-header{position:relative;background:#101b2b!important;border-bottom:1px solid #65583f!important;padding:12px max(16px,calc((100vw - 1100px)/2))!important;color:#edf3fa!important;display:flex;align-items:center;flex-wrap:wrap;gap:12px 20px;justify-content:space-between;min-height:75px;z-index:10}
+header.orca-site-header .orca-wordmark{display:flex;align-items:center;gap:11px;text-decoration:none!important;color:#fff4d8!important;min-width:0;flex-shrink:0}
+header.orca-site-header .orca-mark{display:grid;place-items:center;width:43px;height:43px;flex:0 0 43px;border:1px solid #ceb073;border-radius:50%;font-family:Georgia,serif;font-size:25px;line-height:1;color:#f0d394!important;background:radial-gradient(circle at 50% 25%,#3b4f63,#19263c 80%);box-shadow:0 0 0 4px #dcb8720f,inset 0 0 14px #f0d39419}
+header.orca-site-header .orca-wordmark-text{display:flex;flex-direction:column;gap:2px;color:#f1d59a!important;font-size:19px;font-weight:900;letter-spacing:.035em;line-height:1.03}
+header.orca-site-header .orca-wordmark-text b{font-weight:900;color:#f6e7c3!important}
+header.orca-site-header .orca-wordmark-text small{font-size:9px;color:#bfcde0!important;letter-spacing:.16em;line-height:1.2}
+header.orca-site-header .orca-global-nav{display:flex;align-items:center;justify-content:flex-end;gap:5px;flex-wrap:wrap;margin-left:auto}
+header.orca-site-header .orca-global-nav a{display:inline-flex;align-items:center;justify-content:center;min-height:33px;padding:7px 10px;border:1px solid transparent;border-radius:9px;color:#d1dceb!important;text-decoration:none!important;font-size:12px;font-weight:800;white-space:nowrap;line-height:1.2}
+header.orca-site-header .orca-global-nav a:hover,header.orca-site-header .orca-global-nav a:focus-visible{background:#263a52;border-color:#897349;color:#fff0cc!important}
+header.orca-site-header .orca-global-nav a[aria-current="page"]{background:#2b3b4f;border-color:#776341;color:#f4d698!important}
+header.orca-site-header .orca-context-link{font-size:12px;font-weight:850!important;border:1px solid #a88a53!important;border-radius:10px;padding:9px 12px;background:#26354a;color:#f4dca7!important;text-decoration:none!important;white-space:nowrap}
+header.orca-site-header .orca-context-link:hover{background:#314660}
+header.orca-site-header .connect-agent-pill{border:1px solid #e6c77f!important;color:#122a2e!important;background:#ecd18c!important;box-shadow:0 3px 18px #0004!important}
+header.orca-site-header .connect-agent-pill:hover{background:#f6e1a7!important}
+body.orca-auth-shell main{color:#edf2fa}
+body.orca-auth-shell main>.eyebrow,body.orca-auth-shell main>.intro>.eyebrow,body.orca-auth-shell .eyebrow{color:#e2c284}
+body.orca-auth-shell main h1{color:#f8eedb;letter-spacing:-.035em}
+body.orca-auth-shell main h1 span,body.orca-auth-shell main h1 em{color:#e8ca8b}
+body.orca-auth-shell .intro p,body.orca-auth-shell .lead{color:#c9d5e4}
+body.orca-auth-shell .card,body.orca-auth-shell .aside,body.orca-auth-shell .tip{background:var(--orca-paper);color:#25394b;border:1px solid #c5ac7d;box-shadow:0 12px 36px #0004}
+body.orca-auth-shell .card h2,body.orca-auth-shell .aside h3,body.orca-auth-shell .card h3{color:#19334c}
+body.orca-auth-shell .callout,body.orca-auth-shell .banner{background:#25394e;border:1px solid #b99a65;color:#ebf0f6}
+body.orca-auth-shell .callout strong,body.orca-auth-shell .banner strong{color:#efcf91}
+body.orca-auth-shell .callout span,body.orca-auth-shell .banner span{color:#d7e4ee}
+body.orca-auth-shell .hero-panel{background:linear-gradient(135deg,#19273c,#293f54);border-color:#8c724c}
+body.orca-auth-shell .hero-panel strong{color:#e8c487}
+body.orca-auth-shell .tip strong{color:#8b6637}
+body.orca-auth-shell footer{color:#b0c2d4}
+body.orca-auth-shell .btn.primary,body.orca-auth-shell button.primary,body.orca-auth-shell .btn.dark{background:#e4c17e;color:#132737}
+body.orca-auth-shell button.primary:disabled{opacity:.65}
+body.orca-auth-shell .primary:hover,body.orca-auth-shell .btn.dark:hover{background:#f2d99d}
+body.orca-auth-shell .staging-indicator{color:#fff;background:#963c31}
+.orca-commons-home :focus-visible,.orca-auth-shell :focus-visible{outline:3px solid #efd58b;outline-offset:3px}
+@media(max-width:890px){
+ header.orca-site-header{gap:10px 14px}
+ header.orca-site-header .orca-global-nav{order:3;width:100%;justify-content:center;margin:0;padding:3px 0 1px;border-top:1px solid #526178}
+ header.orca-site-header .orca-global-nav a{flex:1 1 auto;text-align:center}
+}
+@media(max-width:540px){
+ header.orca-site-header{padding:11px 13px!important}
+ header.orca-site-header .orca-wordmark-text{font-size:16px}
+ header.orca-site-header .orca-mark{width:37px;height:37px;flex-basis:37px;font-size:22px}
+ header.orca-site-header .orca-context-link,header.orca-site-header .connect-agent-pill{font-size:11px!important;padding:8px 9px!important}
+ header.orca-site-header .orca-global-nav{gap:2px}
+ header.orca-site-header .orca-global-nav a{padding:7px 3px;font-size:11px;min-height:32px}
+}
