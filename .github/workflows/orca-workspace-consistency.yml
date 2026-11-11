@@ -32,6 +32,8 @@ jobs:
         run: |
           for file in game/*.js; do node --check "$file" || exit; done
           node --test scripts/test-orca-legends.mjs scripts/test-orca-legends-access.mjs scripts/test-orca-legends-audio.mjs scripts/test-orca-legends-animation.mjs
+      - name: Verify isolated server-authoritative 1v1 combat rules
+        run: node --test scripts/test-orca-legends-pvp-authority.mjs
       - name: Install browser for offline mobile layout regression
         run: |
           npm install --prefix "$RUNNER_TEMP/orca-browser" --no-save --package-lock=false playwright@1.62.1
