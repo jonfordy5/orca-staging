@@ -1,4 +1,4 @@
-import { renderAutomaticCompanyProfile, renderUnifiedCompanyProfile } from './orca-auto-company-profile.js?v=company-subjects-v1';
+import { renderAutomaticCompanyProfile, renderUnifiedCompanyProfile } from './orca-auto-company-profile.js?v=company-codex-r4';
 import { getCompanySize } from './orca-company-size.js';
 // Curated, source-backed company overviews for AI Stock Commons staging.
 // Never infer a company identity from a ticker alone. Add other tickers only after checking sources.
@@ -19,6 +19,14 @@ const profiles=Object.freeze({
    {name:'Where it is expanding',detail:'Neutron is a larger rocket still in development, designed for heavier spacecraft and satellite constellations. Its progress could open new opportunities, but testing, schedules, development costs, and customer demand remain important uncertainties.'}
   ],
   investorFocus:'Watch Electron launch cadence and reliability, Space Systems contract delivery and margins, and Neutron development milestones. These affect execution and long-term economics more than a single headline or launch photo.',
+  strengths:[
+   'Launch Services and Space Systems give customers access to launches, spacecraft and components within one business.',
+   'Electron and HASTE support different launch and testing needs while Space Systems can supply spacecraft even for third-party launches.'
+  ],
+  risks:[
+   'Neutron remains under development. Testing results, schedules and development costs introduce uncertainty.',
+   'Launch reliability, contract delivery and Space Systems margins are important execution risks to investigate.'
+  ],
   businessSource:'https://investors.rocketlabcorp.com/static-files/57a8d0da-27ff-499c-8d85-18907743b7a8',
   logo:'https://rocketlabcorp.com/_resources/themes/base/production/images/admin_logo.png?m=1747131331',
   activityPhoto:'https://rocketlabcorp.com/assets/Uploads/IMG_8591_2.jpg',
