@@ -173,6 +173,14 @@ test('an equivalent observation timestamp confirms the same instant', async () =
   assert.equal(fixture.state.resetCount, 1);
 });
 
+test('surrounding draft whitespace is trimmed before publication and receipt matching', async () => {
+  const fixture = setup();
+  fixture.fields.summary.value = ' \n' + localSummary + ' \t';
+  await fixture.run();
+  assert.equal(fixture.state.rpcCalls[0].args.p_summary, taggedSummary);
+  assert.equal(fixture.state.resetCount, 1);
+});
+
 test('a second publish is blocked while final authentication confirmation is pending', async () => {
   let releaseAuth, reportAuthStarted;
   const postAuthWait = new Promise(resolve => { releaseAuth = resolve; });
@@ -203,6 +211,8 @@ test('a different refreshed claim is preserved after confirmed publication', asy
 for (const [description, options] of [
   ['finding missing', { missingRow: true }],
   ['matching metadata belongs to a different finding ID', { mutateRow: row => { row.id = '123e4567-e89b-12d3-a456-426614174001'; } }],
+  ['returned finding belongs to a different task', { mutateRow: row => { row.task_id = 'different-local-task-fixture'; } }],
+  ['returned finding has a different summary', { mutateRow: row => { row.summary = taggedSummary + ' Changed fixture.'; } }],
   ['different alias', { mutateRow: row => { row.contributor_alias = 'Different local fixture'; } }],
   ['only the membership alias matches', { mutateRow: row => { row.contributor_alias = localMembershipAlias; } }],
   ['different sources', { mutateRow: row => { row.source_urls = ['https://example.invalid/different']; } }],

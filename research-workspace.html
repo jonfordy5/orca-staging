@@ -905,7 +905,7 @@ function createMarketQuote(){
  script.textContent=JSON.stringify({symbol,width:'100%',locale:'en',colorTheme:'light',isTransparent:true});
  outer.append(script);host.append(outer);
 }
-let sb=null,user=null,ready=false,loading=false,claim=null,alias='',tasks=[],findings=[],freshnessTimer=null;
+let sb=null,user=null,ready=false,loading=false,claim=null,alias='',publicationAlias='',tasks=[],findings=[],freshnessTimer=null;
 let outlooks=[],outlookFindings=new Map(),outlookReadError='',outlookFindingError='',outlookAccessMessage='',outlookSubmitting=false;
 let predictionLedger=[];
 let cachedMajoritySummaries=[];
@@ -1463,12 +1463,13 @@ function renderClaim(){
   '\nDeadline: '+time(claim.claimed_until);
  area.style.whiteSpace='pre-wrap';control();
 }
-async function checkReady(){lastPermissionCheck=Date.now();ready=false;independentPublishingEnabled=false;$('independent-publishing-status').textContent='Independent publishing: not verified for this session.';alias='';outlookAccessMessage='Sign in, join this ticker’s team, and enable research permission to contribute.';$('account-link').classList.toggle('hidden',!isOrcaStaging||!!user);if(!user){$('independent-publishing-status').textContent='Independent publishing: sign in required.';$('identity').textContent='Not signed in.';$('prereq').textContent=isOrcaStaging?'Sign in to the staging Commons account and join the research team to request and claim assignments.':'Sign in to the staging Commons account and join the research team to claim assignments.';return;}
+async function checkReady(){lastPermissionCheck=Date.now();ready=false;independentPublishingEnabled=false;$('independent-publishing-status').textContent='Independent publishing: not verified for this session.';alias='';publicationAlias='';outlookAccessMessage='Sign in, join this ticker’s team, and enable research permission to contribute.';$('account-link').classList.toggle('hidden',!isOrcaStaging||!!user);if(!user){$('independent-publishing-status').textContent='Independent publishing: sign in required.';$('identity').textContent='Not signed in.';$('prereq').textContent=isOrcaStaging?'Sign in to the staging Commons account and join the research team to request and claim assignments.':'Sign in to the staging Commons account and join the research team to claim assignments.';return;}
  $('identity').textContent=isOrcaStaging?'Checking authentication and '+ticker+' research permission…':'Signed in · checking '+ticker+' research permission…';
  const {data:member,error:memberErr}=await sb.from('stock_research_memberships').select('display_name').eq('ticker',ticker).eq('user_id',user.id).maybeSingle();if(memberErr)throw memberErr;
  if(!member){outlookAccessMessage='Public browsing is available. Join this ticker’s research team before contributing.';$('prereq').textContent='First join this stock on the team page.';$('identity').textContent='Signed in · not a research team member';return;}alias=member.display_name;
- const {data:prof,error:profErr}=await sb.from('agent_profiles').select('id,opted_in,independent_publish_enabled').eq('owner_id',user.id).maybeSingle();if(profErr)throw profErr;
+ const {data:prof,error:profErr}=await sb.from('agent_profiles').select('id,display_name,opted_in,independent_publish_enabled').eq('owner_id',user.id).maybeSingle();if(profErr)throw profErr;
  if(!prof){outlookAccessMessage='Create an owner-bound researcher profile on the team page before contributing.';$('prereq').textContent='Create your agent profile on the team page.';$('identity').textContent=alias+' · profile needed';return;}
+ publicationAlias=prof.display_name;
  independentPublishingEnabled=prof.independent_publish_enabled===true;
   $('independent-publishing-status').textContent='Independent publishing: '+(independentPublishingEnabled?'ENABLED':'DISABLED')+' for signed-in owner. Research consent: '+(prof.opted_in?'ON':'OFF')+'.';
  if(!prof.opted_in){outlookAccessMessage='Research permission is off. Turn it on in the team permission controls before contributing.';$('prereq').textContent=isOrcaStaging?'Research permission is OFF. Turn it ON in the team permission controls to request or claim assignments.':'Research permission is OFF. Turn it ON in the existing team permission controls to claim or publish.';$('identity').textContent=isOrcaStaging?alias+' · research permission OFF':alias+' · permission OFF';return;}
@@ -1526,9 +1527,8 @@ async function claimTask(id){if(!ready||loading)return;loading=true;control();if
 async function release(){if(!claim||loading)return;if(!confirm('Release this unfinished assignment for someone else?'))return;loading=true;control();if(!isOrcaStaging){try{await rpc('commons_release_task',{p_task_id:claim.id});claim=null;msg('Assignment released.','success');}catch(e){msg('Could not release assignment: '+e.message,'error');}finally{loading=false;await refresh();}return;}
  msg('Releasing the active assignment…');let failure=null;try{await rpc('commons_release_task',{p_task_id:claim.id});claim=null;}catch(e){failure=e;}finally{loading=false;const refreshed=await refresh({announce:false});if(failure)msg('Action failed while releasing: '+errorInfo(failure),'error');else if(!refreshed)msg('The release RPC succeeded, but assignment status could not be confirmed. Refresh before continuing.','error');else if(claim)msg('The release RPC returned, but an active assignment is still shown. Refresh and verify before continuing.','error');else msg('Assignment released. No active assignment.','success');}}
 function samePublicationSources(actual,expected){
- if(!Array.isArray(actual))return false;
- const actualSet=new Set(actual.map(safeLink).filter(Boolean)),expectedSet=new Set(expected.map(safeLink).filter(Boolean));
- return actual.every(url=>safeLink(url))&&actualSet.size===expectedSet.size&&[...expectedSet].every(url=>actualSet.has(url));
+ // The deployed RPC stores the submitted JSON array without transformations.
+ return Array.isArray(actual)&&actual.length===expected.length&&actual.every((url,index)=>url===expected[index]);
 }
 async function publish(e){e.preventDefault();if(!ready||!claim||loading)return;
  const summary=$('summary').value.trim(),question=$('research-question').value,answer=$('research-answer').value;
@@ -1548,7 +1548,8 @@ async function publish(e){e.preventDefault();if(!ready||!claim||loading)return;
  if(sources.length<1||sources.length>5||sources.some(x=>!safeLink(x)||x.length>500)){msg('Provide 1–5 valid http(s) source URLs on separate lines.','error');return;}
  if(!observed||!Number.isFinite(Date.parse(observed))){msg('Enter the observation date and time.','error');return;}
  if(!$('self-reviewed').checked&&!independentPublishingEnabled){publishMsg('Researcher verification is required unless the owner enabled independent publishing.','error');return;}
- const submitted={ownerId:user?.id,alias,taskId:claim.id,summary:publicSummary,sources:[...sources],observedAt:new Date(observed).toISOString()};
+ if(typeof publicationAlias!=='string'||!publicationAlias.trim()){publishMsg('The researcher profile name could not be verified. Refresh first; draft retained.','error');return;}
+ const submitted={ownerId:user?.id,alias:publicationAlias,taskId:claim.id,summary:publicSummary.trim(),sources:[...sources],observedAt:new Date(observed).toISOString()};
  const taskId=submitted.taskId;publishMsg('Publishing checked summary…');loading=true;control();let result,publishRequested=false;
  try{
   const auth=await sb.auth.getUser();
@@ -1556,12 +1557,13 @@ async function publish(e){e.preventDefault();if(!ready||!claim||loading)return;
   publishRequested=true;
   result=await rpc(independentPublishingEnabled?'commons_publish_independent_finding':'commons_publish_finding',{p_task_id:taskId,p_summary:publicSummary,p_source_urls:submitted.sources,p_observed_at:submitted.observedAt,p_limitations:limitations});
   const response=Array.isArray(result)?result[0]:result;if(response&&typeof response==='object'&&response.success===false)throw {code:response.code,message:response.message||response.error,details:response.details,hint:response.hint};
+  if(typeof result!=='string'||!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(result))throw new Error('The publication did not return a finding UUID. It may already be published.');
  }catch(err){loading=false;control();publishMsg((publishRequested?'The publish request was not confirmed. Draft retained; check the board before retrying.\n':'Publish was not sent. Draft retained.\n')+errorInfo(err),'error');return;}
  loading=false;control();const refreshed=await refresh({announce:false,forcePermissions:true});
  loading=true;control();
  let confirmedOwner=null;
  if(refreshed){try{const auth=await sb.auth.getUser();if(!auth.error)confirmedOwner=auth.data?.user?.id||null;}catch{/* Keep the publication unconfirmed when authentication cannot be rechecked. */}}
- const newlyPublished=findings.find(f=>f.task_id===taskId&&f.summary===submitted.summary&&f.contributor_alias===submitted.alias&&samePublicationSources(f.source_urls,submitted.sources)&&Date.parse(f.observed_at)===Date.parse(submitted.observedAt));
+ const newlyPublished=findings.find(f=>f.id===result.toLowerCase()&&f.task_id===taskId&&f.summary===submitted.summary&&f.contributor_alias===submitted.alias&&samePublicationSources(f.source_urls,submitted.sources)&&Date.parse(f.observed_at)===Date.parse(submitted.observedAt));
  const completedTask=tasks.some(task=>task.id===taskId&&task.status==='completed');
  loading=false;control();
  if(!refreshed||!ready||user?.id!==submitted.ownerId||confirmedOwner!==submitted.ownerId||!newlyPublished||!completedTask||claim?.id===taskId){publishMsg('The publish request returned, but the publication and completed assignment were not confirmed for the same account on the refreshed board. It may already be published. Draft retained; check the board before retrying.','error');return;}
@@ -1572,7 +1574,7 @@ async function publish(e){e.preventDefault();if(!ready||!claim||loading)return;
    .then(({data,error})=>{if(!error&&data?.status==='ready')refresh({announce:false});})
    .catch(()=>{});
  }
- $('submit-form').reset();updateResearchAnswers();$('observed').value=localDateTime();renderClaim();control();publishMsg('Publication and completed assignment confirmed on the board. A separate Bullish or Bearish price forecast is optional and requires a verified baseline, deadline, and supporting evidence.','success');}
+ $('submit-form').reset();updateResearchAnswers();$('observed').value=localDateTime();renderClaim();control();publishMsg('Publication and completed assignment confirmed on the board. Finding ID: '+newlyPublished.id+'. A separate Bullish or Bearish price forecast is optional and requires a verified baseline, deadline, and supporting evidence.','success');}
 $('refresh').addEventListener('click',()=>refresh({announce:true}));$('release').addEventListener('click',release);
 $('request-assignment').addEventListener('click',()=>requestAssignment());
 $('submit-form').addEventListener('submit',publish);$('research-question').addEventListener('change',updateResearchAnswers);$('research-answer').addEventListener('change',updateRatingDirection);updateResearchAnswers();$('summary').addEventListener('input',updatePublishedLength);
