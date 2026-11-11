@@ -63,7 +63,7 @@ async function main(){
    assert.match(await page.locator('.council-thesis').first().innerText(),/CHAMPION THESIS/);
    assert.match(await page.locator('.council-thesis').last().innerText(),/CHALLENGER THESIS/);
    assert.doesNotMatch(await page.locator('#outlook-grid').innerText(),/OLD CACHED MAJORITY/);
-   assert.equal(await page.locator('#outlook-grid .source-fold a').count(),2);
+   assert.equal(await page.locator('#outlook-grid .council-thesis > .source-fold a').count(),2);
    await page.locator('#council-archive summary').first().click();
    assert.match(await page.locator('#council-archive').innerText(),/42 published research searches recorded across all ORCA rounds/);
    assert.match(await page.locator('#council-archive').innerText(),/OLD CACHED MAJORITY/);
