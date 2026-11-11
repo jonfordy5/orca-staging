@@ -36,6 +36,8 @@ WO-01 sword feedback changes, before/after captures, verification and review ste
 
 WO-02 Cinderbolt presentation, preserved spell rules and before/after review evidence are recorded in the [spell handoff](./orca-legends-wo-02-handoff.md).
 
+WO-03 procedural movement, combat transitions, enemy telegraphs and fixed-step before/after clips are recorded in the [motion handoff](./orca-legends-wo-03-handoff.md).
+
 | Input | Action |
 |---|---|
 | WASD | Move relative to camera |
