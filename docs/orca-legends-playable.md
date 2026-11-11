@@ -34,6 +34,8 @@ Browser gameplay checks and their observed results are recorded separately after
 
 WO-01 sword feedback changes, before/after captures, verification and review steps are recorded in the [combat handoff](./orca-legends-wo-01-handoff.md).
 
+WO-02 Cinderbolt presentation, preserved spell rules and before/after review evidence are recorded in the [spell handoff](./orca-legends-wo-02-handoff.md).
+
 | Input | Action |
 |---|---|
 | WASD | Move relative to camera |

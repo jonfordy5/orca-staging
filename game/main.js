@@ -5,6 +5,7 @@ import { Inventory, createDemoResearchProvider } from './loot.js';
 import { ATTACKS, DODGE, canAct, inAttackArc, resolveDefense } from './combat.js';
 import { VaultAudio } from './audio.js';
 import { CombatFeedback } from './feedback.js';
+import { SpellFeedback } from './spell-feedback.js';
 import { checkContributorAccess, subscribeContributorAuth } from './access.js?v=vault-access-rpc-20261110';
 
 const B = window.BABYLON;
@@ -72,6 +73,7 @@ class VaultGame {
     this.camera.minZ = .15; this.camera.maxZ = 100; this.camera.fov = .9;
     this.world = createWorld(this.scene, settings);
     this.feedback = new CombatFeedback(this.scene);
+    this.spellFeedback = new SpellFeedback(this.scene);
     this.ui.setLoading(.65, 'Awakening the vault warden…');
     this.hero = createFighter(this.scene, { kind: 'hero', name: 'The Seeker' });
     this.shieldContact = new B.Vector3(.25, .08, .12); this.contactPosition = new B.Vector3();
@@ -93,7 +95,7 @@ class VaultGame {
     return { kind, name, actor, health: maxHealth, maxHealth, x, z, yaw: Math.PI, cooldown: 1.6, action: null, stagger: 0, guard: false, hit: 0, reaction: null, attacks: 0, dead: false };
   }
   resetPlayer() {
-    this.player = { x: 0, z: -14, yaw: 0, vx: 0, vz: 0, health: 100, maxHealth: 100, stamina: 100, maxStamina: 100, mana: 100, maxMana: 100, action: null, blockTime: 99, blocking: false, hit: 0, reaction: null, regenDelay: 0, spellCooldown: 0 };
+    this.player = { x: 0, z: -14, yaw: 0, vx: 0, vz: 0, health: 100, maxHealth: 100, stamina: 100, maxStamina: 100, mana: 100, maxMana: 100, action: null, blockTime: 99, blocking: false, hit: 0, reaction: null, regenDelay: 0, spellCooldown: 0, castAge: 1, spellReady: 0 };
     this.hero.root.position.set(0, 0, -14); this.hero.root.rotation.y = 0; this.yaw = 0;
   }
   equipHero() {
@@ -126,6 +128,10 @@ class VaultGame {
     if (key === 'volume') this.audio.volume = settings.volume;
     if (key === 'quality') this.engine?.setHardwareScalingLevel(settings.quality === 'high' ? Math.max(1, devicePixelRatio / 1.5) : 1.6);
     if (key === 'reducedMotion') { this.feedback?.update(0, settings); if (this.hero) this.feedback?.updateTrail(this.hero.weapon, this.player.action, settings); }
+    if (key === 'quality' || key === 'reducedMotion') {
+      this.spellFeedback?.update(0, settings);
+      if (this.hero) this.spellFeedback?.charge(this.hero, this.player.spellReady, settings);
+    }
     try { localStorage.setItem('orca-legends-settings', JSON.stringify(settings)); } catch {}
   }
   bindControls() {
@@ -197,8 +203,11 @@ class VaultGame {
     const mesh = B.MeshBuilder.CreateSphere('knowledge-bolt', { diameter: .4, segments: 8 }, this.scene);
     mesh.position.set(p.x, 1.2, p.z); const material = new B.StandardMaterial('bolt-mat', this.scene); material.emissiveColor = B.Color3.FromHexString(this.inventory.items.get(this.inventory.equipped.spell)?.appearance.color || '#84eddf'); material.disableLighting = true; mesh.material = material;
     const len = Math.hypot(target.x - p.x, target.z - p.z) || 1;
-    this.projectiles.push({ mesh, material, dx: (target.x - p.x) / len, dz: (target.z - p.z) / len, life: 1.6, enemy, damage: this.inventory.getStats().spellDamage });
-    this.audio.play('spell'); return true;
+    const cinder = this.inventory.equipped.spell === 'starter-cinder';
+    const projectile = { mesh, material, dx: (target.x - p.x) / len, dz: (target.z - p.z) / len, life: 1.6, enemy, damage: this.inventory.getStats().spellDamage, cinder };
+    this.projectiles.push(projectile);
+    if (cinder) { p.castAge = 0; p.spellReady = 0; this.spellFeedback.charge(this.hero, 0, settings); this.spellFeedback.launch(projectile, settings); }
+    this.audio.play(cinder ? 'spell-launch' : 'spell'); return true;
   }
   movementVector() {
     const x = Number(this.keys.has('KeyD')) - Number(this.keys.has('KeyA')), z = Number(this.keys.has('KeyW')) - Number(this.keys.has('KeyS'));
@@ -240,7 +249,7 @@ class VaultGame {
   frame(dt) {
     const playing = ['explore', 'arena', 'intro'].includes(this.phase) && !this.ui.isModalOpen();
     if (playing) {
-      this.time += dt; this.feedback.update(dt, settings); this.world.update(dt, this.time); this.updatePlayer(dt); this.updateEffects(dt);
+      this.time += dt; this.feedback.update(dt, settings); this.spellFeedback.update(dt, settings); this.world.update(dt, this.time); this.updatePlayer(dt); this.updateEffects(dt);
       if (this.phase !== 'intro') this.updateEnemy(this.activeEnemy(), dt);
       this.feedback.updateTrail(this.hero.weapon, this.player.action, settings);
       if (this.phase === 'explore' && this.arenaUnlocked() && this.player.z > 29) this.enterArena();
@@ -265,6 +274,12 @@ class VaultGame {
     if (sprinting) { p.stamina = Math.max(0, p.stamina - 16 * dt); p.regenDelay = .4; }
     else if (p.regenDelay === 0) p.stamina = Math.min(100, p.stamina + (p.blocking ? 8 : 25) * dt);
     p.mana = Math.min(100, p.mana + 5 * dt);
+    // Presentation anticipation happens before input; the projectile still
+    // launches instantly with the original costs, speed and collision timing.
+    p.castAge = Math.min(1, p.castAge + dt);
+    const ready = this.inventory.equipped.spell === 'starter-cinder' && p.mana >= 28 && p.spellCooldown <= .35 && !p.action && !p.blocking && this.phase !== 'intro';
+    if (ready && !p.spellReady) this.audio.play('spell-charge');
+    p.spellReady = ready ? Math.min(1, p.spellReady + dt / .35) : 0;
     let speed = sprinting ? 6 : p.blocking ? 2 : 3.5;
     if (p.action) speed *= .3;
     if (this.phase === 'intro') speed = 0;
@@ -284,7 +299,8 @@ class VaultGame {
       if (p.action === action && action.elapsed >= action.duration) p.action = null;
     }
     this.hero.root.position.set(p.x, 0, p.z); this.hero.root.rotation.y = p.yaw;
-    this.hero.update(dt, { moving: Math.hypot(p.vx, p.vz) > .25, sprinting, attacking: !!ATTACKS[p.action?.type], attackProgress: p.action ? p.action.elapsed / p.action.duration : 0, attackImpact: ATTACKS[p.action?.type]?.impact / (p.action?.duration || 1), heavy: p.action?.type === 'heavy', blocking: p.blocking, dodging: p.action?.type === 'dodge', hit: p.hit / .25, reaction: p.reaction, reducedMotion: settings.reducedMotion, time: this.time });
+    this.hero.update(dt, { moving: Math.hypot(p.vx, p.vz) > .25, sprinting, attacking: !!ATTACKS[p.action?.type], attackProgress: p.action ? p.action.elapsed / p.action.duration : 0, attackImpact: ATTACKS[p.action?.type]?.impact / (p.action?.duration || 1), heavy: p.action?.type === 'heavy', blocking: p.blocking, dodging: p.action?.type === 'dodge', hit: p.hit / .25, reaction: p.reaction, castAge: p.castAge, spellReady: p.spellReady, reducedMotion: settings.reducedMotion, time: this.time });
+    this.spellFeedback.charge(this.hero, p.spellReady, settings);
     if (Math.hypot(p.vx, p.vz) > 1 && this.time > (this.nextStep || 0)) { this.audio.play('step'); this.nextStep = this.time + (sprinting ? .27 : .42); }
   }
   meleeImpact(type) {
@@ -400,6 +416,7 @@ class VaultGame {
   finish(won) {
     this.phase = won ? 'won' : 'lost'; this.keys.clear(); this.mouseBlock = false; this.player.action = null;
     this.feedback.clear();
+    this.spellFeedback.clear(); this.player.spellReady = 0; this.player.castAge = 1;
     this.ui.setPrompt(null); this.ui.setEnemy(null);
     this.ui.showResult({ won, title: won ? 'A LEGEND IS FORGED' : 'THE VAULT REMEMBERS', subtitle: won ? 'You defeated Varr. Knowledge armed you. Timing won the duel.' : 'Read the windup. Preserve stamina. A perfect parry creates an opening.', reward: won ? 'GILDED LAUREL · Expedition complete · Demonstration reward' : 'Return to the Vault and challenge fate again.' });
     if (won) this.audio.play('win');
@@ -469,8 +486,20 @@ class VaultGame {
   updateEffects(dt) {
     for (let i = this.projectiles.length - 1; i >= 0; i--) {
       const p = this.projectiles[i]; p.life -= dt; p.mesh.position.x += p.dx * 17 * dt; p.mesh.position.z += p.dz * 17 * dt;
-      if (!p.enemy.dead && Math.hypot(p.mesh.position.x - p.enemy.x, p.mesh.position.z - p.enemy.z) < 1) { this.hurtEnemy(p.enemy, p.damage, '#91f7e5'); p.enemy.stagger = .4; p.life = 0; }
-      if (p.life <= 0 || !this.world.isWalkable(p.mesh.position.x, p.mesh.position.z, .05)) { p.mesh.dispose(); p.material.dispose(); this.projectiles.splice(i, 1); }
+      if (p.cinder) this.spellFeedback.travel(p, dt, settings);
+      let contact = false;
+      if (!p.enemy.dead && Math.hypot(p.mesh.position.x - p.enemy.x, p.mesh.position.z - p.enemy.z) < 1) {
+        contact = true;
+        if (p.cinder) {
+          this.spellFeedback.impact(p.mesh.position, 'hit', settings); this.audio.play('spell-impact');
+          this.react(p.enemy, { x: p.mesh.position.x - p.dx, z: p.mesh.position.z - p.dz }, 'spell', 1.2, .3);
+        }
+        this.hurtEnemy(p.enemy, p.damage, p.cinder ? '#ffc079' : '#91f7e5', p.cinder); p.enemy.stagger = .4; p.life = 0;
+      }
+      if (p.life <= 0 || !this.world.isWalkable(p.mesh.position.x, p.mesh.position.z, .05)) {
+        if (p.cinder && !contact) { this.spellFeedback.impact(p.mesh.position, p.life <= 0 ? 'expired' : 'wall', settings); this.audio.play('spell-fizzle'); }
+        p.mesh.dispose(); p.material.dispose(); this.projectiles.splice(i, 1);
+      }
     }
     for (let i = this.effects.length - 1; i >= 0; i--) {
       const effect = this.effects[i]; effect.life -= dt;
@@ -487,6 +516,7 @@ class VaultGame {
   }
   clearEffects() {
     this.feedback?.clear();
+    this.spellFeedback?.clear();
     for (const p of this.projectiles) { p.mesh.dispose(); p.material.dispose(); } this.projectiles = [];
     const groups = new Set(); for (const e of this.effects) { e.mesh.dispose(); e.material?.dispose(); e.texture?.dispose(); if (e.group) groups.add(e.group); } for (const group of groups) group.material.dispose(); this.effects = [];
   }
@@ -502,7 +532,9 @@ class VaultGame {
         gladiator: { health: this.gladiator.health, dead: this.gladiator.dead, x: this.gladiator.x, z: this.gladiator.z, action: this.gladiator.action },
         actorPositions: { hero: this.hero.root.position.asArray(), guardian: this.guardian.actor.root.position.asArray() },
         arenaUnlocked: this.arenaUnlocked(), meshes: this.scene.meshes.length, materials: this.scene.materials.length,
-        feedback: this.feedback.snapshot(), fps: this.engine.getFps(), effects: this.effects.length, projectiles: this.projectiles.length,
+        feedback: this.feedback.snapshot(), spellFeedback: this.spellFeedback.snapshot(), lights: this.scene.lights.length,
+        projectileStates: this.projectiles.map(p => ({ x: p.mesh.position.x, y: p.mesh.position.y, z: p.mesh.position.z, life: p.life, dx: p.dx, dz: p.dz, damage: p.damage, cinder: p.cinder })),
+        fps: this.engine.getFps(), effects: this.effects.length, projectiles: this.projectiles.length,
       }),
       position: (x, z, yaw = 0) => { if (!this.world.isWalkable(x, z, .48)) throw new Error('Test position is outside collision geometry'); Object.assign(this.player, { x, z, yaw, vx: 0, vz: 0 }); this.yaw = yaw; this.updateCamera(1, true); },
       step: (seconds) => { for (let t = 0; t < seconds; t += 1 / 60) this.frame(1 / 60); },
@@ -514,7 +546,7 @@ class VaultGame {
     });
   }
   fail(error) { console.error('ORCA Legends:', error); this.phase = 'error'; this.engine?.stopRenderLoop(); this.ui.showError?.(error.message); }
-  dispose() { if (this.disposed) return; this.disposed = true; this.accessAbort?.abort(); this.unsubscribeAuth?.(); this.abort?.abort(); this.engine?.stopRenderLoop(); this.clearEffects(); this.feedback?.dispose(); this.audio.dispose(); this.ui.dispose(); this.world?.dispose(); this.scene?.dispose(); this.engine?.dispose(); delete window.__ORCA_TEST__; }
+  dispose() { if (this.disposed) return; this.disposed = true; this.accessAbort?.abort(); this.unsubscribeAuth?.(); this.abort?.abort(); this.engine?.stopRenderLoop(); this.clearEffects(); this.feedback?.dispose(); this.spellFeedback?.dispose(); this.audio.dispose(); this.ui.dispose(); this.world?.dispose(); this.scene?.dispose(); this.engine?.dispose(); delete window.__ORCA_TEST__; }
 }
 
 const game = new VaultGame();

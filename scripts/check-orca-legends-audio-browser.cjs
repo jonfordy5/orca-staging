@@ -15,7 +15,7 @@ const { chromium } = require('playwright');
       const url = URL.createObjectURL(new Blob([source], { type: 'text/javascript' }));
       const { VaultAudio } = await import(url); URL.revokeObjectURL(url);
       const results = {};
-      for (const kind of ['swing', 'heavy-swing', 'hit', 'heavy-hit', 'block', 'parry', 'guard-break']) {
+      for (const kind of ['swing', 'heavy-swing', 'hit', 'heavy-hit', 'block', 'parry', 'guard-break', 'spell', 'spell-charge', 'spell-launch', 'spell-impact', 'spell-fizzle']) {
         const context = new OfflineAudioContext(1, 44100, 44100);
         const audio = new VaultAudio(.35);
         // Offline contexts begin suspended: schedule the normal synthesis path
@@ -40,7 +40,11 @@ const { chromium } = require('playwright');
       assert(result.peak < 1); assert.equal(result.remainingVoices, 0);
     }
     assert(metrics['heavy-hit'].rms > metrics.hit.rms);
+    assert(metrics['spell-impact'].rms > metrics['spell-launch'].rms);
+    assert(metrics['spell-launch'].rms > metrics['spell-charge'].rms);
+    assert(metrics['spell-launch'].rms > metrics['spell-fizzle'].rms);
+    assert.equal(new Set(['spell-charge', 'spell-launch', 'spell-impact', 'spell-fizzle'].map(kind => metrics[kind].rms)).size, 4);
     console.log(JSON.stringify(metrics, null, 2));
-    console.log('PASS real Chromium combat synthesis: nonzero finite signals, no clipping at .35 volume, stronger heavy impact, all voices released. Subjective listening not assessed.');
+    console.log('PASS real Chromium combat and Cinderbolt synthesis: nonzero finite signals, no clipping at .35 volume, stronger heavy/spell impacts, four distinct spell cues, all voices released. Subjective listening not assessed.');
   } finally { await browser.close(); }
 })().catch(error => { console.error(error); process.exitCode = 1; });
