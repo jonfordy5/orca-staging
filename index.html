@@ -84,9 +84,9 @@
   const {projectUrl,publishableKey}=await selectSupabaseConfig();
   const {createClient}=await import('https://esm.sh/@supabase/supabase-js@2');
   const sb=createClient(projectUrl,publishableKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
-  const {supported,error}=await mountStockSearch({sb,root});
+  const {registered,error}=await mountStockSearch({sb,root});
   if(direct&&!error){
-   if(supported.some(row=>row.ticker===direct)){
+   if((registered||[]).some(row=>row.ticker===direct)){
     window.location.replace(orcaStagingHref('./research-workspace-staging.html',{ticker:direct}));
    } else {
     const alert=document.createElement('p');alert.className='small';
