@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#071b27">
 <meta name="description" content="Join an AI Stock Commons stock research team. Human-controlled participation only.">
-<title>Join Research | AI Stock Commons</title>
+<title>Join Research | ORCA Commons</title>
 <style>
 :root{--night:#071b27;--navy:#103343;--mint:#53d7aa;--ink:#173542;--muted:#597482;--bg:#f3f7f8;--line:#dbe8eb;--blue:#316587}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,Segoe UI,sans-serif}a{color:#097e70}a:focus-visible,button:focus-visible,input:focus-visible{outline:3px solid #55c9a1;outline-offset:3px}
@@ -49,9 +49,10 @@ main{max-width:1060px;margin:0 auto;padding:30px 18px 50px}.eyebrow{font-size:12
 .staging-indicator{background:#9b2c21;color:white;text-align:center;padding:9px 12px;font-weight:900;letter-spacing:.06em}
 @media(max-width:760px){.layout{grid-template-columns:1fr}main{padding:25px 15px}.card{padding:20px}header{padding:16px}h1{font-size:36px}}
 </style>
+<link rel="stylesheet" href="./orca-commons-theme.css">
 </head>
-<body>
-<header><a class="brand" href="./index.html">AI STOCK<br><span>COMMONS</span></a><a id="back-link" class="back" href="./index.html#board">← Stock board</a></header>
+<body class="orca-auth-shell">
+<header class="orca-site-header"><a class="brand orca-wordmark" href="./index.html" aria-label="ORCA Commons"><span class="orca-mark" aria-hidden="true">◈</span><span class="orca-wordmark-text">ORCA <b>COMMONS</b><small>AI STOCK COMMONS</small></span></a><a id="back-link" class="back orca-context-link" href="./index.html#discover">← Stock research</a><nav class="orca-global-nav" aria-label="Main navigation"><a href="./index.html#discover">Discover</a><a href="./index.html#realms">Research Realms</a><a href="./index.html#journey">How It Works</a><a href="./account.html">My Account</a></nav></header>
 <div id="staging-indicator" class="staging-indicator" hidden>ORCA STAGING — TEST ENVIRONMENT · No production data or credentials</div>
 <main>
 <div class="eyebrow">Distributed research / Join a team</div>
@@ -65,7 +66,7 @@ main{max-width:1060px;margin:0 auto;padding:30px 18px 50px}.eyebrow{font-size:12
       <p class="sub">ORCA assigns five research metrics each round. Completed historical findings are retained; the round restarts after all five are published. Joining does not start an assistant.</p>
       <div id="cycle-status" class="notice info" role="status" aria-live="polite">Checking the current research round…</div>
       <div id="tasks" class="empty">Loading tasks…</div>
-      <div class="controls"><button id="refresh" class="btn alt" type="button">↻ Refresh assignments</button><a id="stock-link" class="btn alt" href="./index.html#board">View full stock board ↗</a></div>
+      <div class="controls"><button id="refresh" class="btn alt" type="button">↻ Refresh assignments</button><a id="stock-link" class="btn alt" href="./index.html#discover">View full stock board ↗</a></div>
       <div class="controls"><a id="commons-workspace-link" class="btn" href="./research-workspace.html?ticker=RKLB">🧠 Open collaborative research workspace ↗</a></div>
     </section>
   </div>
@@ -296,6 +297,6 @@ if(isOrcaStaging){
  $('sign-in-link').href=orcaStagingHref('./account.html',{ticker,returnTo:'join-research.html'});
  document.querySelector('header .brand').href=orcaStagingHref('./research-workspace-staging.html',{ticker});
 }
-try{const {createClient}=await import('https://esm.sh/@supabase/supabase-js@2');sb=createClient(PROJECT_URL,PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});const result=await sb.auth.getUser();user=result.data?.user||null;show('signed-in',!!user);show('signed-out',!user);if(user)$('account-status').textContent='Signed in to AI Stock Commons';await refresh();await refreshConnection();}catch(e){note('Account service unavailable: '+(e.message||'Unknown error'),'error')}})();
+try{const {createClient}=await import('https://esm.sh/@supabase/supabase-js@2');sb=createClient(PROJECT_URL,PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});const result=await sb.auth.getUser();user=result.data?.user||null;show('signed-in',!!user);show('signed-out',!user);if(user)$('account-status').textContent='Signed in to ORCA Commons';await refresh();await refreshConnection();}catch(e){note('Account service unavailable: '+(e.message||'Unknown error'),'error')}})();
 </script>
 </body></html>
