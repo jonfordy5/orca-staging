@@ -58,6 +58,7 @@ export function createFighter(scene, { kind = 'hero', name = kind } = {}) {
   let spellBlend = 0;
   let renderedBob = 0;
   let wasDodging = false;
+  let previousDodgeProgress = 0;
   let dodgeEntryGait = 0;
   let dodgeEntryPelvisY = .92;
   let dodgeEntryBob = 0;
@@ -337,6 +338,7 @@ export function createFighter(scene, { kind = 'hero', name = kind } = {}) {
     const dead = !!state.dead;
     const victory = !!state.victory;
     const attack = Math.max(0, Math.min(1, state.attackProgress || 0));
+    const dodgeProgress = Math.max(0, Math.min(1, state.dodgeProgress || 0));
     const heavy = !!state.heavy;
     const reducedMotion = !!state.reducedMotion;
     const bodyMotion = reducedMotion ? .3 : 1;
@@ -344,7 +346,7 @@ export function createFighter(scene, { kind = 'hero', name = kind } = {}) {
     // Start the dodge from the visible incoming foot pose. Its progress
     // envelope must blend that pose, rather than discard a sprinting knee or
     // planted ankle as soon as the authoritative action flag changes.
-    if (dodging && !wasDodging && !dead) {
+    if (dodging && (!wasDodging || dodgeProgress < previousDodgeProgress) && !dead) {
       dodgeEntryGait = motion.blend;
       dodgeEntryPelvisY = pelvis.position.y;
       dodgeEntryBob = renderedBob;
@@ -358,6 +360,7 @@ export function createFighter(scene, { kind = 'hero', name = kind } = {}) {
       }
     }
     wasDodging = dodging && !dead;
+    previousDodgeProgress = dodging ? dodgeProgress : 0;
     advanceMotion(motion, dt, state, scale);
     const stride = motion.phase;
     const moveBlend = motion.blend;
@@ -387,7 +390,6 @@ export function createFighter(scene, { kind = 'hero', name = kind } = {}) {
     death = B.Scalar.Lerp(death, dead ? 1 : 0, Math.min(1, dt * 5));
     const attackWeight = attacking ? smooth(attack / .12) * smooth((1 - attack) / .18) : 0;
     const dodge = motion.dodge;
-    const dodgeProgress = Math.max(0, Math.min(1, state.dodgeProgress || 0));
     const entryPose = dodging && !dead ? 1 - smooth(dodgeProgress / .36) : 0;
     const ambientPose = dodging && !dead ? 1 - smooth((1 - dodgeProgress) / .24) : 1;
     const locomotion = !dead ? (1 - attackWeight) * (dodging ? entryPose : 1) : 0;
@@ -519,6 +521,7 @@ export function createFighter(scene, { kind = 'hero', name = kind } = {}) {
     clearMotion(motion);
     death = guardBlend = spellBlend = 0;
     wasDodging = false;
+    previousDodgeProgress = 0;
     dodgeEntryGait = dodgeEntryBob = 0;
     dodgeEntryPelvisY = .92;
     dodgeEntryLegs.fill(0);
