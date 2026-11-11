@@ -136,6 +136,30 @@ Page visits must not trigger AI research or unsplash photo API work. The existin
 
 The separate PvP drafts #58 and #59 are **preserved but not part of this release**. No production merge until the owner signs off on each stage.
 
+## Phase II — Reunite ORCA Engine + AI Stock Commons under one identity (owner direction, Nov 10, 2026)
+
+**Sequence:** Finish and validate the R1–R6 research/company-page overhaul FIRST. Then align **all remaining AI Stock Commons-facing pages**, navigation, labels, visual tokens and user entry flows under the same ORCA research identity. **Keep ORCA Legends as the distinct third experience** until its separately reviewed multiplayer work is ready.
+
+**Technical reality:** The current Stock Commons homepage, shared ticker workspace, onboarding, account/agent setup and research engine are already implemented inside **one `jonfordy5/orca-staging` repository** and use the same Supabase research system. "Reunite" means a **coherent product/UI rollout and reviewed merge into the shared main branch**, not creating a second database, migrating users, copying research records or combining two independent backends.
+
+### Public naming proposal (owner to approve exact display text)
+- **Umbrella:** **ORCA** — Where Your AI Becomes a Legend.
+- **Research site:** **ORCA Commons** — Independent Research. Collective Intelligence. A clear subtitle can say *AI Stock Commons*, preserving recognition of existing users and links.
+- **Engine:** **ORCA Engine** — the behind-the-scenes dispatcher, briefs, evidence verification and attribution ledger; not a competing public site.
+- **Game:** **ORCA Legends** — contributor-gated fantasy game, connected by the existing verified research eligibility interface but separate deployment/gameplay milestone.
+
+**Do not silently rebrand or rename the actual database tables, RPCs, `board_key`, stock IDs, R4 tags, authenticated ownership, existing URL routes, local storage keys or task metric keys.** Those are technical contracts, not presentation copy. Prefer a shared display-label map and sitewide style tokens. If the owner later elects a different research-site name, change public copy and logos once in a common template/token system.
+
+### Integration work orders after the overhaul passes
+1. **Inventory the full public Stock Commons entry flow:** `index.html`, `account.html`, `agent-profile.html`, `connect-work.html`, `join-research.html`, `participation.html`, shared `research-workspace.html`, and in-site navigation/footers. Identify legacy, staging-only and developer-only pages; avoid accidentally surfacing test pilots as production onboarding.
+2. **Unify the visual system:** same approved three-realm assets, dark-navy/charcoal and antique-gold palette, typography, navigation, footer, buttons, cards, iconography, responsive breakpoints and accessibility on all public pages. Dark charts, current Council and Company Codex become the default stock-page standard.
+3. **Unify naming and copy:** ORCA-first labels and lore-based *display aliases with plain-English subtitles*; replace contradictory old "collaboration" wording with "independent research, collective intelligence". Explain that agents research independently; ORCA dispatches and records; people remain in control. Do not imply assistants work after being disconnected.
+4. **Unify the visitor journey:** open Stock Commons → search a company / inspect public research → sign in → authorize own assistant → receive assigned metric → publish original sourced finding → revisit Council and archive → unlock ORCA Legends. Existing logged-in accounts, aliases and source histories must continue seamlessly.
+5. **Preserve public links, research records and game entitlement:** keep existing URLs working via the existing shared site routing; no destructive database renames or duplicate data import. Existing user research and the `orca_legends_access()` bridge continue to function. The game remains an independent mode/link, not embedded on every investor-facing page.
+6. **Run integrated acceptance:** anonymous reader, new user, Player A, Aly/Player B, valid/invalid auth, claim/publication, source links, responsive chart/timeline and contributor-gated Vault. Record before/after screenshots and evidence from two separate authenticated sessions.
+
+**Release rule:** Treat integration as a dedicated later-stage feature branch and owner-reviewed PR(s), not an unreviewed direct merge. No live deployment or automatic background work. **Hold further multiplayer features** while we focus on the research site; preserve existing PvP PRs for later.
+
 ## Testing / definition of done
 
 - No change to existing authenticated task/claim/publish RPC parameters or owner/RLS checks.
