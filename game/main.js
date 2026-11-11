@@ -312,7 +312,7 @@ class VaultGame {
     this.hero.update(dt, { moving: actualSpeed > .02, speed: actualSpeed, localVelocityX: c * vx - s * vz, localVelocityZ: s * vx + c * vz, turnRate,
       sprinting, attacking: !!ATTACKS[p.action?.type], attackProgress: p.action ? p.action.elapsed / p.action.duration : 0, attackImpact: ATTACKS[p.action?.type]?.impact / (p.action?.duration || 1), heavy: p.action?.type === 'heavy', blocking: p.blocking, dodging: !!visualDodge, dodgeProgress: visualDodge ? Math.min(1, visualDodge.elapsed / DODGE.duration) : 0, hit: p.hit / .25, reaction: p.reaction, castAge: p.castAge, spellReady: p.spellReady, reducedMotion: settings.reducedMotion, time: this.time });
     this.spellFeedback.charge(this.hero, p.spellReady, settings);
-    if (actualSpeed > 1 && this.time > (this.nextStep || 0)) { this.audio.play('step'); this.nextStep = this.time + (sprinting ? .27 : .42); }
+    if (!visualDodge && actualSpeed > 1 && this.time > (this.nextStep || 0)) { this.audio.play('step'); this.nextStep = this.time + (sprinting ? .27 : .42); }
   }
   meleeImpact(type) {
     const enemy = this.activeEnemy(), p = this.player, spec = ATTACKS[type];
