@@ -35,10 +35,11 @@ test('dated observation freshness is per-metric, not publication time or all-tim
  assert.equal(COUNCIL_REVIEW_WINDOWS['news & market sentiment'],3*86400000);
 });
 test('expired claims of evidence, missing sources, malformed records and future timestamps are never fresh',()=>{
+ const malformedExpiry=finding();malformedExpiry.expires_at='invalid';
  const rows=[
   finding({expires:-1}),finding({source:[]}),finding({source:['javascript:evil()']}),
   finding({observed:null}),finding({published:null}),finding({observed:1000}),
-  finding({published:1000}),finding({expires:'invalid'}),finding({area:'Unclassified Research'}),
+  finding({published:1000}),malformedExpiry,finding({area:'Unclassified Research'}),
   finding({rating:'BUY',dir:'BEARISH'}),{summary:'plain text'},null
  ];
  const view=selectCouncilEvidence(rows,NOW);
