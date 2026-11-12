@@ -51,5 +51,5 @@ test('shared browser guard never trusts a supplied alias, email, origin, or clie
   assert.match(source,/claims.sub !== verifiedUserId/);
   assert.match(source,/claims.role !== 'authenticated'/);
   assert.match(source,/hasOwnProperty.call\(claims, 'client_id'\)/);
-  assert.doesNotMatch(source,/user_metadata|display_name|alias|Origin\s*===|\.email\s*===/);
+  assert.doesNotMatch(executable,/user_metadata|display_name|alias|Origin\s*===|\.email\s*===/);
 });
