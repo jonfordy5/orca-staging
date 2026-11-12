@@ -29,10 +29,14 @@ These function sources had no separate OAuth `client_id` check in their user-aut
 
 - Tests use mock JWT payloads to verify browser token allowance and denial for OAuth clients, wrong owner, wrong role and malformed bearer.
 - Static checks verify all six source functions authenticate with `auth.getUser` **before** calling the guard.
-- GitHub Actions typechecks the shared guard and six existing functions against Deno 2.x, with no deployment or user data.
+- GitHub Actions **strictly typechecks the shared guard** using Deno 2.x and verifies the six function import graphs. Some existing deployed function sources already have unrelated TypeScript diagnostic errors (e.g., 23 legacy errors in majority synthesis); this PR does not weaken the guard or silently claim a passing strict typecheck for those older files. The browser-token unit tests and full site regressions are separate.
 - **The guard itself does not authenticate signatures**. It must never be called as a substitute for `auth.getUser`; the real ORCA auth check must run on the exact same token first.
 - Some deployed function sources were missing from the GitHub tree; this branch imports their previously deployed code for review and adds the guard. **Inspect a clean diff of each function before ever redeploying**.
 - Real acceptance still requires separate owner approval to redeploy the six functions to Orca-staging, then testing genuine browser sessions and synthetic/real OAuth client tokens against each endpoint, including errors, no financial/research record changes, and quota/rate controls. OAuth stays disabled until all bypass paths are checked.
 - Public/no-user-auth Edge endpoints remain a separate cost-control and abuse-surface review; a bearer-less public endpoint cannot be secured by distinguishing browser JWT from OAuth JWT.
 
 Related: [OAuth tracker #75](https://github.com/jonfordy5/orca-staging/issues/75), [MCP prototype PR #79](https://github.com/jonfordy5/orca-staging/pull/79), [database gateway PR #80](https://github.com/jonfordy5/orca-staging/pull/80).
+
+## Legacy browser test compatibility
+
+Four pre-existing timeline/photo tests use Node VM harnesses that strip the first TypeScript import. Since the source now has an additional shared-module import, this PR updates those harnesses to strip every import and stubs the already-verified browser-only token check. The OAuth token policy itself remains covered by the new independent unit tests. No timeline, image selection, provider quota, photo source or history behavior was intentionally modified.
