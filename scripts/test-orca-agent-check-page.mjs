@@ -36,3 +36,9 @@ test('self-test is read-only and never publishes tokens into the page or logs',(
   assert.doesNotMatch(code,/\b(?:accessToken|access_token)\b\s*\+\s*(?:'|")/);
   assert.match(page,/No trades, permissions changes, task claims, or publication/);
 });
+
+test('signed-in page hides the sign-in button despite styled link display rules',()=>{
+  assert.match(page,/\[hidden\]\{display:none!important\}/);
+  assert.match(page,/<a class="button" id="signin"[^>]* hidden>/);
+  assert.match(code,/\$\('signin'\)\.hidden=loggedIn;/);
+});
