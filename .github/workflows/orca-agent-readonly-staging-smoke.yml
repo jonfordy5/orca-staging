@@ -1,0 +1,25 @@
+name: ORCA staging agent API anonymous-auth smoke
+
+on:
+  push:
+    branches:
+      - feat/orca-agent-readonly-foundation-20261112
+    paths:
+      - scripts/test-orca-agent-readonly-staging-http.mjs
+      - .github/workflows/orca-agent-readonly-staging-smoke.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  unauthenticated-rejection:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Reject requests without a real ORCA user session
+        run: node --test scripts/test-orca-agent-readonly-staging-http.mjs
