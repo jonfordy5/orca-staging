@@ -55,7 +55,8 @@ Deno.serve(
             title: 'My ORCA researcher',
             description: 'Read my existing ORCA researcher identity, consent and publication-review preference. Does not connect, claim or publish research.',
             inputSchema: z.object({}),
-            annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true }
+            annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
+            _meta: { securitySchemes: [{ type: 'oauth2', scopes: [] }] }
           },
           async () => {
             const ownerId = await verifiedOwner();
@@ -70,7 +71,8 @@ Deno.serve(
             title: 'My ORCA research assignment',
             description: 'Read my current, unexpired, server-assigned stock research task and research board. Never claims a new task or changes existing permissions.',
             inputSchema: z.object({ ticker: z.string().min(1).max(10) }),
-            annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true }
+            annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
+            _meta: { securitySchemes: [{ type: 'oauth2', scopes: [] }] }
           },
           async ({ ticker }) => {
             const ownerId = await verifiedOwner();
