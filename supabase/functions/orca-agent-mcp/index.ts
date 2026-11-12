@@ -28,6 +28,15 @@ Deno.serve(
             throw new Error('OAuth authorization is required');
           }
           const claims = verifiedClaims.data.claims;
+          // ChatGPT requires resource-indicator binding (RFC 8707). A default
+          // 'authenticated' audience is NOT sufficient even if RLS uses it.
+          // Supabase OAuth resource->aud support must be verified before launch.
+          const expectedIssuer = 'https://vbziibatnejoswsdggga.supabase.co/auth/v1';
+          const resource = 'https://vbziibatnejoswsdggga.supabase.co/functions/v1/orca-agent-mcp';
+          const tokenAudiences = Array.isArray(claims.aud) ? claims.aud : [claims.aud];
+          if (claims.iss !== expectedIssuer || !tokenAudiences.includes(resource)) {
+            throw new Error('OAuth token issuer or MCP resource audience is invalid');
+          }
           if (typeof claims.client_id !== 'string' || !claims.client_id.trim()) {
             throw new Error('OAuth client authorization is required');
           }
