@@ -1,6 +1,6 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const {stripTypeScriptTypes}=require('node:module');
-const src=fs.readFileSync(__dirname+'/../supabase/functions/orca-timeline-photo-fill/index.ts','utf8').replace(/^import .*\n/,'');
+const src=fs.readFileSync(__dirname+'/../supabase/functions/orca-timeline-photo-fill/index.ts','utf8').replace(/^import .*\n/gm,'');
 const unsplash=(id,title)=>({id,width:1600,height:1000,alt_description:title,
  urls:{regular:'https://images.unsplash.com/photo-'+id,raw:'https://images.unsplash.com/photo-'+id},
  links:{html:'https://unsplash.com/photos/'+id,download_location:'https://api.unsplash.com/photos/'+id+'/download'},
@@ -22,7 +22,7 @@ async function run({count=11,cachedCount=0,brand='Wendy’s',version=0,unsplashS
    upsert:async row=>{assert(!cache.some(p=>p.event_id!==row.event_id&&p.photo_id===row.photo_id));saved.push(row);const i=cache.findIndex(p=>p.event_id===row.event_id);if(i>=0)cache[i]=row;else cache.push(row);return {error:null}},
    then(ok,bad){return Promise.resolve(finish()).then(ok,bad)}};return q;
  }};
- const ctx={createClient:()=>admin,Deno:{env:{get:k=>k==='UNSPLASH_ACCESS_KEY'?'test':''},serve:fn=>handler=fn},URL,URLSearchParams,Request,Response,AbortSignal,crypto,console,
+ const ctx={isVerifiedOrcaBrowserToken:()=>true,createClient:()=>admin,Deno:{env:{get:k=>k==='UNSPLASH_ACCESS_KEY'?'test':''},serve:fn=>handler=fn},URL,URLSearchParams,Request,Response,AbortSignal,crypto,console,
   fetch:async(url,opts)=>{
    const u=new URL(url);
    if(opts?.method==='HEAD')return new Response(null,{headers:{'content-type':'image/jpeg'}});
