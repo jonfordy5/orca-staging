@@ -13,7 +13,7 @@ const all=[participation,joinPage,profile];
 
 function ids(src){return [...src.matchAll(/\bid="([^"]+)"/g)].map(x=>x[1]);}
 function idsOf(src,id){return ids(src).filter(value=>value===id).length;}
-function inlineJs(src){const m=src.match(/<script type="module">([\s\S]*?)<\/script>/);assert.ok(m,'inline module must exist');return m[1].replace(/^import[^\n]+;$/gm,'');}
+function inlineJs(src){const m=src.match(/<script type="module">([\s\S]*?)<\/script>/);assert.ok(m,'inline module must exist');return m[1].replace(/^[ \t]*import[^\n]+;[ \t]*$/gm,'');}
 const AsyncFunction=Object.getPrototypeOf(async function(){}).constructor;
 function compile(src,path){try{new AsyncFunction(src);}catch(e){throw new Error(path+': '+e.message)}}
 
@@ -40,7 +40,7 @@ test('team page provides one enable/pause control; leaving a team is behind expl
   assert.equal(idsOf(joinPage,'conn-toggle'),1);
   assert.equal(idsOf(joinPage,'conn-enable'),0);
   assert.equal(idsOf(joinPage,'conn-revoke'),0);
-  assert.match(joinPage,/connectionConsent===true\?'Pause research':'Enable research'/);
+  assert.match(joinPage,/connectionConsent===true\?'Pause research':connectionConsent===false\?'Enable research'/);
   assert.match(joinPage,/commons_set_my_research_consent/);
   assert.match(joinPage,/p_opted_in:action==='enable'/);
   assert.match(joinPage,/<details class="advanced-settings"><summary>Team settings<\/summary><button id="leave"/);
