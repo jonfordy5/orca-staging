@@ -2,7 +2,7 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const vm=require('node:vm');
 const {stripTypeScriptTypes}=require('node:module');
-const source=fs.readFileSync(__dirname+'/../supabase/functions/orca-timeline-photo-fill/index.ts','utf8').replace(/^import .*\n/,'');
+const source=fs.readFileSync(__dirname+'/../supabase/functions/orca-timeline-photo-fill/index.ts','utf8').replace(/^import .*\n/gm,'');
 const photo=(id,alt='')=>({id,width:1600,height:1000,alt_description:alt,
  urls:{regular:'https://images.unsplash.com/photo-'+id+'?w=900',raw:'https://images.unsplash.com/photo-'+id},
  links:{html:'https://unsplash.com/photos/'+id,download_location:'https://api.unsplash.com/photos/'+id+'/download'},
@@ -15,7 +15,9 @@ function harness({signedIn=true,consent=true,locked=true,events=[],cached=[],job
  const q={select(){return q},eq(){return q},is(){return q},neq(){return q},order(){return q},limit(){return q},range(){return q},
  single(){return Promise.resolve(result)},maybeSingle(){return Promise.resolve(result)},update(){unlocks++;return q},then(resolve){return Promise.resolve(result).then(resolve)}};return q;
  }};
- const ctx={createClient:()=>admin,Deno:{env:{get:()=>''},serve:f=>handler=f},URL,URLSearchParams,Response,Request,AbortSignal,crypto,console,
+ // JWT verification and browser-only token policy are tested independently.
+ // This isolated image-behavior harness stubs the already-authorized user path.
+ const ctx={isVerifiedOrcaBrowserToken:(_token,verifiedUserId)=>verifiedUserId==='owner',createClient:()=>admin,Deno:{env:{get:()=>''},serve:f=>handler=f},URL,URLSearchParams,Response,Request,AbortSignal,crypto,console,
  fetch:async()=>{network++;throw Error('Unexpected provider call')}};
  vm.createContext(ctx);vm.runInContext(stripTypeScriptTypes(source)+'\nglobalThis.api={candidate,originalUrl,businessQueries,brandMatch,commonsCandidate,recognizableName};',ctx);
  return {api:ctx.api,invoke:async()=>{
