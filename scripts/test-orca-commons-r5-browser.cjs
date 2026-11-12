@@ -31,7 +31,7 @@ const server=http.createServer((req,res)=>{
  if(!url.pathname.startsWith('/orca-staging/')){res.writeHead(404);res.end();return}
  const name=decodeURIComponent(url.pathname.slice('/orca-staging/'.length))||'index.html';
  if(name==='research-workspace-staging.html'){res.setHeader('Content-Type','text/html');res.end('<title>Verified stock workspace redirect</title><p id="redirect-stub">Offline workspace target</p>');return}
- if(!/^(?:[A-Za-z0-9.-]+\.(?:html|js|css)|assets\/orca-world-(?:management|earnings|positioning)\.webp|assets\/orca-legends-trailer-poster\.svg|assets\/poster\.png)$/.test(name)){res.writeHead(404);res.end();return}
+ if(!/^(?:[A-Za-z0-9.-]+\.(?:html|js|css)|assets\/orca-world-(?:management|earnings|positioning)\.webp|assets\/orca-legends-trailer-poster\.svg|assets\/poster\.png|assets\/orca-legends-fortress-of-gold\.png)$/.test(name)){res.writeHead(404);res.end();return}
  if(name==='index.html' || name===''){
   res.setHeader('Content-Type','text/html; charset=utf-8');res.end(documents.get('index.html'));return
  }

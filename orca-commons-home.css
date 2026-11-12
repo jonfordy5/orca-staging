@@ -130,3 +130,38 @@ body.orca-commons-home>footer a{color:#e5cb93}
  .orca-home .legends-cinema-poster img{transition:none!important}
  .orca-home .legends-cinema-poster:hover img{transform:none}
 }
+
+/* ORCA Legends poster refinement: fit the cinematic teaser INSIDE its card,
+   at a deliberately smaller scale than the three full-size research realms. */
+.orca-home .legends-feature.legends-cinema-feature{
+  box-sizing:border-box;width:100%;max-width:890px;margin-left:auto;margin-right:auto;
+  grid-template-columns:minmax(0,.96fr) minmax(0,1.04fr);
+  gap:18px;padding:20px;overflow:hidden;align-items:center;
+}
+.orca-home .legends-cinema-feature>*{min-width:0;max-width:100%;box-sizing:border-box}
+.orca-home .legends-cinema-feature .legends-cinema-copy h2{font-size:clamp(26px,3vw,40px)}
+.orca-home .legends-cinema-feature .legends-cinema-copy p{font-size:13px;line-height:1.55}
+.orca-home .legends-cinema-feature .legends-cinema-poster{
+  box-sizing:border-box;display:block;min-width:0;width:100%;max-width:430px;
+  aspect-ratio:16/9;height:auto;justify-self:end;padding:0;overflow:hidden;
+  border:1px solid #997b4c;border-radius:11px;
+}
+.orca-home .legends-cinema-feature .legends-cinema-poster img{
+  box-sizing:border-box;display:block;width:100%;height:100%;min-width:0;
+  max-width:100%;max-height:100%;object-fit:contain;
+}
+.orca-home .legends-cinema-feature .legends-cinema-play{height:52px;width:52px;font-size:21px}
+.orca-home .legends-cinema-feature .legends-cinema-duration{font-size:9px}
+@media(max-width:850px){
+ .orca-home .legends-feature.legends-cinema-feature{
+  grid-template-columns:minmax(0,1fr);max-width:620px;gap:18px;padding:17px;
+ }
+ .orca-home .legends-cinema-feature .legends-cinema-poster{
+  width:100%;max-width:100%;justify-self:stretch;
+ }
+}
+@media(max-width:520px){
+ .orca-home .legends-feature.legends-cinema-feature{padding:14px}
+ .orca-home .legends-cinema-feature .legends-cinema-poster{max-width:100%}
+ .orca-home .legends-cinema-feature .legends-cinema-play{height:44px;width:44px;font-size:18px}
+}

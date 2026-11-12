@@ -8,7 +8,7 @@ const server=http.createServer((req,res)=>{
  const uri=new URL(req.url,'http://localhost').pathname;
  if(uri==='/'){res.setHeader('Content-Type','text/html');res.end(html);return}
  const name=uri.slice(1);
- if(['orca-commons-theme.css','orca-commons-home.css','orca-stock-search.css','orca-legends-trailer.js','orca-stock-search.js','orca-staging-config.js','assets/orca-legends-trailer-poster.svg','assets/poster.png'].includes(name)){
+ if(['orca-commons-theme.css','orca-commons-home.css','orca-stock-search.css','orca-legends-trailer.js','orca-stock-search.js','orca-staging-config.js','assets/orca-legends-trailer-poster.svg','assets/poster.png','assets/orca-legends-fortress-of-gold.png'].includes(name)){
   const content=fs.readFileSync(path.join(root,name));
   res.setHeader('Content-Type',name.endsWith('.png')?'image/png':name.endsWith('.svg')?'image/svg+xml':name.endsWith('.css')?'text/css':'application/javascript');
   res.end(content);return;
@@ -39,6 +39,14 @@ async function run(){
    await page.locator('.legends-cinema-poster').scrollIntoViewIfNeeded();
    await page.locator('.legends-cinema-poster img').evaluate(el=>el.decode());
    assert.equal(await page.locator('.legends-cinema-poster img').evaluate(el=>el.naturalWidth>0),true,'poster must render');
+   assert.match(await page.locator('.legends-cinema-poster img').getAttribute('src'),/orca-legends-fortress-of-gold\.png/);
+   assert.match(await page.locator('#legends-trailer-video').getAttribute('poster'),/orca-legends-fortress-of-gold\.png/);
+   const posterBox=await page.locator('.legends-cinema-poster').boundingBox();
+   const cardBox=await page.locator('.legends-cinema-feature').boundingBox();
+   assert(posterBox&&cardBox&&posterBox.x>=cardBox.x-1&&
+     posterBox.x+posterBox.width<=cardBox.x+cardBox.width+1,
+     'The poster must not overflow the ORCA Legends card at '+width+'px');
+   if(width>850)assert(posterBox.width<=431,'Trailer poster must remain compact on desktop');
    assert.equal(await page.locator('#legends-trailer-dialog').isVisible(),false);
    assert.equal(await page.locator('#legends-trailer-video').getAttribute('autoplay'),null);
    assert.equal(await page.locator('#legends-trailer-video').getAttribute('preload'),'none');
