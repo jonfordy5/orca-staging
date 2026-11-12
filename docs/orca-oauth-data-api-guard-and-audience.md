@@ -26,7 +26,7 @@ The proposed PostgREST pre-request hook:
 - Blocks all other routes, tables, RPCs, methods, method override headers and alternative-schema headers.
 - Avoids using any user-editable `user_metadata` value for authorization.
 
-It also adds a **RESTRICTIVE RLS policy**: OAuth users can SELECT only **their own** stock-team membership, while ordinary ORCA users keep their existing all-team view.
+It also adds **RESTRICTIVE RLS policies**: OAuth users can SELECT only **their own** stock-team membership and cannot directly INSERT, UPDATE, or DELETE on either `agent_profiles` or `stock_research_memberships`, including through non-PostgREST routes such as GraphQL. Ordinary ORCA browser sessions retain their existing profile/team permissions.
 
 **The hook is NOT installed by SQL alone.** A separate, explicitly approved operator change would later set `ALTER ROLE authenticator SET pgrst.db_pre_request='orca_mcp_private.enforce_readonly_oauth_data_api'` and `NOTIFY pgrst,'reload config'`. The current branch deliberately contains no live activation command.
 
@@ -48,6 +48,16 @@ This is a *candidate workaround* for resource-specific audiences, not proof that
 - `.github/workflows/orca-oauth-readonly-gateway.yml` runs everything against a fresh **PostgreSQL 16 GitHub Actions service**, not ORCA staging or production. No Supabase secrets, human accounts, database dumps or user data are used.
 
 **Latest evidence:** GitHub Actions isolated Postgres run [#43321663506](https://github.com/jonfordy5/orca-staging/actions/runs/43321663506) passed all steps after correcting an ambiguous hook variable. This tests SQL policy decisions and RLS in standalone Postgres; **it does not prove that a live Supabase gateway is configured**, that Storage or Realtime is protected, or that an actual OAuth code/token exchange works.
+
+
+
+## Cross-API RLS defense and its limits
+
+A subsequent read-only staging audit found **no currently configured RLS policies in the `storage` schema** (Storage tables have RLS enabled, but authenticated roles have base grants). This does not itself establish a usable Storage write path; services have additional checks and policies, so real signed-in negative testing is still needed. The exposed `graphql_public.graphql` function is executable by authenticated users and does not use the PostgREST pre-request hook.
+
+For that reason, the proposal now has six additional **RESTRICTIVE** OAuth DML policies on the two directly writable `public` tables. These are independent of the PostgREST pre-request hook; they prevent a bearer carrying top-level `client_id` from changing those tables even through GraphQL or a future service that applies RLS. The isolated test suite verifies both OAuth DML denial **and** unchanged normal browser profile edits and team join/leave rights.
+
+The policies **do not by themselves secure `SECURITY DEFINER` RPCs**, because those may bypass RLS. The central pre-request block is still required for Data API RPCs, and any other callable non-PostgREST definer endpoint needs its own review.
 
 ## What we must do before public account linking
 
