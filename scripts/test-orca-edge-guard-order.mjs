@@ -47,6 +47,7 @@ test('private profile pilot authenticates and checks OAuth before looking up pri
 
 test('shared browser guard never trusts a supplied alias, email, origin, or client-side permission',()=>{
   const source=readFileSync(join(root,'supabase/functions/_shared/orca-browser-token.ts'),'utf8');
+  const executable=source.replace(/\/\*[\s\S]*?\*\//g,'').replace(/^\s*\/\/.*$/gm,'');
   assert.match(source,/claims.sub !== verifiedUserId/);
   assert.match(source,/claims.role !== 'authenticated'/);
   assert.match(source,/hasOwnProperty.call\(claims, 'client_id'\)/);
