@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ORCA — Authorize AI Research Access (Staging)</title>
+<style>
+:root{color-scheme:dark;--bg:#091923;--panel:#142b36;--line:#355361;--mint:#83e5b9;--text:#f6fbf7;--muted:#bed1d4}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:radial-gradient(ellipse at top,#173d4e,var(--bg) 69%);font:16px/1.55 system-ui,sans-serif;color:var(--text)}
+main{max-width:600px;margin:8vh auto 5vh;padding:20px}
+section{border:1px solid var(--line);background:var(--panel);padding:26px;border-radius:20px}
+h1{font-size:clamp(26px,5vw,38px);line-height:1.15;margin:12px 0}
+p{color:var(--muted)}
+label{font-size:13px;color:var(--muted)}
+strong{color:#fff}
+.detail{padding:12px 15px;border-radius:10px;background:#1b3846;margin:10px 0;overflow-wrap:anywhere}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}
+button,.button{display:inline-block;text-decoration:none;background:var(--mint);color:#05202a;border:0;border-radius:12px;padding:12px 17px;font-weight:750;font-size:15px;cursor:pointer}
+button.secondary{background:#294856;color:var(--text)}
+button:disabled{opacity:.55;cursor:not-allowed}
+#notice{padding:12px 14px;background:#294856;border-radius:9px;white-space:pre-wrap}
+#notice[data-kind=error]{background:#653c34;color:#fff}
+.small{font-size:13px}
+</style>
+</head>
+<body>
+<main>
+<section>
+<div class="small" style="color:var(--mint);font-weight:800;letter-spacing:.12em">ORCA STAGING · AUTHORIZATION</div>
+<h1>Connect your AI to ORCA</h1>
+<p>Approve this connection only if you recognize the requesting application. Your AI will use your existing ORCA researcher identity.</p>
+<div id="notice" role="status" aria-live="polite">Checking the request…</div>
+<div id="details" hidden>
+  <div class="detail"><label>Requesting application</label><div><strong id="client-name">—</strong></div></div>
+  <div class="detail"><label>Requested access</label><div id="requested-access">—</div></div>
+  <div class="detail"><label>Return address (registered with authorization provider)</label><div id="client-redirect">—</div></div>
+  <p class="small">Our first integration is being designed for <strong>reading your researcher profile and active assignments</strong>. This screen cannot guarantee API-wide read-only access until the OAuth token restrictions pass the security review. Do not approve unexpected applications.</p>
+  <div class="actions">
+    <button id="approve" type="button" disabled>Authorize connection</button>
+    <button id="deny" type="button" class="secondary" disabled>Don't connect</button>
+  </div>
+</div>
+<div id="signin" hidden>
+  <p>Sign into the same existing ORCA account you want to connect. You will return to this authorization request afterward.</p>
+  <a id="signin-link" class="button" href="./account.html">Sign in to ORCA</a>
+</div>
+<p class="small">No research is started by connecting. No trading access is granted. You can disconnect authorized agents later.</p>
+</section>
+</main>
+<script type="module">
+import { selectSupabaseConfig } from './orca-staging-config.js';
+const $=id=>document.getElementById(id);
+const msg=(text,kind='info')=>{$('notice').textContent=text;$('notice').dataset.kind=kind};
+const authorizationId=new URLSearchParams(location.search).get('authorization_id')||'';
+let client=null,pending=false;
+const validId=/^[a-zA-Z0-9_-]{16,256}$/.test(authorizationId);
+const exactStaging='vbziibatnejoswsdggga.supabase.co';
+
+async function initialize(){
+  if(!validId){msg('Invalid or missing authorization request. Start from the agent connection screen.','error');return;}
+  try{
+    const cfg=await selectSupabaseConfig();
+    if(!cfg.isOrcaStaging||new URL(cfg.projectUrl).hostname!==exactStaging)throw new Error('Staging configuration not valid');
+    const {createClient}=await import('https://esm.sh/@supabase/supabase-js@2.119.0');
+    client=createClient(cfg.projectUrl,cfg.publishableKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+    const checked=await client.auth.getUser();
+    if(checked.error||!checked.data?.user?.id){
+      $('signin').hidden=false;
+      const next=new URL('./account.html',location.href);
+      next.searchParams.set('returnTo','orca-oauth-consent.html');
+      next.searchParams.set('authorization_id',authorizationId);
+      next.searchParams.set('environment','orca-staging');
+      $('signin-link').href=next.pathname+next.search;
+      msg('Sign in to ORCA using your existing account to review this request.');
+      return;
+    }
+    const response=await client.auth.oauth.getAuthorizationDetails(authorizationId);
+    if(response.error||!response.data)throw new Error('Authorization request cannot be verified');
+    const details=response.data;
+    if(!('authorization_id' in details)){
+      // Supabase returned an already-authorized redirect, not user input.
+      if(typeof details.redirect_url!=='string')throw new Error('Invalid authorization response');
+      location.replace(details.redirect_url);
+      return;
+    }
+    if(!details.client||typeof details.client.name!=='string'||
+      typeof details.redirect_uri!=='string')throw new Error('Authorization request incomplete');
+    $('client-name').textContent=details.client.name;
+    $('client-redirect').textContent=details.redirect_uri;
+    const scopes=typeof details.scope==='string'&&details.scope.trim()?details.scope.trim().split(/\s+/):[];
+    $('requested-access').textContent=scopes.length?scopes.join(', '):'Basic account identification';
+    $('details').hidden=false;
+    $('approve').disabled=false;$('deny').disabled=false;
+    msg('Review the app and requested permissions. Nothing is authorized until you choose.');
+  }catch{msg('Unable to verify this connection request. No authorization was granted.','error');}
+}
+
+async function decide(allow){
+  if(pending||!client||!validId)return;
+  pending=true;$('approve').disabled=true;$('deny').disabled=true;
+  msg(allow?'Authorizing this application…':'Denying the connection…');
+  try{
+    // Supabase Auth issues and handles codes/tokens. The website never mints,
+    // stores, forwards or renders a client access/refresh token itself.
+    const response=allow
+      ?await client.auth.oauth.approveAuthorization(authorizationId)
+      :await client.auth.oauth.denyAuthorization(authorizationId);
+    if(response.error||typeof response.data?.redirect_url!=='string')throw new Error('Authorization request failed');
+    location.assign(response.data.redirect_url);
+  }catch{
+    msg('Unable to process your decision. No successful connection was confirmed.','error');
+    pending=false;$('approve').disabled=false;$('deny').disabled=false;
+  }
+}
+$('approve').addEventListener('click',()=>decide(true));
+$('deny').addEventListener('click',()=>decide(false));
+initialize();
+</script>
+</body>
+</html>
