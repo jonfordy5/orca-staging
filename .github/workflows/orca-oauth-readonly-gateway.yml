@@ -87,6 +87,15 @@ jobs:
         run: |
           result=$(psql -X -Atc "SELECT count(*) FROM pg_db_role_setting WHERE array_to_string(setconfig, ',') LIKE '%pgrst.db_pre_request%';")
           test "$result" = "0"
+      - name: Confirm activation refuses a previously approved fake client
+        run: |
+          test "$PGDATABASE" = "orca_test"
+          if psql -X -v ON_ERROR_STOP=1 -f sql/orca_oauth_activate_postgrest_hook_staging.sql >/tmp/orca-denied-activation.log 2>&1; then
+            echo "ERROR: activation unexpectedly succeeded while client was approved"
+            exit 1
+          fi
+          grep -q "Refusing to activate while any OAuth clients are approved" /tmp/orca-denied-activation.log
+          psql -X -v ON_ERROR_STOP=1 -c "DELETE FROM orca_mcp_private.approved_readonly_clients WHERE client_id='approved-client-alpha';"
       - name: Verify activation and exact rollback scripts only inside sandbox database
         run: |
           test "$PGDATABASE" = "orca_test"
