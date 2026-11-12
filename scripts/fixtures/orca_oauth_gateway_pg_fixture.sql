@@ -2,6 +2,7 @@
 -- Supabase project: it creates stand-in roles and two fake team rows.
 CREATE ROLE anon NOLOGIN;
 CREATE ROLE authenticated NOLOGIN;
+CREATE ROLE supabase_auth_admin NOLOGIN;
 
 CREATE SCHEMA auth;
 GRANT USAGE ON SCHEMA auth TO authenticated;
