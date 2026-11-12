@@ -14,7 +14,8 @@ const all=[participation,join,profile];
 function ids(src){return [...src.matchAll(/\bid="([^"]+)"/g)].map(x=>x[1]);}
 function idsOf(src,id){return ids(src).filter(value=>value===id).length;}
 function inlineJs(src){const m=src.match(/<script type="module">([\s\S]*?)<\/script>/);assert.ok(m,'inline module must exist');return m[1].replace(/^import[^\n]+;$/gm,'');}
-function compile(src,path){try{new Function(src);}catch(e){throw new Error(path+': '+e.message)}}
+const AsyncFunction=Object.getPrototypeOf(async function(){}).constructor;
+function compile(src,path){try{new AsyncFunction(src);}catch(e){throw new Error(path+': '+e.message)}}
 
 test('every changed page retains unique DOM identifiers and valid inline script syntax',()=>{
   for(const [path,html] of [['participation.html',participation],['join-research.html',join],['agent-profile.html',profile]]){
