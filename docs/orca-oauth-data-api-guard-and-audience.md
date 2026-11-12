@@ -78,6 +78,25 @@ For that reason, the proposal now has six additional **RESTRICTIVE** OAuth DML p
 
 The policies **do not by themselves secure `SECURITY DEFINER` RPCs**, because those may bypass RLS. The central pre-request block is still required for Data API RPCs, and any other callable non-PostgREST definer endpoint needs its own review.
 
+## Real PostgREST HTTP and reversible-activation rehearsal (Nov 12)
+
+Additional tests were run against a real, **isolated** PostgREST v14.18 server backed by fake PostgreSQL 16 accounts, fake JWT signatures, and mock claim/publish RPCs:
+
+- [GitHub Actions HTTP gate #43325817535](https://github.com/jonfordy5/orca-staging/actions/runs/43325817535) — passed. A synthetic browser token kept both team-member reads and its publishing RPC; an allowlisted OAuth token could read only its own member row and profile and call only the two safe read RPCs. OAuth mutation RPCs, direct profile/team updates, unapproved clients, wrong audiences, unrelated tables and method-override requests were rejected. The test verified no unwanted fake writes.
+- [GitHub Actions activation/rollback #43326652194](https://github.com/jonfordy5/orca-staging/actions/runs/43326652194) — passed. The activation script **refused** to run while the synthetic approved-client registry was nonempty. The isolated test then removed only the fake client, activated the PostgREST setting, verified its exact value, reset the setting using the matching rollback script, and verified no leftover setting.
+- `sql/orca_oauth_activate_postgrest_hook_staging.sql` — **code-only, not executed on staging**. Requires zero approved clients, all seven restrictive policies, an installed guard, and no existing global hook; then sets `authenticator`'s `pgrst.db_pre_request` and notifies PostgREST. It must never be run against production.
+- `sql/orca_oauth_deactivate_postgrest_hook_staging.sql` — **code-only, not executed on staging**. Resets the global PostgREST hook only if its current value matches the expected ORCA function. It does not delete database objects or research records.
+
+The **live Orca-staging global hook remains inactive**. These prove PostgREST behavior in an isolated environment, not compatibility with the actual staging gateway, an actual Supabase Auth OAuth JWT or ChatGPT's authorization flow.
+
+## Additional OAuth bearer bypass gate: existing Edge Functions
+
+A read-only inspection of the 12 deployed Orca-staging Edge Functions found existing functions which authenticate a user via Supabase Auth and then perform privileged server-side operations using a service-role client. Examples: `orca-majority-synthesis`, `orca-timeline-discovery`, `orca-timeline-photo-fill`, and `orca-auto-ai-profile`. Their source confirms user authentication checks but did not show a separate OAuth `client_id` check in those paths.
+
+**This is a release blocker, not proof of an existing exploit**: once an OAuth token exists, those independent Edge Function routes could accept it as a normal user token and perform operations that our read-only Data API guard would have rejected. The HTTP pre-request function is not invoked for arbitrary Edge Functions.
+
+Before OAuth linking is enabled, the scope and authorization of each independently deployed Edge Function must be reviewed. Any browser-only write/generation endpoint should **reject linked OAuth client tokens after authenticating them**, unless a separate explicit OAuth scope and server-side policy authorizes that function. Do not rely on CORS/Origin headers as an authorization boundary. Do not deploy modifications to existing Edge Functions without separate testing and approval.
+
 ## What we must do before public account linking
 
 1. **Separate owner approval for staging SQL deployment**. Take a security baseline, verify today's pre-request settings and RLS policies, snapshot existing Auth hook configuration. Never target project `hsgfwsghxdcgpjlekfqf` (production).
