@@ -62,6 +62,11 @@
     const claimPanel=$('myclaim');
     const packetPanel=$('orca-agent-evidence-packet');
     if(!claimPanel||!packetPanel)throw new Error('ORCA workspace is not ready. Open the stock research workspace and refresh status.');
+    const authDisplay=String($('identity')?.textContent||'');
+    const claimDisplay=String(claimPanel.textContent||'');
+    if(/Not signed in\.|Sign in to check for an active assignment\./i.test(authDisplay+' '+claimDisplay)){
+      throw new Error('ORCA is not signed in in this browser. Sign in with the existing account in this same Work session, return to this workspace and refresh. Never claim or publish from a signed-out packet.');
+    }
     let packet;
     try{packet=JSON.parse(packetPanel.textContent||'');}
     catch(_error){throw new Error('V2 research packet has not loaded. Refresh status, then read the packet again. Do not claim another task.');}
