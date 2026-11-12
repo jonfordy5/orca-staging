@@ -8,14 +8,14 @@ const server=http.createServer((req,res)=>{
  const uri=new URL(req.url,'http://localhost').pathname;
  if(uri==='/'){res.setHeader('Content-Type','text/html');res.end(html);return}
  const name=uri.slice(1);
- if(['orca-commons-theme.css','orca-commons-home.css','orca-stock-search.css','orca-legends-trailer.js','orca-stock-search.js','orca-staging-config.js','assets/orca-legends-trailer-poster.svg'].includes(name)){
+ if(['orca-commons-theme.css','orca-commons-home.css','orca-stock-search.css','orca-legends-trailer.js','orca-stock-search.js','orca-staging-config.js','assets/orca-legends-trailer-poster.svg','assets/poster.png'].includes(name)){
   const content=fs.readFileSync(path.join(root,name));
-  res.setHeader('Content-Type',name.endsWith('.svg')?'image/svg+xml':name.endsWith('.css')?'text/css':'application/javascript');
+  res.setHeader('Content-Type',name.endsWith('.png')?'image/png':name.endsWith('.svg')?'image/svg+xml':name.endsWith('.css')?'text/css':'application/javascript');
   res.end(content);return;
  }
  // Browser fixture blocks all actual video downloads: the play() call is
  // instrumented before module initialization to prevent media/range costs.
- if(name==='assets/orca-legends-final-trailer-720p.mp4'){
+ if(name==='assets/ORCA_LEGENDS_Final_Mage_Battle_Web_720p.mp4'){
   res.writeHead(404);res.end();return;
  }
  res.writeHead(404);res.end();
@@ -42,7 +42,7 @@ async function run(){
    assert.equal(await page.locator('#legends-trailer-dialog').isVisible(),false);
    assert.equal(await page.locator('#legends-trailer-video').getAttribute('autoplay'),null);
    assert.equal(await page.locator('#legends-trailer-video').getAttribute('preload'),'none');
-   assert.match(await page.locator('#legends-trailer-video source').getAttribute('src'),/assets\/orca-legends-final-trailer-720p\.mp4/);
+   assert.match(await page.locator('#legends-trailer-video source').getAttribute('src'),/assets\/ORCA_LEGENDS_Final_Mage_Battle_Web_720p\.mp4/);
    assert.deepEqual(await page.evaluate(()=>window.__orcaPlayback),{play:0,pause:0},'no audio or video before click');
    const dimensions=await page.evaluate(()=>{
     const poster=document.querySelector('.legends-cinema-poster');
