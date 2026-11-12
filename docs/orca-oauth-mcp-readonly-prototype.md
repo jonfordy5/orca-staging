@@ -47,6 +47,16 @@ A fresh staging catalog check on November 12 found **19 authenticated-callable p
 
 Because the OAuth server shares the same identity infrastructure, a project-level policy review must include custom access token hooks (if any), audience/issuer, signing keys, `session_id` revocation semantics, RLS and the two-user ownership test.
 
+## Additional standards compatibility gate: RFC 8707 resource audience
+
+OpenAI's MCP OAuth guidance requires the authorization server to echo the `resource` parameter during the OAuth exchange and issue a token whose audience identifies the actual protected MCP resource. **Supabase's native OAuth server documentation alone does not prove the deployed project performs this mapping.**
+
+As of November 12, 2026, Supabase upstream [issue #2610](https://github.com/supabase/auth/issues/2610) and proposed [pull request #2894](https://github.com/supabase/auth/pull/2894) discuss RFC 8707 resource-indicator to token-`aud` binding; verify release/deployment status rather than assuming a pending change has shipped. Their existing default `aud: "authenticated"` is **not sufficient** for a strict MCP resource audience.
+
+The MCP prototype now **fails closed** unless the signed OAuth JWT's `iss` is the exact Orca-staging issuer and `aud` includes `https://vbziibatnejoswsdggga.supabase.co/functions/v1/orca-agent-mcp`. This intentionally means the prototype cannot be used with an incompatible issuer. If the project does not emit resource-bound tokens, stop and use a supported solution (for example, a carefully reviewed audience-setting Supabase access-token hook), not a bypass that ignores issuer/audience.
+
+The user-facing connection cannot go live until a real issuer/token exchange confirms compatibility with ChatGPT's exact registered OAuth callback and MCP resource URL. No authorization credentials or identity data may be pasted into chat during testing.
+
 ## Planned activation gates (separate owner approval required)
 
 1. Confirm staging uses **asymmetric** RS256/ES256 Supabase signing keys; `@supabase/server` JWKS middleware rejects legacy HS256. No signing-key migration without explicit owner approval.
