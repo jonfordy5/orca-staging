@@ -24,7 +24,8 @@ test('MCP uses official OAuth resource metadata and verified user middleware bef
   assert.match(mcp,/auth\.getUser\(\)/);
   assert.match(mcp,/claims\.sub !== identity\.data\.user\.id/);
   assert.match(mcp,/readAgentState\(supabase, ownerId/);
-  assert.doesNotMatch(mcp, /SUPABASE_SERVICE_ROLE_KEY|SUPABASE_SECRET_KEY|service_role|auth\.admin|createClient\(/);
+  const executableMcp=mcp.replace(/^\s*\/\/.*$/gm,'');
+  assert.doesNotMatch(executableMcp, /SUPABASE_SERVICE_ROLE_KEY|SUPABASE_SECRET_KEY|service_role|auth\.admin|createClient\(/);
 });
 
 test('MCP exposes exactly two read-only tools and no claims, publish, permission, or broker mutations',()=>{
