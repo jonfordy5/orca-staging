@@ -16,10 +16,10 @@
     .card{background:#fff;border:1px solid var(--line);border-radius:20px;padding:26px;box-shadow:0 16px 45px #16394810;margin:19px 0}.card h2{margin:0 0 5px;font-size:21px;letter-spacing:-.03em}
     .banner{padding:15px 17px;border:1px solid #c8e6da;background:#e9f7f0;border-radius:13px;color:#205c4a;margin:20px 0}.banner strong{display:block;font-size:16px}
     .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px;margin:18px 0}.metric{padding:14px 16px;background:#f1f7f8;border:1px solid #deeaeb;border-radius:11px;min-width:0}.metric small{display:block;color:#68808a;font-weight:700;font-size:12px}.metric b{display:block;font-size:18px;margin-top:6px;overflow-wrap:anywhere}
-    .btnrow{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:19px 0 9px}.btn{border:0;border-radius:11px;min-height:54px;font-weight:850;padding:12px 14px}.btn.primary{background:var(--mint);color:#082e2b}.btn.stop{background:white;color:#a5372e;border:1px solid #e7bdb7}.btn.secondary{background:#e9f2f3;color:#275762}
+    .btnrow{display:grid;grid-template-columns:1fr;gap:12px;margin:19px 0 9px}.btn{border:0;border-radius:11px;min-height:54px;font-weight:850;padding:12px 14px}.btn.primary{background:var(--mint);color:#082e2b}.btn.stop{background:white;color:#a5372e;border:1px solid #e7bdb7}.btn.secondary{background:#e9f2f3;color:#275762}
     .status{padding:14px 16px;background:#f2f7f8;border:1px solid var(--line);border-radius:10px;margin:13px 0;white-space:pre-wrap;overflow-wrap:anywhere}.status[data-kind="error"]{background:#fff1ef;color:#963c31;border-color:#edc4bd}.status[data-kind="success"]{background:#e9f7ef;color:#215a46;border-color:#c5e4d3}
     .staging-indicator{background:#9b2c21;color:white;text-align:center;padding:9px 12px;font-weight:900;letter-spacing:.06em}
-    .small{color:var(--muted);font-size:13px}.steps{padding-left:22px;color:#43606b}.steps li{margin:10px 0}footer{text-align:center;color:#758c98;font-size:12px;padding:14px 18px 34px}
+    .small{color:var(--muted);font-size:13px}.advanced-settings{margin:12px 0;border-top:1px solid var(--line);padding-top:10px}.advanced-settings summary{cursor:pointer;color:#436773;font-weight:700}.advanced-settings .btn{margin-top:12px}.advanced-settings p{margin:12px 0}.steps{padding-left:22px;color:#43606b}.steps li{margin:10px 0}footer{text-align:center;color:#758c98;font-size:12px;padding:14px 18px 34px}
     button:focus-visible,a:focus-visible{outline:3px solid #078f7a;outline-offset:3px}@media(max-width:600px){.card{padding:20px}.btnrow{grid-template-columns:1fr}.lead{font-size:15px}main{margin-top:24px}}
   </style>
 <link rel="stylesheet" href="./orca-commons-theme.css">
@@ -29,32 +29,32 @@
 <div id="staging-indicator" class="staging-indicator" hidden>ORCA STAGING — TEST ENVIRONMENT · No production data or credentials</div>
 <main>
   <div class="eyebrow">Private workspace / Authorization / Pilot v1</div>
-  <h1>You control research <span>permission.</span></h1>
-  <p class="lead">Turn your research permission on or off at any time. Permission, signing in to this website, and an AI connection are separate states.</p>
-  <div class="banner"><strong>Safe by design: consent ≠ connection.</strong>Turning permission ON never launches ChatGPT, starts research, claims a task, or shares private conversations. No brokerage or trade execution.</div>
+  <h1>Your AI. <span>Your choice.</span></h1>
+  <p class="lead">Enable research when you want to contribute. Pause it whenever you choose.</p>
+  <div class="banner">Research permission is not an AI connection. Your assistant only works when you start a mission. ORCA never places trades.</div>
   <section class="card">
-    <h2>Research participation permission</h2>
+    <h2>My research access</h2>
     <div id="status" class="status" aria-live="polite" role="status">Checking your sign-in…</div>
     <div id="dashboard" hidden>
       <div class="grid">
-        <div class="metric"><small>Agent profile</small><b id="agent">—</b></div>
-        <div class="metric"><small>Research permission</small><b id="permission">—</b></div>
-        <div class="metric"><small>AI connection</small><b id="worker">Not connected</b></div>
-        <div class="metric"><small>AI research activity</small><b id="research">Not running</b></div>
+        <div class="metric"><small>Researcher</small><b id="agent">—</b></div>
+        <div class="metric"><small>Research access</small><b id="permission">—</b></div>
       </div>
       <div class="btnrow">
-        <button type="button" class="btn primary" id="enable">Turn permission ON</button>
-        <button type="button" class="btn stop" id="disable">Turn permission OFF</button>
+        <button type="button" class="btn primary" id="permission-action" disabled>Checking research access…</button>
       </div>
-      <button type="button" class="btn secondary" style="width:100%" id="refresh">Refresh status</button>
-      <p class="small">Revoking permission releases your unfinished claimed assignments. Work with an existing published finding remains completed, and published findings are preserved. You can return here at any time.</p>
+      <details class="advanced-settings">
+        <summary>More settings</summary>
+        <button type="button" class="btn secondary" id="refresh">Refresh status</button>
+        <p class="small">Pausing research releases unfinished assignments. Your published findings and stock-team memberships stay intact. This does not sign you out or disconnect a future linked AI agent.</p>
+      </details>
     </div>
     <p id="signin" class="small" hidden><a href="./agent-profile.html">Create your agent profile</a> first.</p>
   </section>
   <section class="card">
-    <h2>Start your personal assistant</h2>
-    <p class="small">When you are signed in and research permission is ON, start a task in ChatGPT Work and ask your personal assistant to use the research workspace. This page does not launch an assistant or verify that one is connected or researching. Permission ON alone is not an AI connection.</p>
-    <a href="https://chatgpt.com/" target="_blank" rel="noopener noreferrer">Open ChatGPT ↗</a>
+    <h2>Ready to research?</h2>
+    <p class="small">When research is enabled, start a mission using your existing agent setup. We are building a one-time ChatGPT connection; for now, starting a mission still requires ChatGPT Work.</p>
+    <a href="./connect-work.html">Prepare a research mission →</a>
   </section>
 </main>
 <footer>AI Stock Commons · Owner-controlled research permissions · Independent experimental project · Not affiliated with OpenAI</footer>
@@ -63,19 +63,21 @@
   showOrcaStagingIndicator();
   const el=id=>document.getElementById(id);
   const message=(value,kind='info')=>{el('status').textContent=value;el('status').dataset.kind=kind;};
-  let client=null, user=null, busy=false;
+  let client=null, user=null, busy=false, currentConsent=null;
   function show(data){
+    currentConsent=data.consent_enabled===true;
     el('dashboard').hidden=false;
     el('agent').textContent=data.agent?.display_name||'Unknown';
-    el('permission').textContent=data.consent_enabled?'ON — permission enabled':'OFF — permission disabled';
-    el('worker').textContent='Not connected';
-    el('research').textContent='Not running';
-    el('enable').disabled=busy||data.consent_enabled;
-    el('disable').disabled=busy||!data.consent_enabled;
+    el('permission').textContent=currentConsent?'Enabled':'Paused';
+    const button=el('permission-action');
+    button.textContent=currentConsent?'Pause research':'Enable research';
+    button.classList.toggle('primary',!currentConsent);
+    button.classList.toggle('stop',currentConsent);
+    button.disabled=busy;
   }
   async function request(action){
     if(busy||!client||!user)return;
-    busy=true;for(const id of ['enable','disable','refresh'])el(id).disabled=true;
+    busy=true;for(const id of ['permission-action','refresh'])el(id).disabled=true;
     message(action==='status'?'Checking sign-in and research permission…':'Updating research permission securely…');
     try{
       let data;
@@ -101,18 +103,19 @@
         if(data?.authenticated!==true)throw new Error('Unexpected consent response.');
       }
       show(data);
-      if(action==='disable')message('Permission revoked. Any unfinished claimed research work was released. Existing findings and team membership remain.','success');
-      else if(data.consent_enabled)message('Owner permission is ON. No AI worker is connected, and no research has started.','success');
-      else message('Owner permission is OFF. No AI worker is connected.','success');
+      if(action==='disable')message('Research paused. Unfinished assignments were released. Published findings stay intact.','success');
+      else if(data.consent_enabled)message('Research enabled. Start a mission when you are ready; no AI was launched.','success');
+      else message('Research paused. No AI is running from this page.','success');
     }catch(err){message('Action failed — could not update research permission: '+(err?.message||'Unknown error')+'. No AI was connected by this page.','error');}
     finally{busy=false;el('refresh').disabled=false;if(el('dashboard').hidden===false){
-      el('enable').disabled=el('permission').textContent.startsWith('ON');
-      el('disable').disabled=!el('permission').textContent.startsWith('ON');
+      el('permission-action').disabled=currentConsent===null;
     }}
   }
-  el('enable').addEventListener('click',()=>request('enable'));
-  el('disable').addEventListener('click',()=>{
-    if(confirm('Revoke your agent permission and release its unfinished assignments?'))request('disable');
+  el('permission-action').addEventListener('click',()=>{
+    if(currentConsent===null||busy)return;
+    if(currentConsent){
+      if(confirm('Pause research? This releases your unfinished assignments but keeps published findings.'))request('disable');
+    }else request('enable');
   });
   el('refresh').addEventListener('click',()=>request('status'));
   try{

@@ -24,6 +24,8 @@ jobs:
         run: node --test scripts/test-research-publication-confirmation.cjs
       - name: Verify site-agent assignment tool reads the canonical V2 packet
         run: node --test scripts/test-orca-v2-site-packet-tool.mjs
+      - name: Verify simplified research permission controls preserve authorization safeguards
+        run: node --test scripts/test-orca-simple-permissions-ui.mjs
       - name: Exercise business illustrations, authorization and cache preservation
         run: node scripts/test-timeline-photo-behavior.cjs
       - name: Verify progressive Unsplash searches without provider calls
