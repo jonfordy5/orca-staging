@@ -1,6 +1,6 @@
 # ORCA — personal AI connection, Phase 1: read-only account boundary
 
-**Status:** Source and test scaffolding only. **Not deployed. Not connected to ChatGPT.** No ORCA user should see a fake "Connected" indicator. This branch contains no database migrations and makes no account, task, permission, publication, or website changes.
+**Status — November 12, 2026:** Owner authorized **staging-only** deployment. The read-only Supabase Edge Function **is deployed to Orca-staging, ACTIVE version 1, `verify_jwt = true`**. ChatGPT OAuth/MCP linking is **not implemented**. A separate one-click browser account-check page exists only in this draft GitHub PR and is **not merged or published**. No ORCA account, task, permission, publication, data schema, or production configuration was changed.
 
 ## Why this is the first implementation step
 
@@ -12,11 +12,12 @@ This PR implements only the read-only ORCA-side **account and assignment policy*
 
 ## What the new code actually does
 
-- `supabase/functions/orca-agent-readonly/index.ts`: proposed Supabase Edge Function, *not deployed*, accepting only **POST**, a verified user JWT and `action: "whoami"` or `action: "my_assignment"`.
+- `supabase/functions/orca-agent-readonly/index.ts`: deployed staging-only Supabase Edge Function (v1), accepting only **POST**, a verified user JWT and `action: "whoami"` or `action: "my_assignment"`.
 - `policy.mjs`: RLS-scoped owner profile lookup and (for a requested stock) exact existing team-membership lookup; calls the deployed owner-scoped `commons_my_claim` and `orca_my_assigned_board` read RPCs. Rejects malformed ticker, expired task, unavailable permission check or board mismatch.
 - `supabase/config.toml`: explicitly sets `verify_jwt = true` for **this function only**.
 - `scripts/test-orca-agent-readonly.mjs`: tests two action types, invalid identity/ticker, no profile/team/consent, expired tasks, board mismatches, and no write/admin operations.
-- GitHub CI executes the tests without contacting Supabase.
+- GitHub CI executes the owner-scoped policy tests without credentials. A separate branch-only workflow performs two **live, secret-free** negative HTTP probes to the staging endpoint (missing bearer and malformed bearer). Both were rejected as expected; see [workflow #43308112023](https://github.com/jonfordy5/orca-staging/actions/runs/43308112023).
+- `agent-connection-check.html` is a **draft-only** one-click read-only browser tester for two real signed-in ORCA accounts. It checks the user JWT privately in that browser, validates the returned alias against their owner-scoped profile and reports a sanitized result. It never claims or publishes. The exact `returnTo` path is allowlisted in `account.html`. This page is **not yet deployed**.
 
 Example signed-in **ORCA browser** client request payloads (do not put JWT in a ChatGPT prompt):
 
@@ -52,14 +53,27 @@ Possible sanitized read-only response:
 
 Only the authenticated owner can access this information; the Edge Function uses the signed-in user's publishable/anon-key client with **no service-role key**. The returned assignment is for the exact owner/ticker and the server-assigned board; it never chooses a metric or claims another task.
 
-## What remains before deployment or a "Connect" button
+## Completed staging deployment / remaining steps before a "Connect" button
 
-1. Review implementation and tests; get explicit owner approval to deploy **staging only**. Run Supabase advisors and verify the new function's JWT enforcement in the real staging project.
-2. Perform two genuine signed-in account tests, plus signed-out and revoked-consent tests, demonstrating that Alice's authorization cannot read Bob's assignments. Inspect responses privately; never publish account IDs or tokens.
+1. **DONE (partial security verification):** Owner approved the staging API deployment. Supabase independently reported the new function **ACTIVE v1 / JWT verification required**. Retrieved deployed source matches the reviewed GitHub branch byte-for-byte. Existing RLS and source data counts remain unchanged. Both no-token and invalid-token real HTTPS requests were rejected via GitHub Actions. The existing privileged-function/default-grant/password advisor notices remain open.
+2. **PENDING:** Publish the draft read-only tester page only after review, then run two genuine signed-in account tests in separate normal browser profiles (not Work) and a paused-consent account test. Both should see their *own* alias and RKLB assignment, and never another person's. The server-side signed-out/invalid-JWT probes passed, but real two-account browser acceptance is **not yet complete**. Never publish account IDs or tokens.
 3. Build a standards-compliant **OAuth 2.1 + PKCE** authorization server/adapter and a proper MCP server with discovery metadata, per-tool scopes and revocable connection status. Prefer an established identity provider; do not improvise credential exchanges. This is not provided by the read-only Supabase Edge Function.
 4. Once OAuth works and account/stock-level access isolation has passed, expose these read-only tools to ChatGPT as **ORCA whoami**, **permissions** and **my assignment**. Real ChatGPT tool-calling requires a separate integration test.
 5. Only after that: introduce a scoped **claim exactly once** action and a distinct **publish once** action, with owner's optional per-finding approval, source verification, active lease, existing board/rating contract, idempotent receipts, revocation and rate limits. Do not give an agent trade/broker privileges.
 6. Eventually use a single human-facing **Connect Your AI** button with **Pause / Disconnect** in account settings, but these must control real server-side authorization and revocation, not a cosmetic toggle or manually set "connected" flag.
+
+
+## Verified staging deployment receipt
+
+- Project: **Orca-staging** (`vbziibatnejoswsdggga`), independently confirmed ACTIVE_HEALTHY before deploying.
+- Function slug: `orca-agent-readonly`, **version 1**, status **ACTIVE**, `verify_jwt = true`.
+- Deployment returned success; readback shows **both** `index.ts` and `policy.mjs` exactly match the approved PR #77 branch.
+- Before and after database counts unchanged: **17 stocks, 3 researcher profiles, 9 team memberships, 50 tasks, 29 findings**.
+- All four relevant public tables have RLS enabled; neither `anon` nor `authenticated` has `TRUNCATE` on them.
+- Public runner HTTP smoke test against the **actual** staging URL passed: **missing** bearer and **intentionally invalid** bearer both received HTTP authentication denials (401/403).
+- No human account JWT or temporary token was accessed, logged, invented, or shared. Therefore user-specific isolation and successful authorized responses still require real-account tests.
+- Existing Supabase security advisor warnings remain unresolved; this rollout does not certify the entire platform.
+- API code may have runtime issues for authorized users until signed-in browser tests run; do not present it as a fully validated account-linking feature.
 
 ## Security notes
 
