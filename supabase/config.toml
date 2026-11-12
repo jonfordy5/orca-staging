@@ -1,0 +1,5 @@
+# The owner-scoped read-only staging endpoint is a separate pilot.
+# Keep JWT verification at the Supabase gateway. Do not deploy without
+# explicit staging approval and end-user identity/isolation testing.
+[functions.orca-agent-readonly]
+verify_jwt = true
