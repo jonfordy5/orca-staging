@@ -1,0 +1,26 @@
+name: ORCA OAuth MCP Deno typecheck
+
+on:
+  push:
+    branches:
+      - feat/orca-oauth-mcp-readonly-20261112
+    paths:
+      - supabase/functions/orca-agent-mcp/**
+      - supabase/functions/orca-agent-readonly/policy.mjs
+      - .github/workflows/orca-oauth-mcp-typecheck.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  edge-function-compile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Typecheck MCP Edge Function without deploying
+        run: deno check supabase/functions/orca-agent-mcp/index.ts
