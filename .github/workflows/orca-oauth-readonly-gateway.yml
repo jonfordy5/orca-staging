@@ -1,0 +1,54 @@
+name: ORCA OAuth Data API read-only gateway (isolated Postgres)
+
+on:
+  push:
+    branches:
+      - security/orca-oauth-readonly-gateway-20261112
+    paths:
+      - sql/orca_oauth_readonly_data_api_guard.sql
+      - scripts/fixtures/orca_oauth_gateway_pg_fixture.sql
+      - scripts/fixtures/orca_oauth_gateway_pg_tests.sql
+      - .github/workflows/orca-oauth-readonly-gateway.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-policy-in-sandbox:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: "orca-test-only"
+          POSTGRES_DB: orca_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d orca_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGHOST: localhost
+      PGPORT: 5432
+      PGDATABASE: orca_test
+      PGUSER: postgres
+      PGPASSWORD: "orca-test-only"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Ensure PostgreSQL client is installed
+        run: |
+          command -v psql || (sudo apt-get update -qq && sudo apt-get install -y postgresql-client)
+      - name: Create isolated fake Supabase roles and RLS data
+        run: psql -X -v ON_ERROR_STOP=1 -f scripts/fixtures/orca_oauth_gateway_pg_fixture.sql
+      - name: Load proposed OAuth guard WITHOUT enabling PostgREST globally
+        run: psql -X -v ON_ERROR_STOP=1 -f sql/orca_oauth_readonly_data_api_guard.sql
+      - name: Verify approved client-only reads, denied writes, owner RLS, and browser compatibility
+        run: psql -X -v ON_ERROR_STOP=1 -f scripts/fixtures/orca_oauth_gateway_pg_tests.sql
+      - name: Confirm no PostgREST pre-request setting was activated by proposal
+        run: |
+          result=$(psql -X -Atc "SELECT count(*) FROM pg_db_role_setting WHERE array_to_string(setconfig, ',') LIKE '%pgrst.db_pre_request%';")
+          test "$result" = "0"
