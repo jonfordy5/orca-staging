@@ -7,6 +7,8 @@ on:
     paths:
       - sql/orca_oauth_readonly_data_api_guard.sql
       - sql/orca_oauth_mcp_audience_hook_candidate.sql
+      - sql/orca_oauth_activate_postgrest_hook_staging.sql
+      - sql/orca_oauth_deactivate_postgrest_hook_staging.sql
       - scripts/fixtures/orca_oauth_gateway_postgrest_fixture.sql
       - scripts/test-orca-oauth-postgrest-http.mjs
       - scripts/fixtures/orca_oauth_gateway_pg_fixture.sql
@@ -85,3 +87,12 @@ jobs:
         run: |
           result=$(psql -X -Atc "SELECT count(*) FROM pg_db_role_setting WHERE array_to_string(setconfig, ',') LIKE '%pgrst.db_pre_request%';")
           test "$result" = "0"
+      - name: Verify activation and exact rollback scripts only inside sandbox database
+        run: |
+          test "$PGDATABASE" = "orca_test"
+          psql -X -v ON_ERROR_STOP=1 -f sql/orca_oauth_activate_postgrest_hook_staging.sql
+          current=$(psql -X -Atc "SELECT setting FROM pg_db_role_setting s CROSS JOIN LATERAL unnest(s.setconfig) setting WHERE s.setrole='authenticator'::regrole AND setting LIKE 'pgrst.db_pre_request=%'")
+          test "$current" = "pgrst.db_pre_request=orca_mcp_private.enforce_readonly_oauth_data_api"
+          psql -X -v ON_ERROR_STOP=1 -f sql/orca_oauth_deactivate_postgrest_hook_staging.sql
+          count=$(psql -X -Atc "SELECT count(*) FROM pg_db_role_setting s CROSS JOIN LATERAL unnest(s.setconfig) setting WHERE s.setrole='authenticator'::regrole AND setting LIKE 'pgrst.db_pre_request=%'")
+          test "$count" = "0"
