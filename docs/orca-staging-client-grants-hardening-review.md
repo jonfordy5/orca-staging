@@ -1,6 +1,6 @@
 # ORCA Commons — staging client-role grant hardening review
 
-**Status:** Proposed migration only. **Not applied to Supabase.** PR review and owner approval required before database changes. No production actions.
+**Status (November 12, 2026):** Owner approved this exact narrowly scoped staging migration in chat. **Applied successfully to Orca-staging only** as migration `20261112182341_orca_staging_client_role_truncate_hardening_20261112`. This GitHub PR remains **draft/unmerged**; no production changes.
 
 ## Why this is necessary
 
@@ -35,3 +35,18 @@ This hardening removes an unnecessary privilege; it does **not** certify source 
 Supabase guidance: https://supabase.com/docs/guides/api/securing-your-api
 
 Related owner-tracked research audit: https://github.com/jonfordy5/orca-staging/issues/54
+
+## Staging execution and verification — November 12, 2026
+
+- Project independently verified by connected Supabase metadata: **Orca-staging** (`vbziibatnejoswsdggga`), active and healthy. The separate AI Stock Commons project was not targeted.
+- Authorized migration returned `success: true`; migration registry shows `20261112182341_orca_staging_client_role_truncate_hardening_20261112`.
+- Effective `TRUNCATE` on existing public tables for `anon`: **5 → 0**; `authenticated`: **5 → 0**.
+- Ordinary client grant coverage unchanged: `anon` 9 SELECT, 0 INSERT, 0 DELETE; `authenticated` 12 SELECT, 1 INSERT, 2 DELETE. Existing table count: 26.
+- Data counts unchanged before/after: 17 stocks, 3 agent profiles, 9 memberships, 48 research tasks, 26 published findings, 188 timeline annotations.
+- Relational integrity sampling after change: 0 orphan findings, 0 findings attached to incomplete tasks, 0 ticker mismatches, 0 known ownership mismatches.
+- `postgres` new-table `TRUNCATE` default revoked as specified.
+- **Outstanding:** `supabase_admin` owns a separate default `TRUNCATE` grant to client roles; the project SQL executor cannot alter another owner's defaults. Escalate through supported provider/admin controls before a broader launch. Do not impersonate that role to modify it.
+- Security advisor rechecked: 11 RLS-no-policy informational notices, 2 public-callable and 14 signed-in-callable `SECURITY DEFINER` warnings, and leaked-password protection disabled. These pre-existing notices are not resolved by the narrow migration; review intentional permissions and protection separately.
+- **Not performed:** authenticated live end-to-end claim/publish smoke test, actual second-person A/B research test, per-source factual accuracy audit. These remain acceptance gates.
+
+**Note:** The SQL and tests remain in this draft branch as the reviewed reproduction and as regression documentation; GitHub Actions never execute the migration automatically.
