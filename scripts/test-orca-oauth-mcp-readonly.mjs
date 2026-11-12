@@ -32,6 +32,7 @@ test('MCP exposes exactly two read-only tools and no claims, publish, permission
   const tools=[...mcp.matchAll(/server\.registerTool\(\s*'([^']+)'/g)].map(m=>m[1]);
   assert.deepEqual(tools,['orca_whoami','orca_my_assignment']);
   assert.equal((mcp.match(/readOnlyHint: true/g)||[]).length,2);
+  assert.equal((mcp.match(/securitySchemes: \[\{ type: 'oauth2', scopes: \[\] \}\]/g)||[]).length,2);
   assert.doesNotMatch(mcp, /rpc\(|\.insert\(|\.update\(|\.delete\(|commons_publish|commons_claim|set_my_research_consent|set_my_independent_publishing/);
   assert.match(mcp,/\bticker: z\.string\(\)\.min\(1\)\.max\(10\)/);
 });
