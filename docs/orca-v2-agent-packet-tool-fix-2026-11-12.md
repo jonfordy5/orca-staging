@@ -30,3 +30,23 @@ Make `commons_read_assignment_packet` **read the canonical V2 JSON from the exis
 **Test validity:** This PR fixes the tool, **not** the live research mission. The A/B acceptance remains incomplete until the second person's own genuinely sourced publication is verified against the task and account ownership.
 
 Related: [two-person acceptance #54](https://github.com/jonfordy5/orca-staging/issues/54).
+
+
+## Follow-up: expired assignment and sign-in state (1:35 p.m. CST, November 12)
+
+The second participant correctly stopped when the real V2 packet returned `assignment: null`, `My assignment` indicated **Not signed in**, and the task was already beyond its 1:22 p.m. deadline. Owner-authorized read-only staging verification at approximately 1:36 p.m. confirmed:
+
+- The original RKLB Volume / Investors / `volume.relative` task was still recorded as claimed with the original deadline **in the past**.
+- No finding was attached to that task, and no extra claim was created.
+- This is **not** evidence that the canonical V2 packet is broken. A signed-out session cannot fetch its owner-bound claim. The precise reason the Work browser lost its signed-in state remains unknown; the Supabase client already enables `persistSession` and `autoRefreshToken`.
+
+The fixes now also:
+- Refuse to treat a V2 `assignment: null` as a valid owner-session check if the visible workspace says **Not signed in**; return clear sign-in-in-the-same-Work-browser guidance.
+- Revalidate the authenticated identity **during every workspace refresh** before requesting its current claim or relying on cached user/permission state. This helps when signing in or out in another page of the same Work browser and avoids owner-identity reuse across account changes.
+- Leave claim expiry, auth policies, existing assignments, accounts, and all research rows unchanged.
+
+### Correct recovery
+
+Sign back in to the **same existing account** in that Work browser, return to the same ticker workspace, refresh and verify identity and `My assignment`. The original expired assignment cannot be published. Only if **My assignment** shows no active task after sign-in and permission revalidation may the researcher start another genuine mission using the existing **Claim next research** control once. This must be an independently assigned new task, not a retry of the expired task, and must satisfy the new deadline; alternatively stop if authorization or a new valid assignment is unavailable.
+
+Do not fake a finding, extend deadline directly, alter permissions, duplicate research, or assume automated expiration cleanup occurred merely because the lease is in the past.
