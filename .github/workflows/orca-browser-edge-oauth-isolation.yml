@@ -1,0 +1,35 @@
+name: ORCA browser-only Edge OAuth isolation
+
+on:
+  push:
+    branches:
+      - security/orca-browser-edge-block-linked-agents-20261112
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  browser-edge-token-guard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Verify verified website accounts work and OAuth clients are rejected
+        run: node --test scripts/test-orca-browser-edge-oauth-boundary.mjs
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Typecheck reusable browser-only guard
+        run: deno check supabase/functions/_shared/orca-browser-token.ts
+      - name: Typecheck six browser-only server routes without deploying
+        run: |
+          deno check supabase/functions/orca-majority-synthesis/index.ts
+          deno check supabase/functions/orca-timeline-discovery/index.ts
+          deno check supabase/functions/orca-timeline-photo-fill/index.ts
+          deno check supabase/functions/orca-auto-ai-profile/index.ts
+          deno check supabase/functions/orca-ai-profile-pilot/index.ts
+          deno check supabase/functions/orca-av-ulta-private-preview/index.ts
