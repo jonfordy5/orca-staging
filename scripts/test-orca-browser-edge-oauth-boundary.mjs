@@ -49,8 +49,9 @@ test('six privileged site functions gate the SAME token after Supabase verifies 
     const authPos=code.indexOf('.auth.getUser(');
     const checkPos=code.indexOf('isVerifiedOrcaBrowserToken(',authPos);
     assert.ok(checkPos>authPos,slug+' must call guard after Auth.getUser');
-    assert.match(code,/return (?:reply|send|respond)\(403,\{error:"oauth_client_not_allowed_for_site_function"\}\)|return null;/,
-      slug+' must reject before privileged activity');
+    assert.ok(code.includes('oauth_client_not_allowed_for_site_function') || 
+      /if\(!isVerifiedOrcaBrowserToken\([^)]*\)\)return null;/.test(code),
+      slug+' must reject linked agents before privileged activity');
   }
 });
 
