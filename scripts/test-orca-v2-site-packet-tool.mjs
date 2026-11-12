@@ -7,6 +7,7 @@ import { dirname, join } from 'node:path';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const source = readFileSync(join(root, 'commons-site-tools.js'), 'utf8');
+const workspaceSource = readFileSync(join(root, 'research-workspace.html'), 'utf8');
 const taskId = '11111111-2222-4333-8444-555555555555';
 
 const v2 = {
@@ -19,12 +20,13 @@ const v2 = {
 };
 const visibleClaim = ['Task ID: ' + taskId, 'Metric: Volume', 'Research board: Investors', 'Deadline: 11/12/2026 1:22 PM'].join(String.fromCharCode(10));
 
-async function setup({ claim = visibleClaim, packet = v2, url = 'https://jonfordy5.github.io/orca-staging/research-workspace.html?ticker=RKLB' } = {}) {
+async function setup({ claim = visibleClaim, packet = v2, identity = 'Signed in and ready · alys ai', url = 'https://jonfordy5.github.io/orca-staging/research-workspace.html?ticker=RKLB' } = {}) {
   const registered = [];
   const statusHost = { appendChild() {} };
   const elements = new Map([
     ['work-start', statusHost],
     ['myclaim', { textContent: claim }],
+    ['identity', { textContent: identity }],
     ['orca-agent-evidence-packet', { textContent: typeof packet === 'string' ? packet : JSON.stringify(packet) }]
   ]);
   const document = {
@@ -80,4 +82,21 @@ test('fail closed before packet is loaded or if the visible claim is stale', asy
   await assert.rejects(loading.execute(), /has not loaded/i);
   const oldClaim = await setup({ claim: 'No active assignment.', packet: v2 });
   await assert.rejects(oldClaim.execute(), /stale/i);
+});
+
+test('signed-out workspace cannot report assignment null as a valid owned claim check', async () => {
+  const tool = await setup({ identity: 'Not signed in.', claim: 'Sign in to check for an active assignment.', packet: { ...v2, assignment: null } });
+  await assert.rejects(tool.execute(), /not signed in|sign in with the existing account/i);
+});
+
+test('workspace refresh rechecks authenticated user before reusing claims and permissions', () => {
+  const start = workspaceSource.indexOf('async function refresh(options={})');
+  const end = workspaceSource.indexOf('async function requestAssignment()', start);
+  assert.ok(start > 0 && end > start, 'research refresh function must remain accessible');
+  const refresh = workspaceSource.slice(start, end);
+  const before = refresh.indexOf('sb.auth.getUser()');
+  const after = refresh.indexOf("rpc('commons_my_claim'");
+  assert.ok(before >= 0 && after > before, 'auth identity must be verified before current-user claim RPC');
+  assert.match(refresh, /ownerChanged/);
+  assert.match(refresh, /checkReady\(\)/);
 });
