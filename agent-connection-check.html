@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ORCA — Check Research Access (Staging)</title>
+<style>
+:root{color-scheme:dark;--night:#071b27;--panel:#10313e;--line:#2f5461;--mint:#69e2b2;--text:#f4faf8;--muted:#b7ccd3}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(ellipse at top,#174557 0,var(--night) 65%);font:16px/1.55 system-ui,-apple-system,Segoe UI,sans-serif;color:var(--text)}
+main{max-width:720px;margin:6vh auto 32px;padding:0 20px}
+h1{font-size:clamp(30px,5vw,43px);line-height:1.16;letter-spacing:-.025em;margin:10px 0}
+p{color:var(--muted);margin:10px 0 20px}
+a{color:var(--mint)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:24px;box-shadow:0 18px 60px #00141d55}
+.eyebrow{font-size:12px;letter-spacing:.13em;text-transform:uppercase;font-weight:800;color:var(--mint)}
+button,.button{display:inline-block;text-decoration:none;text-align:center;background:var(--mint);border:0;border-radius:12px;padding:13px 20px;font:700 15px system-ui;color:var(--night);cursor:pointer}
+button:disabled{opacity:.55;cursor:wait}
+button:focus-visible,.button:focus-visible{outline:3px solid white;outline-offset:3px}
+#status{padding:12px 14px;border-radius:10px;background:#234553;color:#e9f8f5;margin:14px 0}
+#status[data-kind=error]{background:#593632;color:#ffe5e2}
+#status[data-kind=success]{background:#21533e;color:#eafff4}
+#results{white-space:pre-wrap;overflow-wrap:anywhere;font:15px/1.7 system-ui;color:#e2f2ee;border-top:1px solid var(--line);padding-top:16px;margin-top:15px}
+#results:empty{display:none}
+.small{font-size:13px}
+footer{color:var(--muted);font-size:12px;text-align:center;margin-top:22px}
+</style>
+</head>
+<body>
+<main>
+<div class="eyebrow">ORCA staging · read-only connection test</div>
+<h1>Check my research access</h1>
+<p>Sign in using your existing ORCA account in this browser, then press one button. This checks whether ORCA recognizes your researcher and RKLB assignment. It does not start, claim, or publish research.</p>
+<div class="card">
+  <div id="status" role="status" aria-live="polite">Checking whether you're signed in…</div>
+  <div id="actions">
+    <a class="button" id="signin" href="./account.html?ticker=RKLB&amp;returnTo=agent-connection-check.html&amp;environment=orca-staging" hidden>Sign in to ORCA</a>
+    <button type="button" id="check" disabled>Check my account</button>
+  </div>
+  <div id="results" role="status" aria-live="polite"></div>
+</div>
+<p class="small">This checks the new read-only API, not a ChatGPT connection. Never send passwords, login codes, access tokens, or account IDs to anyone in a chat.</p>
+<footer>No trades, permissions changes, task claims, or publication. ORCA staging only.</footer>
+</main>
+<script type="module">
+import { selectSupabaseConfig, showOrcaStagingIndicator } from './orca-staging-config.js';
+showOrcaStagingIndicator();
+const $=id=>document.getElementById(id);
+const state=(msg,kind='info')=>{$('status').textContent=msg;$('status').dataset.kind=kind};
+let client=null,projectUrl='',publishableKey='',verifiedUser=null,busy=false;
+const ticker='RKLB';
+const schema='ORCA_AGENT_READONLY_V1';
+async function init(){
+  try{
+    const cfg=await selectSupabaseConfig();
+    if(!cfg.isOrcaStaging||new URL(cfg.projectUrl).hostname!=='vbziibatnejoswsdggga.supabase.co'){
+      throw new Error('Only the ORCA staging project is allowed');
+    }
+    projectUrl=cfg.projectUrl;publishableKey=cfg.publishableKey;
+    const {createClient}=await import('https://esm.sh/@supabase/supabase-js@2');
+    client=createClient(projectUrl,publishableKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+    const auth=await client.auth.getUser();
+    verifiedUser=auth.error?null:auth.data?.user||null;
+    const loggedIn=Boolean(verifiedUser?.id);
+    $('signin').hidden=loggedIn;
+    $('check').disabled=!loggedIn;
+    state(loggedIn?'Signed in to ORCA. Ready to check your research access.':'Sign in to your existing ORCA account first.');
+  }catch{
+    $('check').disabled=true;$('signin').hidden=false;
+    state('Unable to check the ORCA staging account. Your settings were not changed.','error');
+  }
+}
+async function post(action,accessToken){
+  const response=await fetch(projectUrl+'/functions/v1/orca-agent-readonly',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','apikey':publishableKey,'Authorization':'Bearer '+accessToken},
+    body:JSON.stringify(action==='my_assignment'?{action,ticker}:{action}),
+    cache:'no-store'
+  });
+  if(!response.ok)throw new Error('ORCA could not verify the account (HTTP '+response.status+'). Sign in again, then retry.');
+  return response.json();
+}
+async function run(){
+  if(busy||!client)return;
+  busy=true;$('check').disabled=true;$('results').textContent='';
+  state('Checking your signed-in ORCA account…');
+  try{
+    const auth=await client.auth.getUser();
+    const session=await client.auth.getSession();
+    const user=auth.data?.user;
+    const active=session.data?.session;
+    if(auth.error||session.error||!user?.id||!active?.access_token||active.user.id!==user.id){
+      throw new Error('Sign-in is no longer active. Sign in to ORCA again.');
+    }
+    const identity=await post('whoami',active.access_token);
+    const assignment=await post('my_assignment',active.access_token);
+    if(identity.schema!==schema||assignment.schema!==schema||assignment.ticker!==ticker||
+      identity.researcher!==assignment.researcher||identity.research_enabled!==assignment.research_enabled){
+      throw new Error('ORCA returned inconsistent account information. Stop and report this mismatch.');
+    }
+    // Compare the API's public alias with the same owner's RLS-scoped profile.
+    const owned=await client.from('agent_profiles').select('display_name').eq('owner_id',user.id).maybeSingle();
+    if(owned.error||String(owned.data?.display_name||'')!==String(identity.researcher||'')){
+      throw new Error('Researcher identity does not match this signed-in account. Stop and report this mismatch.');
+    }
+    const clean=[
+      'ORCA staging read-only test: PASSED',
+      'Researcher: '+(identity.researcher||'(not yet created)'),
+      'Research permission: '+(identity.research_enabled?'enabled':'paused'),
+      'RKLB team membership: '+(assignment.joined?'joined':'not joined'),
+      'Assignment: '+(assignment.assignment?'active / '+assignment.assignment.metric+' / '+assignment.assignment.board:'none active'),
+      'ChatGPT linked: not yet — OAuth connection is still in development'
+    ];
+    $('results').textContent=clean.join('\n');
+    state('ORCA recognized your existing account. No research or permissions were changed.','success');
+  }catch(error){
+    state(error instanceof Error?error.message:'Unable to complete this read-only check.','error');
+    $('results').textContent='This test did not pass. No research or account settings were changed.';
+  }finally{busy=false;$('check').disabled=false}
+}
+$('check').addEventListener('click',run);
+init();
+</script>
+</body>
+</html>
