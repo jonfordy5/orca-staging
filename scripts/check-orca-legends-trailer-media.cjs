@@ -13,4 +13,9 @@ try{fs.readSync(fd,header,0,12,0)}finally{fs.closeSync(fd)}
 assert.equal(header.subarray(4,8).toString('ascii'),'ftyp','Video must be a real MP4 rather than a Git LFS pointer or HTML redirect');
 const sha=crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
 assert.equal(sha,expectedHash,'Trailer differs from the approved music-only, gold-orca master cut');
-console.log('PASS exact ORCA Legends 720p cinematic asset',stat.size,sha);
+const poster=path.resolve(__dirname,'..','assets','orca-legends-trailer-poster.jpg');
+assert(fs.existsSync(poster),'Approved gold-orca poster missing. Upload orca-legends-trailer-poster.jpg into assets/ together with the MP4.');
+const posterSHA=crypto.createHash('sha256').update(fs.readFileSync(poster)).digest('hex');
+assert.equal(posterSHA,'5845e8600c4a4dabecca148abcc409f6c3fb9f875bbbe11a5785268ec7cd2643',
+ 'Poster differs from the owner-approved golden orca emblem');
+console.log('PASS approved ORCA Legends cinematic and gold-orca poster',stat.size,sha,posterSHA);
