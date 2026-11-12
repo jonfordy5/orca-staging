@@ -23,6 +23,7 @@ const jwt=claims=>{
   return h+'.'+p+'.'+signature;
 };
 const browser=jwt({sub:userA,aud:'authenticated'});
+const service=jwt({role:'service_role',aud:'authenticated'});
 const oauth=jwt({sub:userA,aud:resource,client_id:client});
 const oauthB=jwt({sub:userB,aud:resource,client_id:client});
 const wrongClient=jwt({sub:userA,aud:resource,client_id:'unregistered-client-beta'});
@@ -101,6 +102,12 @@ test('real PostgREST: browser publish RPC remains functional in isolated fixture
   const r=await call('POST','/rpc/commons_publish_independent_finding',browser,{});
   expectSuccess(r,'browser publication');
   assert.equal(publications(),1);
+});
+test('real PostgREST: service_role retains access to privileged RPC after filter activation',async()=>{
+  const before=publications();
+  const r=await call('POST','/rpc/commons_publish_independent_finding',service,{});
+  expectSuccess(r,'service-role publication');
+  assert.equal(publications(),before+1);
 });
 test('real PostgREST: OAuth direct DELETE/INSERT/PATCH blocked with no mutations',async()=>{
   const beforeMembership=teamCount(),beforeAlias=alias();
