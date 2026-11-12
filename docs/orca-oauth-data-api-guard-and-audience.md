@@ -1,6 +1,25 @@
 # ORCA OAuth — read-only Data API gate and audience hook
 
-**Status: REVIEWED CODE CANDIDATES — NOT DEPLOYED OR ENABLED.** Branch `security/orca-oauth-readonly-gateway-20261112`. This is the next staged milestone for [ORCA agent connection #75](https://github.com/jonfordy5/orca-staging/issues/75) and [OAuth/MCP prototype PR #79](https://github.com/jonfordy5/orca-staging/pull/79).
+**Status: STAGING DATABASE PROTECTIONS INSTALLED; OAUTH STILL NOT ENABLED.** The owner explicitly approved installing the database protections on November 12, 2026. Only `sql/orca_oauth_readonly_data_api_guard.sql` has been applied to **Orca-staging**. The global PostgREST pre-request guard has **not** been activated; the separate audience token-hook candidate has **not** been installed or registered; no MCP/OAuth server has been deployed or enabled. The GitHub PR stays **draft and unmerged**. This is the next staged milestone for [ORCA agent connection #75](https://github.com/jonfordy5/orca-staging/issues/75) and [OAuth/MCP prototype PR #79](https://github.com/jonfordy5/orca-staging/pull/79).
+
+## Orca-staging installation receipt — November 12, 2026
+
+- **Explicit user approval:** Install PR #80's database protections in **Orca-staging**, while keeping OAuth disabled and production unchanged.
+- **Project:** `Orca-staging` / `vbziibatnejoswsdggga`. **Not** `AI Stock Commons` / `hsgfwsghxdcgpjlekfqf`.
+- **Source:** exact reviewed GitHub `sql/orca_oauth_readonly_data_api_guard.sql` blob SHA `d82ece57fa3619fc3f532e7c72939f558aa7d687`; no extra role/activation command was appended.
+- **Staging migration:** `20261112225051_orca_oauth_readonly_data_api_guard_stage_20261112`, applied successfully.
+- **Created:** private `orca_mcp_private` schema, a zero-row `approved_readonly_clients` registry with RLS, a dormant `enforce_readonly_oauth_data_api()` function, and seven restrictive OAuth-only policies on `agent_profiles` and `stock_research_memberships`.
+- **Not installed:** `issue_orca_mcp_audience(jsonb)` token-hook candidate. **Not activated:** any `pgrst.db_pre_request` role setting, Supabase OAuth Server, or connected MCP function/client. The global Data API request filter remains dormant; read/write policies are enforced by Postgres RLS immediately.
+- **Data count pre/post:** 17 registered stocks, 3 agent profiles, 9 research-team memberships, 50 research tasks, 29 published findings. Counts unchanged.
+- **Installed-policy verification:** seven policies in `pg_policies`, all **RESTRICTIVE** / `authenticated`; registry zero approved clients; no token hook / no global pre-request role setting.
+- **Live SQL-session verification (no user data changes):**
+  - Normal browser-style JWT (no OAuth `client_id`) passes the dormant guard and sees the original research-team listing.
+  - Unknown OAuth `client_id` is rejected by direct invocation of the installed guard.
+  - Synthetic OAuth JWT with an existing researcher's UUID (kept inside the database, never exposed) sees **only their own membership rows** under the new RLS policy.
+  - All tests used transactional context and `ROLLBACK` without changing researcher data.
+- **Security advisor:** original categories remain: RLS-enabled/no-policy informational notices and warnings about existing callable security-definer functions and leaked-password protection. They require separate attention; not evidence that the entire system has passed security review.
+
+**Limits:** These tests verify installed SQL function/policy behavior—not live OAuth authorization-code/PKCE, an actual resource-bound JWT, or the Data API pre-request integration (deliberately inactive). GraphQL, Storage, Realtime, and independently deployed Edge Functions still require separate review. Existing ORCA user sessions have not been used for live write tests.
 
 ## Problem solved in code
 
@@ -28,7 +47,7 @@ The proposed PostgREST pre-request hook:
 
 It also adds **RESTRICTIVE RLS policies**: OAuth users can SELECT only **their own** stock-team membership and cannot directly INSERT, UPDATE, or DELETE on either `agent_profiles` or `stock_research_memberships`, including through non-PostgREST routes such as GraphQL. Ordinary ORCA browser sessions retain their existing profile/team permissions.
 
-**The hook is NOT installed by SQL alone.** A separate, explicitly approved operator change would later set `ALTER ROLE authenticator SET pgrst.db_pre_request='orca_mcp_private.enforce_readonly_oauth_data_api'` and `NOTIFY pgrst,'reload config'`. The current branch deliberately contains no live activation command.
+**The hook function is installed in Orca-staging, but the global PostgREST pre-request hook is NOT active.** A separate, explicitly approved operator change would later set `ALTER ROLE authenticator SET pgrst.db_pre_request='orca_mcp_private.enforce_readonly_oauth_data_api'` and `NOTIFY pgrst,'reload config'`. The current branch deliberately contains no live activation command.
 
 ### 2. `sql/orca_oauth_mcp_audience_hook_candidate.sql`
 
@@ -70,9 +89,13 @@ The policies **do not by themselves secure `SECURITY DEFINER` RPCs**, because th
 7. Only after two actual owner accounts pass OAuth connecting, revocation, error/expiry behavior and cross-account tests should we expose **Connect Your AI** (and true Pause/Disconnect) on the ORCA website.
 8. Claim/publish MCP tools are a *later separately scoped feature*. The initial OAuth connection remains read-only.
 
+## Current safe stopping point
+
+No further database settings or live authorizations have been activated. **Do not register the custom Auth audience hook or set `pgrst.db_pre_request` until we separately authorize that global behavior and prove ordinary browser research continuity under actual HTTP requests.** The available GitHub Actions isolated tests and simulated staging SQL tests do not establish end-to-end OAuth interoperability.
+
 ## Rollback planning
 
-No rollback is needed for this PR since it changes no live system.
+A rollback for the newly installed staging protections (if an existing browser flow breaks) would remove only the seven added restrictive policies, then remove the dormant private function and registry **only if empty**, with careful preservation of any later live configuration. The audit baseline counts and prior policies were recorded. Never drop user profiles, team memberships, tasks, findings, or general Supabase Auth tables. No rollback has been necessary.
 
 If a later approved activation fails, **do not delete Auth accounts or findings**. Restore the exact previous Supabase Auth hook configuration. Restore the previous PostgREST `pgrst.db_pre_request` configuration recorded in preflight (today: unset) and reload PostgREST; **only use `ALTER ROLE authenticator RESET pgrst.db_pre_request` if the operator independently verified it was originally unset**. Revoke any new approved client ID, remove the restrictive policy only if it is causing a verified problem, and retest normal browser research actions. Never assume a token has been revoked merely because a UI says disconnected.
 
