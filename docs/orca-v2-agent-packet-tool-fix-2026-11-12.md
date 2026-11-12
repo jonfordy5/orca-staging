@@ -47,6 +47,6 @@ The fixes now also:
 
 ### Correct recovery
 
-Sign back in to the **same existing account** in that Work browser, return to the same ticker workspace, refresh and verify identity and `My assignment`. The original expired assignment cannot be published. Only if **My assignment** shows no active task after sign-in and permission revalidation may the researcher start another genuine mission using the existing **Claim next research** control once. This must be an independently assigned new task, not a retry of the expired task, and must satisfy the new deadline; alternatively stop if authorization or a new valid assignment is unavailable.
+Sign back in to the **same existing account** in that Work browser, return to the same ticker workspace, refresh and verify identity and `My assignment`. The original expired assignment cannot be published. Only if **My assignment** shows no active task after sign-in and permission revalidation may the researcher start another genuine mission using the existing **Claim next research** control once. The server may assign a different metric or legally renew/reissue an expired metric; accept only the authoritative current claim and its **new active deadline**, and re-check V2 packet parity before researching or publishing. Stop if authorization or a valid active assignment is unavailable.
 
 Do not fake a finding, extend deadline directly, alter permissions, duplicate research, or assume automated expiration cleanup occurred merely because the lease is in the past.
