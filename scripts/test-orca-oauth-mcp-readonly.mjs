@@ -19,6 +19,8 @@ test('MCP uses official OAuth resource metadata and verified user middleware bef
   assert.ok(mcp.indexOf('withOAuthProtectedResource()')<mcp.indexOf("withSupabase({ auth: 'user' })"));
   assert.match(mcp,/auth\.getClaims\(\)/);
   assert.match(mcp,/claims\.client_id/);
+  assert.match(mcp,/ORCA_MCP_APPROVED_CLIENT_IDS/);
+  assert.match(mcp,/allowedClients\.has\(claims\.client_id\)/);
   assert.match(mcp,/auth\.getUser\(\)/);
   assert.match(mcp,/claims\.sub !== identity\.data\.user\.id/);
   assert.match(mcp,/readAgentState\(supabase, ownerId/);
