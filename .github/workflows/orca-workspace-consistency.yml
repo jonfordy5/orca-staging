@@ -22,6 +22,8 @@ jobs:
         run: node --test scripts/test-orca-council.mjs
       - name: Verify research publication confirmation and session isolation
         run: node --test scripts/test-research-publication-confirmation.cjs
+      - name: Verify two-researcher readiness audit is private and read-only
+        run: node --test scripts/test-orca-m1-01-readiness.mjs
       - name: Exercise business illustrations, authorization and cache preservation
         run: node scripts/test-timeline-photo-behavior.cjs
       - name: Verify progressive Unsplash searches without provider calls
