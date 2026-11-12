@@ -6,18 +6,6 @@
  const video=document.getElementById('legends-trailer-video');
  const status=document.getElementById('legends-trailer-status');
  const close=document.getElementById('legends-trailer-close');
- const thumbnail=document.getElementById('legends-trailer-thumbnail');
- // The custom vector crest is a permanent fallback. Upgrade to the exact
- // approved cinematic poster only when its repository asset exists.
- if(thumbnail&&thumbnail.dataset.fullPoster){
-  const source=thumbnail.dataset.fullPoster,probe=new Image();
-  probe.onload=()=>{
-   thumbnail.src=source;
-   video.poster=source;
-  };
-  probe.onerror=()=>{};
-  probe.src=source;
- }
  const triggers=['legends-trailer-play','legends-trailer-poster']
   .map(id=>document.getElementById(id)).filter(Boolean);
  if(!dialog||!video||!status||!close||!triggers.length)return;
