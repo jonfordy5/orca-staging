@@ -16,7 +16,7 @@
 
 CREATE SCHEMA IF NOT EXISTS orca_mcp_private;
 REVOKE ALL ON SCHEMA orca_mcp_private FROM PUBLIC;
-GRANT USAGE ON SCHEMA orca_mcp_private TO anon, authenticated;
+GRANT USAGE ON SCHEMA orca_mcp_private TO anon, authenticated, service_role;
 
 CREATE TABLE IF NOT EXISTS orca_mcp_private.approved_readonly_clients (
   client_id text PRIMARY KEY CHECK (char_length(client_id) BETWEEN 10 AND 256),
@@ -137,12 +137,12 @@ BEGIN
 END;
 $guard$;
 
--- Not an exposed public RPC: PostgREST resolves this qualified function
+-- PostgREST also invokes the pre-request function under service_role for\n-- existing server-side admin RPCs; do not break their execution rights.\n-- Not an exposed public RPC: PostgREST resolves this qualified function
 -- as the pre-request hook after JWT impersonation. No user parameters.
 REVOKE ALL ON FUNCTION orca_mcp_private.enforce_readonly_oauth_data_api()
   FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION orca_mcp_private.enforce_readonly_oauth_data_api()
-  TO anon, authenticated;
+  TO anon, authenticated, service_role;
 
 -- Team listings are public to signed-in website users today, but
 -- an OAuth-connected assistant should see only its own memberships.
