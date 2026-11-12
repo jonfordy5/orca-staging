@@ -20,6 +20,8 @@ jobs:
           node-version: '24'
       - name: Verify verified website accounts work and OAuth clients are rejected
         run: node --test scripts/test-orca-browser-edge-oauth-boundary.mjs
+      - name: Verify OAuth gate runs before privileged I/O in all six routes
+        run: node --test scripts/test-orca-edge-guard-order.mjs
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
