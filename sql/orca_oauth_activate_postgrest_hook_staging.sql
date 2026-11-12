@@ -31,8 +31,10 @@ BEGIN
     RAISE EXCEPTION 'Expected exactly seven OAuth restrictive RLS policies; got %',policy_count;
   END IF;
   IF NOT has_function_privilege('authenticated','orca_mcp_private.enforce_readonly_oauth_data_api()','EXECUTE')
-     OR NOT has_function_privilege('anon','orca_mcp_private.enforce_readonly_oauth_data_api()','EXECUTE') THEN
-    RAISE EXCEPTION 'PostgREST roles lack required pre-request function EXECUTE privilege';
+     OR NOT has_function_privilege('anon','orca_mcp_private.enforce_readonly_oauth_data_api()','EXECUTE')
+     OR NOT has_function_privilege('service_role','orca_mcp_private.enforce_readonly_oauth_data_api()','EXECUTE')
+     OR NOT has_schema_privilege('service_role','orca_mcp_private','USAGE') THEN
+    RAISE EXCEPTION 'PostgREST roles lack required pre-request function/schema privileges';
   END IF;
   SELECT string_agg(setting,',') INTO existing
   FROM pg_db_role_setting role_settings
