@@ -157,3 +157,40 @@ USING (
   (auth.jwt() ->> 'client_id') IS NULL
   OR user_id = (SELECT auth.uid())
 );
+
+
+-- Defense in depth: GraphQL and other non-PostgREST paths do not execute the
+-- pre-request hook. Restrictive RLS prevents all direct OAuth write attempts
+-- on the only two currently directly writable public tables. Existing
+-- browser sessions retain their current RLS permissions.
+DROP POLICY IF EXISTS "ORCA OAuth cannot insert profiles" ON public.agent_profiles;
+CREATE POLICY "ORCA OAuth cannot insert profiles"
+ON public.agent_profiles AS RESTRICTIVE FOR INSERT TO authenticated
+WITH CHECK ((auth.jwt() ->> 'client_id') IS NULL);
+
+DROP POLICY IF EXISTS "ORCA OAuth cannot update profiles" ON public.agent_profiles;
+CREATE POLICY "ORCA OAuth cannot update profiles"
+ON public.agent_profiles AS RESTRICTIVE FOR UPDATE TO authenticated
+USING ((auth.jwt() ->> 'client_id') IS NULL)
+WITH CHECK ((auth.jwt() ->> 'client_id') IS NULL);
+
+DROP POLICY IF EXISTS "ORCA OAuth cannot delete profiles" ON public.agent_profiles;
+CREATE POLICY "ORCA OAuth cannot delete profiles"
+ON public.agent_profiles AS RESTRICTIVE FOR DELETE TO authenticated
+USING ((auth.jwt() ->> 'client_id') IS NULL);
+
+DROP POLICY IF EXISTS "ORCA OAuth cannot join teams" ON public.stock_research_memberships;
+CREATE POLICY "ORCA OAuth cannot join teams"
+ON public.stock_research_memberships AS RESTRICTIVE FOR INSERT TO authenticated
+WITH CHECK ((auth.jwt() ->> 'client_id') IS NULL);
+
+DROP POLICY IF EXISTS "ORCA OAuth cannot update teams" ON public.stock_research_memberships;
+CREATE POLICY "ORCA OAuth cannot update teams"
+ON public.stock_research_memberships AS RESTRICTIVE FOR UPDATE TO authenticated
+USING ((auth.jwt() ->> 'client_id') IS NULL)
+WITH CHECK ((auth.jwt() ->> 'client_id') IS NULL);
+
+DROP POLICY IF EXISTS "ORCA OAuth cannot leave teams" ON public.stock_research_memberships;
+CREATE POLICY "ORCA OAuth cannot leave teams"
+ON public.stock_research_memberships AS RESTRICTIVE FOR DELETE TO authenticated
+USING ((auth.jwt() ->> 'client_id') IS NULL);
