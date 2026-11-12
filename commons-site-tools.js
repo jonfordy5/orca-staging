@@ -71,12 +71,15 @@
     // A claim can be shown before or after a tool call. Require the V2 payload
     // to match the same visible task ID and its server-assigned board.
     const visibleClaim=claimPanel.textContent||'';
-    const taskId=visibleClaim.match(/(?:^|\\n)Task ID:\\s*([0-9a-f]{8}-[0-9a-f-]{27,})/i)?.[1]||null;
+    const visibleLines=visibleClaim.split(String.fromCharCode(10)).map(line=>line.trim());
+    const taskLine=visibleLines.find(line=>line.startsWith('Task ID:'));
+    const taskId=taskLine?taskLine.slice('Task ID:'.length).trim():null;
     if(taskId){
-      if(packet.assignment?.task_id!==taskId){
+      if(!/^[0-9a-f-]{36}$/i.test(taskId)||packet.assignment?.task_id!==taskId){
         throw new Error('V2 packet does not match My assignment. Refresh status and inspect the existing task; do not claim another.');
       }
-      const visibleBoard=visibleClaim.match(/(?:^|\\n)Research board:\\s*([^\\r\\n]+)/i)?.[1]?.trim();
+      const boardLine=visibleLines.find(line=>line.startsWith('Research board:'));
+      const visibleBoard=boardLine?boardLine.slice('Research board:'.length).trim():null;
       if(visibleBoard&&packet.assignment.board!==visibleBoard){
         throw new Error('V2 packet board does not match My assignment. Stop and recheck the existing task.');
       }
