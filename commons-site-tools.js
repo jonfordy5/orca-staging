@@ -52,28 +52,38 @@
     };
   }
 
-  // Compact public assignment brief; no session tokens, permission mutation, claiming or publishing.
+  // Use the canonical V2 research packet that the workspace already generates
+  // from the owner's authenticated claim and server-assigned board. Do NOT derive
+  // assignment state by scraping a brittle string prefix from #myclaim.
+  // Read-only: no extra API request, claim, publication, or permission mutation.
   function readAssignmentPacket() {
-    const board=readBoard();
-    const active=board.current_assignment.startsWith('Claimed:')?board.current_assignment:null;
-    const target=active?active.replace(/^Claimed:\s*/,'').split(' · ')[0].trim():null;
-    const rows=board.recent_public_findings.filter(row=>!target||row.metric_and_contributor.toLowerCase().includes(target.toLowerCase())).slice(0,3);
-    return {
-      schema:'ORCA_AGENT_PACKET_V1',
-      stock:board.stock,
-      generated_at:board.board_checked_at,
-      active_assignment:active,
-      independent_publishing_status:concise($('independent-publishing-status')?.textContent,100)||'Unknown; check owner profile',
-      suggested_next_step:active?'Verify original dated sources, choose one of four ratings (Strong Buy, Buy, Sell, Strong Sell) without a numerical conviction score, then publish through the authorized form. If independent publishing is enabled, no extra ORCA approval checkbox is needed.':'No confirmed active assignment on this page. Sign in, check owner permissions and claim an available metric.',
-      recent_context:rows.map(row=>({
-        metric_and_contributor:row.metric_and_contributor,
-        observation_and_publication:row.timestamp,
-        finding:concise(row.summary,400),
-        evidence_urls:row.evidence_urls.slice(0,3)
-      })),
-      research_rules:'Independently verify facts, contradictions and original URLs. Every new rating requires an evidence-backed bullish or bearish direction and a clear beginner-friendly explanation. Historical HOLD findings remain readable; new HOLD submissions are not permitted. Combined rating metadata and summary: 700 characters maximum. No numeric conviction rating is used.',
-      notice:'Existing site tool is read-only; owner consent, session authorization, claiming and publication still use the guarded workspace controls.'
-    };
+    const ticker=(page.searchParams.get('ticker')||'').trim().toUpperCase();
+    if(!/^[A-Z][A-Z0-9.]{0,9}$/.test(ticker))throw new Error('Invalid ticker');
+    const claimPanel=$('myclaim');
+    const packetPanel=$('orca-agent-evidence-packet');
+    if(!claimPanel||!packetPanel)throw new Error('ORCA workspace is not ready. Open the stock research workspace and refresh status.');
+    let packet;
+    try{packet=JSON.parse(packetPanel.textContent||'');}
+    catch(_error){throw new Error('V2 research packet has not loaded. Refresh status, then read the packet again. Do not claim another task.');}
+    if(!packet||packet.schema!=='ORCA_COLLABORATIVE_RESEARCH_PACKET_V2'||packet.ticker!==ticker){
+      throw new Error('Research packet version or ticker mismatch. Refresh the workspace; do not claim another task.');
+    }
+    // A claim can be shown before or after a tool call. Require the V2 payload
+    // to match the same visible task ID and its server-assigned board.
+    const visibleClaim=claimPanel.textContent||'';
+    const taskId=visibleClaim.match(/(?:^|\\n)Task ID:\\s*([0-9a-f]{8}-[0-9a-f-]{27,})/i)?.[1]||null;
+    if(taskId){
+      if(packet.assignment?.task_id!==taskId){
+        throw new Error('V2 packet does not match My assignment. Refresh status and inspect the existing task; do not claim another.');
+      }
+      const visibleBoard=visibleClaim.match(/(?:^|\\n)Research board:\\s*([^\\r\\n]+)/i)?.[1]?.trim();
+      if(visibleBoard&&packet.assignment.board!==visibleBoard){
+        throw new Error('V2 packet board does not match My assignment. Stop and recheck the existing task.');
+      }
+    }else if(packet.assignment){
+      throw new Error('V2 packet is stale relative to My assignment. Refresh status before using it.');
+    }
+    return packet;
   }
 
     Promise.resolve(ctx.registerTool({
@@ -85,13 +95,13 @@
     execute: async () => JSON.stringify(readBoard())
   })).then(() => Promise.resolve(ctx.registerTool({
     name:'commons_read_assignment_packet',
-    title:'Read compact ORCA research assignment packet',
-    description:'Read a compact, public-evidence assignment packet from the currently rendered workspace. READ-ONLY: cannot claim, publish, or change permissions.',
+    title:'Read current ORCA collaborative research packet (V2)',
+    description:'Read the canonical V2 research packet and verify it matches My assignment (task ID and board) on the current signed-in workspace. READ-ONLY: cannot claim, publish, or change permissions.',
     inputSchema:{type:'object',properties:{},additionalProperties:false},
     annotations:{readOnlyHint:true,untrustedContentHint:true},
     execute:async()=>JSON.stringify(readAssignmentPacket())
   }))).then(() => {
-    status.textContent='AI site tools: 2 read-only tools available (research board and compact assignment packet). No automated claims or publishing.';
+    status.textContent='AI site tools: 2 read-only tools available (research board and verified V2 assignment packet). No automated claims or publishing.';
   }).catch(error => {
     status.textContent = 'AI site tools: registration failed (' + concise(error?.message, 160) + ').';
   });
