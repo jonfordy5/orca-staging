@@ -85,7 +85,8 @@ async function run(){
   busy=true;$('check').disabled=true;$('results').textContent='';
   state('Checking your signed-in ORCA account…');
   try{
-    const [auth,session]=await Promise.all([client.auth.getUser(),client.auth.getSession()]);
+    const auth=await client.auth.getUser();
+    const session=await client.auth.getSession();
     const user=auth.data?.user;
     const active=session.data?.session;
     if(auth.error||session.error||!user?.id||!active?.access_token||active.user.id!==user.id){
