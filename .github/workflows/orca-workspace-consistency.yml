@@ -22,6 +22,8 @@ jobs:
         run: node --test scripts/test-orca-council.mjs
       - name: Verify research publication confirmation and session isolation
         run: node --test scripts/test-research-publication-confirmation.cjs
+      - name: Validate staged client role least-privilege SQL without applying it
+        run: node --test scripts/test-orca-client-role-grants.mjs
       - name: Exercise business illustrations, authorization and cache preservation
         run: node scripts/test-timeline-photo-behavior.cjs
       - name: Verify progressive Unsplash searches without provider calls
