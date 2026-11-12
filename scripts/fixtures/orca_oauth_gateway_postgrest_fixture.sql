@@ -3,6 +3,7 @@
 CREATE ROLE authenticator LOGIN PASSWORD 'pgrst-fixture-password' NOINHERIT;
 GRANT anon TO authenticator;
 GRANT authenticated TO authenticator;
+GRANT service_role TO authenticator;
 GRANT USAGE ON SCHEMA public TO anon, authenticated;
 GRANT USAGE ON SCHEMA auth TO authenticated;
 -- Avoid relying on automatic PUBLIC execute grants in the fake environment.
@@ -27,4 +28,4 @@ BEGIN
 END;
 $$;
 REVOKE ALL ON FUNCTION public.commons_publish_independent_finding() FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION public.commons_publish_independent_finding() TO authenticated;
+GRANT EXECUTE ON FUNCTION public.commons_publish_independent_finding() TO authenticated, service_role;
