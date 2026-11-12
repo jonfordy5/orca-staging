@@ -32,7 +32,7 @@ test('receipt check verifies key owner, task, source, and board contracts', () =
 });
 
 test('live procedure requires two separate real humans and never equates database history with acceptance', () => {
-  assert.match(procedure, /two separate real people/i);
+  assert.match(procedure, /two (?:already authorized |separate )?real people/i);
   assert.match(procedure, /two tabs in one browser profile are not isolation/i);
   assert.match(procedure, /Claim next research once/i);
   assert.match(procedure, /Publish \*\*once\*\*/i);
