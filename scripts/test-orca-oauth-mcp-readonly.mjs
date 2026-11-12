@@ -23,6 +23,9 @@ test('MCP uses official OAuth resource metadata and verified user middleware bef
   assert.match(mcp,/allowedClients\.has\(claims\.client_id\)/);
   assert.match(mcp,/auth\.getUser\(\)/);
   assert.match(mcp,/claims\.sub !== identity\.data\.user\.id/);
+  assert.match(mcp,/claims\.iss !== expectedIssuer/);
+  assert.match(mcp,/tokenAudiences\.includes\(resource\)/);
+  assert.match(mcp,/functions\/v1\/orca-agent-mcp/);
   assert.match(mcp,/readAgentState\(supabase, ownerId/);
   const executableMcp=mcp.replace(/^\s*\/\/.*$/gm,'');
   assert.doesNotMatch(executableMcp, /SUPABASE_SERVICE_ROLE_KEY|SUPABASE_SECRET_KEY|service_role|auth\.admin|createClient\(/);
