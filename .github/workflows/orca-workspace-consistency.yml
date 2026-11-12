@@ -67,6 +67,8 @@ jobs:
         run: NODE_PATH="$RUNNER_TEMP/orca-browser/node_modules" node scripts/check-orca-legends-audio-browser.cjs
       - name: Verify contributor authentication, eligibility recheck and Vault entry
         run: NODE_PATH="$RUNNER_TEMP/orca-browser/node_modules" node scripts/test-orca-legends-access-browser.cjs
+      - name: Verify exact approved ORCA Legends cinematic video exists before release
+        run: node scripts/check-orca-legends-trailer-media.cjs
   deploy-pages:
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     needs: shared-workspace
