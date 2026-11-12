@@ -97,6 +97,13 @@ BEGIN
       USING ERRCODE = '42501';
   END;
 
+  -- Reject malformed header metadata rather than accidentally evaluating
+  -- a JSON array/scalar as though it were a safe object.
+  IF jsonb_typeof(request_headers) IS DISTINCT FROM 'object' THEN
+    RAISE EXCEPTION 'Invalid request headers'
+      USING ERRCODE = '42501';
+  END IF;
+
   -- An alternate method or schema must never turn an allowed-looking path
   -- into a write or access to another exposed schema.
   IF request_headers ? 'x-http-method-override'
