@@ -26,6 +26,8 @@ jobs:
         run: node --test scripts/test-orca-v2-site-packet-tool.mjs
       - name: Verify simplified research permission controls preserve authorization safeguards
         run: node --test scripts/test-orca-simple-permissions-ui.mjs
+      - name: Verify signed-in read-only agent API cannot claim, publish or cross accounts
+        run: node --test scripts/test-orca-agent-readonly.mjs
       - name: Exercise business illustrations, authorization and cache preservation
         run: node scripts/test-timeline-photo-behavior.cjs
       - name: Verify progressive Unsplash searches without provider calls
