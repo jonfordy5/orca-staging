@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+<title id="title">ORCA LEGENDS — Every Legend Needs a Rival</title>
+<desc id="desc">A sweeping metallic-gold orca crest behind the ORCA Legends title, above a dark misty fortress, in the established navy-and-gold fantasy style.</desc>
+<defs>
+ <radialGradient id="night"><stop stop-color="#173a46"/><stop offset=".53" stop-color="#0b1828"/><stop offset="1" stop-color="#020a13"/></radialGradient>
+ <linearGradient id="gold" x1="0" y1="0" x2="1" y2=".5"><stop stop-color="#7a5322"/><stop offset=".17" stop-color="#f1d28f"/><stop offset=".35" stop-color="#b17b33"/><stop offset=".53" stop-color="#ffe9b2"/><stop offset=".78" stop-color="#c18c39"/><stop offset="1" stop-color="#583919"/></linearGradient>
+ <linearGradient id="sil" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#112737"/><stop offset="1" stop-color="#08111b"/></linearGradient>
+ <linearGradient id="fog" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#0b1e2a" stop-opacity="0"/><stop offset="1" stop-color="#07101b"/></linearGradient>
+ <filter id="glow"><feGaussianBlur stdDeviation="13"/></filter>
+ <filter id="soft"><feGaussianBlur stdDeviation="42"/></filter>
+</defs>
+<rect width="1600" height="900" fill="url(#night)"/>
+<ellipse cx="823" cy="743" rx="440" ry="160" fill="#d5a253" opacity=".16" filter="url(#soft)"/>
+<path d="M0 745Q220 693 435 751Q595 690 745 741Q890 662 1035 727Q1180 661 1415 734L1600 675V900H0Z" fill="#0a1420"/>
+<path d="M0 804L125 683L181 749L275 605L340 718L460 645L527 763L610 689L676 783L850 735L998 800L1155 688L1250 763L1354 629L1475 769L1600 692V900H0Z" fill="#0d2330" opacity=".85"/>
+<g fill="#0a1018" opacity=".93">
+ <path d="M788 727V625H800V588H815V555H824V593H844V629H855V727ZM746 727V666H758V635H769V663H786V727ZM857 727V670H868V625H881V663H895V727ZM902 727V682H923V657H933V684H951V727Z"/>
+ <path d="M677 734L693 699H975L996 734Z"/>
+</g>
+<path d="M0 681Q300 721 590 698T1140 708T1600 690V900H0Z" fill="url(#fog)" opacity=".85"/>
+<!-- Broad understated gold orca crest; positioned behind all lettering -->
+<g transform="translate(220 56) scale(1.00)" opacity=".78">
+ <path d="M40 511C175 250 437 99 780 79C952 65 1109 102 1229 178C1113 144 1015 146 936 174C855 203 789 247 714 289C608 350 480 383 345 365C255 350 168 405 40 511Z" fill="url(#gold)"/>
+ <path d="M350 266C447 171 507 92 530 10C581 66 611 125 630 207C539 211 447 224 350 266Z" fill="url(#gold)"/>
+ <path d="M69 422C5 477 -52 548 -101 620C-58 467 11 356 121 299Z" fill="url(#gold)"/>
+ <path d="M131 405C97 488 77 541 83 625C111 587 155 543 219 509Z" fill="url(#gold)"/>
+ <path d="M806 220C858 187 922 179 976 195C941 228 885 249 825 253Z" fill="#fff0b9" opacity=".88"/>
+ <path d="M994 218C1045 223 1099 226 1189 191C1161 238 1120 267 1078 270C1029 272 994 252 994 218Z" fill="#07121e"/>
+ <path d="M1166 208C1184 201 1193 198 1216 193" stroke="#ffe8b2" stroke-width="9" stroke-linecap="round" fill="none"/>
+ <path d="M263 350C464 318 600 283 718 215" fill="none" stroke="#fee6ae" stroke-width="13" opacity=".4"/>
+</g>
+<ellipse cx="800" cy="488" rx="650" ry="8" fill="#f8ca75" opacity=".24" filter="url(#glow)"/>
+<text x="800" y="299" font-family="Georgia,Times New Roman,serif" font-size="27" text-anchor="middle" letter-spacing="12" fill="#ecd1a2">THE WORLD OF ORCA PRESENTS</text>
+<text x="800" y="474" font-family="Georgia,Times New Roman,serif" font-size="137" font-weight="bold" text-anchor="middle" letter-spacing="-3" fill="#080d15" stroke="#170f04" stroke-width="16" paint-order="stroke">ORCA LEGENDS</text>
+<text x="800" y="466" font-family="Georgia,Times New Roman,serif" font-size="137" font-weight="bold" text-anchor="middle" letter-spacing="-3" fill="url(#gold)" stroke="#f7d89c" stroke-width="2" paint-order="stroke">ORCA LEGENDS</text>
+<path d="M270 522H1330" stroke="url(#gold)" stroke-width="2" opacity=".84"/>
+<circle cx="800" cy="522" r="7" fill="#ffe6ac"/>
+<text x="800" y="578" font-family="Georgia,Times New Roman,serif" font-size="39" text-anchor="middle" letter-spacing="10" fill="#ecd4a7">EVERY LEGEND NEEDS A RIVAL.</text>
+</svg>
