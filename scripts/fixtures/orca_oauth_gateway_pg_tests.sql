@@ -145,3 +145,68 @@ BEGIN
   RAISE NOTICE 'PASS: OAuth sees only own membership';
 END $$;
 ROLLBACK;
+
+-- Data API method checks alone do not defend GraphQL/Storage. Confirm the
+-- restrictive RLS rules prevent direct OAuth writes on real table SQL paths.
+BEGIN;
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claims',
+ '{"sub":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa","role":"authenticated","client_id":"approved-client-alpha","iss":"https://vbziibatnejoswsdggga.supabase.co/auth/v1","aud":"https://vbziibatnejoswsdggga.supabase.co/functions/v1/orca-agent-mcp"}',true);
+DO $$
+DECLARE affected integer;
+DECLARE denied boolean := false;
+BEGIN
+  DELETE FROM public.agent_profiles
+    WHERE owner_id='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'::uuid;
+  GET DIAGNOSTICS affected=ROW_COUNT;
+  IF affected <> 0 THEN RAISE EXCEPTION 'OAuth token could delete an agent profile'; END IF;
+
+  UPDATE public.agent_profiles SET display_name='tampered'
+    WHERE owner_id='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'::uuid;
+  GET DIAGNOSTICS affected=ROW_COUNT;
+  IF affected <> 0 THEN RAISE EXCEPTION 'OAuth token could change an agent profile'; END IF;
+
+  BEGIN
+    INSERT INTO public.stock_research_memberships(ticker,user_id)
+      VALUES ('NVDA','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
+  EXCEPTION WHEN insufficient_privilege THEN denied := true;
+  END;
+  IF NOT denied THEN RAISE EXCEPTION 'OAuth token could join a stock team'; END IF;
+
+  DELETE FROM public.stock_research_memberships WHERE ticker='RKLB'
+    AND user_id='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'::uuid;
+  GET DIAGNOSTICS affected=ROW_COUNT;
+  IF affected <> 0 THEN RAISE EXCEPTION 'OAuth token could leave a stock team'; END IF;
+
+  IF (SELECT count(*) FROM public.agent_profiles
+      WHERE owner_id='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'::uuid) <> 1 THEN
+    RAISE EXCEPTION 'OAuth read-only token lost permitted self-profile SELECT';
+  END IF;
+  RAISE NOTICE 'PASS: OAuth profile and team DML denied across APIs by RLS';
+END $$;
+ROLLBACK;
+
+-- The exact same owner can still use the original website permissions.
+BEGIN;
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claims',
+ '{"sub":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa","role":"authenticated"}',true);
+DO $$
+DECLARE affected integer;
+BEGIN
+  UPDATE public.agent_profiles SET display_name='Authorized browser edit'
+    WHERE owner_id='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'::uuid;
+  GET DIAGNOSTICS affected=ROW_COUNT;
+  IF affected <> 1 THEN RAISE EXCEPTION 'Browser profile update blocked'; END IF;
+
+  INSERT INTO public.stock_research_memberships(ticker,user_id)
+    VALUES ('NVDA','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
+
+  DELETE FROM public.stock_research_memberships
+   WHERE ticker='NVDA' AND user_id='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'::uuid;
+  GET DIAGNOSTICS affected=ROW_COUNT;
+  IF affected <> 1 THEN RAISE EXCEPTION 'Browser cannot leave its own team'; END IF;
+
+  RAISE NOTICE 'PASS: original browser update/join/leave rights preserved';
+END $$;
+ROLLBACK;
