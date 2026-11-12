@@ -13,7 +13,7 @@ SET search_path = ''
 AS $hook$
 DECLARE
   claims jsonb := event -> 'claims';
-  client_id text;
+  v_client_id text;
   expected_resource constant text :=
     'https://vbziibatnejoswsdggga.supabase.co/functions/v1/orca-agent-mcp';
 BEGIN
@@ -22,11 +22,11 @@ BEGIN
       USING ERRCODE = '42501';
   END IF;
 
-  client_id := nullif(btrim(claims ->> 'client_id'), '');
+  v_client_id := nullif(btrim(claims ->> 'client_id'), '');
 
   -- Normal ORCA browser sign-in/refresh tokens have no OAuth client_id
   -- and retain their full, unchanged default claims and permissions.
-  IF client_id IS NULL THEN
+  IF v_client_id IS NULL THEN
     RETURN event;
   END IF;
 
@@ -34,7 +34,7 @@ BEGIN
   -- restricted to an explicit list approved by the operator.
   IF NOT EXISTS (
     SELECT 1 FROM orca_mcp_private.approved_readonly_clients approved
-    WHERE approved.client_id = client_id
+    WHERE approved.client_id = v_client_id
       AND approved.enabled = true
       AND approved.resource = expected_resource
   ) THEN
