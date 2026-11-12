@@ -31,6 +31,14 @@ Deno.serve(
           if (typeof claims.client_id !== 'string' || !claims.client_id.trim()) {
             throw new Error('OAuth client authorization is required');
           }
+          // Fail closed until the owner's vetted, registered OAuth client ID(s)
+          // are supplied through the Edge Function deployment environment.
+          // DCR registrations are NOT approved merely by existing.
+          const allowedClients = new Set((Deno.env.get('ORCA_MCP_APPROVED_CLIENT_IDS') || '')
+            .split(',').map(id => id.trim()).filter(Boolean));
+          if (!allowedClients.has(claims.client_id)) {
+            throw new Error('This OAuth client is not approved for ORCA staging');
+          }
           // The OAuth client_id is only proof of OAuth provenance, not proof
           // of database write permission. RLS/RPC restrictions are separate.
           const identity = await supabase.auth.getUser();
