@@ -6,8 +6,10 @@ on:
       - security/orca-oauth-readonly-gateway-20261112
     paths:
       - sql/orca_oauth_readonly_data_api_guard.sql
+      - sql/orca_oauth_mcp_audience_hook_candidate.sql
       - scripts/fixtures/orca_oauth_gateway_pg_fixture.sql
       - scripts/fixtures/orca_oauth_gateway_pg_tests.sql
+      - scripts/fixtures/orca_oauth_mcp_audience_hook_pg_tests.sql
       - .github/workflows/orca-oauth-readonly-gateway.yml
   workflow_dispatch:
 
@@ -46,8 +48,12 @@ jobs:
         run: psql -X -v ON_ERROR_STOP=1 -f scripts/fixtures/orca_oauth_gateway_pg_fixture.sql
       - name: Load proposed OAuth guard WITHOUT enabling PostgREST globally
         run: psql -X -v ON_ERROR_STOP=1 -f sql/orca_oauth_readonly_data_api_guard.sql
+      - name: Load native Auth token hook candidate WITHOUT enabling it
+        run: psql -X -v ON_ERROR_STOP=1 -f sql/orca_oauth_mcp_audience_hook_candidate.sql
       - name: Verify approved client-only reads, denied writes, owner RLS, and browser compatibility
         run: psql -X -v ON_ERROR_STOP=1 -f scripts/fixtures/orca_oauth_gateway_pg_tests.sql
+      - name: Verify OAuth audience mapping and normal browser token preservation
+        run: psql -X -v ON_ERROR_STOP=1 -f scripts/fixtures/orca_oauth_mcp_audience_hook_pg_tests.sql
       - name: Confirm no PostgREST pre-request setting was activated by proposal
         run: |
           result=$(psql -X -Atc "SELECT count(*) FROM pg_db_role_setting WHERE array_to_string(setconfig, ',') LIKE '%pgrst.db_pre_request%';")
