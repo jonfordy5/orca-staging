@@ -71,10 +71,11 @@ BEGIN
   -- client, including one using a valid Supabase "authenticated" audience.
   aud := claims -> 'aud';
   IF claims ->> 'iss' IS DISTINCT FROM expected_issuer
-     OR NOT (
+     OR NOT coalesce(
        (jsonb_typeof(aud) = 'string' AND aud #>> '{}' = expected_resource)
        OR
-       (jsonb_typeof(aud) = 'array' AND aud ? expected_resource)
+       (jsonb_typeof(aud) = 'array' AND aud ? expected_resource),
+       false
      )
      OR NOT EXISTS (
        SELECT 1 FROM orca_mcp_private.approved_readonly_clients approved
