@@ -41,7 +41,7 @@ const params=new URLSearchParams(location.search);
 const ticker=(params.get('ticker')||'RKLB').trim().toUpperCase();
 const returnTo=params.get('returnTo');
 const stagingReturnTo=isOrcaStaging
-  ?(['join-research.html','connect-work.html','research-workspace-staging.html','orca-legends-game.html','guild-hall.html'].includes(returnTo)?returnTo:'research-workspace-staging.html')
+  ?(['join-research.html','connect-work.html','research-workspace-staging.html','orca-legends-game.html','guild-hall.html','agent-connection-check.html'].includes(returnTo)?returnTo:'research-workspace-staging.html')
   :null;
 const status=document.getElementById('status');
 const controls=document.getElementById('auth-controls');
