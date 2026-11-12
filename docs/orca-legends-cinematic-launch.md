@@ -12,21 +12,21 @@ A full-width featured ORCA Legends cinematic area on the existing ORCA Commons h
 - Original research, sign-in, Supabase, ORCA Engine and research database unchanged.
 - A custom, lightweight vector gold-orca teaser poster ships in `assets/orca-legends-trailer-poster.svg` until any separately licensed raster poster is uploaded.
 
-## Required binary upload — NOT YET PRESENT
+## Owner-uploaded binary media — verified in the feature branch
 
-This connected GitHub editing workflow can write repository text but **cannot transfer the video bytes from the chat's local filesystem**. The final 720p H.264/AAC media asset must be uploaded **before merging this PR**. Do not merge/deploy an unavailable video.
+The user uploaded both files directly into the PR's GitHub branch. The uploaded MP4 Git blob SHA matches the approved local export byte-for-byte; GitHub CI verifies it with the original SHA-256. The uploaded PNG is verified using its own Git blob hash and image geometry.
 
-**Required exact destinations:** `assets/orca-legends-final-trailer-720p.mp4` and `assets/orca-legends-trailer-poster.jpg` in branch `feat/orca-legends-cinematic-trailer`.
+**Committed source paths:** `assets/ORCA_LEGENDS_Final_Mage_Battle_Web_720p.mp4` and `assets/poster.png` in branch `feat/orca-legends-cinematic-trailer`.
 
-**Files:** `orca-legends-final-trailer-720p.mp4` (provided in the conversation to the user), 1280×720, 40.444 seconds, 15,714,245 bytes, and `orca-legends-trailer-poster.jpg` (the user-approved gold orca still). The 1080p 57 MB master remains available in the original conversation for local use; host the 720p cut on Pages to limit load.
+**Files:** `ORCA_LEGENDS_Final_Mage_Battle_Web_720p.mp4` (approved 1280×720 H.264/AAC export, 40.444 seconds, 15,714,245 bytes) and `poster.png` (user-selected cover still, 1,110,612 bytes). The 1080p 57 MB master remains available in the original conversation for local use; host the 720p cut on Pages to limit load.
 
-**Simple user-facing upload:** open the target branch in GitHub, select `assets` → **Add file → Upload files**, drag the named MP4 and approved JPG poster into that one upload page, and commit directly to that feature branch. No code editing required. A connected Work session with the attachment and repository write access could also upload the file.
+**Upload complete.** Filenames in the player and browser tests have been changed to the ones GitHub actually received; no user action is needed.
 
 Do NOT replace this with a third-party sandbox/chat URL or an unstable signed URL. The video should be served from the same GitHub Pages project as the site.
 
 ## Release checklist
 
-- Check both files exist in the feature branch, and verify their exact hashes. The new `scripts/check-orca-legends-trailer-media.cjs` CI release gate checks those bytes before deployment. The video must have correct codec, duration and the approved music-only audio track.
+- Check both files exist in the feature branch, and verify their exact hashes. The new `scripts/check-orca-legends-trailer-media.cjs` CI release gate checks those bytes and the PNG dimensions before deployment. The video must have correct codec, duration and the approved music-only audio track.
 - Confirm rights to publicly host the Kling footage and the supplied third-party orchestral soundtrack, and keep relevant license/source records.
 - Run existing full workspace CI plus `node scripts/test-orca-legends-trailer-browser.cjs` (Chromium opt-in playback/focus/mobile).
 - Run direct smoke test of `https://jonfordy5.github.io/orca-staging/#legends` after Pages deploy: click poster, confirm full video playback and final gold-orca emblem, mute/unmute/volume, close and reopen, mobile view, and Guild Hall link.
