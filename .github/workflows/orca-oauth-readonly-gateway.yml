@@ -7,6 +7,8 @@ on:
     paths:
       - sql/orca_oauth_readonly_data_api_guard.sql
       - sql/orca_oauth_mcp_audience_hook_candidate.sql
+      - scripts/fixtures/orca_oauth_gateway_postgrest_fixture.sql
+      - scripts/test-orca-oauth-postgrest-http.mjs
       - scripts/fixtures/orca_oauth_gateway_pg_fixture.sql
       - scripts/fixtures/orca_oauth_gateway_pg_tests.sql
       - scripts/fixtures/orca_oauth_mcp_audience_hook_pg_tests.sql
@@ -54,7 +56,32 @@ jobs:
         run: psql -X -v ON_ERROR_STOP=1 -f scripts/fixtures/orca_oauth_gateway_pg_tests.sql
       - name: Verify OAuth audience mapping and normal browser token preservation
         run: psql -X -v ON_ERROR_STOP=1 -f scripts/fixtures/orca_oauth_mcp_audience_hook_pg_tests.sql
-      - name: Confirm no PostgREST pre-request setting was activated by proposal
+      - name: Add ephemeral PostgREST authenticator and fake endpoints
+        run: psql -X -v ON_ERROR_STOP=1 -f scripts/fixtures/orca_oauth_gateway_postgrest_fixture.sql
+      - name: Start pinned PostgREST against isolated fixture (environment hook only)
+        run: |
+          docker run -d --rm --network host --name orca-gateway-test \
+            -e PGRST_DB_URI="postgres://authenticator:pgrst-fixture-password@127.0.0.1:5432/orca_test" \
+            -e PGRST_DB_SCHEMA="public" \
+            -e PGRST_DB_ANON_ROLE="anon" \
+            -e PGRST_JWT_SECRET="orca-ci-postgrest-jwt-hmac-key-1234567890-DO-NOT-USE" \
+            -e PGRST_DB_PRE_REQUEST="orca_mcp_private.enforce_readonly_oauth_data_api" \
+            -e PGRST_SERVER_PORT="3050" \
+            postgrest/postgrest:v14.18
+          for i in $(seq 1 30); do
+            if curl -s -o /dev/null --max-time 1 "http://127.0.0.1:3050/"; then
+              exit 0
+            fi
+            sleep 1
+          done
+          docker logs orca-gateway-test
+          exit 1
+      - name: Validate real signed HTTP requests cannot bypass read-only rules
+        run: node --test scripts/test-orca-oauth-postgrest-http.mjs
+      - name: Show isolated PostgREST diagnostics only on failure
+        if: failure()
+        run: docker logs orca-gateway-test || true
+      - name: Confirm no PostgREST project role setting was activated
         run: |
           result=$(psql -X -Atc "SELECT count(*) FROM pg_db_role_setting WHERE array_to_string(setconfig, ',') LIKE '%pgrst.db_pre_request%';")
           test "$result" = "0"
