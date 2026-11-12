@@ -1,3 +1,4 @@
+import { isVerifiedOrcaBrowserToken } from "../_shared/orca-browser-token.ts";
 import {createClient} from "npm:@supabase/supabase-js@2.57.0";
 
 const url=Deno.env.get("SUPABASE_URL")||"";
@@ -77,6 +78,7 @@ Deno.serve(async req=>{
  if(!bearer)return reply(401,{error:"sign_in_required"});
  const {data:identity,error:authError}=await admin.auth.getUser(bearer);
  if(authError||!identity?.user)return reply(401,{error:"invalid_session"});
+ if(!isVerifiedOrcaBrowserToken(bearer,identity.user.id))return reply(403,{error:"oauth_client_not_allowed_for_site_function"});
  let body:any;
  try{body=await req.json()}catch{return reply(400,{error:"invalid_request"})}
  const ticker=String(body?.ticker||"").trim().toUpperCase();
