@@ -6,10 +6,12 @@ import { readFileSync } from 'node:fs';
 
 const config=readFileSync(new URL('../orca-staging-config.js',import.meta.url),'utf8');
 const readLiteral=name=>{
-  const pattern=new RegExp('^const '+name+' = \\'([^\\']+)\\';','m');
-  const match=config.match(pattern);
-  if(!match)throw Error('Expected public staging configuration not found: '+name);
-  return match[1];
+  const prefix="const "+name+" = '";
+  const line=config.split('\n').find(x=>x.startsWith(prefix));
+  if(!line)throw Error('Expected public staging configuration not found: '+name);
+  const value=line.slice(prefix.length);
+  if(!value.endsWith("';"))throw Error('Unexpected staging configuration literal');
+  return value.slice(0,-2);
 };
 const url=readLiteral('ORCA_STAGING_PROJECT_URL');
 const key=readLiteral('ORCA_STAGING_PUBLISHABLE_KEY');
