@@ -134,3 +134,17 @@ Do **not** merge or activate Plan B solely because the offline tests pass. PRs #
 - Operator runbook updated: `docs/orca-stage14-deployment-course.md`, with commands and stop conditions.
 
 **Still blocked:** choose real Docker-capable host/domain/DNS/TLS, protect issuer secrets and DB roles, deploy and audit the real human-consent issuer, register exact ChatGPT client/callback, prove two real opted-in ORCA researcher accounts and instant token revocation. Keep OAuth and MCP OFF; the GitHub Pages frontend and research data are unchanged.
+
+
+## Stage 16 — opt-in public locked HTTPS deployment rehearsal (November 13, 2026)
+
+**CODE ONLY. Not publicly deployed. OAuth and MCP both stay off.**
+
+- `mcp-sdk/compose.public-locked.yml` introduces a **separate, operator-opt-in** port 443 -> 8443 direct-TLS Compose profile. This is NOT included in normal local-only Compose. The file demands `ORCA_PUBLIC_LOCKED_DEPLOY_ACK` and the launcher verifies the exact `I_APPROVE_PUBLIC_LOCKED_TLS_ONLY` acknowledgement. Only the locked health endpoint is accessible; MCP and OAuth continue returning 503 regardless of environment attempts.
+- The public locked Compose keeps non-root Node, read-only container filesystem, dropped capabilities, no-new-privileges, 256 MiB memory/PID limits and a read-only server-side certificate mount. Docker's port publication may bypass some host firewall rules, so a provider-level 443 firewall and operator-approved DNS/TLS are required.
+- Added `mcp-sdk/host-tls-preflight.mjs` and operator CLI to reject certificate SAN/hostname mismatches, nonmatching private keys, expired or soon-expiring certificates (<14 days), insecure private-key file permissions and unsafe host URLs. No PEM or key material is logged, embedded or transmitted. This local checker does **not** validate the public CA chain; the separate remote HTTPS preflight will perform actual TLS chain and hostname verification after hosting.
+- Added negative tests for wrong hostname, wrong key, low validity, bad PEM, key-file permission issues and missing approved host. Tests run within the official MCP SDK CI suite using disposable, synthetic OpenSSL certificates.
+- Expanded `.github/workflows/orca-locked-https-container.yml` to validate the public locked Compose profile, exact 443-only mapping, secret mount, mandatory approval and locked release flags. CI still never publishes a real image or deploys a public service.
+- Operator course updated in `docs/orca-stage14-deployment-course.md` with a dedicated public-locked pilot path, preflight commands, explicit no-go conditions, and safe rollback. This step is **not** a real ChatGPT connection and has no Supabase data changes.
+
+**External prerequisite remains:** operator must select and approve a real VPS/host, distinct domains, DNS, a trusted TLS cert and a secure secrets mount before there can be any public locked staging deployment. The issuer, client callback, private roles, live OAuth and two-real-account acceptance remain separate. Do not merge/activate this draft as a shortcut.
