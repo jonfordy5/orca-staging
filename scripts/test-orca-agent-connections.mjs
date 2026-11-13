@@ -87,6 +87,15 @@ test('Revocation fails without calling backend if list is unavailable',async()=>
   assert.equal(called,false);
 });
 
+test('Incomplete revoke response does not imply confirmed Disconnect',async()=>{
+  const api={
+    listGrants:async()=>({data:[grant()],error:null}),
+    revokeGrant:async()=>undefined,
+  };
+  await assert.rejects(()=>revokeOwnedGrant(api,'client-1'),
+    /incomplete result/);
+});
+
 test('Revocation errors cannot be described as a successful Disconnect',async()=>{
   const api={
     listGrants:async()=>({data:[grant()],error:null}),
@@ -107,6 +116,9 @@ test('Page compiles and requires verified session before listing or revoke',()=>
   assert.ok(script.includes('const after=await revokeOwnedGrant(sb.auth.oauth,id)'));
   assert.ok(script.includes('if(!await verifyOwner())throw'));
   assert.ok(script.includes('grantsKnown=false'));
+  assert.ok(script.includes('sb.auth.onAuthStateChange('));
+  assert.ok(script.includes('authSession?.user?.id !== ownerId'));
+  assert.ok(script.includes("$('ready').hidden=true"));
   assert.ok(script.includes('confirm')||script.includes('Confirm Disconnect'));
   assert.ok(script.includes('oauth.listGrants')===false,'use isolated SDK grant adapter');
   assert.doesNotMatch(script,/approveAuthorization\(|signInWithOAuth\(|client_secret|access_token\s*=|setItem\(/);
