@@ -3,17 +3,17 @@ import assert from 'node:assert/strict';
 import {generateKeyPairSync,randomBytes} from 'node:crypto';
 import Provider from 'oidc-provider';
 import {createStage21LockedIssuerAssembly} from '../locked-issuer-assembly.mjs';
+import {createExistingResearcherSupabaseHttp} from '../supabase-existing-researcher-http.mjs';
 
 const valid=()=>{
   const {privateKey}=generateKeyPairSync('ec',{namedCurve:'P-256'});
   const events=[];
   const dbQuery=async()=>{events.push('private_database');throw Error('SHOULD_NOT_REACH_DB');};
-  const supabaseUserAdapter={
-    auth:{async getUser(){events.push('supabase_auth');throw Error('SHOULD_NOT_CALL_AUTH');}},
-    async ownerScopedProfileRead(){
-      events.push('supabase_profile');throw Error('SHOULD_NOT_READ_PROFILE');
-    }
-  };
+  const supabaseUserAdapter=createExistingResearcherSupabaseHttp({
+    supabaseUrl:'https://vbziibatnejoswsdggga.supabase.co',
+    publishableKey:'sb_publishable_'+'A'.repeat(32),
+    fetchImpl:async()=>{events.push('supabase_http');throw Error('LOCKED_CANNOT_FETCH');}
+  });
   const parameters={
     ProviderClass:Provider,
     issuerOrigin:'https://auth.orca.example.invalid',
