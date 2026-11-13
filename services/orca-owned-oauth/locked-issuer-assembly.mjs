@@ -13,6 +13,7 @@ import {
 import {createExistingResearcherInteractionController} from './existing-researcher-interaction.mjs';
 import {createSafeConsentFinalizer} from './consent-finalization.mjs';
 import {createOrcaIssuerInteractionHttp} from './interaction-http-routes.mjs';
+import {createIssuerPrivateQuery} from './issuer-private-query.mjs';
 
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const KID=/^[A-Za-z0-9_-]{8,48}$/;
@@ -88,7 +89,7 @@ function unavailable(res){
 }
 
 /**
- * issuerQuery must be bound to the verified issuer-only PostgreSQL role.
+ * verifiedIssuerConnector must be the Stage 20 issuer-only TLS+role-verified connector.
  * supabaseUserAdapter must authenticate a current user using Supabase Auth
  * and read only that user's opted-in, RLS-protected researcher profile.
  *
@@ -99,11 +100,11 @@ export function createStage21LockedIssuerAssembly({
   ProviderClass,issuerOrigin,mcpResource,clientId,redirectUri,
   signingKid,privateSigningJwk,providerCookieKeys,
   providerEncryptionKeyId,providerEncryptionKeyring,
-  browserSessionKeyring,issuerQuery,supabaseUserAdapter,
+  browserSessionKeyring,verifiedIssuerConnector,supabaseUserAdapter,
   isTrustedHttps=req=>req?.socket?.encrypted===true
 }={}){
   if(ORCA_OWNED_ISSUER_ENABLED!==false)deny();
-  if(typeof ProviderClass!=='function'||typeof issuerQuery!=='function'||
+  if(typeof ProviderClass!=='function'||typeof verifiedIssuerConnector?.connect!=='function'||
      typeof isTrustedHttps!=='function'||!obj(supabaseUserAdapter)||
      typeof supabaseUserAdapter.auth?.getUser!=='function'||
      typeof supabaseUserAdapter.ownerScopedProfileRead!=='function')
@@ -123,6 +124,9 @@ export function createStage21LockedIssuerAssembly({
        !(record.key instanceof Uint8Array)||record.key.byteLength!==32||
        usedKeys.has(Buffer.from(record.key).toString('hex')))deny();
   }
+  // Every private operation uses a fresh, verified issuer-only connection
+  // and a bounded transaction. An arbitrary SQL callback is never accepted.
+  const issuerQuery=createIssuerPrivateQuery({connector:verifiedIssuerConnector});
   const adapter=makeEncryptedPgOidcAdapter({
     query:issuerQuery,currentKeyId:providerEncryptionKeyId,keyring:providerKeys
   });
