@@ -47,10 +47,12 @@ export function assessOAuthDiscovery(resourceMetadata,authorizationMetadata){
   if(!exactHostedEndpoint(authorizationMetadata?.token_endpoint,ORCA_STAGING_PROJECT)){
     reasons.push('token_endpoint_untrusted');
   }
-  // DCR is the currently supported staging registration strategy. Never register
-  // an arbitrary client merely because a third-party URL appears in metadata.
-  if(!exactHostedEndpoint(authorizationMetadata?.registration_endpoint,ORCA_STAGING_PROJECT)){
-    reasons.push('registration_endpoint_unavailable');
+  // Supabase supports manual pre-registration; Dynamic Client Registration
+  // (DCR) is optional. Reject a dangerous advertised URL, but do not require
+  // DCR before checking an independently approved, pre-registered client.
+  const registration=authorizationMetadata?.registration_endpoint;
+  if(registration!=null&&!exactHostedEndpoint(registration,ORCA_STAGING_PROJECT)){
+    reasons.push('registration_endpoint_untrusted');
   }
   return {metadataReady:reasons.length===0,connectionReady:reasons.length===0&&ORCA_AGENT_OAUTH_PILOT_ENABLED,reasons};
 }
