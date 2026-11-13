@@ -282,8 +282,13 @@ async function call(origin,jar,path,{method='GET',body:data}={}){
   const headers={cookie:requestCookies(jar)};
   if(data){
     headers['content-type']='application/x-www-form-urlencoded';
-    headers.origin='https://auth.orca.example'; // synthetic origin only
-    headers['sec-fetch-site']='same-origin';
+    // Browser-only login/consent submissions carry exact same-origin
+    // provenance. The separate OAuth /token request is not a browser
+    // consent form; oidc-provider must reject cross-origin token POSTs.
+    if(new URL(path,origin).pathname.startsWith('/interaction/')){
+      headers.origin='https://auth.orca.example'; // synthetic test origin
+      headers['sec-fetch-site']='same-origin';
+    }
   }
   const r=await fetch(new URL(path,origin),{
     method,headers,
