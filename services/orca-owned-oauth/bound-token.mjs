@@ -8,6 +8,7 @@ import {createSign,createVerify,randomUUID} from 'node:crypto';
 export const READ_SCOPE='orca:research.read';
 export const MAX_ACCESS_SECONDS=300;
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const clientIdentifier=/^[\x21-\x7e]{1,512}$/;
 const b64=/^[A-Za-z0-9_-]+$/;
 
 function record(v){return v!==null&&typeof v==='object'&&!Array.isArray(v);}
@@ -23,7 +24,7 @@ export function signBoundAccessToken({issuer,resource,grant,kid,privateKey,now=M
       typeof resource!=='string'||!resource.startsWith('https://')||
       typeof kid!=='string'||kid.length<8||kid.length>128||
       !record(grant)||grant.active!==true||
-      !uuid.test(grant.ownerId||'')||!uuid.test(grant.clientId||'')||
+      !uuid.test(grant.ownerId||'')||!clientIdentifier.test(grant.clientId||'')||
       !uuid.test(grant.grantId||'')||grant.resource!==resource||
       grant.scope!==READ_SCOPE||
       !Number.isInteger(now)||ttl>MAX_ACCESS_SECONDS||ttl<1||
@@ -60,7 +61,7 @@ export async function verifyBoundAccessToken(token,{
       Buffer.from(parts[2],'base64url')))return deny('invalid_signature');
     if(claims.iss!==issuer||claims.aud!==resource||claims.iss===resource)
       return deny('wrong_issuer_or_resource');
-    if(!uuid.test(claims.sub||'')||!uuid.test(claims.client_id||'')||
+    if(!uuid.test(claims.sub||'')||!clientIdentifier.test(claims.client_id||'')||
        !uuid.test(claims.grant_id||'')||!uuid.test(claims.jti||'')||
        claims.scope!==READ_SCOPE||
        !Number.isInteger(claims.iat)||!Number.isInteger(claims.exp)||
