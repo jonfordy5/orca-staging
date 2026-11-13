@@ -15,7 +15,7 @@ const providerGrant='provider-opaque-grant-id-123456789';
 const scope='orca:research.read';
 const token={
   kind:'AccessToken',accountId:owner,clientId:client,grantId:providerGrant,
-  scope,resource
+  scope,aud:resource
 };
 const record={
   grantId:storedGrant,ownerId:owner,clientId:client,
@@ -50,14 +50,14 @@ test('Provider JWT customization denies swapped owner, client, grant, audience a
     {accountId:otherOwner},
     {clientId:otherClient},
     {grantId:'other-provider-grant-id-1234567'},
-    {resource:'https://vbziibatnejoswsdggga.supabase.co/rest/v1'},
+    {aud:'https://vbziibatnejoswsdggga.supabase.co/rest/v1'},
     {scope:'orca:research.write'},
     {scope:scope+' admin'},
     {scope:'openid'},
     {kind:'ClientCredentials'},
     {accountId:'not-uuid'},
     {grantId:''},
-    {resource:[resource]}
+    {aud:[resource]}
   ]){
     await assert.rejects(claimForProviderAccessToken(
       {...token,...replacement},opts
