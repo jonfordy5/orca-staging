@@ -219,3 +219,28 @@ test('Standalone ORCA-owned MCP request gate rejects other resources, Supabase t
   assert.equal((await authorizeOwnedMcpRequest(req(resource,signed),
     {...tokenConfig,currentGrant:null})).ok,false);
 });
+
+
+test('Modern MCP HTTPS client ID document identifiers work when EXACTLY approved',async()=>{
+  const opaque='https://agent.example/.well-known/oauth-client.json';
+  const registered={[opaque]:[callback]};
+  const accepted={...authorize,client_id:opaque};
+  assert.equal(assessAuthorizationRequest(accepted,{resource,clients:registered}).ok,true);
+  assert.equal(assessAuthorizationRequest(accepted,{resource,clients}).ok,false);
+  assert.equal(assessAuthorizationRequest({...accepted,client_id:'https://other.example/client.json'},
+    {resource,clients:registered}).ok,false);
+
+  const resourceGrant={...grant,clientId:opaque};
+  const token=signBoundAccessToken({
+    issuer,resource,grant:resourceGrant,kid,privateKey:keys.privateKey
+  });
+  const verified=await verifyBoundAccessToken(token,{
+    ...tokenConfig,approvedClientIds:new Set([opaque]),
+    currentGrant:async ({clientId})=>clientId===opaque
+  });
+  assert.equal(verified.ok,true);
+  assert.equal(verified.clientId,opaque);
+  const unregistered=await verifyBoundAccessToken(token,tokenConfig);
+  assert.equal(unregistered.ok,false);
+  assert.equal(unregistered.reason,'client_not_approved');
+});
