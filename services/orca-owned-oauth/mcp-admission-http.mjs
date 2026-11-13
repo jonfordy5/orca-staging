@@ -22,7 +22,7 @@ function exactHttps(value){
     const u=new URL(value);
     return typeof value==='string'&&u.protocol==='https:'&&
       !u.username&&!u.password&&!u.search&&!u.hash&&
-      u.href===value;
+      (u.href===value||(u.pathname==='/'&&u.origin===value));
   }catch{return false;}
 }
 function respond(body,status,more={}){
