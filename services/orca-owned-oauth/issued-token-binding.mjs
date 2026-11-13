@@ -20,7 +20,9 @@ export async function claimForProviderAccessToken(token,{
     token.clientId!==approvedClientId||
     typeof token.grantId!=='string'||!OPAQUE.test(token.grantId)||
     typeof resource!=='string'||!resource.startsWith('https://')||
-    token.resource!==resource)
+    // oidc-provider v9 stores RFC 8707 resolved resource on AccessToken.aud.
+    // A custom token.resource field does not exist and must not be trusted.
+    token.aud!==resource)
     throw Error('unbound_resource_owner_or_client');
   const scopes=typeof token.scope==='string'
     ?token.scope.split(/\s+/).filter(Boolean):[];
