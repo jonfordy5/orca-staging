@@ -66,7 +66,8 @@ test('Consent page is syntactically sound and cannot approve without a real user
 });
 
 test('Existing ORCA sign-in continues only to exact consent path with validated authorization identifier',()=>{
-  assert.match(account,/'orca-oauth-consent\.html'\]\.includes\(returnTo\)/);
+  const allowedReturnTargets=(account.match(/const stagingReturnTo=isOrcaStaging[\s\S]*?\?\(\[([^\]]+)\]\.includes\(returnTo\)/)||[])[1]||'';
+  assert.ok(allowedReturnTargets.split(',').map(value=>value.trim()).includes("'orca-oauth-consent.html'"),'Exact sign-in return target must be allowlisted');
   assert.match(account,/validAuthorizationId=\/\^\[a-zA-Z0-9_\-\]\{16,256\}\$\//);
   assert.match(account,/authReturnParams=stagingReturnTo==='orca-oauth-consent\.html'&&validAuthorizationId/);
   assert.match(account,/orcaStagingHref\('\.\/'\+stagingReturnTo,authReturnParams\)/);
