@@ -23,9 +23,10 @@ Deno.serve(async (request: Request) => {
   if(request.method === "OPTIONS") return new Response(null,{status:204,headers});
   if(request.method !== "GET") return new Response(JSON.stringify({error:"GET only"}),{status:405,headers});
   const raw=request.headers.get("Authorization")||"";
-  const token=/^Bearer\\s+(\\S+)$/i.exec(raw)?.[1]||"";
+  const token=/^Bearer\s+(\S+)$/i.exec(raw)?.[1]||"";
   if(token.split(".").length!==3)return new Response(JSON.stringify({error:"Sign in to preview photos"}),{status:401,headers});
-  const {data:{user},error:authError}=await supabaseAuth.auth.getUser(token);
+  const checked=await supabaseAuth.auth.getUser(token);
+  const user=checked.data?.user,authError=checked.error;
   if(authError||!user)return new Response(JSON.stringify({error:"Session expired"}),{status:401,headers});
   if(!isVerifiedOrcaBrowserToken(token,user.id))return new Response(JSON.stringify({error:"Linked AI clients cannot use this photo preview"}),{status:403,headers});
   const event = new URL(request.url).searchParams.get("event") || "";
