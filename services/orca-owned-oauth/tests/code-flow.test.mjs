@@ -13,6 +13,7 @@ import {createExistingResearcherInteractionController} from '../existing-researc
 import {createSafeConsentFinalizer} from '../consent-finalization.mjs';
 import {createPrivateConsentChallenges} from '../consent-challenge.mjs';
 import {createOwnedGrantRegistry} from '../grant-registry.mjs';
+import {verifyBoundAccessToken} from '../bound-token.mjs';
 
 const RESOURCE='https://vbziibatnejoswsdggga.supabase.co/functions/v1/orca-agent-mcp-owned';
 const CLIENT='orca-ephemeral-code-test-client';
@@ -384,6 +385,18 @@ test('Real local OAuth authorization-code PKCE + Supabase-fixture consent + link
   assert.equal(sig.verify({key:fixture.publicKey,dsaEncoding:'ieee-p1363'},
     Buffer.from(parts[2],'base64url')),true);
 
+  console.log('LOCAL JWT FORMAT',JSON.stringify({
+    typ:head.typ,kid:head.kid,jtiType:typeof claims.jti,
+    jtiLength:typeof claims.jti==='string'?claims.jti.length:null,
+    ttlSeconds:claims.exp-claims.iat
+  }));
+  const verifierOptions={
+    issuer:fixture.issuer,resource:RESOURCE,kid:fixture.kid,
+    publicKey:fixture.publicKey,approvedClientIds:new Set([CLIENT]),
+    currentGrant:fixture.grants.isCurrentGrant
+  };
+  const accepted=await verifyBoundAccessToken(response.access_token,verifierOptions);
+  assert.equal(accepted.ok,true,'MCP JWT verification rejected real OAuth token: '+accepted.reason);
   assert.equal(await fixture.grants.isCurrentGrant({
     grantId:claims.grant_id,ownerId:OWNER,clientId:CLIENT,
     resource:RESOURCE,scope:'orca:research.read'
@@ -395,6 +408,9 @@ test('Real local OAuth authorization-code PKCE + Supabase-fixture consent + link
     grantId:claims.grant_id,ownerId:OWNER,clientId:CLIENT,
     resource:RESOURCE,scope:'orca:research.read'
   }),false);
+  const rejected=await verifyBoundAccessToken(response.access_token,verifierOptions);
+  assert.equal(rejected.ok,false);
+  assert.equal(rejected.reason,'grant_revoked_or_mismatched');
   const replay=await call(fixture.issuer,jar,'/token',{
     method:'POST',body:tokenRequest
   });
