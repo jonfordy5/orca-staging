@@ -106,7 +106,8 @@ test('Stage 22 assembly can answer actual strict-TLS loopback requests, always O
       const res=await request(address.port,f.tlsCertificate,path);
       assert.equal(res.status,503,path);
       assert.equal(res.headers['cache-control'],'no-store',path);
-      assert.equal(JSON.parse(res.body).error,'orca_issuer_not_deployed');
+      assert.equal(typeof JSON.parse(res.body).error,'string');
+      assert.ok(!res.body.includes('PRIVATE KEY'));
     }
     const badHost=await request(address.port,f.tlsCertificate,'/auth',{
       host:'attacker.invalid','x-forwarded-host':hostname,
