@@ -106,3 +106,17 @@ Do **not** merge or activate Plan B solely because the offline tests pass. PRs #
 - GitHub CI passed 13/13 (0 failures) at [Stage 13 official MCP network CI run](https://github.com/jonfordy5/orca-staging/actions/runs/43489222497). No actual ChatGPT account or Supabase identity was connected in this test.
 
 **Remaining deployment handoff:** A reviewed, real HTTPS Node host (not GitHub Pages) and authenticated private reverse-proxy boundary; real DNS and TLS; a vetted issuer service with real signing keys and a durable, least-privileged private DB role; owner-authenticated Supabase browser sign-in, consent and callback; exact registered ChatGPT OAuth client/redirect; live two-account isolation and revocation tests. Do not enable public listening or release gates until those checks pass. Live staging and production remain unchanged.
+
+
+## Stage 14 — locked direct-TLS staging deployment package (Nov 13, 2026)
+
+**Committed, NOT PUBLICLY DEPLOYED.** Stage 14 adds a Node 24 direct-HTTPS staging shell with no live MCP or OAuth activation, a non-root Docker image, a loopback-only Compose manifest, explicit release-off/secret-mount validation, and GitHub Actions isolated TLS+container tests.
+
+- `mcp-sdk/locked-https.mjs`: real Node HTTPS server with mounted TLS key/certificate, internal GET /healthz = {service:'orca-mcp-staging',status:'locked'}, everything protected = 503. Both issuer and MCP enabled=true are rejected by construction.
+- `mcp-sdk/run-locked-staging.mjs`: requires exact disabled flags and an explicit locked-mode acknowledgement, HTTPS issuer and MCP URLs, and files from /run/secrets. No production credentials in GitHub.
+- `mcp-sdk/Dockerfile.staging`: non-root Node 24, pinned package lock via npm ci, no secret files baked into image, and no code path to enable the real issuer.
+- `mcp-sdk/compose.locked-staging.yml`: localhost-only 127.0.0.1:8443 bind, read-only container, dropped capabilities, memory/PID limits, read-only host TLS mount. Not a publicly exposed deployment.
+- `.github/workflows/orca-locked-https-container.yml`: real local TLS handshake, Docker build and smoke, 200 locked health, 503 MCP/discovery, proof environment alone cannot enable it, Compose config validation.
+- `docs/orca-stage14-deployment-course.md`: host/DNS/TLS prerequisites, exact local Compose rehearsal, next OAuth issuer/MCP activation gates, two-real-user acceptance, rollback and safeguards.
+
+**Still BLOCKED on external infrastructure:** no selected server, real hostnames/certificates, live issuer signing keys, approved client callback, private DB roles, or two-real-account test. Do not claim public deployment. Draft PR #83 stays unmerged and both release flags OFF.
