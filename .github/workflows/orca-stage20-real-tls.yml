@@ -1,0 +1,133 @@
+name: ORCA Stage 20 CA-verified PostgreSQL TLS (ephemeral only)
+
+on:
+  push:
+    branches:
+      - feat/orca-owned-oauth-fallback-20261112
+    paths:
+      - services/orca-owned-oauth/verified-supabase-db-connector.mjs
+      - services/orca-owned-oauth/verified-current-grant-query.mjs
+      - services/orca-owned-oauth/grant-registry.mjs
+      - services/orca-owned-oauth/private-db-logins-review-only.sql
+      - services/orca-owned-oauth/private-db-roles-review-only.sql
+      - services/orca-owned-oauth/private-pg-tests/**
+      - .github/workflows/orca-stage20-real-tls.yml
+  pull_request:
+    paths:
+      - services/orca-owned-oauth/verified-supabase-db-connector.mjs
+      - services/orca-owned-oauth/verified-current-grant-query.mjs
+      - services/orca-owned-oauth/grant-registry.mjs
+      - services/orca-owned-oauth/private-db-logins-review-only.sql
+      - services/orca-owned-oauth/private-db-roles-review-only.sql
+      - services/orca-owned-oauth/private-pg-tests/**
+      - .github/workflows/orca-stage20-real-tls.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  direct-verified-ssl:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install pinned PostgreSQL client (no dependency drift)
+        working-directory: services/orca-owned-oauth/private-pg-tests
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Run isolated PostgreSQL 17 server with synthetic CA-verified TLS and actual restricted logins
+        shell: bash
+        run: |
+          set -euo pipefail
+          temp="$RUNNER_TEMP/orca-stage20-verify-full"
+          mkdir -p "$temp/ca" "$temp/server"
+          cleanup(){
+            docker rm -f orca-stage20-pg-tls >/dev/null 2>&1 || true
+            sudo rm -rf "$temp"
+          }
+          trap cleanup EXIT
+          name="db.vbziibatnejoswsdggga.supabase.co"
+          openssl req -x509 -newkey rsa:2048 -nodes -sha256 \
+            -keyout "$temp/ca/root.key" -out "$temp/ca/root.crt" \
+            -days 1 -subj "/CN=ORCA stage20 disposable CA"
+          openssl req -new -newkey rsa:2048 -nodes \
+            -keyout "$temp/server/server.key" \
+            -out "$temp/server/server.csr" \
+            -subj "/CN=$name" -addext "subjectAltName=DNS:$name"
+          openssl x509 -req -in "$temp/server/server.csr" \
+            -CA "$temp/ca/root.crt" -CAkey "$temp/ca/root.key" \
+            -CAcreateserial -out "$temp/server/server.crt" \
+            -days 1 -sha256 -copy_extensions copy
+          openssl verify -CAfile "$temp/ca/root.crt" "$temp/server/server.crt"
+          cp "$temp/ca/root.crt" "$temp/server/ca.crt"
+          openssl req -x509 -newkey rsa:2048 -nodes -sha256 \
+            -keyout "$temp/ca/wrong.key" -out "$temp/ca/wrong.crt" \
+            -days 1 -subj "/CN=ORCA intentionally wrong CA"
+          chmod 755 "$temp/server"
+          chmod 600 "$temp/server/server.key"
+          chmod 644 "$temp/server/server.crt" "$temp/server/ca.crt"
+          postgres_uid=$(docker run --rm postgres:17 id -u postgres)
+          sudo chown -R "$postgres_uid:$postgres_uid" "$temp/server"
+
+          admin_pw=$(openssl rand -hex 24)
+          issuer_pw=$(openssl rand -hex 24)
+          reader_pw=$(openssl rand -hex 24)
+          echo "::add-mask::$admin_pw"
+          echo "::add-mask::$issuer_pw"
+          echo "::add-mask::$reader_pw"
+          docker run -d --rm \
+            --name orca-stage20-pg-tls \
+            -p 127.0.0.1:5432:5432 \
+            -e POSTGRES_PASSWORD="$admin_pw" \
+            -e POSTGRES_DB=postgres \
+            --mount "type=bind,src=$temp/server,dst=/tls,readonly" \
+            postgres:17 \
+              -c ssl=on \
+              -c ssl_cert_file=/tls/server.crt \
+              -c ssl_key_file=/tls/server.key \
+              -c ssl_ca_file=/tls/ca.crt
+          ready=0
+          for i in $(seq 1 35); do
+            if PGPASSWORD="$admin_pw" \
+              psql -h 127.0.0.1 -p 5432 -U postgres -d postgres \
+                -tAc 'select 1' >/dev/null 2>&1; then
+              ready=1
+              break
+            fi
+            sleep 1
+          done
+          if [ "$ready" != "1" ]; then
+            echo "ERROR: ephemeral SSL database never became healthy"
+            docker logs orca-stage20-pg-tls 2>&1 | tail -35
+            exit 1
+          fi
+          export PGHOST=127.0.0.1 PGPORT=5432 PGDATABASE=postgres \
+            PGUSER=postgres PGPASSWORD="$admin_pw" PGSSLMODE=require
+          psql -v ON_ERROR_STOP=1 <<'SQL'
+          create role anon nologin;
+          create role authenticated nologin;
+          create role service_role nologin;
+          create role authenticator nologin;
+          SQL
+          psql -v ON_ERROR_STOP=1 -f services/orca-owned-oauth/private-schema-review-only.sql
+          psql -v ON_ERROR_STOP=1 -f services/orca-owned-oauth/browser-sessions-review-only.sql
+          psql -v ON_ERROR_STOP=1 -f services/orca-owned-oauth/private-db-roles-review-only.sql
+          psql -v ON_ERROR_STOP=1 -f services/orca-owned-oauth/private-db-logins-review-only.sql
+          psql -v ON_ERROR_STOP=1 \
+            -v issuer_password="$issuer_pw" \
+            -v reader_password="$reader_pw" <<'SQL'
+          alter role orca_owned_issuer_login login password :'issuer_password';
+          alter role orca_owned_mcp_grant_login login password :'reader_password';
+          SQL
+          echo "127.0.0.1 $name" | sudo tee -a /etc/hosts >/dev/null
+          ORCA_STAGE20_EPHEMERAL_TLS_ONLY=yes \
+          ORCA_STAGE20_DB_HOST="$name" \
+          ORCA_STAGE20_DB_NAME=postgres \
+          ORCA_STAGE20_ISSUER_PASSWORD="$issuer_pw" \
+          ORCA_STAGE20_GRANT_PASSWORD="$reader_pw" \
+          ORCA_STAGE20_CA_PATH="$temp/ca/root.crt" \
+          ORCA_STAGE20_UNTRUSTED_CA_PATH="$temp/ca/wrong.crt" \
+            node --test services/orca-owned-oauth/private-pg-tests/verify-full-real-tls.test.mjs
