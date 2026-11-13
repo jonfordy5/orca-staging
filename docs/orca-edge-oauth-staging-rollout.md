@@ -1,6 +1,36 @@
 # PR #81 — staging-only Edge OAuth protection rollout
 
-**Status:** Reviewed/source-only, not deployed or merged. User asked to continue building; no additional live-function rollout authorization is implied. Only project `vbziibatnejoswsdggga` (Orca-staging) may be targeted in the next explicitly approved deployment. The production project `hsgfwsghxdcgpjlekfqf` is out of scope.
+**Status: SIX STAGING EDGE FUNCTIONS DEPLOYED; PR STILL DRAFT/UNMERGED.** On November 12, 2026, the owner explicitly approved rolling out PR #81 to only `Orca-staging` (`vbziibatnejoswsdggga`), keeping OAuth off and production (`hsgfwsghxdcgpjlekfqf`) untouched. No other Auth, API, database, task or publication permissions changed.
+
+## Authorized staging deployment and verification receipt — Nov 12, 2026
+
+**Scope authorized:** redeploy the six listed existing staging functions individually with only PR #81's browser-only OAuth guard. Keep each original `verify_jwt` flag, all business logic and external API budgets, and production untouched.
+
+**Before each deployment**, retrieved its live source and verified byte-for-byte that removing only the PR #81 helper import and added guard recreated the exact previous live `index.ts`. Each previously deployed function consisted of one `index.ts`; existing `verify_jwt` values were recorded and preserved. This makes the prior source reconstructable from the reviewed Git branch without retaining an actual user's credentials. No keys were logged.
+
+**Deployed individually and then read back each complete function:**
+
+| Function | Original version | New active version | JWT setting retained |
+|---|---:|---:|---|
+| `orca-ai-profile-pilot` | 7 | **8** | true |
+| `orca-av-ulta-private-preview` | 5 | **6** | true |
+| `orca-majority-synthesis` | 6 | **7** | false |
+| `orca-auto-ai-profile` | 17 | **18** | false |
+| `orca-timeline-discovery` | 19 | **20** | false |
+| `orca-timeline-photo-fill` | 47 | **48** | false |
+
+Every Supabase deployment returned `ACTIVE`, and the follow-up `get_edge_function` confirmed the exact reviewed `index.ts` and byte-identical shared `_shared/orca-browser-token.ts` code, with the JWT flag unchanged. No new function was introduced.
+
+**After installation:**
+- The original SQL baseline was unchanged: **17 stocks, 3 researcher profiles, 9 team memberships, 50 tasks, 29 published findings**.
+- The approved OAuth client registry remained **empty**, and PostgREST's existing `pgrst.db_pre_request` security gate remained enabled.
+- The live read-only smoke [GitHub Actions #43335403345](https://github.com/jonfordy5/orca-staging/actions/runs/43335403345) passed: all six endpoints returned **HTTP 204** to harmless CORS OPTIONS; the five functions safely queried without credentials rejected signed-out GET/POST with **HTTP 401 or 403**. The auto-profile function's potentially public/cached endpoint was only tested with OPTIONS; no paid generation/request was attempted.
+- Focused OAuth source/security regression [#43335403230](https://github.com/jonfordy5/orca-staging/actions/runs/43335403230) passed.
+- These checks prove deployment availability, no-credential denial and source consistency. They **do not** prove that an actual connected OAuth access token is denied (no OAuth client is enabled), nor that users can still perform every signed-in paid function. Real authenticated browser acceptance remains to be performed.
+
+**Rollback:** If a function's legitimate browser behavior breaks, retrieve the exact proposed branch source, remove only the added top-level guard import and the corresponding single guard call (restore original whitespace), and deploy the resulting **byte-identical former live `index.ts`** with its original `verify_jwt` flag. Check the version/readback and no-token behavior. Stop and investigate before restoring other functions; no account or research data modifications are needed. The original six function version numbers and source sizes were verified before deployment.
+
+**No merge, no OAuth activation:** PR #81 remains DRAFT. Supabase OAuth Server is disabled, no client is registered or approved, and PR #79's MCP OAuth endpoint is still not deployed. This is a staging-only deployment milestone.
 
 ## What this prevents
 
@@ -40,7 +70,7 @@ A linked read-only OAuth token is a legitimate user bearer and may otherwise be 
 
 If any existing browser function breaks or function changes unexpectedly, immediately restore its exact pre-deployment source and JWT configuration from the private snapshot, confirm it is active, then recheck the site. Do **not** revoke real users, reset their consent, modify database policies, reissue tokens or delete findings as a workaround. Stop the sequence; do not continue redeploying the other functions.
 
-**No automatic merge or deployment:** The owner must separately approve staging rollout of these six Edge Functions. Production deploy or OAuth-server activation is a later, independent decision.
+**No automatic merge or wider deployment:** The owner approved and the six-function staging rollout described above is complete. PR #81 has not been merged, and production deploy or OAuth-server activation remains a later, independent decision.
 
 ## After PR #81 rollout
 
