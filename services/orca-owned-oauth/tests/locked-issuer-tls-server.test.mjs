@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import https from 'node:https';
 import {execFileSync} from 'node:child_process';
 import {
-  mkdtempSync,mkdirSync,writeFileSync,readFileSync,rmSync
+  mkdtempSync,mkdirSync,writeFileSync,readFileSync,rmSync,chmodSync
 } from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
@@ -13,6 +13,7 @@ import {generateKeyPairSync,randomBytes} from 'node:crypto';
 import Provider from 'oidc-provider';
 import {createStage22LockedIssuerHostStartup} from '../locked-issuer-host-startup.mjs';
 import {createStage25LockedIssuerTlsHost} from '../locked-issuer-tls-server.mjs';
+import {createStage26LockedIssuerHost} from '../locked-issuer-host-bootstrap.mjs';
 
 const hostname='issuer.orca.example.invalid';
 const issuerOrigin='https://'+hostname;
@@ -62,11 +63,13 @@ function fixture(){
   const tlsPrivateKey=readFileSync(tlsPrivatePath,'utf8');
   const tlsCertificate=readFileSync(tlsCertificatePath,'utf8');
   save('postgres-ca.pem',tlsCertificate);
+  save('issuer-tls-private-key.pem',tlsPrivateKey);
+  save('issuer-tls-certificate.pem',tlsCertificate);
   const assembly=createStage22LockedIssuerHostStartup({
     env,secretDirectory:directory,ProviderClass:Provider,
     ClientClass:class {},fetchImpl:async()=>{throw Error('NO_EXTERNAL_HTTP');}
   });
-  return {root,assembly,tlsPrivateKey,tlsCertificate};
+  return {root,directory,assembly,tlsPrivateKey,tlsCertificate};
 }
 function request(port,ca,path,headers={}){
   return new Promise((resolve,reject)=>{
@@ -87,11 +90,14 @@ function request(port,ca,path,headers={}){
     req.end();
   });
 }
-test('Stage 22 assembly can answer actual strict-TLS loopback requests, always OFF',async()=>{
+test('Stage 26 complete private mount boot serves strictly locked loopback TLS',async()=>{
   const f=fixture();
   let server;
   try{
-    server=createStage25LockedIssuerTlsHost(f);
+    server=createStage26LockedIssuerHost({
+      env,secretDirectory:f.directory,ProviderClass:Provider,
+      ClientClass:class {},fetchImpl:async()=>{throw Error('NO_EXTERNAL_HTTP');}
+    });
     assert.equal(server.listening,false);
     assert.equal(server.mode,'loopback-locked-https');
     assert.ok(!Object.hasOwn(server,'server'),'raw listener must remain private');
@@ -137,5 +143,16 @@ test('Stage25 refuses bad TLS key, certificate hostname and unlocked assembly',(
     assert.throws(()=>createStage25LockedIssuerTlsHost({
       ...f,assembly:{...f.assembly,publicAuthorizationEnabled:true}
     }),/stage25_locked_https_issuer_rejected/);
+  }finally{rmSync(f.root,{recursive:true,force:true});}
+});
+
+test('Stage26 rejects insecure TLS secret file before exposing a listener',()=>{
+  const f=fixture();
+  try{
+    chmodSync(join(f.directory,'issuer-tls-private-key.pem'),0o644);
+    assert.throws(()=>createStage26LockedIssuerHost({
+      env,secretDirectory:f.directory,ProviderClass:Provider,
+      ClientClass:class {},fetchImpl:async()=>{}
+    }),/stage26_locked_issuer_bootstrap_rejected/);
   }finally{rmSync(f.root,{recursive:true,force:true});}
 });
