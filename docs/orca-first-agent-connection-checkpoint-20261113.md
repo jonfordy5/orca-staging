@@ -48,3 +48,22 @@ Do **not** merge or activate Plan B solely because the offline tests pass. PRs #
 - Isolated private schema: https://github.com/jonfordy5/orca-staging/actions/runs/43479621160
 
 **Still required for first live ChatGPT agent test:** audited private role and connection, real Supabase browser session/consent on HTTPS issuer, correctly configured ChatGPT client/callback and signing keys, deployed MCP SDK gateway, real two-account and revocation acceptance. The release gate remains OFF.
+
+
+## Stage 11 — opaque browser sessions and OAuth discovery (November 13, 2026)
+
+**Status: draft code only, OAuth issuer and MCP still disabled and undeployed. No real user credentials or approved client.**
+
+- Replaced the proposed browser-token-in-cookie approach with a new **opaque encrypted server-side session** path (`services/orca-owned-oauth/opaque-browser-session.mjs`). A host-only `__Host-` cookie contains only a random 32-byte handle. The SHA-256 handle digest indexes an AES-256-GCM encrypted server-side record containing the verified existing Supabase bearer, owner ID and a separate browser-session binding. No bearer leaves the issuer in a cookie.
+- The bridge requires exact same-origin HTTPS bootstrap, verified Supabase `getUser`, current opted-in owner profile, secure cookie flags, expiration, a private store, authorized decryption key and durable logout revocation. The OAuth interaction controller still verifies the researcher again on each login/consent action.
+- Added private PostgreSQL store adapter with fixed, parameterized insert/select/revoke statements and `browser-sessions-review-only.sql` to propose a private RLS table. **This SQL was tested only in ephemeral PostgreSQL; not applied to Supabase staging.** Dedicated least-privileged DB role, credential rotation and live revocation tests remain required.
+- Expanded automated session tests for no bearer in cookies, encrypted storage, expiry, tampering, wrong host/origin/TLS, cross-site, account opt-out, database read/write shape, key rotation and confirmed logout revocation.
+- Swapped the earlier fixture-signed cookie in `services/orca-owned-oauth/tests/code-flow.test.mjs` for the actual encrypted opaque bridge. The full maintained `oidc-provider@9.14.0` code+PKCE+human-consent+ES256 token+revocation path still runs only with a **synthetic Supabase identity and in-memory storage over loopback**, not a real user or public service.
+- Corrected Stage 8 protected resource metadata routing to canonical RFC 9728 well-known path `/.well-known/oauth-protected-resource/<resource-path>`; tests reject the old nonstandard path. Actual HTTPS domain and exact ChatGPT callback/client metadata must be obtained from the management page.
+
+**Verification:**
+- Offline OAuth/session tests: https://github.com/jonfordy5/orca-staging/actions/runs/43483473109
+- Real-library OAuth code-flow with opaque session: https://github.com/jonfordy5/orca-staging/actions/runs/43483473234
+- Ephemeral PostgreSQL private schema (including opaque browser sessions): https://github.com/jonfordy5/orca-staging/actions/runs/43482892661
+
+**What remains before real-agent testing:** choose a vetted HTTPS issuer+MCP host, install and lock the official MCP v2 SDK, deploy the maintained issuer with private signing keys and persistent state, establish dedicated private DB roles, connect real Supabase sign-in and human consent, register the exact ChatGPT client/callback, then run two actual owners and revoke/write-bypass acceptance. The existing OAuth release gate stays OFF.
