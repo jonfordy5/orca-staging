@@ -34,6 +34,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
+      - name: Regenerate pinned lockfile for official client acceptance
+        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+      - name: Emit resolved public lock for repository checkpoint
+        run: |
+          echo ORCA_STAGE12B_PACKAGE_LOCK_BEGIN
+          cat package-lock.json
+          echo ORCA_STAGE12B_PACKAGE_LOCK_END
       - name: Install pinned SDK v2 and official schema dependencies
         run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Run official SDK local HTTP and two-owner security tests
