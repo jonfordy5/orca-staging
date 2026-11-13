@@ -58,7 +58,7 @@ function testDatabase(){
 function expiry(){return new Date(Date.now()+60000).toISOString();}
 function candidate(ownerId,clientId,providerGrantId){
   return {kind:'AccessToken',accountId:ownerId,clientId,
-    grantId:providerGrantId,resource:audience,scope};
+    grantId:providerGrantId,aud:audience,scope};
 }
 
 test('Approved existing owner maps opaque provider grant to a unique ORCA-owned grant',async()=>{
