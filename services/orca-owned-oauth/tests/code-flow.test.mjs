@@ -174,17 +174,6 @@ async function startFixture(){
     interactionUrl:'/interaction/test',
     lookupOwnedGrant:grants.lookupOwnedGrant
   });
-  const originalClaims=config.extraTokenClaims;
-  config.extraTokenClaims=async(ctx,token)=>{
-    console.log('LOCAL PROVIDER TOKEN MODEL',JSON.stringify({
-      kind:token.kind,ownerMatches:token.accountId===OWNER,
-      clientMatches:token.clientId===CLIENT,
-      grantIdType:typeof token.grantId,
-      grantIdLength:typeof token.grantId==='string'?token.grantId.length:0,
-      resource:token.resource,aud:token.aud,scope:token.scope
-    }).slice(0,900));
-    return originalClaims(ctx,token);
-  };
   config.interactions={url:(_ctx,interaction)=>'/interaction/'+interaction.uid};
   config.jwks={keys:[{
     ...privateKey.export({format:'jwk'}),kid,alg:'ES256',use:'sig'
@@ -196,20 +185,6 @@ async function startFixture(){
     console.log('LOCAL TEST PROVIDER ERROR',String(error?.message||error).slice(0,250));
     console.log('LOCAL TEST PROVIDER ERROR CLASS',String(error?.name||'').slice(0,100));
   });
-  const providerDetails=provider.interactionDetails.bind(provider);
-  provider.interactionDetails=async (...args)=>{
-    const details=await providerDetails(...args);
-    if(details?.prompt?.name==='consent'){
-      const d=details.prompt.details||{};
-      console.log('LOCAL CONSENT SHAPE',JSON.stringify({
-        missingOIDCScope:d.missingOIDCScope,
-        missingResourceScopes:d.missingResourceScopes,
-        missingOIDCClaims:d.missingOIDCClaims,
-        rar:d.rar
-      }).slice(0,700));
-    }
-    return details;
-  };
   const controller=createExistingResearcherInteractionController({
     provider,
     supabaseAuth:{async getUser(token){
@@ -317,6 +292,16 @@ test('Real local OAuth authorization-code PKCE + Supabase-fixture consent + link
     code_challenge_method:'S256',
     code_challenge:challenge
   });
+  // Real-library negative authorization cases: no unregistered redirect
+  // or unknown client may initiate an interactive code flow.
+  const badRedirect=new URLSearchParams(args);
+  badRedirect.set('redirect_uri','https://attacker.example.invalid/callback');
+  const rejectedRedirect=await call(fixture.issuer,jar,'/auth?'+badRedirect);
+  assert.equal(rejectedRedirect.status,400,'Unregistered OAuth callback must fail');
+  const badClient=new URLSearchParams(args);
+  badClient.set('client_id','not-registered-client');
+  const rejectedClient=await call(fixture.issuer,jar,'/auth?'+badClient);
+  assert.equal(rejectedClient.status,400,'Unregistered OAuth client must fail');
   let r=await call(fixture.issuer,jar,'/auth?'+args);
   if(![302,303].includes(r.status)){
     const html=await r.text();
@@ -369,6 +354,7 @@ test('Real local OAuth authorization-code PKCE + Supabase-fixture consent + link
   const response=await token.json();
   assert.equal(token.status,200,'Expected real PKCE token exchange: '+JSON.stringify(response));
   assert.ok(response.access_token);
+  assert.equal(response.refresh_token,undefined,'Refresh issuance must remain disabled');
   const parts=response.access_token.split('.');
   assert.equal(parts.length,3,'Resource-indicator token should be JWT');
   const head=JSON.parse(Buffer.from(parts[0],'base64url'));
