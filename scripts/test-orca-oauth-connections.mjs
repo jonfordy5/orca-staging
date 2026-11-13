@@ -43,7 +43,8 @@ test('No secret, generated connection, silent approval, token display, or unrela
 });
 
 test('Sign-in return path is exact, allowlisted, and cannot use an arbitrary redirect',()=>{
-  assert.match(account,/'orca-oauth-connections\.html'\]\.includes\(returnTo\)/);
+  const allowedReturnTargets=(account.match(/const stagingReturnTo=isOrcaStaging[\s\S]*?\?\(\[([^\]]+)\]\.includes\(returnTo\)/)||[])[1]||'';
+  assert.ok(allowedReturnTargets.split(',').map(value=>value.trim()).includes("'orca-oauth-connections.html'"),'Exact sign-in return target must be allowlisted');
   assert.match(script,/next\.searchParams\.set\('returnTo','orca-oauth-connections\.html'\)/);
   assert.doesNotMatch(script,/\b(?:location|window\.location)\.assign\(/);
 });
