@@ -1,48 +1,57 @@
-// Public, credential-free ORCA staging OAuth discovery preflight.
-//
-// No user identities, token exchange, cookies, credentials, database writes,
-// OAuth registration, or authorization requests are performed.
-// Discovery is informational until a genuine resource-bound JWT exchange is
-// explicitly approved and verified.
-const project='https://vbziibatnejoswsdggga.supabase.co';
-const issuer=project+'/auth/v1';
-const expectedResource=project+'/functions/v1/orca-agent-mcp';
+// Public, credential-free readiness check for the ORCA Commons MCP connection.
+// This is informational; NOTHING here authorizes an agent, creates a client,
+// requests a token, reads a user account, or deploys a Supabase function.
+import {
+  ORCA_STAGING_PROJECT, ORCA_STAGING_ISSUER, ORCA_STAGING_RESOURCE,
+  ORCA_STAGING_RESOURCE_METADATA, ORCA_STAGING_AUTH_METADATA,
+  ORCA_AGENT_OAUTH_PILOT_ENABLED, assessOAuthDiscovery
+} from './orca-oauth-readiness.mjs';
 
 const endpoints=[
-  ['OAuth server metadata',project+'/.well-known/oauth-authorization-server/auth/v1'],
-  ['Auth OpenID metadata',issuer+'/.well-known/openid-configuration'],
-  ['Public JWKS',issuer+'/.well-known/jwks.json']
+  ['MCP protected-resource metadata',ORCA_STAGING_RESOURCE_METADATA],
+  ['OAuth server metadata',ORCA_STAGING_AUTH_METADATA],
+  ['Auth OpenID metadata',ORCA_STAGING_ISSUER+'/.well-known/openid-configuration'],
+  ['Public JWKS',ORCA_STAGING_ISSUER+'/.well-known/jwks.json']
 ];
-for (const [name,url] of endpoints) {
-  const response=await fetch(url,{
-    method:'GET',headers:{Accept:'application/json'},
-    redirect:'error',signal:AbortSignal.timeout(12000)
-  });
-  let data=null;
-  if(response.ok) {
-    try { data=await response.json(); } catch { /* invalid metadata */ }
-  }
-  console.log(name+': HTTP '+response.status);
-  if(name==='Public JWKS') {
-    const keys=Array.isArray(data?.keys)?data.keys:[];
-    const asym=keys.filter(k=>['RSA','EC','OKP'].includes(k.kty)).length;
-    console.log('Asymmetric signing keys visible in JWKS: '+asym);
-    if(!asym)console.log('GATE NOT MET: confirm asymmetric JWT signing key before MCP deployment.');
-  } else if(data) {
-    // Never print raw metadata containing project-specific configuration
-    // beyond approved public endpoints or client IDs.
-    console.log('Issuer matches expected staging Auth URL: '+(data.issuer===issuer));
-    const code=Array.isArray(data.response_types_supported)&&
-      data.response_types_supported.includes('code');
-    const pkce=Array.isArray(data.code_challenge_methods_supported)&&
-      data.code_challenge_methods_supported.includes('S256');
-    console.log('Authorization-code flow advertised: '+Boolean(code));
-    console.log('PKCE S256 advertised: '+Boolean(pkce));
-    console.log('Client registration advertised: '+Boolean(data.registration_endpoint));
-  } else {
-    console.log('Discovery unavailable or no JSON; OAuth must remain disabled.');
+
+const results=new Map();
+for(const [label,url] of endpoints){
+  try{
+    const response=await fetch(url,{
+      method:'GET',headers:{Accept:'application/json'},
+      credentials:'omit',cache:'no-store',redirect:'error',
+      signal:AbortSignal.timeout(10000)
+    });
+    const data=response.ok?await response.json().catch(()=>null):null;
+    const validJson=data!==null&&typeof data==='object'&&!Array.isArray(data);
+    results.set(label,{status:response.status,data:validJson?data:null});
+    console.log(label+': HTTP '+response.status+
+      (validJson?' · JSON parsed':' · unavailable or invalid JSON'));
+  }catch{
+    results.set(label,{status:null,data:null});
+    console.log(label+': no valid public response');
   }
 }
-console.log('RFC 8707 token audience binding: NOT PROVEN BY DISCOVERY.');
-console.log('Expected ORCA MCP audience: '+expectedResource);
-console.log('No authorization attempted; no tokens or client registrations created.');
+
+const resource=results.get('MCP protected-resource metadata')?.data;
+const authorization=results.get('OAuth server metadata')?.data;
+const openId=results.get('Auth OpenID metadata')?.data;
+const jwks=results.get('Public JWKS')?.data;
+
+const decision=assessOAuthDiscovery(resource,authorization);
+const asymmetricKeys=Array.isArray(jwks?.keys)?jwks.keys.filter(
+  key=>key&&typeof key==='object'&&['RSA','EC','OKP'].includes(key.kty)
+):[];
+console.log('Staging project: '+ORCA_STAGING_PROJECT);
+console.log('Expected MCP resource: '+ORCA_STAGING_RESOURCE);
+console.log('Exact metadata URL: '+ORCA_STAGING_RESOURCE_METADATA);
+console.log('Resource/issuer/PKCE metadata passed: '+decision.metadataReady);
+console.log('Missing/invalid metadata: '+(decision.reasons.join(', ')||'none'));
+console.log('OpenID issuer agrees: '+(openId?.issuer===ORCA_STAGING_ISSUER));
+console.log('JWKS asymmetric public signing keys: '+asymmetricKeys.length);
+console.log('Independent OAuth release gate enabled: '+ORCA_AGENT_OAUTH_PILOT_ENABLED);
+console.log('A correctly resource-bound OAuth access token has NOT been proved.');
+console.log('No ChatGPT identity, client registration, consent, refresh token, or research writes were attempted.');
+console.log('Read-only connection availability: NOT VERIFIED by public metadata.');
+// No exit(1) for an intentionally disabled or undeployed staging prototype.
+// CI tests validate strict matching of known-good mock metadata separately.
