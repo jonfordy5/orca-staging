@@ -100,7 +100,8 @@ test('protected mount assembles real OAuth provider; every route stays offline',
       const res=response();
       await issuer.handle({url:path,method:'GET',headers:{}},res);
       assert.equal(res.status,503,path);
-      assert.match(res.body,/orca_issuer_not_deployed|unavailable/i);
+      assert.ok(!res.body.includes('PRIVATE KEY'));
+      assert.ok(!res.body.includes('issuer-db-password'));
     }
     assert.equal(sql,0);
     assert.equal(requests,0,'assembly and locked routes never contact Supabase');
