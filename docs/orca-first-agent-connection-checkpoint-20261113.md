@@ -93,3 +93,16 @@ Do **not** merge or activate Plan B solely because the offline tests pass. PRs #
 - Official client/server integration with temporary resolved lock: https://github.com/jonfordy5/orca-staging/actions/runs/43486435877 (PASS). Final clean-lock CI remains required after this checkpoint update.
 
 **First real connection remains gated:** real HTTPS issuer and MCP host, audit-ready private DB role/schema and secret custody, verified Supabase login/consent, vetted ChatGPT callback/client, live two-owner isolation and revoke tests, and existing-site acceptance. No live OAuth enablement or data mutations.
+
+
+## Stage 13 — real Node HTTP ingress and network acceptance (November 13, 2026)
+
+**CODE ONLY, LIVE ISSUER AND MCP RELEASE OFF.**
+
+- Added `services/orca-owned-oauth/mcp-sdk/node-ingress.mjs`, a Node HTTP ingress adapter that creates a server but NEVER starts listening on import. It wraps the Stage 12 official MCP gateway, keeping its read-only owner-scoped tools and fresh-grant verification.
+- Enforces an approved HTTPS host, no browser Origin/cookies, no query credentials or unusual paths, strict method rules, 16 KiB request and 128 KiB response caps, safe response headers and deliberately narrow proxy behavior. It does not trust `X-Forwarded-Proto`, `Forwarded` or other client-supplied proxy headers. Default ingress trust requires a real TLS socket; a trusted reverse proxy must supply an independently audited backend trust mechanism.
+- `node-ingress.test.mjs` starts the Node HTTP server **only** on local `127.0.0.1` with synthetic ES256 signing keys and in-memory research fixtures. A test-only fetch-compatible Node TCP adapter sends a simulated public Host header so strict host validation is exercised without weakening it.
+- Two real instances of the official MCP TypeScript Client connect over actual local TCP; each lists the two tools, retrieves a different synthetic researcher assignment, and loses read permission immediately when the grant is revoked. Other tests reject forwarded-TLS spoofing, wrong host, Origin, cookies, unauthorized calls, queries, unapproved paths and oversized bodies.
+- GitHub CI passed 13/13 (0 failures) at [Stage 13 official MCP network CI run](https://github.com/jonfordy5/orca-staging/actions/runs/43489222497). No actual ChatGPT account or Supabase identity was connected in this test.
+
+**Remaining deployment handoff:** A reviewed, real HTTPS Node host (not GitHub Pages) and authenticated private reverse-proxy boundary; real DNS and TLS; a vetted issuer service with real signing keys and a durable, least-privileged private DB role; owner-authenticated Supabase browser sign-in, consent and callback; exact registered ChatGPT OAuth client/redirect; live two-account isolation and revocation tests. Do not enable public listening or release gates until those checks pass. Live staging and production remain unchanged.
