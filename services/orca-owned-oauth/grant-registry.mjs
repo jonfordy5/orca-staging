@@ -11,6 +11,11 @@ import {randomUUID} from 'node:crypto';
 export const OWNED_READ_SCOPE='orca:research.read';
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const MAX_GRANT_MS=30*24*60*60*1000;
+const CLIENT_IDENTIFIER=/^[\x21-\x7e]{1,512}$/;
+function requireClientId(s){
+  if(typeof s!=='string'||!CLIENT_IDENTIFIER.test(s))
+    throw Error('invalid_client');
+}
 const requireUuid=(s,label)=>{
   if(typeof s!=='string'||!UUID.test(s))throw Error('invalid_'+label);
 };
@@ -33,7 +38,7 @@ export function createOwnedGrantRegistry({query,resource}={}){
   async function createGrant({ownerId,clientId,scope=OWNED_READ_SCOPE,
     expiresAt,assertApprovedConsent}={}){
     requireUuid(ownerId,'owner');
-    requireUuid(clientId,'client');
+    requireClientId(clientId);
     if(scope!==OWNED_READ_SCOPE || typeof assertApprovedConsent!=='function')
       throw Error('trusted_consent_verification_required');
     const until=new Date(expiresAt);
@@ -60,7 +65,7 @@ export function createOwnedGrantRegistry({query,resource}={}){
   async function isCurrentGrant({grantId,ownerId,clientId,resource:aud,scope}={}){
     requireUuid(grantId,'grant');
     requireUuid(ownerId,'owner');
-    requireUuid(clientId,'client');
+    requireClientId(clientId);
     if(aud!==resource||scope!==OWNED_READ_SCOPE)return false;
     const result=await query(
       'select 1 as active from orca_owned_oauth_private.grants '+
