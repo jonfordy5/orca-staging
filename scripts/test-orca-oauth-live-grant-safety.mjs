@@ -9,6 +9,7 @@ import {hasCurrentOAuthGrant} from '../supabase/functions/orca-agent-mcp/grant-p
 const root=join(dirname(fileURLToPath(import.meta.url)),'..');
 const consent=readFileSync(join(root,'orca-oauth-consent.html'),'utf8');
 const mcp=readFileSync(join(root,'supabase/functions/orca-agent-mcp/index.ts'),'utf8');
+const transport=readFileSync(join(root,'supabase/functions/orca-agent-mcp/grant-request.mjs'),'utf8');
 const exampleId='11111111-2222-4333-8444-555555555555';
 const otherId='aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee';
 const baseGrant={client:{id:exampleId},scopes:['openid','profile'],granted_at:'2026-11-12T15:00:00Z'};
@@ -70,9 +71,10 @@ test('Every MCP read checks verified subject then the live OAuth grant endpoint 
   assert.match(mcp,/hasCurrentOAuthGrant/);
   assert.match(mcp,/readCurrentGrants\(req\)/);
   assert.match(mcp,/if\s*\(!hasCurrentOAuthGrant\(grants,\s*claims.client_id\)\)/);
-  assert.match(mcp,/\/user\/oauth\/grants/);
-  assert.match(mcp,/redirect:'error'/);
-  assert.match(mcp,/credentials:'omit'/);
+  assert.match(transport,/\/user\/oauth\/grants/);
+  assert.match(transport,/redirect:'error'/);
+  assert.match(transport,/credentials:'omit'/);
   assert.match(mcp,/SUPABASE_ANON_KEY/);
+  assert.match(mcp,/from '\.\/grant-request\.mjs'/);
   assert.doesNotMatch(mcp,/SUPABASE_SERVICE_ROLE_KEY|SUPABASE_SECRET_KEY|auth\.admin\./);
 });
