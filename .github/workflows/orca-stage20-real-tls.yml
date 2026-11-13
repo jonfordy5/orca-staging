@@ -6,6 +6,7 @@ on:
       - feat/orca-owned-oauth-fallback-20261112
     paths:
       - services/orca-owned-oauth/verified-supabase-db-connector.mjs
+      - services/orca-owned-oauth/locked-issuer-host-startup.mjs
       - services/orca-owned-oauth/verified-current-grant-query.mjs
       - services/orca-owned-oauth/grant-registry.mjs
       - services/orca-owned-oauth/private-db-logins-review-only.sql
@@ -38,6 +39,8 @@ jobs:
       - name: Install pinned PostgreSQL client (no dependency drift)
         working-directory: services/orca-owned-oauth/private-pg-tests
         run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Install exact maintained OAuth provider for composite issuer/TLS test
+        run: npm ci --prefix services/orca-owned-oauth --ignore-scripts --no-audit --no-fund
       - name: Run isolated PostgreSQL 17 server with synthetic CA-verified TLS and actual restricted logins
         shell: bash
         run: |
@@ -130,4 +133,4 @@ jobs:
           ORCA_STAGE20_GRANT_PASSWORD="$reader_pw" \
           ORCA_STAGE20_CA_PATH="$temp/ca/root.crt" \
           ORCA_STAGE20_UNTRUSTED_CA_PATH="$temp/ca/wrong.crt" \
-            node --test services/orca-owned-oauth/private-pg-tests/verify-full-real-tls.test.mjs
+            node --test services/orca-owned-oauth/private-pg-tests/verify-full-real-tls.test.mjs services/orca-owned-oauth/private-pg-tests/stage24-locked-real-pg.test.mjs
