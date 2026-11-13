@@ -6,7 +6,7 @@
 // function; never use a browser Supabase client or service-role HTTP endpoint.
 // Backing tables are private, with no anon/authenticated/Data API access.
 // The separate draft SQL is NOT applied automatically.
-import {randomUUID} from 'node:crypto';
+import {randomUUID,createHash} from 'node:crypto';
 
 export const OWNED_READ_SCOPE='orca:research.read';
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -91,6 +91,58 @@ export function createOwnedGrantRegistry({query,resource}={}){
     return result?.rowCount===1&&result.rows?.[0]?.id===grantId;
   }
 
+  // The provider's own grant ID is opaque and never persisted in plaintext.
+  // Only the trusted issuer can link it AFTER explicit consent and
+  // provider.Grant.save(). A link cannot be swapped or overwritten.
+  async function linkProviderGrant({
+    verifiedOwnerId,clientId,grantId,providerGrantId
+  }={}){
+    requireUuid(verifiedOwnerId,'owner');
+    requireClientId(clientId);
+    requireUuid(grantId,'grant');
+    if(typeof providerGrantId!=='string'||
+       !/^[A-Za-z0-9._~-]{8,1024}$/.test(providerGrantId))
+      throw Error('invalid_provider_grant');
+    const providerHash=createHash('sha256').update(providerGrantId).digest();
+    const result=await query(
+      'update orca_owned_oauth_private.grants '+
+      'set provider_grant_hash=$4 '+
+      'where id=$1 and owner_id=$2 and client_id=$3 '+
+      'and resource=$5 and scope=$6 '+
+      'and provider_grant_hash is null '+
+      'and revoked_at is null and expires_at>clock_timestamp() '+
+      'returning id',
+      [grantId,verifiedOwnerId,clientId,providerHash,resource,OWNED_READ_SCOPE]
+    );
+    return result?.rowCount===1 && result.rows?.[0]?.id===grantId;
+  }
+
+  // Used exclusively by the OAuth library's extraTokenClaims hook. A
+  // matching but revoked/expired grant is NEVER eligible for token signing.
+  async function lookupOwnedGrant({
+    providerGrantId,ownerId,clientId,resource:aud,scope
+  }={}){
+    requireUuid(ownerId,'owner');
+    requireClientId(clientId);
+    if(typeof providerGrantId!=='string'||
+      !/^[A-Za-z0-9._~-]{8,1024}$/.test(providerGrantId)||
+      aud!==resource||scope!==OWNED_READ_SCOPE)
+      throw Error('invalid_provider_grant_lookup');
+    const providerHash=createHash('sha256').update(providerGrantId).digest();
+    const result=await query(
+      'select id from orca_owned_oauth_private.grants '+
+      'where provider_grant_hash=$1 and owner_id=$2 and client_id=$3 '+
+      'and resource=$4 and scope=$5 '+
+      'and revoked_at is null and expires_at>clock_timestamp() limit 1',
+      [providerHash,ownerId,clientId,resource,OWNED_READ_SCOPE]
+    );
+    if(result?.rowCount!==1||!result.rows?.[0]?.id)return null;
+    return {
+      active:true,grantId:result.rows[0].id,
+      ownerId,clientId,resource,scope:OWNED_READ_SCOPE
+    };
+  }
+
   async function listOwnerGrants(verifiedOwnerId){
     requireUuid(verifiedOwnerId,'owner');
     const result=await query(
@@ -103,5 +155,6 @@ export function createOwnedGrantRegistry({query,resource}={}){
     return result.rows;
   }
 
-  return Object.freeze({createGrant,isCurrentGrant,revokeGrant,listOwnerGrants});
+  return Object.freeze({createGrant,isCurrentGrant,revokeGrant,listOwnerGrants,
+    linkProviderGrant,lookupOwnedGrant});
 }
