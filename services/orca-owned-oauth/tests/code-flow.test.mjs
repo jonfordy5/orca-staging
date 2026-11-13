@@ -180,6 +180,20 @@ async function startFixture(){
   config.cookies={keys:[randomBytes(32).toString('base64url'),randomBytes(32).toString('base64url')]};
   config.ttl={AccessToken:300};
   const provider=new Provider(issuer,config);
+  const providerDetails=provider.interactionDetails.bind(provider);
+  provider.interactionDetails=async (...args)=>{
+    const details=await providerDetails(...args);
+    if(details?.prompt?.name==='consent'){
+      const d=details.prompt.details||{};
+      console.log('LOCAL CONSENT SHAPE',JSON.stringify({
+        missingOIDCScope:d.missingOIDCScope,
+        missingResourceScopes:d.missingResourceScopes,
+        missingOIDCClaims:d.missingOIDCClaims,
+        rar:d.rar
+      }).slice(0,700));
+    }
+    return details;
+  };
   const controller=createExistingResearcherInteractionController({
     provider,
     supabaseAuth:{async getUser(token){
