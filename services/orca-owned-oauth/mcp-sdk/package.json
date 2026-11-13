@@ -12,7 +12,7 @@
     "zod": "4.1.12"
   },
   "scripts": {
-    "test": "node --test secure-handler.test.mjs official-client.test.mjs node-ingress.test.mjs"
+    "test": "node --test secure-handler.test.mjs official-client.test.mjs node-ingress.test.mjs locked-https.test.mjs"
   },
   "devDependencies": {
     "@modelcontextprotocol/client": "2.3.1"
