@@ -10,6 +10,7 @@ on:
       - scripts/test-orca-owned-oauth-grant-registry.mjs
       - scripts/test-orca-owned-oauth-provider-store.mjs
       - scripts/test-orca-owned-oauth-consent-challenge.mjs
+      - scripts/test-orca-owned-oauth-interaction.mjs
       - .github/workflows/orca-owned-oauth-fallback.yml
   pull_request:
     paths:
@@ -18,6 +19,7 @@ on:
       - scripts/test-orca-owned-oauth-grant-registry.mjs
       - scripts/test-orca-owned-oauth-provider-store.mjs
       - scripts/test-orca-owned-oauth-consent-challenge.mjs
+      - scripts/test-orca-owned-oauth-interaction.mjs
       - .github/workflows/orca-owned-oauth-fallback.yml
   workflow_dispatch:
 
@@ -34,7 +36,7 @@ jobs:
         with:
           node-version: '24'
       - name: Test binding, PKCE, ES256 signatures, account isolation and revocation
-        run: node --test scripts/test-orca-owned-oauth-fallback.mjs scripts/test-orca-owned-oauth-grant-registry.mjs scripts/test-orca-owned-oauth-provider-store.mjs scripts/test-orca-owned-oauth-consent-challenge.mjs
+        run: node --test scripts/test-orca-owned-oauth-fallback.mjs scripts/test-orca-owned-oauth-grant-registry.mjs scripts/test-orca-owned-oauth-provider-store.mjs scripts/test-orca-owned-oauth-consent-challenge.mjs scripts/test-orca-owned-oauth-interaction.mjs
       - name: Verify operator release gate is disabled
         run: |
           node --input-type=module -e "import {ORCA_OWNED_ISSUER_ENABLED as enabled} from './services/orca-owned-oauth/issuer-policy.mjs';if(enabled!==false)process.exit(1)"
