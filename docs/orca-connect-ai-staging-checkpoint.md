@@ -72,3 +72,27 @@ New `scripts/test-orca-oauth-grant-transport.mjs` exercises the actual transport
 First full post-refactor results: [OAuth safety CI #43358112573](https://github.com/jonfordy5/orca-staging/actions/runs/43358112573) PASS, [grant UI CI #43358112412](https://github.com/jonfordy5/orca-staging/actions/runs/43358112412) PASS. The full shared-workspace regression is tracked separately in [run #43358112498](https://github.com/jonfordy5/orca-staging/actions/runs/43358112498).
 
 **No OAuth clients were registered, no real bearer was handled, no MCP endpoint deployed, and no production setting or research permission changed.** The next release gate remains a real audience-bound OAuth bearer, followed by a two-existing-account signed-in authorize/read/revoke/negative-test and inspection of alternate service entry points.
+
+
+## November 12 — canonical discovery and two-account request-level gate
+
+A current review of [Supabase's own MCP middleware guide](https://github.com/supabase/supabase/blob/e2425b7214086f789bb2810177a93efa51892dbc/apps/ui-library/content/docs/headless/mcp.mdx) exposed a concrete path mismatch. The middleware serves protected resource metadata at `<function-url>/oauth-protected-resource`. The previously guessed `<function-url>/.well-known/oauth-protected-resource` path was incorrect. `scripts/orca-oauth-readiness.mjs` and the user's connection page now use the canonical path, with tests preventing regression.
+
+Dynamic client registration is optional under Supabase's documented OAuth server configuration. The metadata verifier now permits a manually pre-registered client while still rejecting an untrusted advertised dynamic-registration URL. Any client used for the pilot must still be separately approved using its exact registered client ID and HTTPS callback URI.
+
+An additional `owner-authorization.mjs` module now drives the authorization of BOTH exposed MCP read tools. It verifies `getClaims`, verifies a live Auth user with `getUser`, enforces the exact issuer/resource-audience/client allowlist/subject, then fetches current owner-scoped Auth grants using the same bearer **on every request** before allowing any ORCA research read. That exact module is exercised by `scripts/test-orca-oauth-two-account-gate.mjs`, covering two distinct accounts, same-bearer revocation, invalid owner mismatch, wrong client, wrong resource and unavailable Auth. These are mock two-account tests, not yet an actual linked ChatGPT session.
+
+### Credential-free live staging preflight
+
+The preflight script checks the canonical protected-resource metadata URL, OAuth authorization metadata, OpenID metadata and JWKS without cookies, tokens, client registration or writes. [GitHub Actions run #43359733621](https://github.com/jonfordy5/orca-staging/actions/runs/43359733621) observed:
+
+| Endpoint | Actual response |
+| --- | --- |
+| ORCA MCP resource metadata | HTTP 404 (function not deployed) |
+| Supabase Auth OAuth server metadata | HTTP 404 (OAuth server still off) |
+| Existing Auth OpenID discovery | HTTP 200; expected issuer matched |
+| Existing Auth public JWKS | HTTP 200; one asymmetric signing key |
+
+No permission or identity grant was created. The shared PostgREST pre-request guard remains set to `orca_mcp_private.enforce_readonly_oauth_data_api`. The approved client table was queried read-only and remains EMPTY. The existing `orca-agent-readonly` Edge Function remains deployed, while `orca-agent-mcp` is NOT deployed.
+
+**Next action is a deliberate staging activation decision, not another refactor.** The blocking upstream Supabase Auth RFC 8707 resource-binding change remains an open pull request. Do not turn on OAuth or deploy the publicly discoverable MCP endpoint before demonstrating that the hosted Auth service issues a token whose `aud` contains the exact ORCA MCP resource and before reviewing approved callback/client configuration. Keep production unchanged.
