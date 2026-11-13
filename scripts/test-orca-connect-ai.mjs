@@ -4,7 +4,7 @@ import {readFileSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import {dirname,join} from 'node:path';
 import { assessOAuthDiscovery, ORCA_AGENT_OAUTH_PILOT_ENABLED,
-  ORCA_STAGING_RESOURCE, ORCA_STAGING_ISSUER, ORCA_STAGING_PROJECT } from './orca-oauth-readiness.mjs';
+  ORCA_STAGING_RESOURCE, ORCA_STAGING_RESOURCE_METADATA, ORCA_STAGING_ISSUER, ORCA_STAGING_PROJECT } from './orca-oauth-readiness.mjs';
 
 const root=join(dirname(fileURLToPath(import.meta.url)),'..');
 const page=readFileSync(join(root,'orca-connect-ai.html'),'utf8');
@@ -24,7 +24,16 @@ const validAuth={
   registration_endpoint:ORCA_STAGING_PROJECT+'/auth/v1/oauth/clients'
 };
 
+test('Supabase middleware discovery path is the canonical function subpath, not a guessed /.well-known path',()=>{
+  assert.equal(ORCA_STAGING_RESOURCE_METADATA,ORCA_STAGING_RESOURCE+'/oauth-protected-resource');
+  assert.doesNotMatch(ORCA_STAGING_RESOURCE_METADATA,/\/\.well-known\/oauth-protected-resource/);
+});
+
 test('Exactly bound resource/issuer and PKCE S256 are required, without treating metadata as an authorized connection',()=>{
+  const manualClient={...validAuth};
+  delete manualClient.registration_endpoint;
+  assert.equal(assessOAuthDiscovery(validResource,manualClient).metadataReady,true,
+    'OAuth clients may be manually pre-registered; DCR is optional');
   const good=assessOAuthDiscovery(validResource,validAuth);
   assert.equal(good.metadataReady,true);
   assert.equal(good.connectionReady,false);
