@@ -81,3 +81,15 @@ Do **not** merge or activate Plan B solely because the offline tests pass. PRs #
 - CI successful with a reproducible clean `npm ci`, no dynamic npm install or drift; test-only synthetic identities and ephemeral ES256 keys. [Official SDK run](https://github.com/jonfordy5/orca-staging/actions/runs/43485762865).
 
 **First real-agent blockers remain:** HTTPS host and exact registered client/callback, live OAuth issuer and fresh grant-checking database role, real Supabase browser account/consent, signing secret custody, deploy of SDK handler behind a trusted HTTPS reverse proxy, and two *real* owner acceptance tests. OAuth activation switch stays OFF. No production or live staging schema changes.
+
+
+## Stage 12b — official MCP client acceptance (November 13, 2026)
+
+**TESTS ONLY, NOT A REAL CONNECTED ACCOUNT.** Added `@modelcontextprotocol/client@2.3.1` as a pinned dev-only dependency and regenerated/committed the npm lock; CI returned to strict `npm ci`.
+
+- `services/orca-owned-oauth/mcp-sdk/official-client.test.mjs` launches TWO distinct official MCP SDK clients (not hand-built JSON-RPC objects) through a test-only fetch transport into the actual Stage 12 official MCP server handler. The bridge rewrites synthetic loopback URL to a fictional HTTPS resource solely inside the test; no real public service exists.
+- The official clients negotiate MCP, list only `orca_whoami` and `orca_my_assignment`, receive their separately owned synthetic research assignments, and confirm revoked consent immediately blocks any additional reads.
+- Tests reuse ephemeral ES256 signing keys and synthetic researcher IDs. Neither a real ChatGPT client, actual Supabase Auth user session, genuine consent, nor live staging DB is involved.
+- Official client/server integration with temporary resolved lock: https://github.com/jonfordy5/orca-staging/actions/runs/43486435877 (PASS). Final clean-lock CI remains required after this checkpoint update.
+
+**First real connection remains gated:** real HTTPS issuer and MCP host, audit-ready private DB role/schema and secret custody, verified Supabase login/consent, vetted ChatGPT callback/client, live two-owner isolation and revoke tests, and existing-site acceptance. No live OAuth enablement or data mutations.
