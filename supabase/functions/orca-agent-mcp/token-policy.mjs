@@ -28,7 +28,7 @@ export function authorizeReadOnlyMcpClaims(claims, allowedClientIds, verifiedUse
   if (typeof clientId !== 'string' ||
       clientId.trim() !== clientId ||
       clientId.length < 10 || clientId.length > 256 ||
-      /[\\u0000-\\u001f\\u007f]/.test(clientId)) {
+      Array.from(clientId).some(ch => ch.charCodeAt(0) < 32 || ch.charCodeAt(0) === 127)) {
     return { ok: false, reason: 'invalid_oauth_client' };
   }
   // Allowlist is empty by default. No dynamic-client-registration entry
