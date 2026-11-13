@@ -9,6 +9,7 @@ on:
       - scripts/orca-oauth-consent-policy.mjs
       - scripts/test-orca-oauth-live-grant-safety.mjs
       - scripts/test-orca-oauth-grant-transport.mjs
+      - scripts/test-orca-oauth-two-account-gate.mjs
       - scripts/test-orca-oauth-mcp-readonly.mjs
       - supabase/functions/orca-agent-mcp/**
       - .github/workflows/orca-oauth-grant-safety.yml
@@ -34,7 +35,7 @@ jobs:
         with:
           node-version: '24'
       - name: Test OAuth consent client allowlist and current-grant verification
-        run: node --test scripts/test-orca-oauth-live-grant-safety.mjs scripts/test-orca-oauth-grant-transport.mjs scripts/test-orca-oauth-mcp-readonly.mjs scripts/test-orca-oauth-connections.mjs
+        run: node --test scripts/test-orca-oauth-live-grant-safety.mjs scripts/test-orca-oauth-grant-transport.mjs scripts/test-orca-oauth-two-account-gate.mjs scripts/test-orca-oauth-mcp-readonly.mjs scripts/test-orca-oauth-connections.mjs
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
