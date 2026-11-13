@@ -1,8 +1,8 @@
 // ORCA Stage 22 — protected-file startup for the locked Stage 21 issuer.
 // Source/CI only. This module NEVER opens a port, serves OAuth, migrates a
 // database, stores secrets in logs, or changes the release switch.
-import {constants,openSync,closeSync,readFileSync,lstatSync,fstatSync} from 'node:fs';
-import {join} from 'node:path';
+import {constants,openSync,closeSync,readFileSync,lstatSync,fstatSync,realpathSync} from 'node:fs';
+import {join,resolve} from 'node:path';
 import {createStage21LockedIssuerAssembly} from './locked-issuer-assembly.mjs';
 import {createVerifiedOrcaDatabaseConnector} from './verified-supabase-db-connector.mjs';
 import {createExistingResearcherSupabaseHttp} from './supabase-existing-researcher-http.mjs';
@@ -26,11 +26,14 @@ function fileContents(directory,name,maxBytes){
   try{
     const before=lstatSync(path);
     if(!before.isFile()||before.nlink!==1||before.size<1||
-       before.size>maxBytes||(before.mode&0o077)!==0)reject();
+       before.size>maxBytes||(before.mode&0o077)!==0||
+       (before.mode&0o111)!==0||(before.mode&0o400)===0||
+       before.uid!==process.getuid())reject();
     descriptor=openSync(path,constants.O_RDONLY|constants.O_NOFOLLOW);
     const after=fstatSync(descriptor);
     if(!after.isFile()||after.nlink!==1||after.size!==before.size||
        after.ino!==before.ino||after.dev!==before.dev||
+       after.uid!==before.uid||after.mode!==before.mode||
        (after.mode&0o077)!==0)reject();
     const content=readFileSync(descriptor,'utf8');
     if(Buffer.byteLength(content)>maxBytes)reject();
@@ -54,8 +57,11 @@ function decodeKey(value){
 function readSecrets(directory){
   // The directory itself must be a real, private directory, not a symlink.
   try{
+    const resolved=resolve(directory);
+    if(resolved!==directory||realpathSync(directory)!==resolved)reject();
     const info=lstatSync(directory);
-    if(!info.isDirectory()||(info.mode&0o077)!==0)reject();
+    if(!info.isDirectory()||(info.mode&0o077)!==0||
+       (info.mode&0o500)!==0o500||info.uid!==process.getuid())reject();
   }catch{reject();}
   const signing=readJson(directory,'signing-jwk.json');
   if(!isObject(signing)||!KEY_ID.test(signing.kid||''))reject();
