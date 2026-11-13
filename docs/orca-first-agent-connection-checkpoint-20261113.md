@@ -67,3 +67,17 @@ Do **not** merge or activate Plan B solely because the offline tests pass. PRs #
 - Ephemeral PostgreSQL private schema (including opaque browser sessions): https://github.com/jonfordy5/orca-staging/actions/runs/43482892661
 
 **What remains before real-agent testing:** choose a vetted HTTPS issuer+MCP host, install and lock the official MCP v2 SDK, deploy the maintained issuer with private signing keys and persistent state, establish dedicated private DB roles, connect real Supabase sign-in and human consent, register the exact ChatGPT client/callback, then run two actual owners and revoke/write-bypass acceptance. The existing OAuth release gate stays OFF.
+
+
+## Stage 12 — official MCP SDK HTTP boundary (November 13, 2026)
+
+**Code only; not deployed.** Added a real HTTP MCP protocol implementation from the maintained official TypeScript SDK v2.
+
+- Package: `services/orca-owned-oauth/mcp-sdk`, pinning `@modelcontextprotocol/server@2.3.1` and `zod@4.1.12` with a committed resolved `package-lock.json` and `npm ci` in CI.
+- `secure-handler.mjs` uses SDK `createMcpHandler` with an isolated per-request `McpServer`, a 16 KiB request cap, schema-validated `orca_whoami` and `orca_my_assignment`, and SDK-managed legacy 2025 stateless compatibility alongside newer protocol support.
+- Every MCP POST passes the previously implemented ES256 bearer signature, exact issuer/resource/client, and **fresh durable grant** check BEFORE the SDK creates a server or invokes a tool. The SDK tool callback receives only the verified owner/client/grant identity. No raw OAuth access token is passed into the database.
+- SDK tools reuse the existing owner-scoped Stage 9 read dispatcher, backed by the Stage 10 static parameterized SELECT-only SQL adapter (to be provisioned under its dedicated read-only DB role). Both tools have readOnlyHint=true; publishing, claiming and other mutations are not exposed.
+- Added official SDK integration tests for OAuth resource metadata, 2025-style initialize and tool listing, two synthetic owners with different assignments, rejected malicious tool names and schema arguments, wrong/absent bearer, and immediate denial of previously issued tokens after grant revocation.
+- CI successful with a reproducible clean `npm ci`, no dynamic npm install or drift; test-only synthetic identities and ephemeral ES256 keys. [Official SDK run](https://github.com/jonfordy5/orca-staging/actions/runs/43485762865).
+
+**First real-agent blockers remain:** HTTPS host and exact registered client/callback, live OAuth issuer and fresh grant-checking database role, real Supabase browser account/consent, signing secret custody, deploy of SDK handler behind a trusted HTTPS reverse proxy, and two *real* owner acceptance tests. OAuth activation switch stays OFF. No production or live staging schema changes.
