@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {dirname,join} from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {ORCA_OAUTH_CONSENT_ENABLED, APPROVED_OAUTH_CLIENT_REDIRECTS,authorizeConsentRequest} from './orca-oauth-consent-policy.mjs';
+import {ORCA_OAUTH_CONSENT_ENABLED, APPROVED_OAUTH_CLIENT_REDIRECTS,authorizeConsentRequest,assessVettedConsent} from './orca-oauth-consent-policy.mjs';
 import {hasCurrentOAuthGrant} from '../supabase/functions/orca-agent-mcp/grant-policy.mjs';
 
 const root=join(dirname(fileURLToPath(import.meta.url)),'..');
@@ -21,6 +21,25 @@ test('Consent is disabled for all clients including fabricated metadata, until s
     client:{id:exampleId,name:'ChatGPT'},
     redirect_uri:'https://chatgpt.com/connector_platform_oauth_redirect'
   }]) assert.equal(authorizeConsentRequest(request).ok,false);
+});
+
+test('A future approved pilot accepts only an exact client ID, HTTPS callback and valid authorization ID',()=>{
+  const callback='https://chatgpt.com/connector_platform_oauth_redirect';
+  const vetted={enabled:true,approvedClientRedirects:{[exampleId]:callback}};
+  const request={client:{id:exampleId},redirect_uri:callback,authorization_id:'abcdefghijklmnopqrstuvwxyz123456'};
+  assert.deepEqual(assessVettedConsent(request,vetted),{ok:true,reason:'approved'});
+  for(const bad of [
+    {...request,client:{id:otherId}},
+    {...request,client:{id:exampleId+'x'}},
+    {...request,redirect_uri:'https://attacker.example/callback'},
+    {...request,redirect_uri:'http://chatgpt.com/connector_platform_oauth_redirect'},
+    {...request,redirect_uri:callback+'?code=leak'},
+    {...request,authorization_id:'short'},
+    {...request,client:null},
+    null
+  ])assert.equal(assessVettedConsent(bad,vetted).ok,false);
+  assert.equal(assessVettedConsent(request,{enabled:true,approvedClientRedirects:{}}).ok,false);
+  assert.equal(assessVettedConsent(request,{enabled:false,approvedClientRedirects:{[exampleId]:callback}}).ok,false);
 });
 
 test('A user-scoped, current grant must match the verified OAuth client exactly',()=>{
