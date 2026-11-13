@@ -7,9 +7,7 @@ import { pipeline } from 'npm:@supabase/middleware@1.0.0';
 import { withOAuthProtectedResource, withSupabase } from 'npm:@supabase/server@1.6.0';
 import { z } from 'npm:zod@4.3.6';
 import { readAgentState } from '../orca-agent-readonly/policy.mjs';
-import { authorizeReadOnlyMcpClaims } from './token-policy.mjs';
-import { hasCurrentOAuthGrant } from './grant-policy.mjs';
-import { readCurrentGrants } from './grant-request.mjs';
+import { verifyAuthorizedOAuthOwner } from './owner-authorization.mjs';
 
 const serverIdentity = { name: 'orca-commons-staging', version: '0.1.0' };
 
@@ -27,41 +25,17 @@ Deno.serve(
         const server = new McpServer(serverIdentity);
 
         async function verifiedOwner() {
-          // A normal ORCA browser session is not sufficient to impersonate a
-          // linked OAuth client; an actual client_id claim must be present.
-          const verifiedClaims = await supabase.auth.getClaims();
-          if (verifiedClaims.error || !verifiedClaims.data?.claims) {
-            throw new Error('OAuth authorization is required');
-          }
-          const claims = verifiedClaims.data.claims;
-          // Both verified Supabase Auth user identity and resource-bound OAuth
-          // token claims are required. No permission is inferred from matching
-          // email addresses, application names, or owner-maintained aliases.
-          const identity = await supabase.auth.getUser();
-          if (identity.error || !identity.data?.user?.id) {
-            throw new Error('Verified ORCA identity is required');
-          }
-          const allowedClients = new Set((Deno.env.get('ORCA_MCP_APPROVED_CLIENT_IDS') || '')
+          // The same centralized, integration-tested check gates every tool.
+          // No request parameter can substitute for the Auth-verified owner.
+          const approvedClientIds = new Set((Deno.env.get('ORCA_MCP_APPROVED_CLIENT_IDS') || '')
             .split(',').map(id => id.trim()).filter(Boolean));
-          const decision = authorizeReadOnlyMcpClaims(
-            claims, allowedClients, identity.data.user.id
-          );
-          if (!decision.ok) {
-            throw new Error('This OAuth token is not authorized for ORCA staging');
-          }
-          // Every tool call verifies that this SAME owner's OAuth grant is
-          // still current. Revoked clients are rejected even while a previously
-          // issued bearer is otherwise cryptographically valid.
-          const grants = await readCurrentGrants(req, {
+          return verifyAuthorizedOAuthOwner({
+            request: req,
+            auth: supabase.auth,
+            approvedClientIds,
             fetcher: fetch,
             publishableKey: Deno.env.get('SUPABASE_ANON_KEY')
           });
-          if (!hasCurrentOAuthGrant(grants, claims.client_id)) {
-            throw new Error('The ORCA OAuth grant was revoked or is not available');
-          }
-          // The OAuth client_id is not a database write permission.
-          // PostgREST and Edge Function isolation remain mandatory.
-          return identity.data.user.id;
         }
 
         server.registerTool(
