@@ -30,3 +30,21 @@
 A real ChatGPT MCP client discovers ORCA staging, signs the human into the correct existing ORCA researcher identity, obtains explicit approval, exchanges PKCE for a resource-bound token, and successfully calls `orca_my_assignment` for that user only. Then revoke access and confirm the same token is denied. No live deployment is claimed until every step is observed.
 
 Do **not** merge or activate Plan B solely because the offline tests pass. PRs #79/#80/#81/#82 remain separate and should not be accidentally merged as a shortcut.
+
+## Stages 9–10 — research database and least-privilege boundary (November 13, 2026)
+
+**CODE ONLY — no deployment, live migration or real account connection.**
+
+- Built `services/orca-owned-oauth/read-only-research-dispatcher.mjs`, implementing `orca_whoami` and `orca_my_assignment` with three static, parameterized SELECT statements against actual ORCA staging tables. The verified OAuth owner is the only owner used in queries; agent-supplied identity is never accepted.
+- Unit and composed request tests check two different synthetic owners on the same ticker, signed owner/client/grant isolation, research opt-out, revoked access, unjoined ticker, malformed board and private database failure. No automatic claiming, findings, or publishing.
+- Added `services/orca-owned-oauth/verified-owner-read-query.mjs`: an allowlisted query adapter requiring `orca_owned_mcp_reader` current_user, READ ONLY transactions, and transaction-local verified owner context. It rejects service_role, admin and arbitrary SQL and rolls back on failure.
+- Added `services/orca-owned-oauth/mcp-reader-rls-review-only.sql`: NOLOGIN, NOBYPASSRLS dedicated role blueprint, minimal column SELECT grants and owner-filtered row policies. **Not migrated.** The custom PostgreSQL owner setting is defense in depth, not independent cryptographic authentication.
+- Added `.github/workflows/orca-owned-oauth-reader-policy.yml`: isolated PostgreSQL 17 tests prove two-owner profile/membership/task/board visibility and deny writes. The actual assignment SELECT also compiled under read-only EXPLAIN against the real ORCA staging schema, without executing the SELECT or changing records.
+
+**CI passed at commit 8e103c21:**
+- OAuth offline security: https://github.com/jonfordy5/orca-staging/actions/runs/43479621149
+- Private PostgreSQL reader RLS: https://github.com/jonfordy5/orca-staging/actions/runs/43479621115
+- Standards-library OAuth loopback: https://github.com/jonfordy5/orca-staging/actions/runs/43479621510
+- Isolated private schema: https://github.com/jonfordy5/orca-staging/actions/runs/43479621160
+
+**Still required for first live ChatGPT agent test:** audited private role and connection, real Supabase browser session/consent on HTTPS issuer, correctly configured ChatGPT client/callback and signing keys, deployed MCP SDK gateway, real two-account and revocation acceptance. The release gate remains OFF.
