@@ -12,8 +12,9 @@
     "zod": "4.1.12"
   },
   "scripts": {
-    "test": "node --test secure-handler.test.mjs official-client.test.mjs node-ingress.test.mjs locked-https.test.mjs deployment-preflight.test.mjs",
-    "preflight": "node deployment-preflight.cli.mjs"
+    "test": "node --test secure-handler.test.mjs official-client.test.mjs node-ingress.test.mjs locked-https.test.mjs deployment-preflight.test.mjs host-tls-preflight.test.mjs",
+    "preflight": "node deployment-preflight.cli.mjs",
+    "preflight:tls": "node host-tls-preflight.cli.mjs"
   },
   "devDependencies": {
     "@modelcontextprotocol/client": "2.3.1"
