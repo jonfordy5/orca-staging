@@ -68,8 +68,8 @@ export async function revokeOwnedGrant(oauthApi, selectedClientId) {
     throw new Error('Authorization revocation is unavailable');
   }
   const result = await oauthApi.revokeGrant({ clientId: selectedClientId });
-  if (result?.error) {
-    throw new Error('Revocation failed; access may still be authorized');
+  if (!result || result.error || result.data == null) {
+    throw new Error('Revocation failed or returned an incomplete result; access may still be authorized');
   }
   const after = await listOwnedGrants(oauthApi);
   if (after.some(grant => grant.id === selectedClientId)) {
