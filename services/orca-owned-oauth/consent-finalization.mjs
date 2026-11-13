@@ -23,7 +23,9 @@ function ownedScopes(details,resource){
     deny('unapproved_resource_consent');
   const oidc=details.missingOIDCScope;
   if(oidc!=null&&(!Array.isArray(oidc)||
-    oidc.some(x=>!['openid','profile'].includes(x))))
+    // oidc-provider exposes custom resource scope in missingOIDCScope
+    // as well as missingResourceScopes. Allow ONLY this exact read scope.
+    oidc.some(x=>!['openid','profile',ORCA_READ_SCOPE].includes(x))))
     deny('unapproved_oidc_consent');
   if(details.rar||details.missingOIDCClaims?.length)
     deny('unsupported_consent_extension');
