@@ -20,7 +20,9 @@ export function buildOidcProviderProposal({
   const registeredClient={
     client_id:clientId,redirect_uris:[redirectUri],
     response_types:['code'],
-    grant_types:['authorization_code','refresh_token'],
+    // Initial pilot intentionally has NO refresh grant until replay-safe
+    // rotation and revocation are implemented in the durable adapter.
+    grant_types:['authorization_code'],
     token_endpoint_auth_method:'none'
   };
   return {
