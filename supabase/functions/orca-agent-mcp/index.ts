@@ -7,9 +7,36 @@ import { pipeline } from 'npm:@supabase/middleware@1.0.0';
 import { withOAuthProtectedResource, withSupabase } from 'npm:@supabase/server@1.6.0';
 import { z } from 'npm:zod@4.3.6';
 import { readAgentState } from '../orca-agent-readonly/policy.mjs';
-import { authorizeReadOnlyMcpClaims } from './token-policy.mjs';
+import { authorizeReadOnlyMcpClaims, ORCA_MCP_STAGING_ISSUER } from './token-policy.mjs';
+import { hasCurrentOAuthGrant } from './grant-policy.mjs';
 
 const serverIdentity = { name: 'orca-commons-staging', version: '0.1.0' };
+
+// OAuth revoke/refresh protection: query Supabase Auth's CURRENT grants
+// with the identical bearer already verified by Supabase user middleware.
+// Never trust cached app state, a self-reported alias or a JWT client_id alone.
+// This request is read-only and fails closed if Auth is unavailable.
+async function readCurrentGrants(req: Request) {
+  const bearer = req.headers.get('authorization') || '';
+  if (!/^Bearer [A-Za-z0-9._~-]{40,}$/i.test(bearer)) {
+    throw new Error('A verified OAuth bearer is required');
+  }
+  const publishableKey = Deno.env.get('SUPABASE_ANON_KEY');
+  if (!publishableKey) throw new Error('ORCA Auth grant verification is not configured');
+
+  const response = await fetch(ORCA_MCP_STAGING_ISSUER + '/user/oauth/grants', {
+    method: 'GET',
+    headers: { Authorization: bearer, apikey: publishableKey, Accept: 'application/json' },
+    credentials:'omit',
+    cache:'no-store',
+    redirect:'error',
+    signal: AbortSignal.timeout(6000)
+  });
+  if (!response.ok) throw new Error('ORCA OAuth authorization is unavailable');
+  const grants: unknown = await response.json();
+  if (!Array.isArray(grants)) throw new Error('Unexpected authorization response');
+  return grants;
+}
 
 // The gateway must NOT block unauthenticated OAuth *discovery* requests.
 // withOAuthProtectedResource serves metadata; withSupabase verifies each user
@@ -44,8 +71,15 @@ Deno.serve(
           if (!decision.ok) {
             throw new Error('This OAuth token is not authorized for ORCA staging');
           }
-          // The OAuth client_id is only proof of OAuth provenance, not proof
-          // of database write permission. RLS/RPC restrictions are separate.
+          // Every tool call verifies that this SAME owner's OAuth grant is
+          // still current. Revoked clients are rejected even while a previously
+          // issued bearer is otherwise cryptographically valid.
+          const grants = await readCurrentGrants(req);
+          if (!hasCurrentOAuthGrant(grants, claims.client_id)) {
+            throw new Error('The ORCA OAuth grant was revoked or is not available');
+          }
+          // The OAuth client_id is not a database write permission.
+          // PostgREST and Edge Function isolation remain mandatory.
           return identity.data.user.id;
         }
 
