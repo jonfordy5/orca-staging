@@ -9,6 +9,7 @@ import {hasCurrentOAuthGrant} from '../supabase/functions/orca-agent-mcp/grant-p
 const root=join(dirname(fileURLToPath(import.meta.url)),'..');
 const consent=readFileSync(join(root,'orca-oauth-consent.html'),'utf8');
 const mcp=readFileSync(join(root,'supabase/functions/orca-agent-mcp/index.ts'),'utf8');
+const gate=readFileSync(join(root,'supabase/functions/orca-agent-mcp/owner-authorization.mjs'),'utf8');
 const transport=readFileSync(join(root,'supabase/functions/orca-agent-mcp/grant-request.mjs'),'utf8');
 const exampleId='11111111-2222-4333-8444-555555555555';
 const otherId='aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee';
@@ -67,14 +68,15 @@ test('Consent page refuses approval when disabled and checks a vetted request ag
 });
 
 test('Every MCP read checks verified subject then the live OAuth grant endpoint using same bearer',()=>{
-  assert.match(mcp,/authorizeReadOnlyMcpClaims/);
-  assert.match(mcp,/hasCurrentOAuthGrant/);
-  assert.match(mcp,/readCurrentGrants\(req,\s*\{/);
-  assert.match(mcp,/if\s*\(!hasCurrentOAuthGrant\(grants,\s*claims.client_id\)\)/);
+  assert.match(gate,/authorizeReadOnlyMcpClaims/);
+  assert.match(gate,/hasCurrentOAuthGrant/);
+  assert.match(gate,/readCurrentGrants\(request,\s*\{/);
+  assert.match(gate,/if\s*\(!hasCurrentOAuthGrant\(grants,\s*claims.client_id\)\)/);
   assert.match(transport,/\/user\/oauth\/grants/);
   assert.match(transport,/redirect:'error'/);
   assert.match(transport,/credentials:'omit'/);
   assert.match(mcp,/SUPABASE_ANON_KEY/);
-  assert.match(mcp,/from '\.\/grant-request\.mjs'/);
+  assert.match(gate,/from '\.\/grant-request\.mjs'/);
+  assert.match(mcp,/from '\.\/owner-authorization\.mjs'/);
   assert.doesNotMatch(mcp,/SUPABASE_SERVICE_ROLE_KEY|SUPABASE_SECRET_KEY|auth\.admin\./);
 });
