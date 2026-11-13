@@ -8,12 +8,16 @@ on:
       - services/orca-owned-oauth/private-schema-review-only.sql
       - services/orca-owned-oauth/browser-sessions-review-only.sql
       - services/orca-owned-oauth/private-db-roles-review-only.sql
+      - services/orca-owned-oauth/private-pg-tests/**
+      - services/orca-owned-oauth/verified-current-grant-query.mjs
       - .github/workflows/orca-private-oauth-roles.yml
   pull_request:
     paths:
       - services/orca-owned-oauth/private-schema-review-only.sql
       - services/orca-owned-oauth/browser-sessions-review-only.sql
       - services/orca-owned-oauth/private-db-roles-review-only.sql
+      - services/orca-owned-oauth/private-pg-tests/**
+      - services/orca-owned-oauth/verified-current-grant-query.mjs
       - .github/workflows/orca-private-oauth-roles.yml
   workflow_dispatch:
 
@@ -44,6 +48,19 @@ jobs:
       PGDATABASE: ephemeral_orca_oauth_roles
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Resolve pinned node-postgres dependency for isolated persistence tests
+        working-directory: services/orca-owned-oauth/private-pg-tests
+        run: |
+          npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+          echo ORCA_STAGE19_PG_LOCK_BEGIN
+          cat package-lock.json
+          echo ORCA_STAGE19_PG_LOCK_END
+      - name: Install pinned node-postgres into isolated test package
+        working-directory: services/orca-owned-oauth/private-pg-tests
+        run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Create isolated dummy Supabase API roles only
         run: |
           psql -v ON_ERROR_STOP=1 <<'SQL'
@@ -214,3 +231,9 @@ jobs:
           end $$;
           rollback;
           SQL
+
+      - name: Exercise real PostgreSQL private OAuth storage, owner isolation and revocation
+        working-directory: services/orca-owned-oauth/private-pg-tests
+        env:
+          ORCA_SQL_EPHEMERAL_TEST_ONLY: "yes"
+        run: npm test
