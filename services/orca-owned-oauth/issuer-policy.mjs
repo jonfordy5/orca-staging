@@ -88,8 +88,12 @@ export function checkCodeExchange(input, saved, expectedResource) {
      input.client_id!==saved.clientId||input.redirect_uri!==saved.redirectUri||
      input.resource!==saved.resource||input.resource!==expectedResource)
     return {ok:false,reason:'client_redirect_or_resource_mismatch'};
-  if(typeof saved.codeChallenge!=='string'||!challenge.test(saved.codeChallenge))
-    return {ok:false,reason:'invalid_stored_challenge'};
+  if(typeof saved.codeChallenge!=='string'||!challenge.test(saved.codeChallenge)||
+     typeof saved.codeHash!=='string'||!challenge.test(saved.codeHash))
+    return {ok:false,reason:'invalid_stored_code'};
+  const presentedCodeHash=createHash('sha256').update(input.code,'utf8').digest('base64url');
+  if(!timingSafeEqual(Buffer.from(presentedCodeHash),Buffer.from(saved.codeHash)))
+    return {ok:false,reason:'authorization_code_mismatch'};
   const computed=createHash('sha256').update(input.code_verifier,'ascii').digest('base64url');
   if(!timingSafeEqual(Buffer.from(computed),Buffer.from(saved.codeChallenge)))
     return {ok:false,reason:'pkce_verifier_mismatch'};
