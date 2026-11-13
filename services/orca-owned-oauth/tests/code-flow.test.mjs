@@ -14,13 +14,13 @@ import {createSafeConsentFinalizer} from '../consent-finalization.mjs';
 import {createPrivateConsentChallenges} from '../consent-challenge.mjs';
 import {createOwnedGrantRegistry} from '../grant-registry.mjs';
 import {verifyBoundAccessToken} from '../bound-token.mjs';
+import {createOpaqueBrowserSessionBridge} from '../opaque-browser-session.mjs';
 
 const RESOURCE='https://vbziibatnejoswsdggga.supabase.co/functions/v1/orca-agent-mcp-owned';
 const CLIENT='orca-ephemeral-code-test-client';
 const CALLBACK='https://example.invalid/orca-callback';
 const OWNER='aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee';
 const CHALLENGE_SCOPE='openid orca:research.read';
-const TEST_BROWSER_SESSION='test-browser-session-00000000000001';
 const SUPABASE_FIXTURE_BEARER='fake.supabase.jwt';
 
 const sha=x=>createHash('sha256').update(x,'utf8').digest('base64url');
@@ -185,21 +185,53 @@ async function startFixture(){
     console.log('LOCAL TEST PROVIDER ERROR',String(error?.message||error).slice(0,250));
     console.log('LOCAL TEST PROVIDER ERROR CLASS',String(error?.name||'').slice(0,100));
   });
+  // TEST-ONLY integration: actual encrypted opaque session logic against an
+  // ephemeral in-memory store, while OAuth itself runs over loopback HTTP.
+  // The fake HTTPS trust callback/host override are local fixture adapters,
+  // NEVER production behavior. No real Supabase account or token is used.
+  const privateSessionRecords=new Map();
+  const privateSessionStore={
+    async create(row){
+      const k=row.sessionHash.toString('hex');
+      if(privateSessionRecords.has(k))return false;
+      privateSessionRecords.set(k,{...row});return true;
+    },
+    async find(hash){return privateSessionRecords.get(hash.toString('hex'))||null;},
+    async revoke(hash){return privateSessionRecords.delete(hash.toString('hex'));}
+  };
+  const sessionOrigin='https://auth.orca.example';
+  const sessionBridge=createOpaqueBrowserSessionBridge({
+    issuerOrigin:sessionOrigin,
+    keyring:[{id:'integration-key-0001',key:randomBytes(32)}],
+    store:privateSessionStore,
+    auth:{async getUser(token){
+      assert.equal(token,SUPABASE_FIXTURE_BEARER);
+      return {data:{user:{id:OWNER}}};
+    }},
+    ownerScopedProfileRead:async id=>({owner_id:id,opted_in:id===OWNER}),
+    isTrustedHttps:()=>true
+  });
+  const bootstrap=await sessionBridge.issueSessionCookie({
+    method:'POST',
+    headers:{host:'auth.orca.example',origin:sessionOrigin,
+      'content-type':'application/json'}
+  },{supabaseAccessToken:SUPABASE_FIXTURE_BEARER});
+  const testOpaqueCookie=bootstrap.setCookie.split(';')[0];
+  assert.match(testOpaqueCookie,/^__Host-orca_oauth_session=[A-Za-z0-9_-]{43}$/);
+  assert.ok(!testOpaqueCookie.includes(SUPABASE_FIXTURE_BEARER));
   const controller=createExistingResearcherInteractionController({
     provider,
     supabaseAuth:{async getUser(token){
       assert.equal(token,SUPABASE_FIXTURE_BEARER);
       return {data:{user:{id:OWNER}}};
     }},
-    // TEST-ONLY fixture: a signed browser session is simulated by a cookie
-    // pinned to one synthetic test owner; no real account token is supplied.
-    readTrustedBrowserSession:async(req)=>{
-      const present=(req.headers.cookie||'').split(';').some(x=>
-        x.trim()==='fixture_signed_session='+TEST_BROWSER_SESSION);
-      if(!present)throw Error('no_fixture_browser_session');
-      return {supabaseAccessToken:SUPABASE_FIXTURE_BEARER,
-        browserSessionId:TEST_BROWSER_SESSION};
-    },
+    // Loopback test adapter maps only the test's local HTTP Host to the
+    // synthetic HTTPS issuer; the bridge still verifies the real cookie.
+    readTrustedBrowserSession:async req=>
+      sessionBridge.readTrustedBrowserSession({
+        method:req.method,
+        headers:{...req.headers,host:'auth.orca.example'}
+      }),
     ownerScopedProfileRead:async id=>({
       owner_id:id,opted_in:id===OWNER
     }),
@@ -251,7 +283,7 @@ async function startFixture(){
     server.listen(port,'127.0.0.1',resolve);
   });
   return {
-    issuer,grants,db,publicKey,kid,
+    issuer,grants,db,publicKey,kid,testOpaqueCookie,sessionBridge,
     close:()=>new Promise(resolve=>server.close(resolve))
   };
 }
@@ -279,7 +311,9 @@ async function proceed(origin,jar,location){
 test('Real local OAuth authorization-code PKCE + Supabase-fixture consent + linked ORCA grant',async t=>{
   const fixture=await startFixture();
   t.after(()=>fixture.close());
-  const jar=new Map([['fixture_signed_session',TEST_BROWSER_SESSION]]);
+  const [cookieName,cookieValue]=fixture.testOpaqueCookie.split('=');
+  const jar=new Map([[cookieName,cookieValue]]);
+  assert.ok(!fixture.testOpaqueCookie.includes(SUPABASE_FIXTURE_BEARER));
   // ChatGPT's stable callback requires RFC 9207 support. Detect whether
   // our pinned issuer truly advertises it instead of assuming support.
   const metadataResponse=await call(fixture.issuer,jar,
