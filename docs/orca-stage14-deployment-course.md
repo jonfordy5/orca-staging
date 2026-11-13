@@ -90,3 +90,28 @@ Otherwise NO-GO: keep the locked server and OAuth off. Do not merge the draft PR
 Replace the live MCP service with the Stage 14 locked container or stop exposure, revoke private OAuth grants, disable issuer approval/token endpoints and block the firewall. Rotate leaked credentials if necessary. Preserve the existing ORCA frontend and research data. Restore later-approved database changes only from a reviewed data-preserving backup plan.
 
 **Definition of done:** a real ChatGPT agent discovers ORCA over HTTPS, the human signs in as their existing ORCA researcher and explicitly consents to read-only access, the agent retrieves that researcher's existing assignment, and revoking access immediately blocks the previously valid token.
+
+
+## Stage 15 — automated deployment preflight (BUILT, TESTED; no public host yet)
+
+Run the checks from the official MCP SDK repository package. These are **unauthenticated read-only GET/POST probes**, never a login and never a research query. They use Node's normal HTTPS certificate validation. A passing result does not activate OAuth and is not permission to publish the endpoint.
+
+Set `ORCA_MCP_RESOURCE` and `ORCA_ISSUER_ORIGIN` on the operator's machine to the two real approved HTTPS URLs, with different hostnames. Do **not** use test-only example URLs, local IPs, service-role secrets, client passwords or tokens. The resource URL must end in `/mcp`.
+
+```bash
+cd services/orca-owned-oauth/mcp-sdk
+npm ci --ignore-scripts --no-audit --no-fund
+node deployment-preflight.cli.mjs --mode locked
+```
+
+**Locked mode** requires public HTTPS `/healthz` to return `200` with `status=locked` while `POST /mcp` and `GET /.well-known/oauth-protected-resource/mcp` each return `503`. The output is `blocked` if the TLS certificate is untrusted, host/DNS is wrong, the response redirects, or a protected route unexpectedly becomes accessible. The existing loopback-only Compose template is not externally reachable; the operator must first provision and review real public host connectivity before this public-URL check can pass. Do not bypass TLS verification with `-k` or `NODE_TLS_REJECT_UNAUTHORIZED=0`.
+
+After the **separately reviewed** real issuer and MCP service exist, run:
+
+```bash
+node deployment-preflight.cli.mjs --mode oauth-discovery
+```
+
+**OAuth-discovery mode** requires exact RFC 9728 MCP protected-resource metadata, the `401` `WWW-Authenticate` challenge, exact read-only scope `orca:research.read`, an issuer with authorization-code and PKCE S256 metadata, and a same-issuer public ES256 JWKS without private signing material. This is **not** a full OAuth login test. Even a passing result sets `publicDeploymentAuthorized=false`; it does not verify human consent, real Supabase authentication, private database roles, registration of the actual ChatGPT callback, or two real consenting research accounts.
+
+Implementation: `mcp-sdk/deployment-preflight.mjs`, `.cli.mjs`, and `.test.mjs`. The preflight tests are exercised by the official MCP CI suite. If a probe fails, fix the actual host/issuer configuration rather than weakening the checks. Keep the issuer and MCP release gates OFF until the real acceptance criteria above are met.
