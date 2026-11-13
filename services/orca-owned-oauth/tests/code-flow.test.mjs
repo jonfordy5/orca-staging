@@ -173,6 +173,17 @@ async function startFixture(){
     interactionUrl:'/interaction/test',
     lookupOwnedGrant:grants.lookupOwnedGrant
   });
+  const originalClaims=config.extraTokenClaims;
+  config.extraTokenClaims=async(ctx,token)=>{
+    console.log('LOCAL PROVIDER TOKEN MODEL',JSON.stringify({
+      kind:token.kind,ownerMatches:token.accountId===OWNER,
+      clientMatches:token.clientId===CLIENT,
+      grantIdType:typeof token.grantId,
+      grantIdLength:typeof token.grantId==='string'?token.grantId.length:0,
+      resource:token.resource,aud:token.aud,scope:token.scope
+    }).slice(0,900));
+    return originalClaims(ctx,token);
+  };
   config.interactions={url:(_ctx,interaction)=>'/interaction/'+interaction.uid};
   config.jwks={keys:[{
     ...privateKey.export({format:'jwk'}),kid,alg:'ES256',use:'sig'
