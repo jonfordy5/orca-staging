@@ -180,6 +180,10 @@ async function startFixture(){
   config.cookies={keys:[randomBytes(32).toString('base64url'),randomBytes(32).toString('base64url')]};
   config.ttl={AccessToken:300};
   const provider=new Provider(issuer,config);
+  provider.on('server_error',(_ctx,error)=>{
+    console.log('LOCAL TEST PROVIDER ERROR',String(error?.message||error).slice(0,250));
+    console.log('LOCAL TEST PROVIDER ERROR CLASS',String(error?.name||'').slice(0,100));
+  });
   const providerDetails=provider.interactionDetails.bind(provider);
   provider.interactionDetails=async (...args)=>{
     const details=await providerDetails(...args);
