@@ -6,7 +6,7 @@
 // SHA-256 digests are stored. This code is not deployed.
 import {createHash,randomBytes,randomUUID} from 'node:crypto';
 
-const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const OPAQUE=/^[\x21-\x7e]{16,512}$/;
 const CLIENT=/^[\x21-\x7e]{1,512}$/;
 const NONCE=/^[A-Za-z0-9_-]{43}$/;
