@@ -15,6 +15,7 @@ import {createPrivateConsentChallenges} from '../consent-challenge.mjs';
 import {createOwnedGrantRegistry} from '../grant-registry.mjs';
 import {verifyBoundAccessToken} from '../bound-token.mjs';
 import {createOpaqueBrowserSessionBridge} from '../opaque-browser-session.mjs';
+import {createOrcaIssuerInteractionHttp} from '../interaction-http-routes.mjs';
 
 const RESOURCE='https://vbziibatnejoswsdggga.supabase.co/functions/v1/orca-agent-mcp-owned';
 const CLIENT='orca-ephemeral-code-test-client';
@@ -135,18 +136,21 @@ function fakePrivateDatabase(){
 function requestCookies(jar){
   return [...jar.entries()].map(([k,v])=>k+'='+v).join('; ');
 }
-const body=async req=>{
-  let s='';
-  for await(const chunk of req){
-    s+=chunk.toString('utf8');
-    if(s.length>16384)throw Error('oversized_test_form');
-  }
-  return Object.fromEntries(new URLSearchParams(s));
-};
-const json=(res,status,payload)=>{
-  res.writeHead(status,{'content-type':'application/json','cache-control':'no-store'});
-  res.end(JSON.stringify(payload));
-};
+// This integration uses the real Stage 7 HTML form/CSRF router, not a
+// custom fixture approval handler. HTTPS authority is simulated only inside
+// the 127.0.0.1 test shim; NEVER enable this translation in production.
+function parseHumanInteractionPage(markup){
+  assert.match(markup,/<!doctype html>/i);
+  assert.doesNotMatch(markup,/fake\.supabase\.jwt/);
+  const uid=markup.match(/action="\/interaction\/([A-Za-z0-9._~-]+)\/(?:continue|approve)"/)?.[1];
+  const field=name=>markup.match(
+    new RegExp('name="'+name+'" value="([^"]+)"')
+  )?.[1];
+  assert.ok(uid&&field('challengeId')&&field('csrfToken')&&
+    field('interactionUid')===uid,'trusted HTML interaction fields required');
+  return {interactionUid:uid,challengeId:field('challengeId'),
+    csrfToken:field('csrfToken')};
+}
 
 async function freePort(){
   return new Promise((resolve,reject)=>{
@@ -241,41 +245,28 @@ async function startFixture(){
     controller,provider,grantRegistry:grants,resource:RESOURCE
   });
   const routeProvider=provider.callback();
+  const humanRoutes=createOrcaIssuerInteractionHttp({
+    enabled:true,issuerOrigin:sessionOrigin,
+    isTrustedHttps:()=>true, // TEST ONLY: no real TLS on local loopback
+    sessionBridge,controller,consentFinalizer:finalizer
+  });
   const server=createServer(async(req,res)=>{
     try{
-      const u=new URL(req.url,issuer),parts=u.pathname.split('/');
-      if(parts[1]==='interaction'&&parts[2]&&parts.length>=3){
-        const interactionUid=parts[2];
-        if(req.method==='GET'&&parts.length===3){
-          const page=await controller.prepare(req,res,{interactionUid});
-          json(res,200,page);
-          return;
-        }
-        if(req.method==='POST'&&parts.length===4){
-          const data=await body(req);
-          data.interactionUid=interactionUid;
-          if(parts[3]==='login'){
-            await controller.continueVerifiedLogin(req,res,data);
-            return;
-          }
-          if(parts[3]==='approve'){
-            await finalizer.finalize(req,res,data);
-            return;
-          }
-          if(parts[3]==='deny'){
-            await controller.denyWithVerifiedSession(req,res,{
-              ...data,expectedPrompt:'consent'
-            });
-            return;
-          }
-        }
-        json(res,405,{error:'unsupported_fixture_action'});
+      const u=new URL(req.url,issuer);
+      if(u.pathname.startsWith('/interaction/')||
+         u.pathname==='/session/bootstrap'){
+        // TEST ONLY. Real HTTPS must use the true TLS socket and Host
+        // as supplied by the approved public issuer, not a rewrite.
+        req.headers.host='auth.orca.example';
+        await humanRoutes(req,res);
         return;
       }
       routeProvider(req,res);
-    }catch(e){
-      if(!res.headersSent)
-        json(res,403,{error:e?.message||'unauthorized'});
+    }catch{
+      if(!res.headersSent){
+        res.writeHead(403,{'content-type':'application/json'});
+        res.end('{"error":"test_interaction_unavailable"}');
+      }
     }
   });
   await new Promise((resolve,reject)=>{
@@ -289,7 +280,11 @@ async function startFixture(){
 }
 async function call(origin,jar,path,{method='GET',body:data}={}){
   const headers={cookie:requestCookies(jar)};
-  if(data)headers['content-type']='application/x-www-form-urlencoded';
+  if(data){
+    headers['content-type']='application/x-www-form-urlencoded';
+    headers.origin='https://auth.orca.example'; // synthetic origin only
+    headers['sec-fetch-site']='same-origin';
+  }
   const r=await fetch(new URL(path,origin),{
     method,headers,
     ...(data?{body:new URLSearchParams(data)}:{}),
@@ -353,29 +348,41 @@ test('Real local OAuth authorization-code PKCE + Supabase-fixture consent + link
   }
   let next=await proceed(fixture.issuer,jar,r.headers.get('location'));
   assert.equal(next.response.status,200);
-  let page=await next.response.json();
-  assert.equal(page.prompt,'login');
-  assert.equal(page.resource,RESOURCE);
+  let html=await next.response.text();
+  assert.match(html,/Continue to ORCA/);
+  assert.match(html,/orca:research\.read/);
+  let page=parseHumanInteractionPage(html);
+
+  // Browser-origin guard rejects a forged POST without consuming consent.
+  const crossSite=await fetch(new URL('/interaction/'+page.interactionUid+
+    '/continue',fixture.issuer),{
+      method:'POST',headers:{
+        cookie:requestCookies(jar),
+        'content-type':'application/x-www-form-urlencoded',
+        origin:'https://evil.example.invalid'
+      },body:new URLSearchParams({
+        ...page,decision:'continue'
+      }),redirect:'manual'
+    });
+  assert.equal(crossSite.status,403);
 
   r=await call(fixture.issuer,jar,
-    '/interaction/'+page.interactionUid+'/login',{
-      method:'POST',body:{
-        challengeId:page.challengeId,csrfToken:page.csrfToken
-      }
+    '/interaction/'+page.interactionUid+'/continue',{
+      method:'POST',body:{...page,decision:'continue'}
     });
   assert.ok([302,303].includes(r.status),'Verified login must resume provider');
   next=await proceed(fixture.issuer,jar,r.headers.get('location'));
   assert.equal(next.response.status,200);
-  page=await next.response.json();
-  assert.equal(page.prompt,'consent');
+  html=await next.response.text();
+  assert.match(html,/Authorize ORCA research access/);
+  assert.match(html,/Approve read-only research/);
+  assert.match(html,/No publishing, editing, or account administration/);
+  assert.doesNotMatch(html,/orca:research\.write/);
+  page=parseHumanInteractionPage(html);
 
   r=await call(fixture.issuer,jar,
     '/interaction/'+page.interactionUid+'/approve',{
-      method:'POST',body:{
-        challengeId:page.challengeId,
-        csrfToken:page.csrfToken,
-        decision:'approve'
-      }
+      method:'POST',body:{...page,decision:'approve'}
     });
   assert.ok([302,303].includes(r.status),
     'Explicit consent response '+r.status+': '+(await r.text()).slice(0,750));
