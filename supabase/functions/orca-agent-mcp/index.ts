@@ -7,6 +7,7 @@ import { pipeline } from 'npm:@supabase/middleware@1.0.0';
 import { withOAuthProtectedResource, withSupabase } from 'npm:@supabase/server@1.6.0';
 import { z } from 'npm:zod@4.3.6';
 import { readAgentState } from '../orca-agent-readonly/policy.mjs';
+import { authorizeReadOnlyMcpClaims } from './token-policy.mjs';
 
 const serverIdentity = { name: 'orca-commons-staging', version: '0.1.0' };
 
@@ -28,33 +29,23 @@ Deno.serve(
             throw new Error('OAuth authorization is required');
           }
           const claims = verifiedClaims.data.claims;
-          // ChatGPT requires resource-indicator binding (RFC 8707). A default
-          // 'authenticated' audience is NOT sufficient even if RLS uses it.
-          // Supabase OAuth resource->aud support must be verified before launch.
-          const expectedIssuer = 'https://vbziibatnejoswsdggga.supabase.co/auth/v1';
-          const resource = 'https://vbziibatnejoswsdggga.supabase.co/functions/v1/orca-agent-mcp';
-          const tokenAudiences = Array.isArray(claims.aud) ? claims.aud : [claims.aud];
-          if (claims.iss !== expectedIssuer || !tokenAudiences.includes(resource)) {
-            throw new Error('OAuth token issuer or MCP resource audience is invalid');
+          // Both verified Supabase Auth user identity and resource-bound OAuth
+          // token claims are required. No permission is inferred from matching
+          // email addresses, application names, or owner-maintained aliases.
+          const identity = await supabase.auth.getUser();
+          if (identity.error || !identity.data?.user?.id) {
+            throw new Error('Verified ORCA identity is required');
           }
-          if (typeof claims.client_id !== 'string' || !claims.client_id.trim()) {
-            throw new Error('OAuth client authorization is required');
-          }
-          // Fail closed until the owner's vetted, registered OAuth client ID(s)
-          // are supplied through the Edge Function deployment environment.
-          // DCR registrations are NOT approved merely by existing.
           const allowedClients = new Set((Deno.env.get('ORCA_MCP_APPROVED_CLIENT_IDS') || '')
             .split(',').map(id => id.trim()).filter(Boolean));
-          if (!allowedClients.has(claims.client_id)) {
-            throw new Error('This OAuth client is not approved for ORCA staging');
+          const decision = authorizeReadOnlyMcpClaims(
+            claims, allowedClients, identity.data.user.id
+          );
+          if (!decision.ok) {
+            throw new Error('This OAuth token is not authorized for ORCA staging');
           }
           // The OAuth client_id is only proof of OAuth provenance, not proof
           // of database write permission. RLS/RPC restrictions are separate.
-          const identity = await supabase.auth.getUser();
-          if (identity.error || !identity.data?.user?.id ||
-              claims.sub !== identity.data.user.id) {
-            throw new Error('Verified ORCA identity is required');
-          }
           return identity.data.user.id;
         }
 
