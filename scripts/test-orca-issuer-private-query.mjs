@@ -28,7 +28,7 @@ function fixture({fail=false,wrongResult=false}={}){
   return {query:createIssuerPrivateQuery({connector}),
     calls,opens:()=>opens,closes:()=>closes};
 }
-test('issuer's fixed internal SQL runs only inside fresh transaction',async()=>{
+test('issuer fixed internal SQL runs only inside fresh transaction',async()=>{
   const f=fixture();
   const a=await f.query(SQL,values);
   const b=await f.query(SQL,values);
