@@ -5,6 +5,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {once} from 'node:events';
+import {request as nodeHttpRequest} from 'node:http';
 import {randomUUID,generateKeyPairSync} from 'node:crypto';
 import {Client,StreamableHTTPClientTransport} from '@modelcontextprotocol/client';
 import {createOrcaMcpNodeServer} from './node-ingress.mjs';
@@ -21,6 +22,42 @@ const ownerB='bbbbbbbb-cccc-4ddd-8eee-ffffffffffff';
 const kid='stage13-https-ingress-key';
 const grantA=randomUUID(),grantB=randomUUID();
 const {privateKey,publicKey}=generateKeyPairSync('ec',{namedCurve:'P-256'});
+
+// TEST-ONLY Fetch-compatible transport over real Node TCP sockets.
+// Undici may override the Host of a 127.0.0.1 URL. Using http.request here
+// preserves the simulated public Host, so production host checks stay strict.
+async function wireFetch(input,init={},testHost='mcp.orca.example'){
+  const request=new Request(input,{
+    ...init,...(init?.body?{duplex:'half'}:{})
+  });
+  const u=new URL(request.url);
+  const bytes=request.method==='POST'?
+    Buffer.from(await request.arrayBuffer()):Buffer.alloc(0);
+  const headers=Object.fromEntries(request.headers.entries());
+  headers.host=testHost;
+  if(request.method==='POST')headers['content-length']=String(bytes.length);
+  return new Promise((resolve,reject)=>{
+    const outgoing=nodeHttpRequest({
+      hostname:u.hostname,port:u.port,path:u.pathname+u.search,
+      method:request.method,headers
+    },incoming=>{
+      const chunks=[];
+      incoming.on('data',x=>chunks.push(x));
+      incoming.on('error',reject);
+      incoming.on('end',()=>{
+        const status=incoming.statusCode||503;
+        const payload=Buffer.concat(chunks);
+        resolve(new Response([204,205,304].includes(status)?null:payload,{
+          status,headers:incoming.headers
+        }));
+      });
+    });
+    outgoing.on('error',reject);
+    outgoing.setTimeout(5000,()=>outgoing.destroy(Error('test_http_timeout')));
+    if(bytes.length)outgoing.write(bytes);
+    outgoing.end();
+  });
+}
 
 async function setup(t,{enabled=true,trustLoopback=true}={}){
   let active=true;
@@ -79,11 +116,7 @@ async function setup(t,{enabled=true,trustLoopback=true}={}){
       grantId:ownerId===ownerA?grantA:grantB
     }
   });
-  const send=(path,opts={})=>fetch(base+path,{
-    ...opts,
-    headers:{host:'mcp.orca.example',...(opts.headers||{})},
-    signal:AbortSignal.timeout(5000)
-  });
+  const send=(path,opts={})=>wireFetch(base+path,opts);
   return {base,token,queries,setActive:x=>active=x,send};
 }
 test('disabled ingress cannot expose even MCP discovery',async t=>{
@@ -101,7 +134,7 @@ test('real Node HTTP without explicit trusted TLS callback denies X-Forwarded-Pr
 });
 test('trusted ingress validates host, origin, cookie, path, query and body size',async t=>{
   const s=await setup(t);
-  const badHost=await fetch(s.base+'/mcp',{headers:{host:'evil.example'}});
+  const badHost=await wireFetch(s.base+'/mcp',{},'evil.example');
   assert.equal(badHost.status,421);
   const browser=await s.send('/mcp',{
     method:'POST',headers:{origin:'https://evil.example'}
@@ -110,7 +143,7 @@ test('trusted ingress validates host, origin, cookie, path, query and body size'
   const cookie=await s.send('/mcp',{headers:{cookie:'session=evil'}});
   assert.equal(cookie.status,403);
   assert.equal((await s.send('/mcp?token=evil')).status,404);
-  assert.equal((await s.send('/mcp/../mcp')).status,404);
+  assert.equal((await s.send('/mcp%2Fother')).status,404);
   const oversized=await s.send('/mcp',{
     method:'POST',headers:{'content-type':'application/json'},
     body:'x'.repeat(17000)
@@ -139,11 +172,7 @@ test('two official MCP clients use REAL Node TCP HTTP and remain isolated after 
     const client=new Client({name:'stage13-network-client',version:'1.0.0'});
     const transport=new StreamableHTTPClientTransport(
       new URL(s.base+'/mcp'),{
-        fetch:(input,init)=>{
-          const headers=new Headers(init?.headers || (input instanceof Request?input.headers:undefined));
-          headers.set('host','mcp.orca.example');
-          return fetch(input,{...init,headers,signal:AbortSignal.timeout(5000)});
-        },
+        fetch:wireFetch,
         authProvider:{token:async()=>s.token(ownerId)}
       }
     );
