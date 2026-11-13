@@ -22,7 +22,7 @@ function fixture(mode='locked'){
     if(corrupt==='redirect'&&url.endsWith('/healthz'))
       return new Response(null,{status:302,headers:{location:'https://evil.example.invalid'}});
     if(mode==='locked'){
-      if(url===resource.replace('/mcp','/healthz')){
+      if(url===new URL('/healthz',resource).href){
         return json(200,corrupt==='health'?
           {service:'orca-mcp-staging',status:'ready'}:
           {service:'orca-mcp-staging',status:'locked'});
@@ -91,7 +91,7 @@ test('locked host: verify exact HTTPS health and both MCP routes CLOSED',async()
   ]);
   assert.ok(out.checks.every(x=>x.passed));
   assert.deepEqual(f.requests.map(x=>[x.url,x.method]),[
-    [resource.replace('/mcp','/healthz'),'GET'],
+    [new URL('/healthz',resource).href,'GET'],
     [resource,'POST'],
     [meta,'GET']
   ]);
