@@ -1,0 +1,34 @@
+name: ORCA-owned OAuth fallback (offline security)
+
+on:
+  push:
+    branches:
+      - feat/orca-owned-oauth-fallback-20261112
+    paths:
+      - services/orca-owned-oauth/**
+      - scripts/test-orca-owned-oauth-fallback.mjs
+      - .github/workflows/orca-owned-oauth-fallback.yml
+  pull_request:
+    paths:
+      - services/orca-owned-oauth/**
+      - scripts/test-orca-owned-oauth-fallback.mjs
+      - .github/workflows/orca-owned-oauth-fallback.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  owned-issuer-policy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Test binding, PKCE, ES256 signatures, account isolation and revocation
+        run: node --test scripts/test-orca-owned-oauth-fallback.mjs
+      - name: Verify operator release gate is disabled
+        run: |
+          node --input-type=module -e "import {ORCA_OWNED_ISSUER_ENABLED as enabled} from './services/orca-owned-oauth/issuer-policy.mjs';if(enabled!==false)process.exit(1)"
