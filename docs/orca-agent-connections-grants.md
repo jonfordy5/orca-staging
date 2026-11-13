@@ -31,9 +31,11 @@ client.auth.oauth.revokeGrant({ clientId: selectedClientId }): Promise<AuthOAuth
 
 Source: [Supabase auth-js OAuthGrant types](https://github.com/supabase/supabase-js/blob/master/packages/core/auth-js/src/lib/types.ts) and [GoTrueClient implementation](https://github.com/supabase/supabase-js/blob/master/packages/core/auth-js/src/GoTrueClient.ts).
 
+**Pinned-version verification:** the exact `@supabase/supabase-js@2.119.0` package used by the new page was verified against its published [v2.119.0 auth-js GoTrueClient source](https://github.com/supabase/supabase-js/blob/v2.119.0/packages/core/auth-js/src/GoTrueClient.ts), which exposes both `oauth.listGrants` and `oauth.revokeGrant`. No runtime OAuth network request was made.
+
 ## Tests
 
-- `scripts/test-orca-agent-connections.mjs` covers malformed lists, duplicate clients, owner-only selection, no third-party client ID from URLs, exact `{clientId}` argument, failure when the list cannot be fetched, failure when revocation is rejected or not verified, no UI markup injection, source integrity and new sign-in allowlist.
+- `scripts/test-orca-agent-connections.mjs` covers malformed lists, duplicate clients, owner-only selection, no third-party client ID from URLs, account-switch clearing, incomplete provider responses, exact `{clientId}` argument, failure when the list cannot be fetched, failure when revocation is rejected or not verified, no UI markup injection, source integrity and new sign-in allowlist.
 - `.github/workflows/orca-agent-connections.yml` runs Node 24 grant tests and syntax checks on this branch.
 - The normal ORCA shared-site regression workflow also runs on draft pull requests; the page and link modifications must not break existing research or account behavior.
 
