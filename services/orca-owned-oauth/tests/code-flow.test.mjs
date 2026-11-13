@@ -16,13 +16,14 @@ import {createOwnedGrantRegistry} from '../grant-registry.mjs';
 import {verifyBoundAccessToken} from '../bound-token.mjs';
 import {createOpaqueBrowserSessionBridge} from '../opaque-browser-session.mjs';
 import {createOrcaIssuerInteractionHttp} from '../interaction-http-routes.mjs';
+import {createExistingResearcherSupabaseHttp} from '../supabase-existing-researcher-http.mjs';
 
 const RESOURCE='https://vbziibatnejoswsdggga.supabase.co/functions/v1/orca-agent-mcp-owned';
 const CLIENT='orca-ephemeral-code-test-client';
 const CALLBACK='https://example.invalid/orca-callback';
 const OWNER='aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee';
 const CHALLENGE_SCOPE='openid orca:research.read';
-const SUPABASE_FIXTURE_BEARER='fake.supabase.jwt';
+const SUPABASE_FIXTURE_BEARER='syntheticheader.supabasefixture.syntheticunsignedsignature';
 
 const sha=x=>createHash('sha256').update(x,'utf8').digest('base64url');
 const encode=x=>Buffer.from(JSON.stringify(x)).toString('base64url');
@@ -204,25 +205,42 @@ async function startFixture(){
     async revoke(hash){return privateSessionRecords.delete(hash.toString('hex'));}
   };
   const sessionOrigin='https://auth.orca.example';
+  // Synthetic Supabase HTTP replies only: the real adapter constructs the
+  // authenticated /auth/v1/user and owner-RLS /rest/v1/agent_profiles GETs.
+  // No real Supabase session, network, or privileged database key is used.
+  const supabaseAdapter=createExistingResearcherSupabaseHttp({
+    supabaseUrl:'https://vbziibatnejoswsdggga.supabase.co',
+    publishableKey:'sb_publishable_'+'A'.repeat(32),
+    fetchImpl:async (url,options)=>{
+      assert.equal(options.method,'GET');
+      assert.equal(options.headers.authorization,
+        'Bearer '+SUPABASE_FIXTURE_BEARER);
+      assert.ok(options.headers.apikey.startsWith('sb_publishable_'));
+      const headers={'content-type':'application/json'};
+      if(url.endsWith('/auth/v1/user'))
+        return new Response(JSON.stringify({id:OWNER,is_anonymous:false}),
+          {status:200,headers});
+      const target=new URL(url);
+      if(target.pathname==='/rest/v1/agent_profiles'&&
+         target.searchParams.get('owner_id')==='eq.'+OWNER)
+        return new Response(JSON.stringify([{owner_id:OWNER,opted_in:true}]),
+          {status:200,headers});
+      throw Error('synthetic_supabase_endpoint_rejected');
+    }
+  });
   const sessionBridge=createOpaqueBrowserSessionBridge({
     issuerOrigin:sessionOrigin,
     keyring:[{id:'integration-key-0001',key:randomBytes(32)}],
     store:privateSessionStore,
-    auth:{async getUser(token){
-      assert.equal(token,SUPABASE_FIXTURE_BEARER);
-      return {data:{user:{id:OWNER}}};
-    }},
-    ownerScopedProfileRead:async id=>({owner_id:id,opted_in:id===OWNER}),
+    auth:supabaseAdapter.auth,
+    ownerScopedProfileRead:supabaseAdapter.ownerScopedProfileRead,
     isTrustedHttps:()=>true
   });
   // No direct session injection: the integration must exercise the real
   // Stage 7 /session/bootstrap HTTP path before any OAuth authorization.
   const controller=createExistingResearcherInteractionController({
     provider,
-    supabaseAuth:{async getUser(token){
-      assert.equal(token,SUPABASE_FIXTURE_BEARER);
-      return {data:{user:{id:OWNER}}};
-    }},
+    supabaseAuth:supabaseAdapter.auth,
     // Loopback test adapter maps only the test's local HTTP Host to the
     // synthetic HTTPS issuer; the bridge still verifies the real cookie.
     readTrustedBrowserSession:async req=>
@@ -230,9 +248,7 @@ async function startFixture(){
         method:req.method,
         headers:{...req.headers,host:'auth.orca.example'}
       }),
-    ownerScopedProfileRead:async id=>({
-      owner_id:id,opted_in:id===OWNER
-    }),
+    ownerScopedProfileRead:supabaseAdapter.ownerScopedProfileRead,
     challenges,approvedClients:{[CLIENT]:[CALLBACK]},resource:RESOURCE
   });
   const finalizer=createSafeConsentFinalizer({
