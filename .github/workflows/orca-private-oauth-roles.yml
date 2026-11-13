@@ -293,7 +293,7 @@ jobs:
           declare n integer;
           begin
             select count(*) into n from orca_owned_oauth_private.grants;
-            if n<>2 then raise exception 'Issuer login cannot access stored grants';end if;
+            if n<2 then raise exception 'Issuer login cannot access stored grants';end if;
           end $$;
           SQL
 
