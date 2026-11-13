@@ -56,3 +56,19 @@ Implementation:
 CI receipt: [OAuth safety run #43356083582](https://github.com/jonfordy5/orca-staging/actions/runs/43356083582) passed Node regression tests and the Deno typecheck. [Grant UI run #43356083557](https://github.com/jonfordy5/orca-staging/actions/runs/43356083557) passed. Full shared workspace checks are independently tracked.
 
 Latest staging SQL read-only check: `orca_mcp_private.approved_readonly_clients` remains 0; the global staging PostgREST request guard remains configured. Staging researchers, their permissions and existing findings were not modified by this source-only work. Security advisor notices on existing `SECURITY DEFINER` functions and informational no-policy RLS tables remain separate release-review items.
+
+## Next build: request-level OAuth grant transport and denial tests
+
+The MCP prototype no longer embeds an opaque Auth-fetch helper inside the Edge Function. It imports a separately testable, fixed-origin transport from `supabase/functions/orca-agent-mcp/grant-request.mjs`. The transport performs **one fresh GET per MCP tool call** against `https://vbziibatnejoswsdggga.supabase.co/auth/v1/user/oauth/grants`, using the identical signed bearer already accepted by Supabase's user middleware. It supplies the public project API key, never sends cookies, rejects redirects, forbids cached results, has a 6-second request timeout, and rejects a non-array grant payload or Auth service failures.
+
+This wire format was verified against Supabase Auth's actual GoTrue implementation, not merely inferred from docs:
+
+- [GoTrue UserListOAuthGrants implementation](https://github.com/supabase/auth/blob/88725864802773ad4533e0cad28f7a2740c89a7e/internal/api/oauthserver/handlers.go) — user-scoped active grants are a JSON array with `client.id`, `scopes` and `granted_at`.
+- [GoTrue UserRevokeOAuthGrant implementation](https://github.com/supabase/auth/blob/88725864802773ad4533e0cad28f7a2740c89a7e/internal/api/oauthserver/handlers.go) — revokes consent and deletes the relevant OAuth client refresh sessions.
+- [GoTrue OpenAPI contract](https://github.com/supabase/auth/blob/88725864802773ad4533e0cad28f7a2740c89a7e/openapi.yaml) — exact GET path and 200 response shape.
+
+New `scripts/test-orca-oauth-grant-transport.mjs` exercises the actual transport with mock HTTP responses: correct bearer passthrough, exact URL, no cookie/redirect/cache behavior, current grant, denial for wrong issuer/client/audience/owner, immediate denial after simulated revoke on the second request, malformed/missing bearer, missing API key, Auth error and bad response shape. These are offline tests of security logic, **not** real-signed-in end-to-end acceptance.
+
+First full post-refactor results: [OAuth safety CI #43358112573](https://github.com/jonfordy5/orca-staging/actions/runs/43358112573) PASS, [grant UI CI #43358112412](https://github.com/jonfordy5/orca-staging/actions/runs/43358112412) PASS. The full shared-workspace regression is tracked separately in [run #43358112498](https://github.com/jonfordy5/orca-staging/actions/runs/43358112498).
+
+**No OAuth clients were registered, no real bearer was handled, no MCP endpoint deployed, and no production setting or research permission changed.** The next release gate remains a real audience-bound OAuth bearer, followed by a two-existing-account signed-in authorize/read/revoke/negative-test and inspection of alternate service entry points.
