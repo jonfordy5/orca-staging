@@ -64,3 +64,58 @@ consent/login interaction, durable atomic store, signed key custody and
 rotation, owner-only database read boundary, HTTP discovery, hosting and
 real-world ChatGPT callback/authorization acceptance. Do NOT treat a
 passing crypto test as a secure publicly accessible OAuth service.
+
+
+## Stage 2: durable private grant registry and encrypted provider-state proposal
+
+**Review-only implementation, no Supabase migration executed.** This code is
+isolated to the draft GitHub branch and does not deploy an issuer or touch
+the current ORCA auth/database environment.
+
+- private-schema-review-only.sql is a **draft SQL blueprint** for a
+  non-Data-API schema: owner/client/resource-bound consent grants and
+  oidc-provider model state. Do not apply it as-is; select a dedicated
+  narrowly privileged non-BYPASSRLS issuer DB owner, private connection,
+  catalog grants, safe encrypted backups, and a reviewed migration first.
+- grant-registry.mjs supplies a parameterized PostgreSQL backed
+  create/lookup/revoke/list surface. It demands an issuer-internal single-use
+  approved-consent verification callback for issuance and an Auth-verified
+  owner identity for revoke. The read-side lookup checks every element of the
+  token's owner/client/grant/resource/scope against an unexpired and
+  unrevoked row **on each MCP request**, without a grant cache. PostgreSQL
+  UPDATE with an owner predicate makes Disconnect idempotent. The real
+  consent UI, CSRF, and server-side approval event are not implemented yet.
+- encrypted-pg-oidc-adapter.mjs implements the panva/oidc-provider
+  documented persistence hooks (upsert/find/findByUid/consume/destroy/
+  revokeByGrantId) using AES-256-GCM encrypted payloads, hashed opaque
+  references, strict TTL, per-record authentication data, encrypted-key
+  rotation and atomic SQL consume. It requires an injected private
+  PostgreSQL query method and an external keyring. It has not yet been
+  integrated or compatibility-tested against a running oidc-provider
+  release and real Postgres transaction/concurrency behavior.
+- scripts/test-orca-owned-oauth-grant-registry.mjs covers two owner accounts,
+  consent rejection, owner-only revoke, no-cache revocation of a signed
+  ORCA access token, expiration and simulated database outages.
+- scripts/test-orca-owned-oauth-provider-store.mjs covers encrypted
+  persistence, replay-denying consume, tampering, key rotation, expired
+  records and unavailable SQL. Tests simulate the PostgreSQL interface;
+  passing tests do not establish production-ready state durability.
+- **OAuth client IDs are opaque strings**, not necessarily UUIDs. Current
+  MCP authorization can use a registered HTTPS URL client ID. All Plan B
+  layers now enforce exact vetted IDs without assuming UUID syntax.
+  Client ID Metadata Document fetch/validation is not yet implemented;
+  only explicit pre-registration is planned for the pilot.
+- Refresh token issuance and refresh grant type are **both disabled** for
+  now. Do not advertise or enable a long-running connected session until
+  the maintained provider's refresh rotation, storage, replay and
+  revocation tests are complete.
+
+Live staging was checked read-only after the source additions: the private
+owned-issuer schema does NOT exist, approved OAuth clients remain zero, and
+ORCA research records and account counts are unchanged.
+
+**Next milestone:** pin a maintained OAuth server dependency, integrate the
+persistent adapter and consent UI on a local isolated Postgres instance,
+verify RFC 8707 access token shape, and then build the separate ORCA-issued
+token MCP runtime. After that, verify real ChatGPT login, refresh, revocation
+and cross-account isolation. The issuer release switch remains OFF.
