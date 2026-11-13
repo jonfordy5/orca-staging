@@ -288,8 +288,11 @@ test('Real local OAuth authorization-code PKCE + Supabase-fixture consent + link
     code_challenge:challenge
   });
   let r=await call(fixture.issuer,jar,'/auth?'+args);
-  assert.ok([302,303].includes(r.status),
-    'Authorization request status '+r.status+': '+(await r.text()).slice(0,1000));
+  if(![302,303].includes(r.status)){
+    const html=await r.text();
+    const errorFields=html.match(/<pre>[\s\S]*?<\/pre>/g)||[];
+    assert.fail('Authorization request status '+r.status+': '+errorFields.join(' ').slice(0,1200));
+  }
   let next=await proceed(fixture.issuer,jar,r.headers.get('location'));
   assert.equal(next.response.status,200);
   let page=await next.response.json();
