@@ -8,7 +8,7 @@ import {signBoundAccessToken} from
 
 const issuer='https://auth.orca.example';
 const resource='https://mcp.orca.example/mcp';
-const metadataUrl='https://mcp.orca.example/mcp/oauth-protected-resource';
+const metadataUrl='https://mcp.orca.example/.well-known/oauth-protected-resource/mcp';
 const clientId='https://chatgpt.com/oauth/client.json';
 const ownerId='aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee';
 const grantId=randomUUID(),kid='stage8-test-es256-key';
@@ -60,6 +60,12 @@ test('default OFF does not advertise metadata or accept MCP tool calls',async()=
   assert.equal((await fn(call(null))).status,503);
   assert.throws(()=>createOwnedMcpAdmission({
     issuer,resource,metadataUrl,enabled:true
+  }),/unvetted_mcp_admission_configuration/);
+});
+
+test('Reject nonstandard OAuth protected resource discovery locations',()=>{
+  assert.throws(()=>createOwnedMcpAdmission({
+    issuer,resource,metadataUrl:'https://mcp.orca.example/mcp/oauth-protected-resource'
   }),/unvetted_mcp_admission_configuration/);
 });
 
