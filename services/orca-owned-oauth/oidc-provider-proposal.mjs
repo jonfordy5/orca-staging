@@ -4,13 +4,13 @@
 // gate must be independently vetted before provider construction.
 import {ORCA_READ_SCOPE} from './issuer-policy.mjs';
 
-const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const clientIdentifier=/^[\x21-\x7e]{1,512}$/;
 export function buildOidcProviderProposal({
   resource,clientId,redirectUri,kid,findAccount,persistentAdapter,
   interactionUrl
 }={}){
   if(typeof resource!=='string'||!resource.startsWith('https://')||
-     typeof clientId!=='string'||!uuid.test(clientId)||
+     typeof clientId!=='string'||!clientIdentifier.test(clientId)||
      typeof redirectUri!=='string'||!redirectUri.startsWith('https://')||
      typeof kid!=='string'||kid.length<8||
      typeof findAccount!=='function'||typeof persistentAdapter!=='function'||
