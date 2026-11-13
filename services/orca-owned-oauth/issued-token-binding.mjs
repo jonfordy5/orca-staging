@@ -5,7 +5,7 @@
 //
 // This is a library callback, not a user-visible HTTP endpoint. It requires
 // a private server-only lookup over existing verified grant records.
-const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const CLIENT=/^[\x21-\x7e]{1,512}$/;
 const READ_SCOPE='orca:research.read';
 const OPAQUE=/^[A-Za-z0-9._~-]{8,1024}$/;
