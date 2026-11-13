@@ -62,7 +62,8 @@ export function createLocalPreviewServer(provider=buildLocalPreviewProvider()){
   const router=provider.callback();
   const discovery=new Set([
     '/.well-known/openid-configuration',
-    '/.well-known/oauth-authorization-server'
+    '/.well-known/oauth-authorization-server',
+    '/jwks'
   ]);
   const server=createServer((req,res)=>{
     // Strict loopback interface, method, and endpoint allowlist.
