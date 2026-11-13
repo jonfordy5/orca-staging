@@ -119,3 +119,17 @@ persistent adapter and consent UI on a local isolated Postgres instance,
 verify RFC 8707 access token shape, and then build the separate ORCA-issued
 token MCP runtime. After that, verify real ChatGPT login, refresh, revocation
 and cross-account isolation. The issuer release switch remains OFF.
+
+## Stage 3 — installed OAuth library integration and one-time consent challenge
+
+**Code-only + CI. Nothing deployed.**
+
+- Pinned `oidc-provider` **9.14.0** and its full resolved dependency tree in `package-lock.json`. CI now uses `npm ci`, not a floating dependency resolution.
+- `dev-preview.mjs` instantiates the **real maintained OAuth library**, generates ephemeral test signing/cookie keys, and serves only discovery/JWKS routes on `127.0.0.1`. Every authorization, consent, token, registration, or unknown route returns HTTP 503. The local issuer deliberately advertises HTTP loopback endpoints, **not** the eventual public HTTPS issuer; a metadata-only test is not a deployable OAuth server.
+- `test-orca-owned-oauth-library-storage.mjs` confirms a real `oidc-provider.Grant` model round-trips through our encrypted private PostgreSQL adapter (`save`, `find`, and `destroy`) using simulated SQL and ephemeral encryption keys. This is an integration test against the actual upstream library, not just our own mocks.
+- `consent-challenge.mjs` and the review-only private SQL table enforce one-use CSRF challenges bound to an existing verified owner ID, exact registered client, OAuth interaction UID, and browser session. Raw CSRF/interaction/session values are never persisted; only SHA-256 hashes are used. The database UPDATE is conditional on token, owner, interaction, session, expiry, and unconsumed state.
+- New consent tests verify replay denial, swapped researchers/clients/interaction IDs, expired challenges, invalid parameters, and database failures. The real login and consent UI are still **not implemented**.
+
+**Critical remaining live-blockers:** a real HTTPS issuer behind managed TLS, proper absolute metadata URLs, a verified Supabase sign-in session and consent interaction handler with CSRF integration, durable PostgreSQL adapter deployed under a dedicated least-privilege DB role, actual provider-grant-to-ORCA-grant mapping and custom signed token claims, secure key management, refresh-token rotation if session continuity is required, and complete two-user end-to-end testing. Independent security review is mandatory before launch.
+
+No JWTs are provisioned for actual users, no real ChatGPT client is registered, and the independent issuer release flag remains OFF.
