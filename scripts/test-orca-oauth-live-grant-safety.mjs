@@ -69,7 +69,7 @@ test('Consent page refuses approval when disabled and checks a vetted request ag
 test('Every MCP read checks verified subject then the live OAuth grant endpoint using same bearer',()=>{
   assert.match(mcp,/authorizeReadOnlyMcpClaims/);
   assert.match(mcp,/hasCurrentOAuthGrant/);
-  assert.match(mcp,/readCurrentGrants\(req\)/);
+  assert.match(mcp,/readCurrentGrants\(req,\s*\{/);
   assert.match(mcp,/if\s*\(!hasCurrentOAuthGrant\(grants,\s*claims.client_id\)\)/);
   assert.match(transport,/\/user\/oauth\/grants/);
   assert.match(transport,/redirect:'error'/);
