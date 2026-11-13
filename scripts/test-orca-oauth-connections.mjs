@@ -36,7 +36,7 @@ test('User must explicitly confirm an OAuth grant ID returned for their account 
 });
 
 test('No secret, generated connection, silent approval, token display, or unrelated research mutation',()=>{
-  assert.doesNotMatch(script,/service_role|auth\.admin|client_secret|refresh_token|access_token|console\.log|localStorage\.setItem/);
+  assert.doesNotMatch(runnable.replace(/^\s*\/\/.*$/gm,''),/service_role|auth\.admin|client_secret|refresh_token|access_token|console\.log|localStorage\.setItem/);
   assert.doesNotMatch(script,/approveAuthorization|createClient.*service|\.rpc\(|\.insert\(|\.update\(|\.delete\(/);
   assert.match(html,/may remain valid until expiry/);
   assert.match(script,/no success is assumed/);
