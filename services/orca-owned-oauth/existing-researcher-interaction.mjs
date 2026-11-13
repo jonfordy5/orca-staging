@@ -123,10 +123,15 @@ export function createExistingResearcherInteractionController({
     return {denied:true,prompt:interaction.prompt.name};
   }
 
-  // Intentionally no approve() method. It would be unsafe to let the
-  // library issue tokens until its grantId is cryptographically tied to
-  // the durable ORCA registry entry and resource-specific JWT claims.
+  // This returns a validated one-time consent event to the INTERNAL
+  // finalizer, not a public authorize/approve endpoint. The finalizer must
+  // still persist and link the provider + ORCA grants before it resumes.
+  async function consumeVerifiedConsent(req,res,form){
+    return consume(req,res,form,'consent');
+  }
+
   return Object.freeze({
-    prepare,continueVerifiedLogin,denyWithVerifiedSession
+    prepare,continueVerifiedLogin,denyWithVerifiedSession,
+    consumeVerifiedConsent
   });
 }
