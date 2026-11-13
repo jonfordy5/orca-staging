@@ -175,7 +175,7 @@ test('OIDC provider proposal forces PKCE/resource indicators and disables dev lo
   assert.equal(proposal.features.resourceIndicators.enabled,true);
   assert.equal(proposal.pkce.required(),true);
   assert.equal(proposal.clients[0].token_endpoint_auth_method,'none');
-  assert.deepEqual(proposal.clients[0].grant_types,['authorization_code','refresh_token']);
+  assert.deepEqual(proposal.clients[0].grant_types,['authorization_code']);
   assert.equal(await proposal.features.resourceIndicators.defaultResource(),undefined);
   assert.equal(await proposal.features.resourceIndicators.useGrantedResource(),false);
   assert.equal(proposal.issueRefreshToken(),false);
