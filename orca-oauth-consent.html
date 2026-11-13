@@ -51,14 +51,19 @@ button:disabled{opacity:.55;cursor:not-allowed}
 </main>
 <script type="module">
 import { selectSupabaseConfig } from './orca-staging-config.js';
+import { ORCA_OAUTH_CONSENT_ENABLED, authorizeConsentRequest } from './scripts/orca-oauth-consent-policy.mjs';
 const $=id=>document.getElementById(id);
 const msg=(text,kind='info')=>{$('notice').textContent=text;$('notice').dataset.kind=kind};
 const authorizationId=new URLSearchParams(location.search).get('authorization_id')||'';
-let client=null,pending=false;
+let client=null,pending=false,reviewedRequest=null;
 const validId=/^[a-zA-Z0-9_-]{16,256}$/.test(authorizationId);
 const exactStaging='vbziibatnejoswsdggga.supabase.co';
 
 async function initialize(){
+  if(!ORCA_OAUTH_CONSENT_ENABLED){
+    msg('The ORCA OAuth pilot is not yet enabled. No application can be authorized.','error');
+    return;
+  }
   if(!validId){msg('Invalid or missing authorization request. Start from the agent connection screen.','error');return;}
   try{
     const cfg=await selectSupabaseConfig();
@@ -80,13 +85,15 @@ async function initialize(){
     if(response.error||!response.data)throw new Error('Authorization request cannot be verified');
     const details=response.data;
     if(!('authorization_id' in details)){
-      // Supabase returned an already-authorized redirect, not user input.
-      if(typeof details.redirect_url!=='string')throw new Error('Invalid authorization response');
-      location.replace(details.redirect_url);
-      return;
+      // Existing grants must be reviewed before a beta MCP connection is reused.
+      // The redirect response alone does not reveal a client ID for verification.
+      throw new Error('Existing grant must be reviewed in ORCA before reconnecting');
     }
     if(!details.client||typeof details.client.name!=='string'||
       typeof details.redirect_uri!=='string')throw new Error('Authorization request incomplete');
+    const permission=authorizeConsentRequest(details);
+    if(!permission.ok)throw new Error('The OAuth client or callback is not approved');
+    reviewedRequest=details;
     $('client-name').textContent=details.client.name;
     $('client-redirect').textContent=details.redirect_uri;
     const scopes=typeof details.scope==='string'&&details.scope.trim()?details.scope.trim().split(/\s+/):[];
@@ -98,15 +105,19 @@ async function initialize(){
 }
 
 async function decide(allow){
-  if(pending||!client||!validId)return;
+  if(pending||!client||!validId||!ORCA_OAUTH_CONSENT_ENABLED)return;
+  if(allow&&!authorizeConsentRequest(reviewedRequest).ok){
+    msg('This application is not authorized for the staging pilot.','error');
+    return;
+  }
   pending=true;$('approve').disabled=true;$('deny').disabled=true;
   msg(allow?'Authorizing this application…':'Denying the connection…');
   try{
     // Supabase Auth issues and handles codes/tokens. The website never mints,
     // stores, forwards or renders a client access/refresh token itself.
     const response=allow
-      ?await client.auth.oauth.approveAuthorization(authorizationId)
-      :await client.auth.oauth.denyAuthorization(authorizationId);
+      ?await client.auth.oauth.approveAuthorization(authorizationId,{skipBrowserRedirect:true})
+      :await client.auth.oauth.denyAuthorization(authorizationId,{skipBrowserRedirect:true});
     if(response.error||typeof response.data?.redirect_url!=='string')throw new Error('Authorization request failed');
     location.assign(response.data.redirect_url);
   }catch{
