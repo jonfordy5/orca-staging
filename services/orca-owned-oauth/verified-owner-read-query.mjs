@@ -6,7 +6,7 @@
 // a READ ONLY transaction with a transaction-local verified owner context.
 import {RESEARCH_READ_SQL} from './read-only-research-dispatcher.mjs';
 
-const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const STATEMENTS=new Map([
   [RESEARCH_READ_SQL.PROFILE_SQL,1],
   [RESEARCH_READ_SQL.MEMBERSHIP_SQL,2],
