@@ -36,6 +36,15 @@ jobs:
         run: |
           npm ci --ignore-scripts --no-audit --no-fund
           node --test locked-https.test.mjs
+      - name: Validate the locked Compose deployment configuration
+        env:
+          ORCA_SECRETS_DIR: /tmp
+          ORCA_ISSUER_ORIGIN: https://auth.orca.example.invalid
+          ORCA_MCP_RESOURCE: https://mcp.stage.example.invalid/mcp
+        run: |
+          docker compose \
+            -f services/orca-owned-oauth/mcp-sdk/compose.locked-staging.yml \
+            config --quiet
       - name: Build local container without publishing it
         run: |
           docker build --pull --no-cache \
