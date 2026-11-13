@@ -319,7 +319,8 @@ test('Real local OAuth authorization-code PKCE + Supabase-fixture consent + link
         decision:'approve'
       }
     });
-  assert.ok([302,303].includes(r.status),'Explicit consent must redirect to code');
+  assert.ok([302,303].includes(r.status),
+    'Explicit consent response '+r.status+': '+(await r.text()).slice(0,750));
   next=await proceed(fixture.issuer,jar,r.headers.get('location'));
   assert.ok(next.external,'Successful code flow must return to exact registered callback');
   assert.equal(next.external.origin,new URL(CALLBACK).origin);
