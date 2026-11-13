@@ -8,7 +8,12 @@ import {createExistingResearcherSupabaseHttp} from '../supabase-existing-researc
 const valid=()=>{
   const {privateKey}=generateKeyPairSync('ec',{namedCurve:'P-256'});
   const events=[];
-  const dbQuery=async()=>{events.push('private_database');throw Error('SHOULD_NOT_REACH_DB');};
+  const verifiedIssuerConnector={
+    async connect(){
+      events.push('private_database');
+      throw Error('LOCKED_CANNOT_CONNECT');
+    }
+  };
   const supabaseUserAdapter=createExistingResearcherSupabaseHttp({
     supabaseUrl:'https://vbziibatnejoswsdggga.supabase.co',
     publishableKey:'sb_publishable_'+'A'.repeat(32),
@@ -33,7 +38,7 @@ const valid=()=>{
     browserSessionKeyring:[{
       id:'stage21-browser-key-001',key:randomBytes(32)
     }],
-    issuerQuery:dbQuery,
+    verifiedIssuerConnector,
     supabaseUserAdapter
   };
   return {parameters,events};
@@ -91,7 +96,7 @@ test('reject login bypass, wrong origins, shared key, duplicate cookie secret an
     {mcpResource:'https://mcp.orca.example.invalid/mcp?token=secret'},
     {redirectUri:'http://callback.example.invalid/oauth'},
     {clientId:'bad\nclient'},
-    {issuerQuery:null},
+    {verifiedIssuerConnector:null},
     {supabaseUserAdapter:{auth:{getUser:async()=>({})}}},
     {providerCookieKeys:[parameters.providerCookieKeys[0],parameters.providerCookieKeys[0]]},
     {providerCookieKeys:['easilyguessed','notsecure']},
