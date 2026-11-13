@@ -1,0 +1,17 @@
+{
+  "name": "@orca/owned-research-mcp-staging",
+  "version": "0.0.0-offline",
+  "private": true,
+  "type": "module",
+  "description": "Disabled ORCA read-only MCP SDK v2 integration (not a public service)",
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/server": "2.3.1",
+    "zod": "4.1.12"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs"
+  }
+}
