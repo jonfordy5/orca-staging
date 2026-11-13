@@ -18,7 +18,8 @@ test('MCP uses official OAuth resource metadata and verified user middleware bef
   assert.match(mcp,/withSupabase\(\{ auth: 'user' \}\)/);
   assert.ok(mcp.indexOf('withOAuthProtectedResource()')<mcp.indexOf("withSupabase({ auth: 'user' })"));
   assert.match(mcp,/auth\.getClaims\(\)/);
-  assert.match(mcp,/import \{ authorizeReadOnlyMcpClaims, ORCA_MCP_STAGING_ISSUER \} from '\.\/token-policy\.mjs'/);
+  assert.match(mcp,/import \{ authorizeReadOnlyMcpClaims \} from '\.\/token-policy\.mjs'/);
+  assert.match(mcp,/import \{ readCurrentGrants \} from '\.\/grant-request\.mjs'/);
   assert.match(mcp,/import \{ hasCurrentOAuthGrant \} from '\.\/grant-policy\.mjs'/);
   assert.match(mcp,/ORCA_MCP_APPROVED_CLIENT_IDS/);
   assert.match(mcp,/auth\.getUser\(\)/);
