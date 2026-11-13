@@ -34,7 +34,7 @@ jobs:
       - name: Install exact pinned development-only OAuth library
         run: npm ci --prefix services/orca-owned-oauth --no-audit --no-fund --ignore-scripts
       - name: Test actual OAuth library discovery and deny all authorization endpoints
-        run: node --test scripts/test-orca-owned-oauth-library-smoke.mjs scripts/test-orca-owned-oauth-library-storage.mjs services/orca-owned-oauth/tests/code-flow.test.mjs services/orca-owned-oauth/tests/locked-issuer-assembly.test.mjs services/orca-owned-oauth/tests/locked-issuer-host-startup.test.mjs services/orca-owned-oauth/tests/locked-issuer-host-startup-integration.test.mjs
+        run: node --test scripts/test-orca-owned-oauth-library-smoke.mjs scripts/test-orca-owned-oauth-library-storage.mjs services/orca-owned-oauth/tests/code-flow.test.mjs services/orca-owned-oauth/tests/locked-issuer-assembly.test.mjs services/orca-owned-oauth/tests/locked-issuer-host-startup.test.mjs services/orca-owned-oauth/tests/locked-issuer-host-startup-integration.test.mjs services/orca-owned-oauth/tests/locked-issuer-tls-server.test.mjs
       - name: Confirm no public OAuth release flag
         run: |
           node --input-type=module -e "import {ORCA_OWNED_ISSUER_ENABLED} from './services/orca-owned-oauth/issuer-policy.mjs';if(ORCA_OWNED_ISSUER_ENABLED!==false)process.exit(1)"
