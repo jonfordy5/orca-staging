@@ -9,6 +9,10 @@
 import {randomUUID,createHash} from 'node:crypto';
 
 export const OWNED_READ_SCOPE='orca:research.read';
+export const CURRENT_GRANT_SELECT='select 1 as active from orca_owned_oauth_private.grants ' +
+  'where id=$1 and owner_id=$2 and client_id=$3 ' +
+  'and resource=$4 and scope=$5 ' +
+  'and revoked_at is null and expires_at > now() limit 1';
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const MAX_GRANT_MS=30*24*60*60*1000;
 const CLIENT_IDENTIFIER=/^[\x21-\x7e]{1,512}$/;
@@ -68,10 +72,7 @@ export function createOwnedGrantRegistry({query,resource}={}){
     requireClientId(clientId);
     if(aud!==resource||scope!==OWNED_READ_SCOPE)return false;
     const result=await query(
-      'select 1 as active from orca_owned_oauth_private.grants '+
-      'where id=$1 and owner_id=$2 and client_id=$3 '+
-      'and resource=$4 and scope=$5 '+
-      'and revoked_at is null and expires_at > now() limit 1',
+      CURRENT_GRANT_SELECT,
       [grantId,ownerId,clientId,resource,scope]
     );
     return result?.rowCount===1&&result.rows?.[0]?.active===1;
