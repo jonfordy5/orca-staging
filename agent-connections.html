@@ -194,6 +194,16 @@ async function initialize(){
     sb=createClient(cfg.projectUrl,cfg.publishableKey,{
       auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}
     });
+    // Never keep the previous owner's authorized app names visible after a
+    // sign-out or switch to a different ORCA account in another browser tab.
+    sb.auth.onAuthStateChange((_event, authSession)=>{
+      if(!ownerId)return;
+      if(authSession?.user?.id !== ownerId){
+        grants=[];grantsKnown=false;pendingId=null;
+        $('ready').hidden=true;$('signed-out').hidden=false;
+        status('Your ORCA account changed. Sign in again to review connections.','error');
+      }
+    });
     const session=await sb.auth.getUser();
     if(session.error||!session.data?.user?.id){
       $('signed-out').hidden=false;
