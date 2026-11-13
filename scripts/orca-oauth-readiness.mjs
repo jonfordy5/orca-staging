@@ -4,7 +4,9 @@
 export const ORCA_STAGING_PROJECT='https://vbziibatnejoswsdggga.supabase.co';
 export const ORCA_STAGING_ISSUER=ORCA_STAGING_PROJECT+'/auth/v1';
 export const ORCA_STAGING_RESOURCE=ORCA_STAGING_PROJECT+'/functions/v1/orca-agent-mcp';
-export const ORCA_STAGING_RESOURCE_METADATA=ORCA_STAGING_RESOURCE+'/.well-known/oauth-protected-resource';
+// @supabase/server withOAuthProtectedResource serves discovery at the
+// function URL + /oauth-protected-resource (not under /.well-known here).
+export const ORCA_STAGING_RESOURCE_METADATA=ORCA_STAGING_RESOURCE+'/oauth-protected-resource';
 export const ORCA_STAGING_AUTH_METADATA=ORCA_STAGING_PROJECT+'/.well-known/oauth-authorization-server/auth/v1';
 
 // Independent operator release gate. This MUST stay false until a real, correctly
