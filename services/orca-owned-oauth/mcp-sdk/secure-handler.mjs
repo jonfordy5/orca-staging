@@ -25,7 +25,8 @@ function exactHttps(value){
   try{
     const url=new URL(value);
     return url.protocol==='https:'&&!url.username&&!url.password&&
-      !url.search&&!url.hash&&url.href===value;
+      !url.search&&!url.hash&&
+      (url.href===value||(url.pathname==='/'&&url.origin===value));
   }catch{return false;}
 }
 function canonicalMetadata(resource){
