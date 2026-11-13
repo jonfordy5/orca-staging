@@ -25,6 +25,12 @@ function exactHttps(value){
       (u.href===value||(u.pathname==='/'&&u.origin===value));
   }catch{return false;}
 }
+// RFC 9728 requires the well-known segment between host and resource path.
+function canonicalResourceMetadataUrl(resource){
+  const parsed=new URL(resource);
+  return parsed.origin+'/.well-known/oauth-protected-resource'+
+    (parsed.pathname==='/'?'':parsed.pathname);
+}
 function respond(body,status,more={}){
   return new Response(body,{
     status,headers:{...JSON_HEADERS,'content-type':'application/json',...more}
@@ -87,7 +93,7 @@ export function createOwnedMcpAdmission({
 }={}){
   if(!exactHttps(issuer)||!exactHttps(resource)||
      !exactHttps(metadataUrl)||
-     new URL(metadataUrl).origin!==new URL(resource).origin||
+     metadataUrl!==canonicalResourceMetadataUrl(resource)||
      issuer===resource||resource===metadataUrl||
      (enabled&&(typeof dispatchReadOnly!=='function'||
        typeof verifierOptions?.currentGrant!=='function')))
