@@ -50,7 +50,7 @@ test('Every MCP read checks verified subject then the live OAuth grant endpoint 
   assert.match(mcp,/authorizeReadOnlyMcpClaims/);
   assert.match(mcp,/hasCurrentOAuthGrant/);
   assert.match(mcp,/readCurrentGrants\(req\)/);
-  assert.match(mcp,/if\(!hasCurrentOAuthGrant\(grants,claims.client_id\)\)/);
+  assert.match(mcp,/if\s*\(!hasCurrentOAuthGrant\(grants,\s*claims.client_id\)\)/);
   assert.match(mcp,/\/user\/oauth\/grants/);
   assert.match(mcp,/redirect:'error'/);
   assert.match(mcp,/credentials:'omit'/);
