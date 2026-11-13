@@ -3,11 +3,12 @@
 // Any live adapter, real consent interaction, client metadata, signing key and
 // gate must be independently vetted before provider construction.
 import {ORCA_READ_SCOPE} from './issuer-policy.mjs';
+import {claimForProviderAccessToken} from './issued-token-binding.mjs';
 
 const clientIdentifier=/^[\x21-\x7e]{1,512}$/;
 export function buildOidcProviderProposal({
   resource,clientId,redirectUri,kid,findAccount,persistentAdapter,
-  interactionUrl
+  interactionUrl,lookupOwnedGrant
 }={}){
   if(typeof resource!=='string'||!resource.startsWith('https://')||
      typeof clientId!=='string'||!clientIdentifier.test(clientId)||
@@ -29,6 +30,11 @@ export function buildOidcProviderProposal({
     clients:[registeredClient],
     adapter:persistentAdapter,
     findAccount,
+    // oidc-provider executes this on access-token issuance. No token may be
+    // issued until a separate, private, exact owned-grant mapping exists.
+    extraTokenClaims:async (_ctx,token)=>claimForProviderAccessToken(token,{
+      resource,approvedClientId:clientId,lookupOwnedGrant
+    }),
     scopes:['openid','profile',ORCA_READ_SCOPE],
     responseTypes:['code'],
     pkce:{required:()=>true},
