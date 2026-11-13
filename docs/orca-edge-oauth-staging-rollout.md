@@ -78,3 +78,23 @@ If any existing browser function breaks or function changes unexpectedly, immedi
 - **PR #80** has its staging database policies and global API guard active, but its optional OAuth audience hook and registered clients are still disabled.
 - **OAuth RFC 8707 audience binding is an external compatibility gate.** As of Nov 12, upstream Supabase Auth [issue #2610](https://github.com/supabase/auth/issues/2610) and [PR #2894](https://github.com/supabase/auth/pull/2894) remain open; do **not** weaken the MCP audience requirement to skip this gate. A tested compatible issuer path is required before ChatGPT can genuinely connect.
 - Once OAuth works, verify Connect / explicit consent / read-only researcher data / token expiry / Disconnect and revocation with both real accounts. Claim and publish scopes come later under additional review.
+
+
+## November 12 follow-up: two additional website-only endpoint guards (code only)
+
+The OAuth threat-surface review found two **additional** existing staging Edge Functions that should not accept the linked read-only agent's bearer. Both are now protected in PR #81 **SOURCE ONLY; THEY HAVE NOT BEEN DEPLOYED**:
+
+| Function | Current live version | `verify_jwt` to retain | Added guard | Why |
+| --- | ---: | --- | --- | --- |
+| `orca-stock-discovery` | **5** | `false` | On authenticated POST, immediately after `admin.auth.getUser(token)` | Stops a linked AI bearer from using a service-role stock-registration upsert |
+| `orca-unsplash-photo-pilot` | **1** | `true` | On GET, after `supabaseAuth.auth.getUser(token)`, before Unsplash key or HTTP request | Stops OAuth-bearer consumption of the browser-only photo-search API quota |
+
+The stock-discovery public GET search/OPTIONS handlers remain untouched. Only its authenticated POST path is guarded. The Unsplash preview has gateway JWT verification already enabled; its new authenticated-user check uses the project's **public anon key**, never a service-role client. The existing response format, event mapping, Unsplash request and browser CORS headers remain intact.
+
+Each new guard reuses the SAME verified-bearer, owner-bound `_shared/orca-browser-token.ts` deny rule that has already been used for the six deployed website functions. CORS/Origin alone is not trusted to establish browser identity.
+
+**Source fidelity and CI:** `scripts/test-orca-extra-browser-edge-oauth-boundary.mjs` strips only the newly added import/guard from each candidate source and verifies the exact character length and stored FNV-64 UTF-16 fingerprint of the pre-change deployed source. The tests also assert Auth verification occurs before any service-role stock write or paid photo request, and test synthetic browser vs OAuth token claims. Added both functions to the Edge dependency resolver. [Browser-only Edge CI #43362070314](https://github.com/jonfordy5/orca-staging/actions/runs/43362070314) **PASSED**.
+
+**Deployment authorization remains separate.** Prior approval and deployment covered only the original six functions. Do not assume that permission extends to these two. Before deploying either to Orca-staging, confirm source fidelity again against freshly retrieved LIVE source, preserve its `verify_jwt` flag, snapshot the old version for rollback and explicitly authorize the two-function staging rollout. Production stays untouched.
+
+**Boundary disclosure:** `orca-company-profile` and `orca-company-official-metrics` are anonymous GET-only endpoints using service-role writes to PUBLIC cached company data; even an unlinked visitor can invoke them without OAuth. These are existing public rate/cost-abuse surfaces and require a separate quota review, not a claim that blocking the OAuth bearer alone closes them. `orca-wikimedia-pilot` is a public GET-only no-database endpoint; `orca-agent-readonly` is independently owner-scoped, read-only and JWT verified.
