@@ -1,0 +1,50 @@
+name: ORCA-owned official MCP SDK v2 (offline integration)
+
+on:
+  push:
+    branches:
+      - feat/orca-owned-oauth-fallback-20261112
+    paths:
+      - services/orca-owned-oauth/mcp-sdk/**
+      - services/orca-owned-oauth/bound-token.mjs
+      - services/orca-owned-oauth/mcp-resource-policy.mjs
+      - services/orca-owned-oauth/read-only-research-dispatcher.mjs
+      - .github/workflows/orca-owned-oauth-mcp-sdk.yml
+  pull_request:
+    paths:
+      - services/orca-owned-oauth/mcp-sdk/**
+      - services/orca-owned-oauth/bound-token.mjs
+      - services/orca-owned-oauth/mcp-resource-policy.mjs
+      - services/orca-owned-oauth/read-only-research-dispatcher.mjs
+      - .github/workflows/orca-owned-oauth-mcp-sdk.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  offline-sdk-integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: services/orca-owned-oauth/mcp-sdk
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Generate isolated deterministic npm lock for source checkpoint
+        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+      - name: Emit generated public package-lock for GitHub branch preservation
+        run: |
+          echo ORCA_STAGE12_PACKAGE_LOCK_BEGIN
+          cat package-lock.json
+          echo ORCA_STAGE12_PACKAGE_LOCK_END
+      - name: Install pinned SDK v2 and official schema dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Run official SDK local HTTP and two-owner security tests
+        run: npm test
+      - name: Confirm ORCA OAuth operator activation remains disabled
+        run: |
+          node --input-type=module -e "import {ORCA_OWNED_ISSUER_ENABLED as flag} from '../issuer-policy.mjs';if(flag!==false)process.exit(1)"
