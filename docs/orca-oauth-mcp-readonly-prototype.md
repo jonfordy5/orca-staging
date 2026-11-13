@@ -57,6 +57,28 @@ The MCP prototype now **fails closed** unless the signed OAuth JWT's `iss` is th
 
 The user-facing connection cannot go live until a real issuer/token exchange confirms compatibility with ChatGPT's exact registered OAuth callback and MCP resource URL. No authorization credentials or identity data may be pasted into chat during testing.
 
+## Live staging public discovery + tested MCP authorization — November 12, 2026
+
+The read-only, credential-free [OAuth readiness preflight](https://github.com/jonfordy5/orca-staging/actions/runs/43337454398) ran against **Orca-staging only**. It issued plain HTTP GET requests to public discovery/JWKS endpoints. It did **not** enable the OAuth server, register any client, perform authorization, issue tokens or touch research records.
+
+| Checked public endpoint | Actual result | What it proves |
+|---|---|---|
+| `/.well-known/oauth-authorization-server/auth/v1` | **404** | OAuth authorization-server discovery is not active yet (consistent with deliberately disabled OAuth) |
+| `/auth/v1/.well-known/openid-configuration` | **200** | Issuer matches the expected staging Auth URL; authorization-code and PKCE S256 capabilities advertised |
+| `/auth/v1/.well-known/jwks.json` | **200**, with **one** asymmetric signing key | The publicly advertised JWKS has an asymmetric key; this is a prerequisite for the chosen Supabase middleware |
+| RFC 8707 `resource` passed through code exchange and refresh | **Not tested / no token issued** | A discovery response does not prove resource audience binding |
+
+**Security improvement in PR #79:** `supabase/functions/orca-agent-mcp/token-policy.mjs` now contains a small, pure, fail-closed resource, OAuth client and owner identity validator used by the actual MCP handler. The `scripts/test-orca-oauth-resource-policy.mjs` matrix exercises:
+- Upstream proposed `aud: ["authenticated", "<exact ORCA MCP resource>"]`, as well as a single resource-string audience.
+- Rejection of ordinary browser tokens, wrong issuer, generic audience, similar-looking resource URL, missing/unknown `client_id`, malformed claims and wrong researcher.
+- Empty client allowlist rejects everybody; even metadata-document URL client IDs require an **exact** explicit allowlist match.
+
+**These tests do not verify a JWT signature, expiry, grant revocation or a real ChatGPT authorization-code exchange**: the existing Supabase middleware and Auth validation are responsible for verifying bearer signatures and sessions. The token policy alone is never sufficient authentication.
+
+**Actual upstream standards status** checked via GitHub on November 12: Supabase Auth [issue #2610](https://github.com/supabase/auth/issues/2610) remained open and [PR #2894](https://github.com/supabase/auth/pull/2894) remained **open/unmerged**. Its proposal binds the resource audience during authorization-code issuance and refresh. **Do not enable OAuth or relax the audience checks merely because synthetic audience tests pass.**
+
+Separate owner approval is required for OAuth enabling, client registration, token hook registration and MCP function deployment. Until native resource binding is verified against the actual deployed staging Auth version, the account-connection screen must continue to report **not linked**.
+
 ## Planned activation gates (separate owner approval required)
 
 1. Confirm staging uses **asymmetric** RS256/ES256 Supabase signing keys; `@supabase/server` JWKS middleware rejects legacy HS256. No signing-key migration without explicit owner approval.
