@@ -51,13 +51,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-      - name: Resolve pinned node-postgres dependency for isolated persistence tests
-        working-directory: services/orca-owned-oauth/private-pg-tests
-        run: |
-          npm install --package-lock-only --ignore-scripts --no-audit --no-fund
-          echo ORCA_STAGE19_PG_LOCK_BEGIN
-          cat package-lock.json
-          echo ORCA_STAGE19_PG_LOCK_END
       - name: Install pinned node-postgres into isolated test package
         working-directory: services/orca-owned-oauth/private-pg-tests
         run: npm ci --ignore-scripts --no-audit --no-fund
