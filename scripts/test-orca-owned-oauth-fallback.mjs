@@ -193,3 +193,29 @@ test('OIDC provider proposal forces PKCE/resource indicators and disables dev lo
     persistentAdapter:class DurableAdapter {},findAccount:()=>{},
     interactionUrl:'/interaction/consent'}),/vetted_issuer_configuration_required/);
 });
+
+
+test('Standalone ORCA-owned MCP request gate rejects other resources, Supabase tokens and revoked grants',async()=>{
+  const {authorizeOwnedMcpRequest,makeProtectedResourceMetadata}=await import(
+    '../services/orca-owned-oauth/mcp-resource-policy.mjs'
+  );
+  assert.deepEqual(makeProtectedResourceMetadata({issuer,resource}),{
+    resource,authorization_servers:[issuer],scopes_supported:['orca:research.read'],
+    bearer_methods_supported:['header']
+  });
+  const signed=signBoundAccessToken({issuer,resource,grant,kid,privateKey:keys.privateKey});
+  const req=(url,token,method='POST')=>new Request(url,{
+    method,headers:token?{authorization:'Bearer '+token}:{}
+  });
+  const valid=await authorizeOwnedMcpRequest(req(resource,signed),tokenConfig);
+  assert.deepEqual(valid,{ok:true,ownerId,clientId,grantId});
+  assert.equal((await authorizeOwnedMcpRequest(req(resource,signed,'GET'),tokenConfig)).ok,false);
+  assert.equal((await authorizeOwnedMcpRequest(req(resource+'?access_token=x',signed),tokenConfig)).ok,false);
+  assert.equal((await authorizeOwnedMcpRequest(req('https://attacker.example/mcp',signed),tokenConfig)).ok,false);
+  assert.equal((await authorizeOwnedMcpRequest(req(resource,null),tokenConfig)).ok,false);
+  assert.equal((await authorizeOwnedMcpRequest(req(resource,'supabase.jwt.token'),tokenConfig)).ok,false);
+  assert.equal((await authorizeOwnedMcpRequest(req(resource,signed),
+    {...tokenConfig,currentGrant:async()=>false})).ok,false);
+  assert.equal((await authorizeOwnedMcpRequest(req(resource,signed),
+    {...tokenConfig,currentGrant:null})).ok,false);
+});
