@@ -10,8 +10,13 @@ export const APPROVED_OAUTH_CLIENT_REDIRECTS = Object.freeze({});
 
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-export function authorizeConsentRequest(details) {
-  if (!ORCA_OAUTH_CONSENT_ENABLED) return {ok:false,reason:'pilot_disabled'};
+// Pure gate allows isolated positive/negative testing without enabling the pilot.
+// Only the wrapper below is imported by the real consent UI.
+export function assessVettedConsent(details, settings) {
+  if (settings?.enabled!==true) return {ok:false,reason:'pilot_disabled'};
+  const approvedClientRedirects=settings?.approvedClientRedirects;
+  if (!approvedClientRedirects || typeof approvedClientRedirects!=='object' ||
+      Array.isArray(approvedClientRedirects)) return {ok:false,reason:'missing_registry'};
   if (!details || typeof details !== 'object' || Array.isArray(details)) {
     return {ok:false,reason:'invalid_request'};
   }
@@ -19,10 +24,10 @@ export function authorizeConsentRequest(details) {
   if (typeof clientId !== 'string' || !uuid.test(clientId)) {
     return {ok:false,reason:'invalid_client'};
   }
-  if (!Object.hasOwn(APPROVED_OAUTH_CLIENT_REDIRECTS,clientId)) {
+  if (!Object.hasOwn(approvedClientRedirects,clientId)) {
     return {ok:false,reason:'client_not_approved'};
   }
-  const approvedRedirect=APPROVED_OAUTH_CLIENT_REDIRECTS[clientId];
+  const approvedRedirect=approvedClientRedirects[clientId];
   const submittedRedirect=details.redirect_uri;
   if (typeof approvedRedirect!=='string' || !approvedRedirect ||
     typeof submittedRedirect!=='string' || submittedRedirect!==approvedRedirect) {
@@ -39,4 +44,11 @@ export function authorizeConsentRequest(details) {
     return {ok:false,reason:'invalid_authorization'};
   }
   return {ok:true,reason:'approved'};
+}
+
+export function authorizeConsentRequest(details) {
+  return assessVettedConsent(details, {
+    enabled: ORCA_OAUTH_CONSENT_ENABLED,
+    approvedClientRedirects: APPROVED_OAUTH_CLIENT_REDIRECTS
+  });
 }
