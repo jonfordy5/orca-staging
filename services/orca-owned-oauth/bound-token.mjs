@@ -9,6 +9,9 @@ export const READ_SCOPE='orca:research.read';
 export const MAX_ACCESS_SECONDS=300;
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const clientIdentifier=/^[\x21-\x7e]{1,512}$/;
+// oidc-provider v9 uses a high-entropy 43-character base64url jti;
+// hand-signed ORCA test tokens use UUID jti. Both are opaque, not owner IDs.
+const tokenIdentifier=/^[A-Za-z0-9_-]{16,128}$/;
 const b64=/^[A-Za-z0-9_-]+$/;
 
 function record(v){return v!==null&&typeof v==='object'&&!Array.isArray(v);}
@@ -62,7 +65,7 @@ export async function verifyBoundAccessToken(token,{
     if(claims.iss!==issuer||claims.aud!==resource||claims.iss===resource)
       return deny('wrong_issuer_or_resource');
     if(!uuid.test(claims.sub||'')||!clientIdentifier.test(claims.client_id||'')||
-       !uuid.test(claims.grant_id||'')||!uuid.test(claims.jti||'')||
+       !uuid.test(claims.grant_id||'')||!tokenIdentifier.test(claims.jti||'')||
        claims.scope!==READ_SCOPE||
        !Number.isInteger(claims.iat)||!Number.isInteger(claims.exp)||
        claims.iat>now+30||claims.exp<=now||
