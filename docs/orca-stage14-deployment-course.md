@@ -115,3 +115,64 @@ node deployment-preflight.cli.mjs --mode oauth-discovery
 **OAuth-discovery mode** requires exact RFC 9728 MCP protected-resource metadata, the `401` `WWW-Authenticate` challenge, exact read-only scope `orca:research.read`, an issuer with authorization-code and PKCE S256 metadata, and a same-issuer public ES256 JWKS without private signing material. This is **not** a full OAuth login test. Even a passing result sets `publicDeploymentAuthorized=false`; it does not verify human consent, real Supabase authentication, private database roles, registration of the actual ChatGPT callback, or two real consenting research accounts.
 
 Implementation: `mcp-sdk/deployment-preflight.mjs`, `.cli.mjs`, and `.test.mjs`. The preflight tests are exercised by the official MCP CI suite. If a probe fails, fix the actual host/issuer configuration rather than weakening the checks. Keep the issuer and MCP release gates OFF until the real acceptance criteria above are met.
+
+
+## Stage 16 — operator-approved public locked HTTPS pilot
+
+**Prepared in draft code; NOT deployed.** This uses a distinct, manually selected Compose file, never an automatic GitHub Actions deployment. The public locked-only build still makes `/mcp` and authorization discovery return 503. It does not connect a real ChatGPT agent.
+
+### Before publishing TCP 443
+
+Choose and control the actual VPS and two separate public DNS names, as described above. Confirm the provider-level firewall allows only approved management access and TCP 443 for this staging service. **Docker port publishing can bypass some host firewall rules; use the provider/cloud firewall or audited DOCKER-USER rules.** There must be no public Supabase database port or issuer service accidentally reachable. Obtain a real publicly trusted certificate and renew it without writing private keys to GitHub, the container image, logs or chat.
+
+Prepare a restricted directory holding **key.pem** and **cert.pem**, readable by the non-root Node container UID **1000**. The private key should not be readable by other users. Certbot-managed live symlinks may not be directly usable as a read-only mount; copy the renewed PEMs into the restricted mount with an audited deploy hook and restart only after validating both files.
+
+From repository root, place the following in a **private operator-host file**, replacing placeholders with real values:
+
+```dotenv
+ORCA_SECRETS_DIR=/absolute/restricted/orca-certs
+ORCA_MCP_RESOURCE=https://APPROVED-MCP-HOST/mcp
+ORCA_ISSUER_ORIGIN=https://APPROVED-DIFFERENT-ISSUER-HOST
+ORCA_PUBLIC_LOCKED_DEPLOY_ACK=I_APPROVE_PUBLIC_LOCKED_TLS_ONLY
+```
+
+Use the Stage 16 private certificate preflight first. It requires the DNS SAN, key pair and at least 14 remaining days of certificate validity, and intentionally **does not** claim to validate a public CA chain:
+
+```bash
+cd services/orca-owned-oauth/mcp-sdk
+npm ci --ignore-scripts --no-audit --no-fund
+set -a; . /path/to/private/staging.env; set +a
+node host-tls-preflight.cli.mjs
+cd ../../..
+```
+
+Only after confirming the actual host/firewall/DNS/TLS and getting the operator's explicit approval for a **public locked-only pilot**, use the separate Compose file:
+
+```bash
+docker compose --profile public-locked --env-file /path/to/private/staging.env \
+  -f services/orca-owned-oauth/mcp-sdk/compose.public-locked.yml config --quiet
+docker compose --profile public-locked --env-file /path/to/private/staging.env \
+  -f services/orca-owned-oauth/mcp-sdk/compose.public-locked.yml up -d --build
+```
+
+That intentionally maps public TCP **443 to container 8443**, with direct HTTPS termination in Node and the deployment acknowledgement enforced at startup. **Do not combine it with the localhost Compose file.** Run the certificate-trusting remote preflight from a separate operator computer (not `curl -k`):
+
+```bash
+cd services/orca-owned-oauth/mcp-sdk
+ORCA_MCP_RESOURCE=https://APPROVED-MCP-HOST/mcp \
+ORCA_ISSUER_ORIGIN=https://APPROVED-DIFFERENT-ISSUER-HOST \
+node deployment-preflight.cli.mjs --mode locked
+```
+
+A pass requires valid public HTTPS plus locked health=200, `/mcp`=503 and protected-resource metadata=503. It is **not** permission to activate agents. No OAuth keys, private database roles, connected ChatGPT clients or real human consent are supplied by this package.
+
+### Public pilot rollback
+
+On the operator host, remove just the locked public pilot using its dedicated Compose manifest:
+
+```bash
+docker compose --profile public-locked --env-file /path/to/private/staging.env \
+  -f services/orca-owned-oauth/mcp-sdk/compose.public-locked.yml down
+```
+
+Then close public 443 for this service in the provider firewall, inspect logs without exposing secrets, and leave the existing ORCA Pages and Supabase research records untouched. Only a separately reviewed Stage 17 issuer/MCP activation flow can change the locked behavior.
