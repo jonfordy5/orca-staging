@@ -169,3 +169,15 @@ test('An ORCA JWT, backed by a new durable grant, is denied immediately after Di
   assert.equal(after.reason,'grant_revoked_or_mismatched');
   assert.equal((await verifyBoundAccessToken(token,opts)).ok,false);
 });
+
+
+test('Opaque URL-form OAuth client ID remains exactly bound across grant and revoke',async()=>{
+  const db=fakePg(),r=createOwnedGrantRegistry({query:db.query,resource});
+  const clientUrl='https://agent.example/.well-known/oauth-client.json';
+  const granted=await r.createGrant({ownerId:ownerA,clientId:clientUrl,
+    expiresAt:expiresAt(),assertApprovedConsent:async()=>true});
+  assert.equal(await r.isCurrentGrant(granted),true);
+  assert.equal(await r.isCurrentGrant({...granted,clientId:'https://other.example/client.json'}),false);
+  assert.equal(await r.revokeGrant({verifiedOwnerId:ownerA,grantId:granted.grantId}),true);
+  assert.equal(await r.isCurrentGrant(granted),false);
+});
