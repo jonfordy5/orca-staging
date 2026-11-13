@@ -18,6 +18,11 @@ function privateFile(name){
 }
 if(requireValue('ORCA_STAGE14_LOCKED_ACK')!=='LOCKED_STAGING_ONLY')
   throw Error('explicit_locked_staging_ack_required');
+// Public locked Compose deploy requires a separate operator acknowledgement.
+// It NEVER grants permission to activate OAuth or any research tools.
+if(env.ORCA_PUBLIC_LOCKED_DEPLOY_ACK!==undefined&&
+   env.ORCA_PUBLIC_LOCKED_DEPLOY_ACK!=='I_APPROVE_PUBLIC_LOCKED_TLS_ONLY')
+  throw Error('invalid_public_locked_deploy_ack');
 if(requireValue('ORCA_MCP_ENABLED')!=='false'||
    requireValue('ORCA_OWNED_ISSUER_ENABLED')!=='false')
   throw Error('stage14_release_must_remain_disabled');
