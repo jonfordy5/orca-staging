@@ -77,7 +77,7 @@ $('back').href=orcaStagingHref('./connect-work.html',{ticker});
 $('signin').href=orcaStagingHref('./account.html',{
   ticker,environment:'orca-staging',returnTo:'agent-connections.html'
 });
-let sb=null,ownerId='',grants=[],busy=false,pendingId=null;
+let sb=null,ownerId='',grants=[],grantsKnown=false,busy=false,pendingId=null;
 
 function element(tag,cls,text){
   const el=document.createElement(tag);
@@ -96,6 +96,7 @@ function formatScopes(scopes){
 function render(){
   const list=$('grants');
   list.replaceChildren();
+  if(!grantsKnown){list.hidden=true;return;}
   if(!grants.length){
     list.append(element('p','small','No applications are currently authorized in this ORCA account.'));
     list.hidden=false;
@@ -148,19 +149,19 @@ async function refresh(){
   try{
     if(!await verifyOwner()){
       status('Your ORCA session changed. Sign in again before managing connections.','error');
-      grants=[];pendingId=null;
+      grants=[];grantsKnown=false;pendingId=null;
       $('ready').hidden=true;$('signed-out').hidden=false;
       return;
     }
     const next=await listOwnedGrants(sb.auth.oauth);
-    grants=next;pendingId=null;
+    grants=next;grantsKnown=true;pendingId=null;
     status(next.length
       ?'Authorized applications found in your ORCA account.'
       :'No authorized applications found for your account.','success');
   }catch{
     // Fail closed: never imply "not connected" if the provider returned
     // an error, including when the OAuth server has not been enabled.
-    grants=[];pendingId=null;
+    grants=[];grantsKnown=false;pendingId=null;
     status('OAuth connection management is not available yet. Nothing was connected or disconnected.','error');
   }finally{setBusy(false);}
 }
@@ -170,12 +171,12 @@ async function disconnect(id){
   try{
     if(!await verifyOwner())throw new Error('Session changed');
     const after=await revokeOwnedGrant(sb.auth.oauth,id);
-    grants=after;pendingId=null;
+    grants=after;grantsKnown=true;pendingId=null;
     status('Authorization revoked and verified. Previously issued access tokens may remain valid until expiry.','success');
   }catch{
     // Do not fabricate a successful revocation. Reload authoritative list,
     // if possible, and keep a clear uncertainty warning.
-    try{grants=await listOwnedGrants(sb.auth.oauth)}catch{grants=[]}
+    try{grants=await listOwnedGrants(sb.auth.oauth);grantsKnown=true}catch{grants=[];grantsKnown=false}
     pendingId=null;
     status('Disconnect could not be confirmed. This application may still have access; check again.','error');
   }finally{setBusy(false);}
