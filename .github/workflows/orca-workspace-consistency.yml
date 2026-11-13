@@ -32,6 +32,8 @@ jobs:
         run: node --test scripts/test-orca-agent-check-page.mjs
       - name: Verify un-deployed OAuth MCP consent and read-only account boundaries
         run: node --test scripts/test-orca-oauth-mcp-readonly.mjs
+      - name: Verify strict resource audience, OAuth client ID, and owner isolation decisions
+        run: node --test scripts/test-orca-oauth-resource-policy.mjs
       - name: Exercise business illustrations, authorization and cache preservation
         run: node scripts/test-timeline-photo-behavior.cjs
       - name: Verify progressive Unsplash searches without provider calls
