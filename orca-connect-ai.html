@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex,nofollow">
+<title>ORCA — Connect Your AI (Staging)</title>
+<style>
+:root{color-scheme:dark;--bg:#081b25;--panel:#112e3a;--border:#375361;--mint:#80e8bd;--ink:#f3faf7;--muted:#b7d0d4}
+*{box-sizing:border-box}[hidden]{display:none!important}
+body{background:radial-gradient(ellipse at top,#174352,var(--bg) 68%);color:var(--ink);font:15px/1.55 system-ui,sans-serif;margin:0}
+header,main{max-width:900px;margin:auto;padding:23px}
+header{display:flex;justify-content:space-between;gap:14px;align-items:center}
+header strong{letter-spacing:.07em;color:var(--mint)}
+a{color:var(--mint)}
+main{padding-top:18px;padding-bottom:55px}
+h1{font-size:clamp(31px,5vw,48px);line-height:1.13;letter-spacing:-.03em;margin:8px 0}
+p{color:var(--muted)}
+.eyebrow{color:var(--mint);font-size:12px;font-weight:800;letter-spacing:.13em}
+.lead{font-size:17px;max-width:740px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:23px 0}
+.card{background:var(--panel);border:1px solid var(--border);padding:22px;border-radius:15px}
+.card h2{font-size:19px;margin:0 0 7px}
+.number{display:inline-grid;place-items:center;width:27px;height:27px;border-radius:8px;background:#274b53;color:var(--mint);margin-right:8px}
+.state{margin:13px 0;background:#224550;border-radius:10px;padding:11px 13px;white-space:pre-wrap;overflow-wrap:anywhere}
+.state[data-kind=error]{background:#623b35}
+.state[data-kind=good]{background:#1f5242}
+button,.action{display:inline-block;border-radius:10px;border:1px solid #79cdb0;background:var(--mint);color:#092820;padding:10px 14px;font:750 14px system-ui;cursor:pointer;text-decoration:none}
+button.secondary,.action.secondary{background:#254754;color:var(--ink);border-color:#537480}
+button:disabled{opacity:.55;cursor:not-allowed}
+.actions{display:flex;flex-wrap:wrap;gap:9px;margin-top:15px}
+code{display:block;background:#071d28;border:1px solid var(--border);border-radius:9px;padding:12px;font-size:12px;white-space:normal;overflow-wrap:anywhere;color:#e6f7f2}
+.small{font-size:12px;color:var(--muted)}
+@media(max-width:700px){.grid{grid-template-columns:1fr}header,main{padding:16px}}
+</style>
+</head>
+<body>
+<header><strong>◈ ORCA COMMONS · STAGING</strong><a href="./connect-work.html?ticker=RKLB&environment=orca-staging">Original research setup</a></header>
+<main>
+<div class="eyebrow">CONNECT YOUR AI · REVOCABLE, ACCOUNT-BOUND ACCESS</div>
+<h1>Your ORCA researcher.<br>Your AI assistant.</h1>
+<p class="lead">One-time permission is our goal: authorize your existing ChatGPT assistant to read your ORCA assignments without signing in again in a separate Work browser. This test page does not connect a new agent by itself.</p>
+<div class="grid">
+<section class="card">
+<h2><span class="number">1</span> Verify your ORCA account</h2>
+<p>Uses your current ORCA staging login and researcher profile. No new alias, team, or permission is created.</p>
+<div id="account-status" class="state" role="status" aria-live="polite">Checking your account…</div>
+<div class="actions"><a class="action secondary" id="signin" hidden href="./account.html">Sign in to ORCA</a><a class="action secondary" href="./agent-connection-check.html">Research permission check</a></div>
+</section>
+<section class="card">
+<h2><span class="number">2</span> Verify the secure connection</h2>
+<p>Checks public MCP resource and OAuth issuer metadata. It cannot verify signed token audiences, permissions, or revocation by itself.</p>
+<div id="metadata-status" class="state" role="status" aria-live="polite">Checking the connection endpoint…</div>
+<div class="actions"><button id="check-metadata" type="button" class="secondary">Recheck endpoint</button></div>
+</section>
+<section class="card">
+<h2><span class="number">3</span> Add ORCA in ChatGPT</h2>
+<p>ChatGPT initiates the OAuth linking flow. Your ORCA website cannot silently install a plugin or authorize ChatGPT on your behalf.</p>
+<p class="small">Planned staging MCP server address</p>
+<code id="endpoint">https://vbziibatnejoswsdggga.supabase.co/functions/v1/orca-agent-mcp</code>
+<div class="actions"><button id="copy-endpoint" type="button">Copy MCP address</button><a id="chatgpt" class="action secondary" href="https://chatgpt.com/" target="_blank" rel="noopener noreferrer">Open ChatGPT</a></div>
+<div id="copy-status" class="small" role="status" aria-live="polite">Connection setup is locked until the real OAuth audience and two-account tests pass. Copying an address does not connect an agent.</div>
+</section>
+<section class="card">
+<h2><span class="number">4</span> Review or disconnect</h2>
+<p>Once OAuth is enabled, authorized applications will appear in ORCA's grant manager. Disconnect requires your explicit confirmation.</p>
+<div class="actions"><a class="action secondary" href="./orca-oauth-connections.html">Manage authorized apps</a></div>
+<p class="small">Revocation stops future refreshes. Existing access tokens may remain valid until expiry; write operations stay disabled pending stronger revocation checks.</p>
+</section>
+</div>
+<div class="card">
+<h2>Research still works today</h2>
+<p>The existing manual Work-browser research path remains available. This new MCP integration is not considered connected until the complete login → consent → authorized read → revoke lifecycle is tested with two different existing ORCA accounts.</p>
+<a class="action secondary" href="./connect-work.html?ticker=RKLB&environment=orca-staging">Use existing research workflow</a>
+</div>
+</main>
+<script type="module">
+import { selectSupabaseConfig } from './orca-staging-config.js';
+import { ORCA_STAGING_PROJECT, ORCA_STAGING_RESOURCE,
+  ORCA_STAGING_RESOURCE_METADATA, ORCA_STAGING_AUTH_METADATA,
+  assessOAuthDiscovery } from './scripts/orca-oauth-readiness.mjs';
+const $=id=>document.getElementById(id);
+const msg=(id,value,kind='info')=>{$(id).textContent=value;$(id).dataset.kind=kind};
+const fetchPublicJson=async url=>{
+  const response=await fetch(url,{method:'GET',mode:'cors',credentials:'omit',
+    cache:'no-store',redirect:'error',headers:{Accept:'application/json'},
+    signal:AbortSignal.timeout(8000)});
+  if(!response.ok)throw new Error('metadata unavailable');
+  const json=await response.json();
+  if(!json||typeof json!=='object'||Array.isArray(json))throw new Error('invalid metadata');
+  return json;
+};
+async function checkAccount(){
+  try{
+    const config=await selectSupabaseConfig();
+    if(!config.isOrcaStaging||config.projectUrl!==ORCA_STAGING_PROJECT)throw new Error('wrong project');
+    const {createClient}=await import('https://esm.sh/@supabase/supabase-js@2.119.0');
+    const client=createClient(config.projectUrl,config.publishableKey,
+      {auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+    const result=await client.auth.getUser();
+    if(result.error||!result.data?.user?.id){
+      const next=new URL('./account.html',location.href);
+      next.searchParams.set('returnTo','orca-connect-ai.html');
+      next.searchParams.set('environment','orca-staging');
+      $('signin').href=next.pathname+next.search;$('signin').hidden=false;
+      msg('account-status','Not signed in. Use your existing ORCA account.');
+      return;
+    }
+    const ownerId=result.data.user.id;
+    const profile=await client.from('agent_profiles')
+      .select('display_name,opted_in,independent_publish_enabled')
+      .eq('owner_id',ownerId).maybeSingle();
+    if(profile.error)throw new Error('profile read failed');
+    if(!profile.data){
+      msg('account-status','Signed in. Set up your existing researcher profile before connecting.');
+      return;
+    }
+    const approved=profile.data.opted_in===true;
+    msg('account-status',String(profile.data.display_name||'Researcher').slice(0,60)+
+      (approved?' · research consent enabled':' · research consent needed')+
+      ' · publishing permission is separate.',approved?'good':'info');
+  }catch{msg('account-status','Unable to verify ORCA staging account. No account settings changed.','error');}
+}
+async function checkMetadata(){
+  $('check-metadata').disabled=true;
+  msg('metadata-status','Checking public OAuth metadata (no authorization requested)…');
+  try{
+    const [resource,auth]=await Promise.all([
+      fetchPublicJson(ORCA_STAGING_RESOURCE_METADATA),
+      fetchPublicJson(ORCA_STAGING_AUTH_METADATA)
+    ]);
+    const decision=assessOAuthDiscovery(resource,auth);
+    if(!decision.metadataReady){
+      msg('metadata-status','Not ready: '+decision.reasons.join(', ')+'. No connection attempted.','error');
+      return;
+    }
+    if(!decision.connectionReady){
+      msg('metadata-status','Public OAuth discovery passed. Live linking remains locked until resource-bound tokens, two-account isolation and revocation are verified.');
+      return;
+    }
+    msg('metadata-status','Public discovery and operator release flag passed. Complete real OAuth authorization in ChatGPT to verify access.','good');
+  }catch{msg('metadata-status','MCP/OAuth metadata not reachable or invalid. The connection is not yet live.','error');}
+  finally{$('check-metadata').disabled=false;}
+}
+$('check-metadata').addEventListener('click',checkMetadata);
+$('copy-endpoint').addEventListener('click',async ()=>{
+  try{
+    await navigator.clipboard.writeText(ORCA_STAGING_RESOURCE);
+    $('copy-status').textContent='MCP address copied. This is not an authorized or connected account.';
+  }catch{$('copy-status').textContent='Copy failed. Select the address above to copy it manually.';}
+});
+checkAccount();checkMetadata();
+</script>
+</body>
+</html>
