@@ -280,6 +280,15 @@ test('Real local OAuth authorization-code PKCE + Supabase-fixture consent + link
   const fixture=await startFixture();
   t.after(()=>fixture.close());
   const jar=new Map([['fixture_signed_session',TEST_BROWSER_SESSION]]);
+  // ChatGPT's stable callback requires RFC 9207 support. Detect whether
+  // our pinned issuer truly advertises it instead of assuming support.
+  const metadataResponse=await call(fixture.issuer,jar,
+    '/.well-known/oauth-authorization-server');
+  assert.equal(metadataResponse.status,200);
+  const metadata=await metadataResponse.json();
+  assert.equal(metadata.issuer,fixture.issuer);
+  assert.ok(metadata.code_challenge_methods_supported.includes('S256'));
+  const advertisesIssuerId=metadata.authorization_response_iss_parameter_supported===true;
   const verifier=randomBytes(32).toString('base64url');
   const challenge=sha(verifier);
   const args=new URLSearchParams({
@@ -342,6 +351,17 @@ test('Real local OAuth authorization-code PKCE + Supabase-fixture consent + link
   const code=next.external.searchParams.get('code');
   assert.ok(code && code.length>12);
   assert.equal(next.external.searchParams.get('state'),'s'.repeat(45));
+  const callbackIssuer=next.external.searchParams.get('iss');
+  if(advertisesIssuerId){
+    assert.equal(callbackIssuer,fixture.issuer,
+      'RFC 9207 metadata claims must match callback iss exactly');
+    console.log('PASS RFC 9207 issuer identification: stable callback may be eligible.');
+  }else{
+    assert.equal(callbackIssuer,null,
+      'Unadvertised issuer identification must not be assumed');
+    console.log('CHATGPT BLOCKER: RFC 9207 not advertised; use management-page '+
+      'callback-ID redirect, not an assumed stable callback.');
+  }
 
   const tokenRequest={
     grant_type:'authorization_code',code,
