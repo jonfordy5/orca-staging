@@ -38,6 +38,7 @@ export function createVerifiedOrcaDatabaseConnector({
      !Object.hasOwn(ROLES,purpose)||typeof host!=='string'||
      !['direct','session_pooler'].includes(mode)||
      port!==5432||database!=='postgres'||
+     process.env.NODE_TLS_REJECT_UNAUTHORIZED==='0'||
      !Number.isInteger(maxConcurrent)||maxConcurrent<1||maxConcurrent>8)
     deny();
 
@@ -114,7 +115,7 @@ export function createVerifiedOrcaDatabaseConnector({
 
       let released=false;
       return Object.freeze({
-        query:(sql,values)=> {
+        query:async(sql,values)=> {
           if(released)deny();
           return client.query(sql,values);
         },
