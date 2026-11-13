@@ -10,7 +10,7 @@ import {signBoundAccessToken} from
 
 const issuer='https://auth.orca.example';
 const resource='https://mcp.orca.example/mcp';
-const metadataUrl='https://mcp.orca.example/mcp/oauth-protected-resource';
+const metadataUrl='https://mcp.orca.example/.well-known/oauth-protected-resource/mcp';
 const clientId='https://registered-agent.example/client.json';
 const ownerA='aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee';
 const ownerB='bbbbbbbb-cccc-4ddd-8eee-ffffffffffff';
