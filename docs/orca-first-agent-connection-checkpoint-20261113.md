@@ -120,3 +120,17 @@ Do **not** merge or activate Plan B solely because the offline tests pass. PRs #
 - `docs/orca-stage14-deployment-course.md`: host/DNS/TLS prerequisites, exact local Compose rehearsal, next OAuth issuer/MCP activation gates, two-real-user acceptance, rollback and safeguards.
 
 **Still BLOCKED on external infrastructure:** no selected server, real hostnames/certificates, live issuer signing keys, approved client callback, private DB roles, or two-real-account test. Do not claim public deployment. Draft PR #83 stays unmerged and both release flags OFF.
+
+
+## Stage 15 — deployment preflight (November 13, 2026)
+
+**CODE ONLY / CI TESTED; no public host, OAuth connection, or real user activation.**
+
+- `mcp-sdk/deployment-preflight.mjs` validates separate operator-approved public HTTPS resource and issuer URLs (no HTTP, URL credentials, query tokens, IP/localhost/reserved hosts, noncanonical /mcp paths, or redirects). It uses normal Node TLS certificate verification and bounded 16 KiB JSON-only probes.
+- **Locked mode:** checks `/healthz` is exactly the locked Node service and both MCP POST and protected-resource discovery return 503. A health check alone does not mean a live connector exists.
+- **OAuth discovery mode:** checks protected-resource issuer/resource/read-only scope metadata, 401 WWW-Authenticate challenge, OAuth authorization-code + PKCE S256 metadata, issuer-only HTTPS endpoints and public ES256 JWKS with no private key fields.
+- `mcp-sdk/deployment-preflight.cli.mjs` runs only when the operator supplies both actual approved public HTTPS URLs and an explicit mode. It rejects `NODE_TLS_REJECT_UNAUTHORIZED=0`, does not accept a bearer token, and sets `publicDeploymentAuthorized=false` even on success.
+- `mcp-sdk/deployment-preflight.test.mjs` tests pass and fail cases including wrong scope, spoofed issuer, broken PKCE, untrusted network failure, accidental unlocked access, wrong signing-key metadata and leaked private JWKS material. Included in official MCP SDK CI; tests run only against mocked endpoints and do NOT query a real public host.
+- Operator runbook updated: `docs/orca-stage14-deployment-course.md`, with commands and stop conditions.
+
+**Still blocked:** choose real Docker-capable host/domain/DNS/TLS, protect issuer secrets and DB roles, deploy and audit the real human-consent issuer, register exact ChatGPT client/callback, prove two real opted-in ORCA researcher accounts and instant token revocation. Keep OAuth and MCP OFF; the GitHub Pages frontend and research data are unchanged.
