@@ -160,3 +160,36 @@ test('Existing ORCA identity comes from Supabase getUser, never alias or email',
     ownerScopedProfileRead:read,supabaseBearer:bearer
   }),/supabase_user_not_verified/);
 });
+
+
+test('OIDC provider proposal forces PKCE/resource indicators and disables dev login/DCR',async()=>{
+  const {buildOidcProviderProposal}=await import('../services/orca-owned-oauth/oidc-provider-proposal.mjs');
+  const proposal=buildOidcProviderProposal({
+    resource,clientId,redirectUri:callback,kid,
+    findAccount:async()=>({accountId:ownerId,claims:async()=>({sub:ownerId})}),
+    persistentAdapter:class DurableAdapter {},
+    interactionUrl:'/interaction/consent'
+  });
+  assert.equal(proposal.features.devInteractions.enabled,false);
+  assert.equal(proposal.features.registration.enabled,false);
+  assert.equal(proposal.features.resourceIndicators.enabled,true);
+  assert.equal(proposal.pkce.required(),true);
+  assert.equal(proposal.clients[0].token_endpoint_auth_method,'none');
+  assert.deepEqual(proposal.clients[0].grant_types,['authorization_code','refresh_token']);
+  assert.equal(await proposal.features.resourceIndicators.defaultResource(),undefined);
+  assert.equal(await proposal.features.resourceIndicators.useGrantedResource(),false);
+  assert.equal(proposal.issueRefreshToken(),false);
+  const getResourceServerInfo=proposal.features.resourceIndicators.getResourceServerInfo;
+  assert.deepEqual(await getResourceServerInfo(null,resource,{clientId}),{
+    scope:ORCA_READ_SCOPE,audience:resource,accessTokenTTL:300,
+    accessTokenFormat:'jwt',jwt:{sign:{alg:'ES256',kid}}
+  });
+  await assert.rejects(getResourceServerInfo(null,'https://attacker.example',{clientId}),
+    /unapproved_mcp_resource/);
+  await assert.rejects(getResourceServerInfo(null,resource,{clientId:otherClientId}),
+    /unapproved_mcp_resource/);
+  assert.throws(()=>buildOidcProviderProposal({resource,clientId,
+    redirectUri:'http://untrusted.example',kid,
+    persistentAdapter:class DurableAdapter {},findAccount:()=>{},
+    interactionUrl:'/interaction/consent'}),/vetted_issuer_configuration_required/);
+});
