@@ -37,3 +37,30 @@ Use a maintained authorization-server implementation such as [panva/oidc-provide
 **Local test command:** node --test scripts/test-orca-owned-oauth-fallback.mjs
 
 Passing offline tests is evidence for the core policy and token cryptography ONLY. It does not establish a complete authorization server or a live ChatGPT integration.
+
+
+## Stage 1 follow-up: standards-library and standalone resource gates
+
+A separately testable oidc-provider configuration proposal is now included in
+oidc-provider-proposal.mjs. It enables RFC 8707 resource indicators with
+strict approved audience selection, forces PKCE, disables development login,
+disables dynamic registration and leaves refresh issuance OFF until durable
+rotation and revocation are implemented. This object is not an instantiated
+or running authorization server.
+
+mcp-resource-policy.mjs verifies only exact POSTs to the intended ORCA-owned
+MCP resource. It rejects missing or malformed bearer tokens, validates the
+ES256 JWT through bound-token.mjs, then checks the owner/client/grant against
+a fresh server-side grant lookup. It never forwards any credential to
+Supabase as a browser token. Resource metadata is prepared, not deployed.
+
+The test suite includes a real ECDSA P-256 sign/verify round-trip using
+**ephemeral, test-only keys**, forged JWT and wrong-audience rejection,
+two-step revocation, wrong-client and wrong-user checks, and the
+separate MCP request gate.
+
+**Remaining critical work:** implement the complete maintained OAuth runtime,
+consent/login interaction, durable atomic store, signed key custody and
+rotation, owner-only database read boundary, HTTP discovery, hosting and
+real-world ChatGPT callback/authorization acceptance. Do NOT treat a
+passing crypto test as a secure publicly accessible OAuth service.
