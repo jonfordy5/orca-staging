@@ -96,3 +96,29 @@ The preflight script checks the canonical protected-resource metadata URL, OAuth
 No permission or identity grant was created. The shared PostgREST pre-request guard remains set to `orca_mcp_private.enforce_readonly_oauth_data_api`. The approved client table was queried read-only and remains EMPTY. The existing `orca-agent-readonly` Edge Function remains deployed, while `orca-agent-mcp` is NOT deployed.
 
 **Next action is a deliberate staging activation decision, not another refactor.** The blocking upstream Supabase Auth RFC 8707 resource-binding change remains an open pull request. Do not turn on OAuth or deploy the publicly discoverable MCP endpoint before demonstrating that the hosted Auth service issues a token whose `aud` contains the exact ORCA MCP resource and before reviewing approved callback/client configuration. Keep production unchanged.
+
+
+## November 12 — preactivation schema drift gate
+
+The latest staging-only **catalog audit** was run read-only against `vbziibatnejoswsdggga` (no credentials or research records exposed). Its baseline is:
+
+- PostgREST `authenticator` request guard: **configured**.
+- OAuth clients approved: **0**.
+- OAuth restrictive public policies: **7**, preserving ordinary website sessions.
+- Public tables where `authenticated` has write privilege: **2**, both RLS-enabled with OAuth-specific restrictive guards.
+- Storage/Realtime tables where the role has write privilege: **4**, RLS-enabled with **zero permissive policies**. This is a schema observation, not an end-to-end Storage/Reatime token test.
+- Callable public RPC surface: **19** functions, **14** security definers. The reviewed surface digest is `9ed518cf551c2471e134d8155ff9ddeb`.
+- `pg_graphql` extension: **not installed**; authenticated GraphQL functions: **0**.
+
+New committed files:
+- `sql/orca_oauth_preactivation_inventory_readonly.sql`: an operator-run, catalog-only, read-only snapshot query.
+- `scripts/orca-oauth-preactivation-gate.mjs`: a fail-closed policy engine that rejects any missing hook, different project, newly approved client, unexpected public table grants, changed RPC signatures, altered restrictive OAuth policies, newly exposed Storage/Realtime policies or a GraphQL surface.
+- `scripts/test-orca-oauth-preactivation-gate.mjs`: offline positive and negative test fixtures for schema drift.
+- `scripts/check-orca-oauth-preactivation.mjs`: accepts a **fresh locally exported** JSON result and prints PASS/BLOCKED. Never treats a checked-in fixture as live proof.
+- `.github/workflows/orca-oauth-preactivation-gate.yml`: runs pure policy tests and scans the SQL query for DDL/write commands.
+
+[Gate CI #43361403925](https://github.com/jonfordy5/orca-staging/actions/runs/43361403925) **PASSED**. This CI validates the **policy implementation**, not the live database's current state: re-run the connected read-only catalog query immediately before any real deployment.
+
+**Other Edge Functions audited:** Existing `orca-stock-discovery` POST authenticates a user and performs a service-role stock-table upsert, which needs an OAuth browser-token guard. `orca-unsplash-photo-pilot` GET consumes an external Unsplash API quota and should exclude linked AI agents. Code-only candidate guards for both were added to separate security PR #81, with existing business logic preserved. The two anonymous GET-only data/cache endpoints (`orca-company-profile`, `orca-company-official-metrics`) are public regardless of OAuth and require separate abuse/cost review, not a false assumption of OAuth-only isolation.
+
+Even if this gate passes, it is only **database preactivation** evidence, not proof of a real resource-bound bearer, current grant, ChatGPT plugin link, accepted client callback or two-account isolation. The Supabase Auth RFC 8707 blocker remains. No deployment or production change was made.
