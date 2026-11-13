@@ -18,7 +18,8 @@ test('MCP uses official OAuth resource metadata and verified user middleware bef
   assert.match(mcp,/withSupabase\(\{ auth: 'user' \}\)/);
   assert.ok(mcp.indexOf('withOAuthProtectedResource()')<mcp.indexOf("withSupabase({ auth: 'user' })"));
   assert.match(mcp,/auth\.getClaims\(\)/);
-  assert.match(mcp,/import \{ authorizeReadOnlyMcpClaims \} from '\.\/token-policy\.mjs'/);
+  assert.match(mcp,/import \{ authorizeReadOnlyMcpClaims, ORCA_MCP_STAGING_ISSUER \} from '\.\/token-policy\.mjs'/);
+  assert.match(mcp,/import \{ hasCurrentOAuthGrant \} from '\.\/grant-policy\.mjs'/);
   assert.match(mcp,/ORCA_MCP_APPROVED_CLIENT_IDS/);
   assert.match(mcp,/auth\.getUser\(\)/);
   assert.match(mcp,/authorizeReadOnlyMcpClaims\([\s\S]*?claims, allowedClients, identity\.data\.user\.id/);
@@ -55,9 +56,11 @@ test('Consent page is syntactically sound and cannot approve without a real user
   assert.doesNotThrow(()=>new Function(code));
   assert.match(code,/client\.auth\.getUser\(\)/);
   assert.match(code,/client\.auth\.oauth\.getAuthorizationDetails\(authorizationId\)/);
-  assert.match(code,/client\.auth\.oauth\.approveAuthorization\(authorizationId\)/);
-  assert.match(code,/client\.auth\.oauth\.denyAuthorization\(authorizationId\)/);
+  assert.match(code,/client\.auth\.oauth\.approveAuthorization\(authorizationId,\{skipBrowserRedirect:true\}\)/);
+  assert.match(code,/client\.auth\.oauth\.denyAuthorization\(authorizationId,\{skipBrowserRedirect:true\}\)/);
   assert.match(code,/\$\('approve'\)\.addEventListener\('click',\(\)=>decide\(true\)\)/);
+  assert.match(code,/if\(!ORCA_OAUTH_CONSENT_ENABLED\)/);
+  assert.match(code,/authorizeConsentRequest\(reviewedRequest\)/);
   assert.match(code,/\$\('deny'\)\.addEventListener\('click',\(\)=>decide\(false\)\)/);
   assert.match(consent,/id="approve" type="button" disabled/);
   assert.match(consent,/id="deny" type="button" class="secondary" disabled/);
