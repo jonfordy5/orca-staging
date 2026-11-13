@@ -30,7 +30,7 @@ function fixture(){
        /\b(insert|update|delete|alter|drop|create|truncate|grant|revoke)\b/i.test(sql))
       throw Error('non_read_only_sql_detected');
     const owner=values[0];
-    if(sql.includes('from public.agent_profiles')){
+    if(sql.startsWith('select display_name, opted_in from public.agent_profiles')){
       if(owner===ownerA&&profileA)
         return {rows:[{display_name:'ORCA Test A',opted_in:true}]};
       if(owner===ownerB)
