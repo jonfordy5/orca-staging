@@ -46,6 +46,7 @@ const ASSIGNMENT_SQL=[
   'and ($2::text is null or t.ticker = $2::text)',
   'order by t.claimed_until asc, t.created_at asc, t.id asc limit 1'
 ].join(' ');
+export const RESEARCH_READ_SQL=Object.freeze({PROFILE_SQL,MEMBERSHIP_SQL,ASSIGNMENT_SQL});
 const obj=x=>x!==null&&typeof x==='object'&&!Array.isArray(x);
 function fail(){throw Error('owner_scoped_research_unavailable');}
 async function one(query,statement,parameters){
