@@ -1,0 +1,100 @@
+name: ORCA-owned OAuth private schema PostgreSQL dry-run
+
+on:
+  push:
+    branches:
+      - feat/orca-owned-oauth-fallback-20261112
+    paths:
+      - services/orca-owned-oauth/private-schema-review-only.sql
+      - .github/workflows/orca-owned-oauth-postgres-schema.yml
+  pull_request:
+    paths:
+      - services/orca-owned-oauth/private-schema-review-only.sql
+      - .github/workflows/orca-owned-oauth-postgres-schema.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  isolated-local-postgres:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: local_only_orca_oauth
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: local-test-password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d local_only_orca_oauth"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: "5432"
+      PGUSER: postgres
+      PGPASSWORD: local-test-password
+      PGDATABASE: local_only_orca_oauth
+    steps:
+      - uses: actions/checkout@v4
+      - name: Ensure PostgreSQL client is available
+        run: command -v psql
+      - name: Create dummy local API roles only
+        run: |
+          psql -v ON_ERROR_STOP=1 <<'SQL'
+          create role anon nologin;
+          create role authenticated nologin;
+          create role service_role nologin;
+          create role authenticator nologin;
+          SQL
+      - name: Parse and execute review-only SQL in ephemeral PostgreSQL
+        run: psql -v ON_ERROR_STOP=1 -f services/orca-owned-oauth/private-schema-review-only.sql
+      - name: Check all three tables have RLS and no API-role privileges
+        run: |
+          psql -v ON_ERROR_STOP=1 <<'SQL'
+          do $$
+          declare
+            tbl record;
+            role_name text;
+          begin
+            if (select count(*) from pg_tables
+                where schemaname='orca_owned_oauth_private') <> 3 then
+              raise exception 'Expected exactly three private OAuth tables';
+            end if;
+            for tbl in
+              select c.oid,n.nspname,c.relname,c.relrowsecurity
+              from pg_class c join pg_namespace n on n.oid=c.relnamespace
+              where n.nspname='orca_owned_oauth_private' and c.relkind='r'
+            loop
+              if not tbl.relrowsecurity then
+                raise exception 'Private table lacks RLS: %',tbl.relname;
+              end if;
+              foreach role_name in array
+                array['anon','authenticated','service_role','authenticator']
+              loop
+                if has_table_privilege(role_name,tbl.oid,'SELECT') or
+                   has_table_privilege(role_name,tbl.oid,'INSERT') or
+                   has_table_privilege(role_name,tbl.oid,'UPDATE') or
+                   has_table_privilege(role_name,tbl.oid,'DELETE') then
+                  raise exception 'API role % can use private table %',
+                    role_name,tbl.relname;
+                end if;
+              end loop;
+            end loop;
+            if (select count(*) from pg_policies
+                where schemaname='orca_owned_oauth_private') <> 0 then
+              raise exception 'No public policies may exist in private schema';
+            end if;
+            if not exists (
+              select 1 from information_schema.columns
+              where table_schema='orca_owned_oauth_private'
+                and table_name='grants' and column_name='provider_grant_hash'
+            ) then
+              raise exception 'Provider-to-ORCA binding missing';
+            end if;
+          end
+          $$;
+          SQL
