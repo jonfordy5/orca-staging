@@ -6,7 +6,10 @@ import { createHash, timingSafeEqual } from 'node:crypto';
 
 export const ORCA_OWNED_ISSUER_ENABLED = false; // separate operator release gate
 export const ORCA_READ_SCOPE = 'orca:research.read';
-const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+// OAuth client IDs are OPAQUE, and MCP may use HTTPS metadata-document
+// URLs as client IDs. Exact registration/redirect validation is the security
+// boundary, NOT guessing the identifier's formatting.
+const clientIdentifier = /^[\x21-\x7e]{1,512}$/;
 const challenge = /^[A-Za-z0-9_-]{43}$/;
 const verifier = /^[A-Za-z0-9._~\-]{43,128}$/;
 const state = /^[A-Za-z0-9._~\-]{16,256}$/;
@@ -52,7 +55,7 @@ export function assessAuthorizationRequest(input,{resource,clients}={}) {
   if(!uniqueKeys(input,['client_id','redirect_uri','response_type','scope',
     'state','code_challenge','code_challenge_method','resource']))
     return {ok:false,reason:'malformed_or_unexpected_parameters'};
-  if(typeof input.client_id!=='string'||!uuid.test(input.client_id) ||
+  if(typeof input.client_id!=='string'||!clientIdentifier.test(input.client_id) ||
       !object(clients) || !Object.hasOwn(clients,input.client_id))
     return {ok:false,reason:'unapproved_client'};
   const registered=clients[input.client_id];
