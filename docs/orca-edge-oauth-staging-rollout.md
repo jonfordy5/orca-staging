@@ -98,3 +98,25 @@ Each new guard reuses the SAME verified-bearer, owner-bound `_shared/orca-browse
 **Deployment authorization remains separate.** Prior approval and deployment covered only the original six functions. Do not assume that permission extends to these two. Before deploying either to Orca-staging, confirm source fidelity again against freshly retrieved LIVE source, preserve its `verify_jwt` flag, snapshot the old version for rollback and explicitly authorize the two-function staging rollout. Production stays untouched.
 
 **Boundary disclosure:** `orca-company-profile` and `orca-company-official-metrics` are anonymous GET-only endpoints using service-role writes to PUBLIC cached company data; even an unlinked visitor can invoke them without OAuth. These are existing public rate/cost-abuse surfaces and require a separate quota review, not a claim that blocking the OAuth bearer alone closes them. `orca-wikimedia-pilot` is a public GET-only no-database endpoint; `orca-agent-readonly` is independently owner-scoped, read-only and JWT verified.
+
+
+## November 12 activation receipt — the two additional protected Edge functions
+
+**The existing two-function guard proposal was explicitly advanced in staging on November 12, 2026.** Production was not modified; the OAuth server remains disabled, no OAuth client is approved, and the read-only MCP Edge Function is not deployed.
+
+Both live sources were retrieved from Supabase **immediately before deployment** and compared byte-for-byte with candidate sources after removing only the added imports/guards. Their deployed original `verify_jwt` values were preserved. The shared helper was byte-identical to the helper already deployed with an existing protected function.
+
+| Staging function | Prior version | Verified new version | JWT flag | Deployment readback |
+| --- | ---: | ---: | --- | --- |
+| `orca-stock-discovery` | 5 | **6** | `false` | ACTIVE; candidate index and shared guard exactly match PR #81 |
+| `orca-unsplash-photo-pilot` | 1 | **2** | `true` | ACTIVE; candidate index and shared guard exactly match PR #81 |
+
+**Security behavior:** The stock-registration **POST** first authenticates the same caller token via Supabase Auth; any `client_id` in the verified token denies before profile reads or service-role stock writes. Its original public **GET** ticker lookup stays unchanged. The photo preview now authenticates the same bearer using only the public Supabase anon API key and denies linked OAuth callers before spending the Unsplash API quota. Its original authenticated page already sent a Supabase bearer, so the user interaction stays the same.
+
+**Testing and rollback:** The source-fidelity, ordering, synthetic OAuth-denial and Deno dependency tests passed before deployment in [CI #43362070314](https://github.com/jonfordy5/orca-staging/actions/runs/43362070314). Full readback after deployment confirmed exact new file contents, shared helper, active status and preserved JWT flags. An additional safe no-token HTTP smoke is available at `scripts/test-orca-extra-live-edge-unauthorized.mjs` and `.github/workflows/orca-extra-live-edge-unauthorized.yml`; it tests only OPTIONS, a rejected unsigned stock POST and a rejected unsigned photo GET, with no paid Unsplash request or stock write. [Smoke run #43363521022](https://github.com/jonfordy5/orca-staging/actions/runs/43363521022) should be checked for its conclusion rather than assumed successful.
+
+After deployment, the counts remain **3 researcher profiles, 9 memberships, 29 published findings, 0 approved OAuth clients**, verified with a read-only staging SQL count. No task, account, or research publication was changed.
+
+**Rollback if needed:** Reconstruct the original source by removing only the candidate import/guard and restoring exactly the original checked-in source fingerprint documented by `scripts/test-orca-extra-browser-edge-oauth-boundary.mjs`. Redeploy that one function with its original JWT flag (`false` for stock, `true` for photo) and check the deployed source/version. Never change production or another function as part of this rollback.
+
+**Not yet proven:** The existing signed-in website user's stock registration/photo preview must be tested in a real user session; the real OAuth client denial cannot be tested until resource-bound signed OAuth tokens are issued. These source and signed-out checks are not a complete OAuth acceptance test.
