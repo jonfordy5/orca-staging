@@ -28,14 +28,14 @@ class DisabledStorage {
   async revokeByGrantId(){unavailable();}
 }
 
-export function buildLocalPreviewProvider(){
+export function buildLocalPreviewProvider({adapter=DisabledStorage}={}){
   const {privateKey}=generateKeyPairSync('ec',{namedCurve:'P-256'});
   const jwk=privateKey.export({format:'jwk'});
   const kid='orca-local-preview-'+key().slice(0,14);
   const policy=buildOidcProviderProposal({
     resource:PREVIEW_RESOURCE,clientId:PREVIEW_CLIENT_ID,
     redirectUri:PREVIEW_CALLBACK,kid,
-    persistentAdapter:DisabledStorage,
+    persistentAdapter:adapter,
     findAccount:async()=>undefined, // no users or grants in this preview
     interactionUrl:'/interaction/unavailable'
   });
