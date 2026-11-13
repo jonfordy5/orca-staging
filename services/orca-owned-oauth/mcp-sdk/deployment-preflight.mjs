@@ -161,6 +161,7 @@ export async function runDeploymentPreflight({
       return 'protected-resource discovery unavailable while locked';
     });
   }else{
+    let jwksUrl=null;
     await runOne(checks,'resource_discovery',async()=>{
       const response=await probe(fetchImpl,target.metadataUrl);
       const data=jsonBody(response);
@@ -201,7 +202,36 @@ export async function runDeploymentPreflight({
          !httpsOnOrigin(doc.token_endpoint,target.issuer)||
          !httpsOnOrigin(doc.jwks_uri,target.issuer))
         fail('invalid_issuer_metadata');
+      jwksUrl=doc.jwks_uri;
       return 'issuer endpoints, PKCE S256 and authorization-code metadata verified';
+    });
+    await runOne(checks,'public_signing_keys',async()=>{
+      if(!jwksUrl)fail('invalid_issuer_metadata');
+      const response=await probe(fetchImpl,jwksUrl);
+      const data=jsonBody(response);
+      if(response.status!==200||!Array.isArray(data.keys)||
+         data.keys.length<1||data.keys.length>4)
+        fail('invalid_public_jwks');
+      const kids=new Set();
+      for(const key of data.keys){
+        if(!isObj(key)||key.kty!=='EC'||key.crv!=='P-256'||
+           (key.alg!==undefined&&key.alg!=='ES256')||
+           (key.use!==undefined&&key.use!=='sig')||
+           (key.key_ops!==undefined&&(!Array.isArray(key.key_ops)||
+             key.key_ops.length!==1||key.key_ops[0]!=='verify'))||
+           typeof key.kid!=='string'||
+           !/^[A-Za-z0-9_-]{8,128}$/.test(key.kid)||kids.has(key.kid)||
+           typeof key.x!=='string'||typeof key.y!=='string'||
+           !/^[A-Za-z0-9_-]{43}$/.test(key.x)||
+           !/^[A-Za-z0-9_-]{43}$/.test(key.y)||
+           Buffer.from(key.x,'base64url').toString('base64url')!==key.x||
+           Buffer.from(key.y,'base64url').toString('base64url')!==key.y||
+           ['d','p','q','dp','dq','qi','k'].some(name=>
+             Object.hasOwn(key,name)))
+          fail('invalid_public_jwks');
+        kids.add(key.kid);
+      }
+      return 'public ES256 signing keys published without private material';
     });
   }
   const passed=checks.every(c=>c.passed);
