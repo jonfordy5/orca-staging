@@ -55,6 +55,14 @@ function fixture(mode='locked'){
           response_types_supported:['code'],
           grant_types_supported:['authorization_code']
         });
+      if(url===issuer+'/jwks')
+        return json(200,{keys:[{
+          kty:'EC',crv:corrupt==='wrongKey'?'P-384':'P-256',
+          alg:'ES256',use:'sig',kid:'orca-stage15-signing-01',
+          x:Buffer.alloc(32,1).toString('base64url'),
+          y:Buffer.alloc(32,2).toString('base64url'),
+          ...(corrupt==='leakedKey'?{d:'private_key_material'}:{})
+        }]});
     }
     throw Error('unexpected request');
   };
@@ -124,10 +132,10 @@ test('OAuth discovery: exact read scope, issuer, PKCE and resource challenge',as
   assert.equal(out.publicDeploymentAuthorized,false,
     'OAuth metadata alone cannot authorize public deployment');
   assert.ok(out.checks.every(x=>x.passed));
-  assert.deepEqual(f.requests.map(x=>x.url),[meta,resource,issuerMeta]);
+  assert.deepEqual(f.requests.map(x=>x.url),[meta,resource,issuerMeta,issuer+'/jwks']);
 });
 test('OAuth preflight denies write scope, wrong issuer, bad challenge, PKCE or cross-origin endpoints',async()=>{
-  for(const issue of ['write','issuer','challenge','pkce','token']){
+  for(const issue of ['write','issuer','challenge','pkce','token','wrongKey','leakedKey']){
     const f=fixture('oauth');f.corrupt(issue);
     const out=await runDeploymentPreflight({
       resource,issuer,mode:'oauth-discovery',fetchImpl:f.fetchImpl
