@@ -215,14 +215,8 @@ async function startFixture(){
     ownerScopedProfileRead:async id=>({owner_id:id,opted_in:id===OWNER}),
     isTrustedHttps:()=>true
   });
-  const bootstrap=await sessionBridge.issueSessionCookie({
-    method:'POST',
-    headers:{host:'auth.orca.example',origin:sessionOrigin,
-      'content-type':'application/json'}
-  },{supabaseAccessToken:SUPABASE_FIXTURE_BEARER});
-  const testOpaqueCookie=bootstrap.setCookie.split(';')[0];
-  assert.match(testOpaqueCookie,/^__Host-orca_oauth_session=[A-Za-z0-9_-]{43}$/);
-  assert.ok(!testOpaqueCookie.includes(SUPABASE_FIXTURE_BEARER));
+  // No direct session injection: the integration must exercise the real
+  // Stage 7 /session/bootstrap HTTP path before any OAuth authorization.
   const controller=createExistingResearcherInteractionController({
     provider,
     supabaseAuth:{async getUser(token){
@@ -274,7 +268,7 @@ async function startFixture(){
     server.listen(port,'127.0.0.1',resolve);
   });
   return {
-    issuer,grants,db,publicKey,kid,testOpaqueCookie,sessionBridge,
+    issuer,grants,db,publicKey,kid,sessionBridge,
     close:()=>new Promise(resolve=>server.close(resolve))
   };
 }
@@ -311,9 +305,31 @@ async function proceed(origin,jar,location){
 test('Real local OAuth authorization-code PKCE + Supabase-fixture consent + linked ORCA grant',async t=>{
   const fixture=await startFixture();
   t.after(()=>fixture.close());
-  const [cookieName,cookieValue]=fixture.testOpaqueCookie.split('=');
-  const jar=new Map([[cookieName,cookieValue]]);
-  assert.ok(!fixture.testOpaqueCookie.includes(SUPABASE_FIXTURE_BEARER));
+  const jar=new Map();
+  // Real HTTP bootstrap: verify same-origin browser POST and use the
+  // session cookie *issued by the actual Stage 7 route*, not a fixture.
+  const wrongOrigin=await fetch(new URL('/session/bootstrap',fixture.issuer),{
+    method:'POST',headers:{
+      'content-type':'application/json',origin:'https://evil.example.invalid'
+    },body:JSON.stringify({supabaseAccessToken:SUPABASE_FIXTURE_BEARER}),
+    redirect:'manual'
+  });
+  assert.equal(wrongOrigin.status,403);
+  assert.equal(wrongOrigin.headers.get('set-cookie'),null);
+  const bootstrap=await fetch(new URL('/session/bootstrap',fixture.issuer),{
+    method:'POST',headers:{
+      'content-type':'application/json',origin:'https://auth.orca.example',
+      'sec-fetch-site':'same-origin'
+    },body:JSON.stringify({supabaseAccessToken:SUPABASE_FIXTURE_BEARER}),
+    redirect:'manual'
+  });
+  assert.equal(bootstrap.status,204,'Browser bootstrap must create a server-held session');
+  captureCookies(jar,bootstrap);
+  const browserCookie=requestCookies(jar);
+  assert.match(browserCookie,/^__Host-orca_oauth_session=[A-Za-z0-9_-]{43}$/);
+  assert.ok(!browserCookie.includes(SUPABASE_FIXTURE_BEARER));
+  assert.ok(!bootstrap.headers.get('set-cookie').includes(SUPABASE_FIXTURE_BEARER));
+  assert.match(bootstrap.headers.get('set-cookie'),/HttpOnly; Secure; SameSite=Lax/);
   // ChatGPT's stable callback requires RFC 9207 support. Detect whether
   // our pinned issuer truly advertises it instead of assuming support.
   const metadataResponse=await call(fixture.issuer,jar,
