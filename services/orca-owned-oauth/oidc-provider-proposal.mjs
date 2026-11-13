@@ -24,7 +24,9 @@ export function buildOidcProviderProposal({
     // Initial pilot intentionally has NO refresh grant until replay-safe
     // rotation and revocation are implemented in the durable adapter.
     grant_types:['authorization_code'],
-    token_endpoint_auth_method:'none'
+    token_endpoint_auth_method:'none',
+    // The issuer publishes an ES256 P-256 signing key, not default RS256.
+    id_token_signed_response_alg:'ES256'
   };
   return {
     clients:[registeredClient],
