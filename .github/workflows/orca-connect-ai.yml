@@ -1,0 +1,31 @@
+name: ORCA Connect Your AI safety UI
+
+on:
+  push:
+    branches:
+      - feat/orca-oauth-mcp-readonly-20261112
+    paths:
+      - orca-connect-ai.html
+      - scripts/orca-oauth-readiness.mjs
+      - scripts/test-orca-connect-ai.mjs
+      - connect-work.html
+      - account.html
+      - .github/workflows/orca-connect-ai.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  connection-onboarding:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Test fail-closed OAuth resource and issuer discovery
+        run: node --test scripts/test-orca-connect-ai.mjs
+      - name: Verify existing OAuth consent and revoke regressions
+        run: node --test scripts/test-orca-oauth-mcp-readonly.mjs scripts/test-orca-oauth-connections.mjs
