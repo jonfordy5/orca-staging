@@ -59,7 +59,8 @@ test('Connection screen is valid JS, signed-in user is looked up by verified own
 });
 
 test('Login return path is allowlisted and the UI never confuses copy with authorization',()=>{
-  assert.match(account,/'orca-connect-ai\.html'\]\.includes\(returnTo\)/);
+  const allowedReturnTargets=(account.match(/const stagingReturnTo=isOrcaStaging[\s\S]*?\?\(\[([^\]]+)\]\.includes\(returnTo\)/)||[])[1]||'';
+  assert.ok(allowedReturnTargets.split(',').map(value=>value.trim()).includes("'orca-connect-ai.html'"),'Exact sign-in return target must be allowlisted');
   assert.match(page,/copying an address does not connect an agent/i);
   assert.match(page,/This is not an authorized or connected account/i);
   assert.match(page,/orca-oauth-connections\.html/);
