@@ -11,8 +11,9 @@ on:
       - scripts/test-orca-owned-oauth-provider-store.mjs
       - scripts/test-orca-owned-oauth-consent-challenge.mjs
       - scripts/test-orca-owned-oauth-interaction.mjs
-      - scripts/test-orca-owned-oauth-token-binding.mjs scripts/test-orca-owned-oauth-provider-grant-link.mjs
+      - scripts/test-orca-owned-oauth-token-binding.mjs scripts/test-orca-owned-oauth-provider-grant-link.mjs scripts/test-orca-owned-oauth-consent-finalization.mjs
       - scripts/test-orca-owned-oauth-provider-grant-link.mjs
+      - scripts/test-orca-owned-oauth-consent-finalization.mjs
       - .github/workflows/orca-owned-oauth-fallback.yml
   pull_request:
     paths:
@@ -24,6 +25,7 @@ on:
       - scripts/test-orca-owned-oauth-interaction.mjs
       - scripts/test-orca-owned-oauth-token-binding.mjs
       - scripts/test-orca-owned-oauth-provider-grant-link.mjs
+      - scripts/test-orca-owned-oauth-consent-finalization.mjs
       - .github/workflows/orca-owned-oauth-fallback.yml
   workflow_dispatch:
 
