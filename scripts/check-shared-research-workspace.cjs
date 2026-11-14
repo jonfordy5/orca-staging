@@ -210,7 +210,7 @@ check('Hovered card emits a reusable oval sparkle field with rare red and green 
  timeline.includes("mote.dataset.hue=hue") &&
  timeline.includes('mote.dataset.region=region') &&
  timeline.includes("region==='left-gap'") &&
- timeline.includes("region==='right-gap'") &&
+ timeline.includes("?'left-gap':'right-gap'") &&
  timeline.includes('spine.append(orbit)') &&
  timeline.includes("orbit.style.left=(stop.offsetLeft+stop.offsetWidth/2)+'px'") &&
  !timeline.includes('stops[next].append(orbit)') &&
