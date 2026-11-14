@@ -220,7 +220,8 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
     if(region==='halo'){
      const rotation=angle+Math.sin(orbitTime*1.5+seed*14)*0.065;
      const radiusX=(card.offsetWidth/2+62+seed*50)*bloom;
-     const radiusY=(card.offsetHeight/2+18+seed*13)*bloom;
+     // Keep the centered dust halo inside the newly compact desktop viewport.
+     const radiusY=(card.offsetHeight/2+5+seed*8)*bloom;
      x=Math.cos(rotation)*radiusX+Math.sin(orbitTime*2+seed*12)*3;
      y=centerY+Math.sin(rotation)*radiusY+Math.cos(orbitTime*1.7+seed*9)*2;
     }else{

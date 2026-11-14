@@ -142,7 +142,7 @@ check('Latest straight timeline design is recorded in universal stock-page stand
 
 check('Owner-approved timeline is compact, straight and keeps the charts stacked', () =>
  workspace.includes('id="chart-frame"') && workspace.includes('id="timeline-frame"') &&
- workspace.includes('height:382px') && workspace.includes('height:300px!important') &&
+ workspace.includes('height:354px') && workspace.includes('height:272px!important') &&
  workspace.includes('flex:0 0 222px!important') &&
  timeline.includes('stop.append(stem,card)') && timeline.includes('spine.append(svg)') &&
  !timeline.includes('const futureStep=') && !timeline.includes('orca-history-refill-action') &&
@@ -167,7 +167,7 @@ check('Each photo stem reaches the same horizontal line without nodes', () =>
  !timeline.includes('i%2===0?rect.bottom:rect.top') &&
  timeline.includes("const pathData='M '+points.map(([x,y])=>x+' '+y).join(' L ')") &&
  timeline.includes('stop.append(stem,card)') && !timeline.includes("dot.className='orca-history-dot'") &&
- workspace.includes('top:220px!important;height:62px!important') && !workspace.includes('animation:orca-dot-arrival'));
+ workspace.includes('top:192px!important;height:62px!important') && !workspace.includes('animation:orca-dot-arrival'));
 check('Photo cards retain dates and click details without numeric year nodes', () =>
  timeline.includes("date.textContent=eventDate(event)") &&
  timeline.includes("card.addEventListener('click',()=>selectMilestone(i))") &&
