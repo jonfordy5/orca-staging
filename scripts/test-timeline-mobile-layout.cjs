@@ -220,7 +220,7 @@ async function swipe(page,direction){
    });
    assert.equal(palette.heading,'rgb(244, 219, 154)','History heading matches Council antique gold');
    assert.equal(palette.base,'rgb(187, 146, 85)','Rail is muted gold, not neon blue');
-   assert.equal(palette.cardBorder,'rgb(199, 164, 108)','Cards have restrained gold borders');
+   assert(['rgb(199, 164, 108)','rgb(221, 188, 128)'].includes(palette.cardBorder),'Cards have restrained gold borders, with a slightly brighter selected outline');
    assert.equal(palette.cardDate,'rgb(248, 251, 255)','Milestone lettering remains white');
    assert.equal(palette.dust,24,'Bounded dust particles illuminate a long trailing path');
    assert.match(palette.headingText,/History of TEST/);
