@@ -66,17 +66,51 @@ async function main(){
    assert.equal(await page.locator('#company-profile .codex-insight').count(),4);
    assert.match(await page.locator('#company-profile .codex-insight').first().innerText(),/launch services/i);
    assert.match(await page.locator('#company-profile .codex-insight').nth(1).innerText(),/customer need/i);
-   assert.match(await page.locator('#company-profile .codex-insight').nth(2).innerText(),/launch cadence/i);
-   assert.match(await page.locator('#company-profile .codex-insight').nth(3).innerText(),/launch schedules/i);
+   assert.match(await page.locator('#company-profile .codex-insight').nth(0).innerText(),/REVENUE ENGINE CASH FLOW/);
+   assert.match(await page.locator('#company-profile .codex-insight').nth(1).innerText(),/COMPANY CAPABILITIES/);
+   assert.match(await page.locator('#company-profile .codex-insight').nth(2).innerText(),/THE WATCHTOWER/);
+   assert.match(await page.locator('#company-profile .codex-insight').nth(3).innerText(),/VULNERABILITIES/);
+   assert.match(await page.locator('#company-profile .codex-insight').nth(2).innerText(),/not yet been published/i);
    assert.equal(await page.locator('#company-profile .company-activity-photo img').count(),1);
    assert.equal(await page.locator('#company-profile .company-activity-photo > a').getAttribute('href'),'https://example.org/source-photo');
    assert.equal(await page.locator('#company-profile .codex-source-footer a[href="https://example.org/company-filing"]').count(),1);
    assert.equal(await page.locator('#company-profile a[href^="javascript:"]').count(),0);
-   assert.equal(await page.locator('#company-profile .codex-dossier').getAttribute('open'),null);
-   await page.locator('#company-profile .codex-dossier>summary').click();
-   assert.match(await page.locator('#company-profile .codex-dossier').innerText(),/The mission and the method/);
-   assert.match(await page.locator('#company-profile .codex-dossier').innerText(),/Company size and impact/);
-   assert.match(await page.locator('#company-profile .codex-dossier').innerText(),/Employees \(2025\)/);
+   assert.equal(await page.locator('#company-profile .codex-dossier').count(),0,'No redundant dossier dropdown remains');
+   const buttons=page.locator('#company-profile .codex-insight-trigger');
+   assert.equal(await buttons.count(),4);
+   await buttons.nth(0).click();
+   assert.equal(await buttons.nth(0).getAttribute('aria-expanded'),'true');
+   assert.match(await page.locator('#codex-chapter-detail').innerText(),/Launch Services|Dedicated launch/i);
+   assert.match(await page.locator('#codex-chapter-detail').innerText(),/Employees \(2025\)/);
+   await buttons.nth(1).click();
+   assert.equal(await buttons.nth(0).getAttribute('aria-expanded'),'false','Switching chapters closes prior');
+   assert.match(await page.locator('#codex-chapter-detail').innerText(),/Expand access to space/i);
+   await page.evaluate(()=>{
+    document.querySelector('#company-profile').applyCodexIntelligence([
+     {chapter:'watchtower',status:'ready',summary:'Engine test results and launch commitments require verification.',
+      analysis:['First report states specific verified test results.','A later disclosure provides measurable evidence.'],
+      watch_items:['Confirm flight readiness against company documents.'],source_urls:['https://example.org/ir'],
+      findings_count:3,generated_at:'2026-11-14T15:00:00Z'},
+     {chapter:'watchtower',status:'ready',summary:'Earlier report on launch plans.',
+      analysis:['Earlier launch schedule assessment.'],source_urls:['https://example.org/ir'],
+      findings_count:1,generated_at:'2026-10-01T15:00:00Z'},
+     {chapter:'vulnerabilities',status:'ready',summary:'Production delays and spending are risks.',
+      analysis:['Current development spend and delays need documentary review.'],
+      source_urls:['https://example.org/company-filing'],findings_count:2,generated_at:'2026-11-14T15:00:00Z'}
+    ]);
+   });
+   assert.match(await buttons.nth(2).innerText(),/Engine test results/);
+   await buttons.nth(2).click();
+   assert.match(await page.locator('#codex-chapter-detail').innerText(),/First report states specific verified test results/);
+   assert.match(await page.locator('#codex-chapter-detail .codex-chapter-meta').innerText(),/3 findings reviewed/);
+   await page.locator('#codex-chapter-detail .codex-chapter-evidence summary').click();
+   assert.equal(await page.locator('#codex-chapter-detail a[href="https://example.org/ir"]').count(),1);
+   await page.locator('#codex-chapter-detail .codex-chapter-archive summary').click();
+   assert.match(await page.locator('#codex-chapter-detail').innerText(),/Earlier report on launch plans/);
+   await buttons.nth(2).click();
+   assert.equal(await buttons.nth(2).getAttribute('aria-expanded'),'false','Chapter closes on second click');
+   await buttons.nth(3).click();
+   assert.match(await page.locator('#codex-chapter-detail').innerText(),/Current development spend/);
    const state=await page.evaluate(()=>{
     const root=document.querySelector('#company-profile'),cards=root.querySelector('.codex-insight-grid');
     const css=getComputedStyle(root);
@@ -99,12 +133,13 @@ async function main(){
    assert.equal(await page.locator('#company-profile .codex-insight').count(),4);
    assert.equal(await page.locator('#company-profile .company-activity-photo').count(),0);
    assert.equal(await page.locator('#company-profile .codex-photo-fallback').count(),1);
-   assert.match(await page.locator('#company-profile .codex-insight').nth(1).innerText(),/not independently established/);
-   assert.match(await page.locator('#company-profile .codex-insight').nth(3).innerText(),/not yet established/);
+   assert.match(await page.locator('#company-profile .codex-insight').nth(1).innerText(),/capabilities and verified operating facts/i);
+   assert.match(await page.locator('#company-profile .codex-insight').nth(3).innerText(),/not yet been published/i);
+   assert.equal(await page.locator('#company-profile .codex-dossier').count(),0);
    assert.match(await page.locator('#company-profile .codex-source-footer').innerText(),/Verified company links are not yet available/);
    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
    assert.deepEqual(errors,[]);
-   console.log('PASS Company Codex '+viewport.width+'x'+viewport.height+': source attribution, 4 panels, full dossier, sparse fallback, safe links, responsive geometry');
+   console.log('PASS Company Codex '+viewport.width+'x'+viewport.height+': source attribution, interactive chapters, monthly cache, history, sparse fallback, safe links, responsive geometry');
    await ctx.close();
   }
  }finally{if(browser)await browser.close();await new Promise(resolve=>server.close(resolve))}
