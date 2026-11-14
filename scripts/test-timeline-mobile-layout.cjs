@@ -194,7 +194,7 @@ async function swipe(page,direction){
    await motionPage.goto(url);await motionPage.waitForFunction(()=>window.timelineReady);
    await motionPage.waitForFunction(()=>{
     const beam=document.querySelector('.orca-history-track-beam');
-    return beam?.getAttribute('d')?.length>30&&beam.getBBox().width>15;
+    return beam?.getAttribute('d')&&beam.getBBox().width>15;
    },null,{timeout:5000});
    const first=await motionPage.evaluate(()=>{
     const beam=document.querySelector('.orca-history-track-beam');
@@ -231,7 +231,7 @@ async function swipe(page,direction){
    assert.equal(palette.base,'rgb(187, 146, 85)','Rail is muted gold, not neon blue');
    assert(['rgb(199, 164, 108)','rgb(221, 188, 128)'].includes(palette.cardBorder),'Cards have restrained gold borders, with a slightly brighter selected outline');
    assert.equal(palette.cardDate,'rgb(248, 251, 255)','Milestone lettering remains white');
-   assert.equal(palette.dust,42,'Bounded gold particles remain in the trailing path');
+   assert(palette.dust>=100&&palette.dust<=200,'A dense dust wake has a bounded SVG particle budget');
    assert.match(palette.headingText,/History of TEST/);
    assert(second.x+second.width>first.x+first.width+25,'The comet leading edge advances across the straight rail');
    assert.notEqual(first.d,second.d,'Comet shape updates as it advances');
@@ -274,6 +274,81 @@ async function swipe(page,direction){
     'Reduced motion does not create a moving sparkle');
    await reduceContext.close();
    console.log('PASS reduced-motion visitors retain a static glowing rail');
+  }
+  // Control animation timestamps to inspect the actual loop boundary without
+  // waiting through a whole cycle or making assertions at a random phase.
+  {
+   const context=await browser.newContext({viewport:{width:1440,height:900},reducedMotion:'no-preference'});
+   const page=await context.newPage();
+   await page.addInitScript(()=>{
+    let now=1000,id=0;
+    const pending=new Map();
+    window.requestAnimationFrame=callback=>{pending.set(++id,callback);return id};
+    window.cancelAnimationFrame=id=>pending.delete(id);
+    window.advanceTimeline=ms=>{
+     for(let remaining=ms;remaining>0;remaining-=16){
+      now+=Math.min(16,remaining);
+      const callbacks=[...pending.values()];pending.clear();
+      for(const callback of callbacks)callback(now);
+     }
+    };
+   });
+   await page.goto(url);await page.waitForFunction(()=>window.timelineReady,null,{polling:50});
+   const advance=ms=>page.evaluate(ms=>window.advanceTimeline(ms),ms);
+   const sample=()=>page.evaluate(()=>({
+    head:Number(document.querySelector('.orca-history-sparkle-head').getAttribute('opacity')),
+    radius:Number(document.querySelector('.orca-history-sparkle-head').getAttribute('r')),
+    particles:[...document.querySelectorAll('.orca-history-track-dust')].map(p=>({
+     x:Number(p.getAttribute('cx')),y:Number(p.getAttribute('cy')),
+     opacity:Number(p.getAttribute('opacity')),r:Number(p.getAttribute('r'))
+    })),
+    wake:document.querySelector('.orca-history-track-wake').getBBox().width,
+    maskWidth:Number(document.querySelector('.orca-history-track mask').getAttribute('width')),
+    railWidth:document.querySelector('.orca-timeline-events').clientWidth,
+    count:document.querySelector('.orca-history-track').querySelectorAll('*').length,
+   }));
+   await advance(32);
+   const first=await sample();
+   assert(first.maskWidth<=first.railWidth,'The glow mask is bounded to the viewport, not the full company history');
+   await advance(2000);
+   const breathing=await sample();
+   assert(Math.abs(first.radius-breathing.radius)>.03,'The small head breathes slowly');
+   assert(Math.abs(first.radius-breathing.radius)<.55,'Breathing stays subtle');
+   // Start phase is .20: the first loop ends at elapsed 12.8 seconds.
+   await advance(10720);
+   const before=await sample();
+   await advance(96);
+   const after=await sample();
+   assert(before.head<.01&&after.head<.01,'The head crosses the loop boundary outside the visible rail');
+   assert(after.wake>100,'The previous luminous wake persists while the next head enters');
+   const lit=state=>state.particles.filter(p=>p.opacity>.03);
+   assert(lit(before).length>25&&lit(after).length>25,'Stardust stays alive on both sides of the wrap');
+   const continuing=before.particles.map((p,i)=>[p,after.particles[i]])
+    .filter(([a,b])=>a.opacity>.03&&b.opacity>.03);
+   assert(continuing.length>25,'The same particles survive the loop boundary');
+   assert(continuing.every(([a,b])=>Math.abs(a.x-b.x)<2&&Math.abs(a.y-b.y)<2),
+    'Surviving dust drifts continuously instead of teleporting with the head');
+   assert(continuing.every(([a,b])=>Math.abs(a.opacity-b.opacity)<.08),
+    'Surviving dust fades smoothly without a global opacity reset');
+   await advance(16000);
+   assert.equal((await sample()).count,first.count,'Animation does not accumulate SVG nodes over repeated loops');
+   await page.emulateMedia({reducedMotion:'reduce'});
+   await page.waitForFunction(()=>!document.querySelector('.orca-history-sparkle-head'),null,{polling:50});
+   assert.equal(await page.locator('.orca-history-track-dust,.orca-history-sparkle-head').count(),0,
+    'Changing reduced-motion preference immediately stops decorative motion');
+   await page.emulateMedia({reducedMotion:'no-preference'});
+   await page.waitForFunction(()=>document.querySelector('.orca-history-sparkle-head'),null,{polling:50});
+   await advance(32);
+   assert.equal(await page.locator('.orca-history-sparkle-head').count(),1,'Motion resumes with one head');
+   await page.goto(url+'?count=2');await page.waitForFunction(()=>window.timelineReady,null,{polling:50});
+   await advance(8000);
+   const short=await sample();
+   assert(lit(short).length>25,'A short two-milestone history still has a visible dust trail');
+   assert(short.particles.every(p=>Number.isFinite(p.x)&&Number.isFinite(p.y)),
+    'Short rails have finite particle coordinates');
+   assert.equal(await page.evaluate(()=>window.paidCalls),0);
+   await context.close();
+   console.log('PASS slow breathing, continuous dust across loops, bounded nodes, live reduced motion and short histories');
   }
   const context=await browser.newContext({viewport:{width:360,height:800},hasTouch:true,isMobile:true}),page=await context.newPage();
   for(const query of ['?count=1','?count=6&noPhotos','?count=0']){
