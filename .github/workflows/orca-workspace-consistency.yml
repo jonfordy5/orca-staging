@@ -36,7 +36,7 @@ jobs:
         run: node scripts/test-unsplash-progressive-search.cjs
       - name: Exercise near-completion timeline research safeguards
         run: node scripts/test-timeline-history-backfill.cjs
-      - name: Exercise the complete timeline click across saved and empty stocks
+      - name: Exercise capped timeline auto-completion across saved and empty stocks
         run: node scripts/test-timeline-completion.cjs
       - name: Verify hybrid brand photography, licenses and cache preservation
         run: node scripts/test-hybrid-timeline-photos.cjs
@@ -49,7 +49,7 @@ jobs:
           npm install --prefix "$RUNNER_TEMP/orca-browser" --no-save --package-lock=false playwright@1.62.1
           # Use the GitHub-hosted runner libraries. Avoid flaky apt mirror DNS for optional fonts.
           "$RUNNER_TEMP/orca-browser/node_modules/.bin/playwright" install chromium
-      - name: Verify phone swipes, complete frames and unchanged desktop geometry
+      - name: Verify phone swipes, compact straight desktop rail and complete photo cards
         run: NODE_PATH="$RUNNER_TEMP/orca-browser/node_modules" node scripts/test-timeline-mobile-layout.cjs
       - name: Verify dark market widgets, symbols, capabilities and responsive layout offline
         run: NODE_PATH="$RUNNER_TEMP/orca-browser/node_modules" node scripts/test-market-widgets-browser.cjs
