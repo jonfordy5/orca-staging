@@ -510,7 +510,7 @@ main{max-width:1020px;margin:0 auto;padding:27px 16px 55px}
    Leave room for local hover enlargement while preserving mobile swipe behavior. */
 #chart-section .chart-frame{height:clamp(320px,58vw,520px)!important}
 #chart-section .orca-timeline-frame{
- position:relative;width:100%;height:332px;margin:10px 0 0;
+ position:relative;width:100%;height:382px;margin:10px 0 0;
  border:1px solid #303b4d;border-radius:14px;overflow:hidden;
  background:#141922;
 }
@@ -532,33 +532,33 @@ main{max-width:1020px;margin:0 auto;padding:27px 16px 55px}
  white-space:nowrap;flex-shrink:0;
 }
 #chart-section .orca-timeline-frame .orca-timeline-events{
- flex:0 0 252px!important;height:252px!important;min-height:0!important;
+ flex:0 0 302px!important;height:302px!important;min-height:0!important;
  overflow-x:auto!important;overflow-y:hidden!important;padding:2px 0 0!important;
  scroll-snap-type:x proximity;
 }
 #chart-section .orca-timeline-frame .orca-history-spine{
- height:250px!important;min-height:250px!important;position:relative!important;
+ height:300px!important;min-height:300px!important;position:relative!important;
  display:flex!important;gap:0!important;align-items:flex-start!important;
 }
 #chart-section .orca-timeline-frame .orca-history-spine::before{display:none!important}
 #chart-section .orca-timeline-frame .orca-history-stop{
  flex:0 0 222px!important;width:222px!important;
- height:250px!important;min-height:250px!important;
+ height:300px!important;min-height:300px!important;
  display:block!important;position:relative!important;
 }
 .orca-timeline-frame .orca-history-zigzag{display:none!important}
 #chart-section .orca-timeline-frame .orca-history-track{
- position:absolute;left:0;top:0;height:250px!important;width:auto;max-width:none;
+ position:absolute;left:0;top:0;height:300px!important;width:auto;max-width:none;
  overflow:visible;pointer-events:none;z-index:1;
 }
 #chart-section .orca-timeline-frame .orca-history-stop .orca-history-stem{
  z-index:4!important;display:block!important;
- position:absolute!important;top:188px!important;height:48px!important;bottom:auto!important;
+ position:absolute!important;top:220px!important;height:62px!important;bottom:auto!important;
  left:50%!important;width:2px!important;transform:translateX(-50%)!important;
  background:#b9955d!important;box-shadow:0 0 4px #b9955d5c;
 }
 #chart-section .orca-timeline-frame .orca-history-stop .orca-timeline-event{
- position:absolute!important;top:10px!important;bottom:auto!important;
+ position:absolute!important;top:42px!important;bottom:auto!important;
  left:10px!important;width:calc(100% - 20px)!important;
  height:178px!important;min-height:178px!important;max-height:178px!important;
  z-index:3!important;
@@ -659,6 +659,21 @@ main{max-width:1020px;margin:0 auto;padding:27px 16px 55px}
  filter:drop-shadow(0 0 2px #ead39b70);
  pointer-events:none;
 }
+/* Hover-only magic dust blossoms behind the selected photo and spills onto
+   its two neighbors. The reference oval is a placement guide, not a red ring. */
+#chart-section .orca-timeline-frame .orca-history-orbit{
+ position:absolute;top:0;left:50%;width:470px;height:300px;
+ transform:translateX(-50%);z-index:2;overflow:visible;pointer-events:none;
+}
+#chart-section .orca-timeline-frame .orca-history-orbit-mote{
+ pointer-events:none;filter:drop-shadow(0 0 1.8px #f9dc9790);
+}
+#chart-section .orca-timeline-frame .orca-history-orbit-mote[data-hue="red"]{
+ filter:drop-shadow(0 0 2px #e96a66a0);
+}
+#chart-section .orca-timeline-frame .orca-history-orbit-mote[data-hue="green"]{
+ filter:drop-shadow(0 0 2px #81d899a0);
+}
 /* All history boxes retain their photos and white dates, titles and summaries. */
 #chart-section .orca-timeline-frame .orca-history-stop .orca-timeline-event{
  border:2px solid #c7a46c!important;
@@ -693,7 +708,8 @@ main{max-width:1020px;margin:0 auto;padding:27px 16px 55px}
  outline-offset:2px;
 }
 @media(min-width:701px) and (hover:hover) and (pointer:fine){
- #chart-section .orca-timeline-frame .orca-history-stop.orca-history-excited{z-index:5}
+ #chart-section .orca-timeline-frame .orca-history-stop.orca-history-excited,
+ #chart-section .orca-timeline-frame .orca-history-stop.orca-history-orbit-visible{z-index:5}
  #chart-section .orca-timeline-frame .orca-history-stop.orca-history-excited .orca-timeline-event,
  #chart-section .orca-timeline-frame .orca-history-stop.orca-history-excited .orca-timeline-event:has(.orca-history-thumb img){
   transform:scale(1.035);
@@ -702,6 +718,7 @@ main{max-width:1020px;margin:0 auto;padding:27px 16px 55px}
  }
 }
 @media(prefers-reduced-motion:reduce){
+ #chart-section .orca-timeline-frame .orca-history-orbit{display:none!important}
  #chart-section .orca-timeline-frame .orca-history-stop .orca-timeline-event{
   transform:none!important;
   transition:none!important;
@@ -1848,7 +1865,7 @@ document.addEventListener('visibilitychange',()=>{if(document.visibilityState===
  void loadWorkspaceCompanyName();
  const {data}=await sb.auth.getUser();user=data?.user||null;await renderCompanyProfile(ticker,sb);await refresh();
  mountStockSearch({sb,root:$('workspace-stock-search'),activeTicker:ticker}).catch(()=>{$('workspace-stock-search').textContent='Stock lookup unavailable. The requested stock workspace can still be used.';});
- if(isOrcaStaging)import('./orca-living-timeline.js?v=ambient-dust-v48').then(({mountLivingTimeline})=>
+ if(isOrcaStaging)import('./orca-living-timeline.js?v=orbit-dust-v49').then(({mountLivingTimeline})=>
   mountLivingTimeline({sb,ticker,getUser:()=>user,canContribute:()=>ready,getFindings:()=>findings})
  ).catch(err=>{console.error('ORCA Living Timeline isolated error:',err);$('living-status').textContent='Timeline unavailable; TradingView remains available.';});
   // Passive monitor for the HUMAN observer's browser; no autonomous research or API requests.

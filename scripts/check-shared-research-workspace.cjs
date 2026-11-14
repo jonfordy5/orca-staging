@@ -142,7 +142,7 @@ check('Latest straight timeline design is recorded in universal stock-page stand
 
 check('Owner-approved timeline is compact, straight and keeps the charts stacked', () =>
  workspace.includes('id="chart-frame"') && workspace.includes('id="timeline-frame"') &&
- workspace.includes('height:332px') && workspace.includes('height:250px!important') &&
+ workspace.includes('height:382px') && workspace.includes('height:300px!important') &&
  workspace.includes('flex:0 0 222px!important') &&
  timeline.includes('stop.append(stem,card)') && timeline.includes('spine.append(svg)') &&
  !timeline.includes('const futureStep=') && !timeline.includes('orca-history-refill-action') &&
@@ -167,7 +167,7 @@ check('Each photo stem reaches the same horizontal line without nodes', () =>
  !timeline.includes('i%2===0?rect.bottom:rect.top') &&
  timeline.includes("const pathData='M '+points.map(([x,y])=>x+' '+y).join(' L ')") &&
  timeline.includes('stop.append(stem,card)') && !timeline.includes("dot.className='orca-history-dot'") &&
- workspace.includes('top:188px!important;height:48px!important') && !workspace.includes('animation:orca-dot-arrival'));
+ workspace.includes('top:220px!important;height:62px!important') && !workspace.includes('animation:orca-dot-arrival'));
 check('Photo cards retain dates and click details without numeric year nodes', () =>
  timeline.includes("date.textContent=eventDate(event)") &&
  timeline.includes("card.addEventListener('click',()=>selectMilestone(i))") &&
@@ -177,7 +177,7 @@ check('Timeline ends at last real milestone with minimal space, not fake future 
  timeline.includes("spine.style.paddingRight=(mobile?0:16)+'px'") &&
  !timeline.includes('const futurePoints=') &&
  !timeline.includes("setAttribute('mask'") &&
- workspace.includes('v=ambient-dust-v48'));
+ workspace.includes('v=orbit-dust-v49'));
 check('Ambient dust uses bounded viewport pools with local stationary anchors', () =>
   timeline.includes('const poolSize=Math.min(stops.length,Math.ceil(rail.clientWidth/pitch)+2,18)') &&
   timeline.includes('const particles=Array.from({length:32}') &&
@@ -203,6 +203,19 @@ check('Card-only fine-pointer hover excites local dust while respecting reduced 
   workspace.includes('transform-origin:center bottom') &&
   workspace.includes('prefers-reduced-motion:reduce'));
 
+check('Hovered card emits a reusable oval sparkle field with rare red and green motes', () =>
+ timeline.includes("orbit.classList.add('orca-history-orbit')") &&
+ timeline.includes('const orbitMotes=Array.from({length:112}') &&
+ timeline.includes("mote.dataset.hue=hue") &&
+ timeline.includes("stops[next].append(orbit)") &&
+ timeline.includes("stops[next].classList.add('orca-history-orbit-visible')") &&
+ timeline.includes("paintOrbit(elapsed)") &&
+ workspace.includes('orca-history-orbit-mote[data-hue="red"]') &&
+ workspace.includes('orca-history-orbit-mote[data-hue="green"]') &&
+ workspace.includes('orca-history-orbit-visible{z-index:5') &&
+ workspace.includes('width:470px;height:300px') &&
+ !timeline.includes('new Audio('));
+
 check('Dust stops on hidden pages and responds to motion-preference changes', () =>
   timeline.includes("reducedMotion.addEventListener('change',refreshDustPreferences)") &&
   timeline.includes("hoverPointer.addEventListener('change',refreshDustPreferences)") &&
@@ -216,7 +229,7 @@ check('Desktop centers the middle milestone, mobile starts at the beginning, nav
   timeline.includes("centerMilestone(card,'auto')") &&
   timeline.includes("prev.addEventListener('click',()=>jumpTo(0))") &&
   timeline.includes("next.addEventListener('click',()=>jumpTo(data.length-1))") &&
-  workspace.includes('v=ambient-dust-v48'));
+  workspace.includes('v=orbit-dust-v49'));
 
 check('Mobile history stays a swipe carousel without zigzag or glowing track', () =>
   workspace.includes('touch-action:pan-x pan-y pinch-zoom!important') &&

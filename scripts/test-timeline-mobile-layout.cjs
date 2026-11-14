@@ -149,6 +149,7 @@ async function particleTravel(page,index){
    await page.locator('#timeline-frame').scrollIntoViewIfNeeded();
    let m=await metrics(page);
    assert.equal(m.track,false);assert.equal(m.hint,'block');assert(m.cards[0].visible);assert.equal(m.scrollLeft,0);
+   assert.equal(await page.locator('.orca-history-orbit').count(),0,'Mobile never mounts hover dust');
     assert.equal(await page.locator('.orca-timeline-generate,.orca-history-refill-action,.orca-history-year-once').count(),0);
    if(size.height<600)assert(m.frameHeight<=size.height,'The complete phone landscape frame fits the viewport height');
    assert(m.cards.every(c=>c.y===m.cards[0].y&&c.stem==='none'),'All cards occupy one row; no desktop positions leak into mobile');
@@ -203,7 +204,7 @@ async function particleTravel(page,index){
    const context=await browser.newContext({viewport:size,reducedMotion:'reduce'}),page=await context.newPage();
    await page.goto(url);await page.waitForFunction(()=>window.timelineReady);await page.waitForTimeout(100);
    const m=await metrics(page);
-   assert(m.frameHeight>=328&&m.frameHeight<=336,'Desktop adds only 30px of breathing room to the compact frame');
+   assert(m.frameHeight>=380&&m.frameHeight<=386,'Desktop leaves room around the hovering card and halo');
    assert.equal(m.hint,'none');assert(m.track);
    assert(m.cards.every(c=>c.width===202&&c.height===178));
    assert(m.cards.every(c=>Math.abs(c.y-m.cards[0].y)<1),'All cards are on the same row');
@@ -282,6 +283,41 @@ async function particleTravel(page,index){
    await motionPage.waitForFunction(()=>Number(document.querySelector('.orca-history-dust-group[data-index="4"]')?.dataset.excitement)>.9);
    await motionPage.waitForTimeout(300);
    const excited=await dustState(motionPage),local=excited.groups.find(g=>g.index===4);
+   await motionPage.waitForFunction(()=>Number(document.querySelector('.orca-history-orbit')?.dataset.excitement)>.92);
+   const orbitBefore=await motionPage.evaluate(()=>{
+    const orbit=document.querySelector('.orca-history-orbit');
+    const cards=[...document.querySelectorAll('.orca-timeline-event')].map(el=>el.getBoundingClientRect());
+    const motes=[...orbit.querySelectorAll('.orca-history-orbit-mote')].map(el=>{
+     const rect=el.getBoundingClientRect();
+     return {x:rect.x+rect.width/2,y:rect.y+rect.height/2,
+      opacity:Number(el.getAttribute('opacity')),hue:el.dataset.hue,
+      cx:el.getAttribute('cx'),cy:el.getAttribute('cy')};
+    });
+    const visible=motes.filter(p=>p.opacity>.09),c=cards[4];
+    const on=(p,r)=>p.x>r.left&&p.x<r.right&&p.y>r.top&&p.y<r.bottom;
+    return {count:motes.length,red:visible.filter(p=>p.hue==='red').length,
+     green:visible.filter(p=>p.hue==='green').length,
+     above:visible.filter(p=>p.y<c.top).length,below:visible.filter(p=>p.y>c.bottom).length,
+     left:visible.filter(p=>p.x<c.left).length,right:visible.filter(p=>p.x>c.right).length,
+     acrossLeft:visible.filter(p=>on(p,cards[3])).length,
+     acrossRight:visible.filter(p=>on(p,cards[5])).length,
+     pointer:getComputedStyle(orbit).pointerEvents,
+     z:Number(getComputedStyle(orbit).zIndex),cardZ:Number(getComputedStyle(document.querySelector('.orca-timeline-event[data-index="4"]')).zIndex),
+     parent:orbit.parentElement===document.querySelectorAll('.orca-history-stop')[4],
+     nodes:motes.slice(0,8).map(p=>[p.cx,p.cy,p.opacity])};
+   });
+   assert.equal(orbitBefore.count,112,'Single bounded orbit is reused');
+   assert(orbitBefore.parent&&orbitBefore.pointer==='none'&&orbitBefore.z<orbitBefore.cardZ,
+    'Particles originate behind hovered photo without intercepting card interaction');
+   assert(orbitBefore.above>3&&orbitBefore.below>3&&orbitBefore.left>3&&orbitBefore.right>3,
+    'Shimmer wraps all four sides of the chosen card');
+   assert(orbitBefore.acrossLeft>1&&orbitBefore.acrossRight>1,
+    'Gold dust reaches both neighboring images');
+   assert(orbitBefore.red>=1&&orbitBefore.green>=1,'A few red and green sparks complement gold');
+   await motionPage.waitForTimeout(180);
+   const orbitAfter=await motionPage.evaluate(()=>[...document.querySelectorAll('.orca-history-orbit-mote')].slice(0,8)
+    .map(m=>[m.getAttribute('cx'),m.getAttribute('cy'),Number(m.getAttribute('opacity'))]));
+   assert.notDeepEqual(orbitAfter,orbitBefore.nodes,'Hover field shimmers and drifts');
    const cardAfter=await card.boundingBox();
    assert(cardAfter.width>cardBefore.width*1.025&&cardAfter.width<cardBefore.width*1.05,'Hovered card enlarges slightly');
    assert.notEqual(await card.evaluate(el=>getComputedStyle(el).boxShadow),borderBefore,'Hover adds a tasteful local border glow');
@@ -311,6 +347,7 @@ async function particleTravel(page,index){
    await motionPage.waitForTimeout(300);
    assert(Math.abs((await card.boundingBox()).width-cardBefore.width)<.1,'Card smoothly returns to its original size');
    assert.equal(await motionPage.locator('.orca-history-excited').count(),0);
+   await motionPage.waitForFunction(()=>document.querySelectorAll('.orca-history-orbit').length===0);
    assert.equal(await motionPage.locator('.orca-history-dust').count(),total,'Hover reuses particles instead of accumulating them');
    // Entering empty connector space must not masquerade as card hover.
    const stemBox=await motionPage.locator('.orca-history-stem').nth(4).boundingBox();
@@ -350,6 +387,7 @@ async function particleTravel(page,index){
    await motionPage.emulateMedia({reducedMotion:'reduce'});await motionPage.waitForTimeout(100);
    assert.equal(await motionPage.evaluate(()=>window.timelineFrames.size),0,'Reduced motion cancels the active RAF immediately');
    assert.equal(await motionPage.locator('.orca-history-excited').count(),0,'Preference change clears excitation');
+   assert.equal(await motionPage.locator('.orca-history-orbit').count(),0,'Reduced motion removes the hover orbit');
    const frozen=await dustState(motionPage);await motionPage.waitForTimeout(350);
    assert.deepEqual(await dustState(motionPage),frozen,'Reduced motion retains perfectly static ambient dust');
    assert(Math.abs((await card.boundingBox()).width-cardBefore.width)<.1,'Reduced motion suppresses enlargement');
