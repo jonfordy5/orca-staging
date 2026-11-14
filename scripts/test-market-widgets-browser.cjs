@@ -83,6 +83,21 @@ async function main(){
     assert.equal(layout.chart.height,Math.max(320,Math.min(viewport.width*.58,520)));
     assert(layout.timeline.top>=layout.chart.bottom,'Chart stays above independent visible timeline');
     assert(layout.timelineVisible);assert(layout.realmFits);assert(!layout.overflow);
+    const presentation=await page.evaluate(()=>{
+     const status=document.querySelector('#living-status');
+     const rect=status.getBoundingClientRect();
+     const disclosure=document.querySelector('#orca-agent-evidence-feed');
+     const note=[...disclosure.querySelectorAll('p.mini')].find(p=>p.textContent.includes('Living Timeline shows sourced company milestones'));
+     return {statusRole:status.getAttribute('role'),
+      statusHiddenVisually:rect.width<=1&&rect.height<=1,
+      noteInsideCollapsedDetails:!!note&&!disclosure.open,
+      noteVisible:note?note.getClientRects().length>0:false};
+    });
+    assert.equal(presentation.statusRole,'status','Timeline status remains available to assistive technology');
+    assert(presentation.statusHiddenVisually,'Verbose completion status no longer takes visual space');
+    assert(presentation.noteInsideCollapsedDetails,'Source and TradingView disclosure remains accessible in collapsed details');
+    assert.equal(presentation.noteVisible,false,'Disclosure must not obscure the line');
+
     if(viewport.width>700)assert.equal(layout.timeline.height,302);
    }
    await page.goto(origin+'/?ticker='+encodeURIComponent('<invalid>'));
