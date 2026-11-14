@@ -100,6 +100,7 @@ async function swipe(page,direction){
 async function dustState(page){
  return page.evaluate(()=>({groups:[...document.querySelectorAll('.orca-history-dust-group')].map(group=>({
   index:Number(group.dataset.index),excitement:Number(group.dataset.excitement),
+  railExcitement:Number(group.dataset.railExcitement),
   particles:[...group.querySelectorAll('.orca-history-dust')].map(p=>({
    region:p.dataset.region,anchorX:Number(p.dataset.anchorX),anchorY:Number(p.dataset.anchorY),
    x:Number(p.getAttribute('cx')),y:Number(p.getAttribute('cy')),opacity:Number(p.getAttribute('opacity')),
@@ -150,6 +151,8 @@ async function particleTravel(page,index){
    let m=await metrics(page);
    assert.equal(m.track,false);assert.equal(m.hint,'block');assert(m.cards[0].visible);assert.equal(m.scrollLeft,0);
    assert.equal(await page.locator('.orca-history-orbit').count(),0,'Mobile never mounts hover dust');
+   assert.equal(await page.locator('button[data-event-id][title]').count(),0,
+    'Photo credits never create white native hover tooltips');
     assert.equal(await page.locator('.orca-timeline-generate,.orca-history-refill-action,.orca-history-year-once').count(),0);
    if(size.height<600)assert(m.frameHeight<=size.height,'The complete phone landscape frame fits the viewport height');
    assert(m.cards.every(c=>c.y===m.cards[0].y&&c.stem==='none'),'All cards occupy one row; no desktop positions leak into mobile');
@@ -277,7 +280,8 @@ async function particleTravel(page,index){
    const card=motionPage.locator('.orca-timeline-event[data-index="4"]');
    const cardBefore=await card.boundingBox();
    const borderBefore=await card.evaluate(el=>getComputedStyle(el).boxShadow);
-   const calm=(await dustState(motionPage)).groups.find(g=>g.index===4);
+   const calmState=await dustState(motionPage);
+   const calm=calmState.groups.find(g=>g.index===4);
    const calmMotion=await particleTravel(motionPage,4);
    await card.hover();
    await motionPage.waitForFunction(()=>Number(document.querySelector('.orca-history-dust-group[data-index="4"]')?.dataset.excitement)>.9);
@@ -314,7 +318,7 @@ async function particleTravel(page,index){
      parent:orbit.parentElement===document.querySelector('.orca-history-spine'),
      nodes:motes.slice(0,8).map(p=>[p.cx,p.cy,p.opacity])};
    });
-   assert.equal(orbitBefore.count,168,'The single bounded orbit reuses 112 halo and 56 side motes');
+   assert.equal(orbitBefore.count,136,'The orbit reuses 112 halo and only 24 subtle side motes');
    assert(orbitBefore.parent&&orbitBefore.pointer==='none'&&orbitBefore.isolated,
     'The orbit is attached to an isolated background layer, not the hovered card');
    assert(orbitBefore.z<orbitBefore.cardZ&&orbitBefore.z<orbitBefore.leftZ&&orbitBefore.z<orbitBefore.rightZ,
@@ -323,8 +327,8 @@ async function particleTravel(page,index){
     'Shimmer wraps all four sides of the chosen card');
    assert(orbitBefore.acrossLeft>1&&orbitBefore.acrossRight>1,
     'The dust field reaches behind neighboring photos without painting on them');
-   assert(orbitBefore.leftGap>=10&&orbitBefore.rightGap>=10,
-    'Dense moving motes visibly fill both narrow gaps beside the enlarged card');
+   assert(orbitBefore.leftGap>=3&&orbitBefore.rightGap>=3,
+    'Both narrow gaps retain lightly scattered motes without excessive density');
    assert(orbitBefore.red>=1&&orbitBefore.green>=1,'A few red and green sparks complement gold');
    await motionPage.waitForTimeout(180);
    const orbitAfter=await motionPage.evaluate(()=>[...document.querySelectorAll('.orca-history-orbit-mote')].slice(0,8)
@@ -333,7 +337,19 @@ async function particleTravel(page,index){
    const cardAfter=await card.boundingBox();
    assert(cardAfter.width>cardBefore.width*1.025&&cardAfter.width<cardBefore.width*1.05,'Hovered card enlarges slightly');
    assert.notEqual(await card.evaluate(el=>getComputedStyle(el).boxShadow),borderBefore,'Hover adds a tasteful local border glow');
-   assert(excited.groups.filter(g=>g.index!==4).every(g=>g.excitement===0),'Neighbor dust remains calm');
+   assert(excited.groups.filter(g=>g.index!==4).every(g=>g.excitement===0),
+    'Only the hovered card excites its own connector and surrounding card dust');
+   const farLeft=excited.groups.find(g=>g.index<=2);
+   const farRight=excited.groups.find(g=>g.index>=6);
+   assert(farLeft&&farRight,'The visible rail includes segments well beyond the active card');
+   for(const far of [farLeft,farRight]){
+    const baseline=calmState.groups.find(g=>g.index===far.index);
+    assert(far.railExcitement>.15,
+     'Hover excites the horizontal rail far beyond the selected card in both directions');
+    assert(sumOpacity(far,'rail')>sumOpacity(baseline,'rail')*1.12,
+     'Distant fixed rail motes brighten without a traveling comet or beam');
+    assert.equal(far.excitement,0,'Other milestone cards and connectors remain calm');
+   }
    assert(sumOpacity(local)>sumOpacity(calm)*1.5,'Hovered milestone dust becomes brighter');
    assert(local.particles.filter(p=>p.opacity>.2).length>calm.particles.filter(p=>p.opacity>.2).length,
     'More of the fixed pool sparkles visibly on hover');
@@ -460,6 +476,8 @@ async function particleTravel(page,index){
    await page.goto(url+query);await page.waitForFunction(()=>window.timelineReady);
    const count=Number(new URL(url+query).searchParams.get('count'));
    assert.equal(await page.locator('.orca-timeline-event').count(),count);
+   assert.equal(await page.locator('button[data-event-id][title]').count(),0,
+    'Neither sourced photos nor fallback illustrations retain native hover titles');
    assert.equal(await page.locator('.orca-generated-art').count(),query.includes('noPhotos')?count:0);
    if(count){for(let i=0;i<count;i++)await showCard(page,i)}
    else {assert(await page.locator('.orca-timeline-empty').isVisible());assert(!(await page.locator('.orca-timeline-mobile-progress').isVisible()))}
