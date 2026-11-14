@@ -98,8 +98,8 @@ async function main(){
     assert(presentation.noteInsideCollapsedDetails,'Source and TradingView disclosure remains accessible in collapsed details');
     assert.equal(presentation.noteVisible,false,'Disclosure must not obscure the line');
 
-    // The ambient-dust hover state gets a small amount of vertical breathing room.
-    if(viewport.width>700)assert.equal(layout.timeline.height,332);
+    // The complete centered orbit needs additional vertical breathing room on desktop.
+    if(viewport.width>700)assert.equal(layout.timeline.height,382);
    }
    await page.goto(origin+'/?ticker='+encodeURIComponent('<invalid>'));
    await page.waitForFunction(()=>window.fixtureReady);
