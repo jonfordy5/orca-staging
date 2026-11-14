@@ -938,6 +938,42 @@ main{max-width:1020px;margin:0 auto;padding:27px 16px 55px}
  .company-codex .codex-photo-fallback{min-height:220px}
 }
 
+/* R5 — interactive Company Codex: restrained Legends gold and one chapter at a time. */
+.company-codex .codex-insight-grid{align-items:stretch}
+.company-codex .codex-insight{padding:0;position:relative;min-height:152px;border-color:#756448;background:linear-gradient(155deg,#252d3b,#1a2432)}
+.company-codex .codex-insight:nth-child(n){border-top:2px solid #b89a62}
+.company-codex .codex-insight-selected{border-color:#f0d494!important;box-shadow:0 0 0 1px #edd49455,0 9px 24px #0005}
+.company-codex .codex-insight-trigger{cursor:pointer;border:0;background:transparent;color:inherit;text-align:left;font:inherit;display:flex;flex-direction:column;align-items:stretch;width:100%;min-height:152px;padding:15px;gap:9px}
+.company-codex .codex-insight-trigger:hover,.company-codex .codex-insight-trigger:focus-visible{background:#c9ad7220}
+.company-codex .codex-insight-trigger:focus-visible{outline:3px solid #f4db9a;outline-offset:2px;border-radius:10px}
+.company-codex .codex-insight-title{font:800 clamp(16px,1.6vw,19px)/1.28 Georgia,serif;color:#f5e0ad}
+.company-codex .codex-insight-preview{font:400 12px/1.58 system-ui,-apple-system,"Segoe UI",sans-serif;color:#e4e9e9;overflow-wrap:anywhere;flex:1}
+.company-codex .codex-insight-open{font-size:11px;font-weight:800;color:#ebc984}
+.company-codex .codex-insight-meta{display:block;padding:0 15px 10px;font-size:9px;letter-spacing:.025em;color:#b9ac92}
+.company-codex .codex-chapter-detail{margin-top:14px;border:1px solid #8e754c;border-radius:13px;background:linear-gradient(135deg,#1b2430,#242831);padding:22px;min-width:0;box-shadow:0 12px 24px #0003}
+.company-codex .codex-chapter-detail[hidden]{display:none}
+.company-codex .codex-chapter-heading{font:800 clamp(21px,2.2vw,26px)/1.2 Georgia,serif;color:#f4db9a;margin:6px 0 15px}
+.company-codex .codex-chapter-detail>p,.company-codex .codex-chapter-detail li{color:#eee9df;line-height:1.75;font-size:14px}
+.company-codex .codex-chapter-detail h5{font:800 16px/1.35 Georgia,serif;color:#ebcb8c;margin:18px 0 8px}
+.company-codex .codex-chapter-detail a{color:#f0cc83;display:inline-block;margin:6px 12px 6px 0;font-size:12px;overflow-wrap:anywhere}
+.company-codex .codex-chapter-detail .company-mission{background:#302f2e;border-left-color:#cda765}
+.company-codex .codex-chapter-detail .company-fact dt{color:#d6be90}
+.company-codex .codex-chapter-detail .company-business-line{border-color:#79674d}
+.company-codex .codex-chapter-detail .company-business-breakdown{border-color:#79674d}
+.company-codex .codex-chapter-detail .codex-chapter-meta{display:block;font-size:10px;color:#bdb0a0;margin:13px 0}
+.company-codex .codex-chapter-evidence,.company-codex .codex-chapter-archive{border-top:1px solid #89745455;margin-top:12px;padding-top:10px}
+.company-codex .codex-chapter-evidence summary,.company-codex .codex-chapter-archive summary{cursor:pointer;color:#eac786;font-size:12px;font-weight:750}
+.company-codex .codex-chapter-past{padding:9px 0;border-bottom:1px solid #8d775133}
+.company-codex .codex-chapter-past small{font-size:10px;color:#b9aa8f}
+.company-codex .codex-chapter-past p{font-size:12px;color:#ded6c7;margin:4px 0}
+.company-codex .codex-chapter-list{padding-left:22px}
+.company-codex .codex-evidence-unavailable{font-style:italic;color:#d6c9b0}
+@media(max-width:520px){
+ .company-codex .codex-insight-trigger{min-height:128px}
+ .company-codex .codex-insight{min-height:128px}
+ .company-codex .codex-chapter-detail{padding:17px}
+}
+
 /* Contribute research: the verified, historical findings archive lives under
    the claim card in the unused left column. Latest stays on the public board. */
 #research-archive{min-width:0}

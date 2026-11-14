@@ -42,6 +42,17 @@ const profiles=Object.freeze({
  })
 });
 const add=(parent,tag,className,text)=>{const e=document.createElement(tag);if(className)e.className=className;if(text!==undefined)e.textContent=text;parent.append(e);return e;};
+async function hydrateMonthlyCodex(ticker,sb,root){
+ // Public read of saved records only; a visitor never triggers a billable API.
+ if(!sb||typeof root.applyCodexIntelligence!=='function')return;
+ try{
+  const {data,error}=await sb.from('orca_codex_chapter_versions')
+   .select('chapter,status,summary,analysis,watch_items,source_urls,findings_count,generated_at')
+   .eq('ticker',ticker).eq('status','ready').order('generated_at',{ascending:false}).limit(24);
+  if(!error&&root.isConnected&&root.dataset.codexTicker===ticker)
+   root.applyCodexIntelligence(data||[]);
+ }catch{/* Keep the company facts visible if the cache is temporarily unavailable. */}
+}
 export async function renderCompanyProfile(ticker,sb=null){
  const root=document.getElementById('company-profile');
  if(!root)return;
@@ -49,6 +60,7 @@ export async function renderCompanyProfile(ticker,sb=null){
  const data=profiles[ticker];
  if(!data){
   await renderAutomaticCompanyProfile(root,ticker,sb);
+  await hydrateMonthlyCodex(ticker,sb,root);
   return;
  }
  const metrics=await getCompanySize(ticker,data.name,{source:'https://en.wikipedia.org/wiki/Rocket_Lab'}).catch(()=>({}));
@@ -65,4 +77,5 @@ export async function renderCompanyProfile(ticker,sb=null){
   links:[{label:'Official website',url:data.officialSite},...data.sources.map(s=>({label:s.label,url:s.url}))],
   sourceNote:'Company facts sourced from Rocket Lab and its investor relations materials.'
  });
+ await hydrateMonthlyCodex(ticker,sb,root);
 }
