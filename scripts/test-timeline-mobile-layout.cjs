@@ -208,6 +208,18 @@ async function particleTravel(page,index){
    await page.goto(url);await page.waitForFunction(()=>window.timelineReady);await page.waitForTimeout(100);
    const m=await metrics(page);
    assert(m.frameHeight>=352&&m.frameHeight<=356,'Desktop trims excess top whitespace while keeping room for card and dust');
+   const vertical=await page.evaluate(()=>{
+    const box=document.querySelector('#timeline-frame').getBoundingClientRect();
+    const nav=document.querySelector('.orca-timeline-navigation').getBoundingClientRect();
+    const first=document.querySelector('.orca-timeline-event').getBoundingClientRect();
+    const path=document.querySelector('.orca-history-track-base').getBoundingClientRect();
+    const stem=document.querySelector('.orca-history-stem').getBoundingClientRect();
+    return {navGap:first.top-nav.bottom,lowerGap:box.bottom-path.bottom,
+     cardBottom:first.bottom,stemTop:stem.top};
+   });
+   assert(vertical.navGap>=10&&vertical.navGap<=30,'Cards begin close below arrows without a large empty band');
+   assert(vertical.lowerGap>=15&&vertical.lowerGap<=50,'Rail fits within a balanced lower frame margin');
+   assert(Math.abs(vertical.cardBottom-vertical.stemTop)<2,'Connectors still meet their photo cards');
    assert.equal(m.hint,'none');assert(m.track);
    assert(m.cards.every(c=>c.width===202&&c.height===178));
    assert(m.cards.every(c=>Math.abs(c.y-m.cards[0].y)<1),'All cards are on the same row');
