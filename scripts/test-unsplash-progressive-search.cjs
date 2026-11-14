@@ -1,11 +1,11 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const {stripTypeScriptTypes}=require('node:module');
-const src=fs.readFileSync(__dirname+'/../supabase/functions/orca-timeline-photo-fill/index.ts','utf8').replace(/^import .*\n/,'');
+const src=fs.readFileSync(__dirname+'/../supabase/functions/orca-timeline-photo-fill/index.ts','utf8').replace(/^import .*\n/gm,'');
 const make=(id)=>({id,width:1500,height:1000,urls:{regular:'https://images.unsplash.com/photo-'+id,raw:'https://images.unsplash.com/photo-'+id},links:{html:'https://unsplash.com/photos/'+id,download_location:'https://api.unsplash.com/photos/'+id+'/download'},user:{name:'Creator',links:{html:'https://unsplash.com/@creator'}}});
 const queries=['oil refinery','oil rig','pipeline','pumpjack'];
 async function run(pools,needed,{usedIds=[],usedUrls=[],broken=[],status=200}={}){
  const searches=[],downloads=[],saves=[];
- const context={createClient:()=>({}),Deno:{env:{get:()=>''},serve:()=>{}},URL,URLSearchParams,Response,AbortSignal,console,
+ const context={isVerifiedOrcaBrowserToken:()=>true,createClient:()=>({}),Deno:{env:{get:()=>''},serve:()=>{}},URL,URLSearchParams,Response,AbortSignal,console,
  fetch:async(url,opts)=>{
   const u=new URL(url);
   if(opts?.method==='HEAD')return new Response(null,{status:broken.includes(u.pathname)?404:200,headers:{'content-type':'image/jpeg'}});

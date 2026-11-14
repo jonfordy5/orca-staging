@@ -4,7 +4,7 @@ const vm=require('node:vm');
 const {stripTypeScriptTypes}=require('node:module');
 const path=require('node:path');
 const source=fs.readFileSync(path.resolve(__dirname,'../supabase/functions/orca-timeline-discovery/index.ts'),'utf8')
-  .replace(/^import .*\n/,'');
+  .replace(/^import .*\n/gm,'');
 function event(i,override={}){
  return {date:String(1900+i)+'-06-15',category:'product',title:'Verified Ford milestone '+i,
   summary:'Ford Motor Company announced a documented historical event with evidence from its official corporate heritage records and dated materials.',
@@ -46,6 +46,7 @@ async function run({existing=9,batches=[[event(90)]],usage=[{input_tokens:1000,o
   }
  };
  const ctx={
+  isVerifiedOrcaBrowserToken:()=>true,
   createClient:()=>admin,
   Deno:{env:{get:key=>key==='OPENAI_API_KEY'?'test-only-key':'ignored'},serve:fn=>handler=fn},
   URL,Request,Response,AbortController,setTimeout,clearTimeout,Date,console:{log(){},warn(){},error:console.error},

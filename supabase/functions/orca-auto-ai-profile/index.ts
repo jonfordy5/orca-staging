@@ -1,3 +1,4 @@
+import { isVerifiedOrcaBrowserToken } from "../_shared/orca-browser-token.ts";
 import {createClient} from "npm:@supabase/supabase-js@2.57.0";
 const db=createClient(Deno.env.get("SUPABASE_URL")||"",Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")||"",{auth:{persistSession:false}});
 const cors={"Content-Type":"application/json","Access-Control-Allow-Origin":"https://jonfordy5.github.io","Access-Control-Allow-Methods":"GET,POST,OPTIONS","Access-Control-Allow-Headers":"authorization,apikey,content-type,x-client-info,x-supabase-api-version","Cache-Control":"no-store"};
@@ -134,6 +135,7 @@ Deno.serve(async(req)=>{
   if(!token)return send(401,{error:"Sign in for refresh"});
   const {data:identity,error:identityError}=await db.auth.getUser(token);
   if(identityError||!identity?.user)return send(403,{error:"User verification failed"});
+  if(!isVerifiedOrcaBrowserToken(token,identity.user.id))return send(403,{error:"oauth_client_not_allowed_for_site_function"});
   const key=Deno.env.get("OPENAI_API_KEY");if(!key)return send(503,{error:"Profile API unconfigured"});
   if(req.headers.get("origin")!=="https://jonfordy5.github.io")return send(403,{error:"Origin not permitted"});
   const {data:claim,error:claimError}=await db.from("orca_ai_company_profiles").update({refresh_status:"refreshing",refresh_attempted_at:new Date().toISOString()})

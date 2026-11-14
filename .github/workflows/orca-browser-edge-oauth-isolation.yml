@@ -1,0 +1,39 @@
+name: ORCA browser-only Edge OAuth isolation
+
+on:
+  push:
+    branches:
+      - security/orca-browser-edge-block-linked-agents-20261112
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  browser-edge-token-guard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Verify verified website accounts work and OAuth clients are rejected
+        run: node --test scripts/test-orca-browser-edge-oauth-boundary.mjs scripts/test-orca-extra-browser-edge-oauth-boundary.mjs
+      - name: Verify OAuth gate runs before privileged I/O in all six routes
+        run: node --test scripts/test-orca-edge-guard-order.mjs
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Typecheck reusable browser-only guard
+        run: deno check supabase/functions/_shared/orca-browser-token.ts
+      - name: Resolve changed Edge Function dependency graphs (legacy files have known type errors)
+        run: |
+          deno info supabase/functions/orca-majority-synthesis/index.ts >/dev/null
+          deno info supabase/functions/orca-timeline-discovery/index.ts >/dev/null
+          deno info supabase/functions/orca-timeline-photo-fill/index.ts >/dev/null
+          deno info supabase/functions/orca-auto-ai-profile/index.ts >/dev/null
+          deno info supabase/functions/orca-ai-profile-pilot/index.ts >/dev/null
+          deno info supabase/functions/orca-av-ulta-private-preview/index.ts >/dev/null
+          deno info supabase/functions/orca-stock-discovery/index.ts >/dev/null
+          deno info supabase/functions/orca-unsplash-photo-pilot/index.ts >/dev/null

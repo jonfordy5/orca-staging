@@ -1,3 +1,4 @@
+import { isVerifiedOrcaBrowserToken } from "../_shared/orca-browser-token.ts";
 import {createClient} from "npm:@supabase/supabase-js@2.57.0";
 // Up to two identifiable company photographs; broad business illustrations for every other card. No event/year matching.
 const admin=createClient(Deno.env.get("SUPABASE_URL")||"",Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")||"",{auth:{persistSession:false,autoRefreshToken:false}});
@@ -162,6 +163,7 @@ Deno.serve(async(req:Request)=>{
  if(!bearer)return reply(401,{error:"Sign in required"});
  const {data:identity,error:authError}=await admin.auth.getUser(bearer);
  if(authError||!identity?.user)return reply(401,{error:"Invalid sign-in"});
+ if(!isVerifiedOrcaBrowserToken(bearer,identity.user.id))return reply(403,{error:"oauth_client_not_allowed_for_site_function"});
  let body:any;try{body=await req.json()}catch{return reply(400,{error:"Invalid JSON"})}
  const ticker=String(body.ticker||"").trim().toUpperCase();
  if(!/^[A-Z][A-Z0-9.]{0,9}$/.test(ticker))return reply(400,{error:"Invalid stock ticker"});
