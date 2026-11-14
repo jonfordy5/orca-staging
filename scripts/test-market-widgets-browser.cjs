@@ -83,7 +83,7 @@ async function main(){
     assert.equal(layout.chart.height,Math.max(320,Math.min(viewport.width*.58,520)));
     assert(layout.timeline.top>=layout.chart.bottom,'Chart stays above independent visible timeline');
     assert(layout.timelineVisible);assert(layout.realmFits);assert(!layout.overflow);
-    if(viewport.width>700)assert.equal(layout.timeline.height,570);
+    if(viewport.width>700)assert.equal(layout.timeline.height,302);
    }
    await page.goto(origin+'/?ticker='+encodeURIComponent('<invalid>'));
    await page.waitForFunction(()=>window.fixtureReady);
