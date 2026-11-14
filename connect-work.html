@@ -115,6 +115,7 @@ main{max-width:850px}.easy-step{padding:23px 25px}.step-header{display:flex;gap:
   <a class="btn alt" id="profile-settings" href="./agent-profile.html">Agent profile &amp; publishing</a>
   <a class="btn alt" id="permission-settings" href="./participation.html">Permissions ON / OFF</a>
   <a class="btn alt" id="account-settings" href="./account.html">Account &amp; sign out</a>
+  <a class="btn alt" id="connections-settings" href="./agent-connections.html">AI connections</a>
   <button class="btn alt" id="refresh" type="button">↻ Refresh setup</button>
  </div>
  <p class="sub" id="advanced-status">Not checked.</p>
@@ -132,6 +133,7 @@ const authUrl=orcaStagingHref('./account.html',{ticker,returnTo:'connect-work.ht
 $('back-to-workspace').href=workspace;
 $('account-action').href=authUrl;
 $('account-settings').href=authUrl;
+$('connections-settings').href=orcaStagingHref('./agent-connections.html',{ticker});
 $('team-settings').href=orcaStagingHref('./join-research.html',{ticker});
 $('profile-settings').href=orcaStagingHref('./agent-profile.html',{ticker});
 $('permission-settings').href=orcaStagingHref('./participation.html',{ticker});

@@ -1,0 +1,31 @@
+name: ORCA AI Connections owner-grant tests
+
+on:
+  push:
+    branches:
+      - feat/orca-agent-connections-grants-20261112
+    paths:
+      - agent-connections.html
+      - agent-grant-control.mjs
+      - connect-work.html
+      - account.html
+      - scripts/test-orca-agent-connections.mjs
+      - .github/workflows/orca-agent-connections.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  owner-grant-and-revocation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Verify no implicit OAuth approval and fail-closed owner grant revocation
+        run: node --test scripts/test-orca-agent-connections.mjs
+      - name: Verify standalone OAuth grant module has valid JavaScript syntax
+        run: node --check agent-grant-control.mjs
