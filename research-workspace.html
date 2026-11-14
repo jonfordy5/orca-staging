@@ -769,6 +769,18 @@ main{max-width:1020px;margin:0 auto;padding:27px 16px 55px}
  }
 }
 
+/* The antique-gold rail is intentionally calm; this tiny moving sparkle keeps
+   the direction of travel visible without brightening the full interface. */
+#chart-section .orca-timeline-frame .orca-history-sparkle-head{
+ filter:drop-shadow(0 0 3px #ffe5acb3) drop-shadow(0 0 6px #ddb47766);
+}
+#chart-section .orca-timeline-frame .orca-history-sparkle-halo{
+ filter:drop-shadow(0 0 4px #e8c58b70);
+}
+#chart-section .orca-timeline-frame .orca-history-track-beam{
+ filter:drop-shadow(0 0 3px #ddb46b8f) drop-shadow(0 0 7px #d9b36b45);
+}
+
 /* Research realms — full uncropped portrait illustrations, with labels INSIDE each research card image. */
 .investor-question .orca-realm-art{aspect-ratio:3/4;height:auto;margin:-14px -14px 15px;border-radius:11px 11px 0 0;background:#14202c;position:relative;overflow:hidden;isolation:isolate}
 .investor-question .orca-realm-art img{position:absolute;inset:0;display:block;width:100%;height:100%;object-fit:contain;object-position:center;background:#14202c}
@@ -1867,7 +1879,7 @@ document.addEventListener('visibilitychange',()=>{if(document.visibilityState===
  void loadWorkspaceCompanyName();
  const {data}=await sb.auth.getUser();user=data?.user||null;await renderCompanyProfile(ticker,sb);await refresh();
  mountStockSearch({sb,root:$('workspace-stock-search'),activeTicker:ticker}).catch(()=>{$('workspace-stock-search').textContent='Stock lookup unavailable. The requested stock workspace can still be used.';});
- if(isOrcaStaging)import('./orca-living-timeline.js?v=gold-dust-visible-v46').then(({mountLivingTimeline})=>
+ if(isOrcaStaging)import('./orca-living-timeline.js?v=gold-glint-v47').then(({mountLivingTimeline})=>
   mountLivingTimeline({sb,ticker,getUser:()=>user,canContribute:()=>ready,getFindings:()=>findings})
  ).catch(err=>{console.error('ORCA Living Timeline isolated error:',err);$('living-status').textContent='Timeline unavailable; TradingView remains available.';});
   // Passive monitor for the HUMAN observer's browser; no autonomous research or API requests.
