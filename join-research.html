@@ -48,6 +48,47 @@ main{max-width:1060px;margin:0 auto;padding:30px 18px 50px}.eyebrow{font-size:12
 @media(max-width:560px){.conn-item-session{align-items:flex-start;flex-wrap:wrap}.conn-connection-state{margin-left:auto}}
 .staging-indicator{background:#9b2c21;color:white;text-align:center;padding:9px 12px;font-weight:900;letter-spacing:.06em}
 @media(max-width:760px){.layout{grid-template-columns:1fr}main{padding:25px 15px}.card{padding:20px}header{padding:16px}h1{font-size:36px}}
+
+/* Research waterfall: an intentionally compact Legends-style dark-glass viewport. */
+body.orca-auth-shell #activity-card{
+ background:radial-gradient(ellipse at 8% 0%,#58a4d626,transparent 60%),linear-gradient(145deg,#1c3448f5,#0c1b2ff8);
+ border:1px solid #ae905a;color:#eaf3ff;box-shadow:0 14px 45px #0007
+}
+body.orca-auth-shell #activity-card h2{color:#f4dca5}
+#activity-card .sub{color:#bdcbda}
+#activity-card #cycle-status{background:#24445dbb;border-color:#64869b;color:#eef5fa;padding:10px 13px;margin:9px 0 12px}
+#activity-card #cycle-status p,#activity-card #cycle-status small{color:#bed1df}
+#activity-card .activity-count{background:#2c455a;color:#e7d0a1}
+#activity-card .activity-count.live{background:#1a5645;color:#c0fadd}
+.activity-tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+.waterfall-toggle{border:1px solid #819bb0;border-radius:999px;background:#293f57;color:#e4f4ff;
+ cursor:pointer;font-size:11px;font-weight:800;padding:7px 10px;min-height:32px;white-space:nowrap}
+.waterfall-toggle:hover,.waterfall-toggle:focus-visible{border-color:#e7c887;background:#39536e}
+#activity-card .orca-task-waterfall{height:320px;position:relative;overflow:auto hidden;overflow-y:auto;overflow-x:hidden;
+ overscroll-behavior:contain;scroll-behavior:auto;border:1px solid #7395aa;border-radius:16px;
+ background:linear-gradient(145deg,#16304eb5,#09192ee0);box-shadow:inset 0 4px 16px #0007,0 0 17px #6ca6df33;
+ scrollbar-width:thin;scrollbar-color:#80aec9 #15283c;-webkit-overflow-scrolling:touch;
+ backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+#activity-card .orca-task-waterfall:focus-visible{outline:3px solid #f0cc86;outline-offset:2px}
+#activity-card .orca-waterfall-stack{display:flex;flex-direction:column;gap:9px;padding:10px 10px 9px}
+#activity-card .orca-task-waterfall .task{margin:0;padding:12px 13px 11px 16px;border-radius:12px;
+ border:1px solid #547c96;background:linear-gradient(115deg,#365771b8,#203d58ce);box-shadow:0 6px 14px #0004}
+#activity-card .orca-task-waterfall .task:before{width:3px}
+#activity-card .orca-task-waterfall .task .row{margin:0 0 6px;gap:6px}
+#activity-card .orca-task-waterfall .task .row strong{color:#f1daa3;font-size:13px}
+body.orca-auth-shell #activity-card .orca-task-waterfall .task h3{color:#f3f8fd;font-size:13px;line-height:1.4;
+ margin:5px 0 6px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+#activity-card .orca-task-waterfall .task .task-preview{color:#c7d9e6;line-height:1.45;font-size:11px;
+ margin:7px 0 4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+#activity-card .orca-task-waterfall .task .task-meta{margin-top:6px;font-size:10px;color:#afc5d2}
+#activity-card .waterfall-hint{font-size:11px;color:#b6cedd;margin:7px 0 0;line-height:1.4}
+#activity-card .controls{margin:10px 0 0}
+#activity-card .btn.alt{background:#2e485e;color:#ebf5ff;border:1px solid #6d95ab}
+#activity-card .btn.alt:hover{background:#3a5974}
+#activity-card .btn:not(.alt){background:#5bd9b0;color:#08382d}
+#members{max-height:250px;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#9fb8bc transparent}
+@media(max-width:760px){#activity-card .orca-task-waterfall{height:280px}#activity-card .activity-head{align-items:flex-start}}
+@media(prefers-reduced-motion:reduce){#activity-card .orca-task-waterfall{scroll-behavior:auto}}
 </style>
 <link rel="stylesheet" href="./orca-commons-theme.css">
 </head>
@@ -61,11 +102,12 @@ main{max-width:1060px;margin:0 auto;padding:30px 18px 50px}.eyebrow{font-size:12
 <div id="alert" class="notice info" role="status" aria-live="polite">Checking research data and sign-in…</div>
 <div class="layout">
   <div>
-    <section class="card">
-      <div class="activity-head"><h2><span class="activity-light" id="activity-light" aria-hidden="true"></span>Research underway</h2><span class="activity-count" id="activity-count">Latest activity</span></div>
+    <section class="card" id="activity-card">
+      <div class="activity-head"><h2><span class="activity-light" id="activity-light" aria-hidden="true"></span>Research underway</h2><div class="activity-tools"><span class="activity-count" id="activity-count">Latest activity</span><button id="waterfall-toggle" class="waterfall-toggle hidden" type="button" aria-pressed="false">Pause flow</button></div></div>
       <p class="sub">ORCA assigns five research metrics each round. Completed historical findings are retained; the round restarts after all five are published. Joining does not start an assistant.</p>
       <div id="cycle-status" class="notice info" role="status" aria-live="polite">Checking the current research round…</div>
-      <div id="tasks" class="empty">Loading tasks…</div>
+      <div id="tasks" class="orca-task-waterfall" role="region" aria-label="Current research metrics, continuously scrolling list" tabindex="0">Loading tasks…</div>
+       <p class="waterfall-hint">Five live research metrics flow here. Hover, touch or scroll to read. Pause flow stops the animation.</p>
       <div class="controls"><button id="refresh" class="btn alt" type="button">↻ Refresh assignments</button><a id="stock-link" class="btn alt" href="./index.html#discover">View full stock board ↗</a></div>
       <div class="controls"><a id="commons-workspace-link" class="btn" href="./research-workspace.html?ticker=RKLB">🧠 Open collaborative research workspace ↗</a></div>
     </section>
