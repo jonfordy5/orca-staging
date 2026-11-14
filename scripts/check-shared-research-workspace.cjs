@@ -177,7 +177,7 @@ check('Timeline ends at last real milestone with minimal space, not fake future 
  timeline.includes("spine.style.paddingRight=(mobile?0:16)+'px'") &&
  !timeline.includes('const futurePoints=') &&
  !timeline.includes("setAttribute('mask'") &&
- workspace.includes('v=background-gaps-v50'));
+ workspace.includes('v=wide-rail-dust-v51'));
 check('Ambient dust uses bounded viewport pools with local stationary anchors', () =>
   timeline.includes('const poolSize=Math.min(stops.length,Math.ceil(rail.clientWidth/pitch)+2,18)') &&
   timeline.includes('const particles=Array.from({length:32}') &&
@@ -206,7 +206,7 @@ check('Card-only fine-pointer hover excites local dust while respecting reduced 
 check('Hovered card emits a reusable oval sparkle field with rare red and green motes', () =>
  timeline.includes("orbit.classList.add('orca-history-orbit')") &&
  timeline.includes('const orbitMotes=Array.from({length:perimeterCount+sideCount*2}') &&
- timeline.includes('const perimeterCount=112,sideCount=28') &&
+ timeline.includes('const perimeterCount=112,sideCount=12') &&
  timeline.includes("mote.dataset.hue=hue") &&
  timeline.includes('mote.dataset.region=region') &&
  timeline.includes("region==='left-gap'") &&
@@ -223,6 +223,19 @@ check('Hovered card emits a reusable oval sparkle field with rare red and green 
  workspace.includes('width:470px;height:300px') &&
  !timeline.includes('new Audio('));
 
+check('Wide stationary rail excitation leaves neighboring card content calm', () =>
+ timeline.includes('const railBloomRadius=Math.max(475,Math.min(840,rail.clientWidth*0.72))') &&
+ timeline.includes("circle.dataset.region==='rail'") &&
+ timeline.includes('const hoveredX=hovered<0?null:points[hovered][0]') &&
+ timeline.includes('group.element.dataset.railExcitement=group.railExcitement.toFixed(3)') &&
+ !timeline.includes('new Audio(') &&
+ !timeline.includes('beamLength') && !timeline.includes('travelMs'));
+
+check('Milestone photos do not show native hover credit tooltips', () =>
+ photos.includes("for(const card of visibleCards)card.removeAttribute('title')") &&
+ !photos.includes('card.title=') && photos.includes("popup.append(credit)") &&
+ photos.includes("link(p.license_url,p.license_name)"));
+
 check('Dust stops on hidden pages and responds to motion-preference changes', () =>
   timeline.includes("reducedMotion.addEventListener('change',refreshDustPreferences)") &&
   timeline.includes("hoverPointer.addEventListener('change',refreshDustPreferences)") &&
@@ -236,7 +249,7 @@ check('Desktop centers the middle milestone, mobile starts at the beginning, nav
   timeline.includes("centerMilestone(card,'auto')") &&
   timeline.includes("prev.addEventListener('click',()=>jumpTo(0))") &&
   timeline.includes("next.addEventListener('click',()=>jumpTo(data.length-1))") &&
-  workspace.includes('v=background-gaps-v50'));
+  workspace.includes('v=wide-rail-dust-v51'));
 
 check('Mobile history stays a swipe carousel without zigzag or glowing track', () =>
   workspace.includes('touch-action:pan-x pan-y pinch-zoom!important') &&
