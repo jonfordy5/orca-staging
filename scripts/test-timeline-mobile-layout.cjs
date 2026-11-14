@@ -14,7 +14,8 @@ const fixture=`<!doctype html><html><head><meta name="viewport" content="width=d
 <script type="module">
 import {mountLivingTimeline} from './orca-living-timeline.js';
 const params=new URLSearchParams(location.search),count=Number(params.get('count')??10);
-const rows=Array.from({length:count},(_,i)=>({id:'event-'+i,event_at:(1990+i)+'-01-01',category:'product',
+const authorized=params.has('authorized'),statusFail=params.has('statusFail');
+let rows=Array.from({length:count},(_,i)=>({id:'event-'+i,event_at:(1990+i)+'-01-01',category:'product',
  title:i?'Company opens a significant new facility and expands its original business':'Company opens its first restaurant',
  ai_summary:'A verified milestone with a readable summary. Select this card to read the full original source and photograph credits.',
  source_url:'https://example.com/history/'+i,quick_brief:{}}));
@@ -22,11 +23,31 @@ const photos=params.has('noPhotos')?[]:rows.map((r,i)=>({event_id:r.id,photo_id:
  image_url:location.origin+'/image-'+i+'.svg',full_image_url:location.origin+'/image-'+i+'.svg',
  photographer:'Test photographer',photographer_url:'https://unsplash.com/@test',photo_url:'https://unsplash.com/photos/'+i,
  needs_review:false,strategy_version:13,source_type:'unsplash',match_type:'contextual'}));
-window.paidCalls=0;
-const sb={from(table){const result={data:table==='orca_timeline_annotations'?rows:table==='orca_timeline_photo_selections'?photos:[]};
- const q={select(){return q},eq(){return q},is(){return q},order(){return q},range(){return Promise.resolve(result)}};return q},
- functions:{invoke(){window.paidCalls++;throw Error('Browsing must never trigger paid research')}}};
-await mountLivingTimeline({sb,ticker:'TEST'});window.timelineReady=true;
+window.paidCalls=0;window.apiCalls=[];
+const sb={from(table){
+ const result={data:table==='orca_timeline_annotations'?rows:
+  table==='orca_timeline_photo_selections'?photos:
+  table==='agent_profiles'&&authorized?[{id:'owned-researcher'}]:[]};
+ const q={select(){return q},eq(){return q},is(){return q},order(){return q},
+  range(){return Promise.resolve(result)},limit(){return Promise.resolve(result)}};return q;
+},functions:{async invoke(name,{body}){
+ window.apiCalls.push({name,scope:body?.scope||null});
+ if(name==='orca-timeline-discovery'&&body?.scope==='status')return statusFail?
+  {error:{message:'Temporary authenticated status outage'}}:
+  {data:{stopped:{},photo_brand_pending:false}};
+ if(name==='orca-timeline-discovery'&&body?.scope==='current'){
+  window.paidCalls++;
+  rows.push({id:'event-current',event_at:new Date().getUTCFullYear()+'-03-14',
+   category:'product',title:'Company opens a new facility this year',
+   ai_summary:'Verified current year development',quick_brief:{},
+   source_url:'https://example.com/history/current'});
+  return {data:{state:'ready',added:1,run_id:'test-current',estimated_usd:.02}};
+ }
+ if(name==='orca-timeline-photo-fill'){window.paidCalls++;return {data:{state:'rate_limited',added:0,remaining:1}}}
+ throw Error('Unexpected API request: '+name+' / '+body?.scope);
+}}};
+await mountLivingTimeline({sb,ticker:'TEST',getUser:()=>authorized?{id:'owned-user'}:null});
+window.timelineReady=true;
 </script></body></html>`;
 
 async function metrics(page){
@@ -35,6 +56,7 @@ async function metrics(page){
   const r=rail.getBoundingClientRect(),f=frame.getBoundingClientRect();
   return {railWidth:r.width,railHeight:r.height,scrollLeft:rail.scrollLeft,maxScroll:rail.scrollWidth-rail.clientWidth,
    frameHeight:f.height,track:!!document.querySelector('.orca-history-track'),
+    trackPath:document.querySelector('.orca-history-track-base')?.getAttribute('d')||'',
    hint:getComputedStyle(document.querySelector('.orca-timeline-mobile-progress')).display,
    cards:[...document.querySelectorAll('.orca-timeline-event')].map(card=>{
     const b=card.getBoundingClientRect();return {x:b.left-r.left,y:b.top-r.top,width:b.width,height:b.height,
@@ -99,6 +121,7 @@ async function swipe(page,direction){
    await page.locator('#timeline-frame').scrollIntoViewIfNeeded();
    let m=await metrics(page);
    assert.equal(m.track,false);assert.equal(m.hint,'block');assert(m.cards[0].visible);assert.equal(m.scrollLeft,0);
+    assert.equal(await page.locator('.orca-timeline-generate,.orca-history-refill-action,.orca-history-year-once').count(),0);
    if(size.height<600)assert(m.frameHeight<=size.height,'The complete phone landscape frame fits the viewport height');
    assert(m.cards.every(c=>c.y===m.cards[0].y&&c.stem==='none'),'All cards occupy one row; no desktop positions leak into mobile');
    for(let i=0;i<10;i++)m=await showCard(page,i);
@@ -141,10 +164,17 @@ async function swipe(page,direction){
    const context=await browser.newContext({viewport:size,reducedMotion:'reduce'}),page=await context.newPage();
    await page.goto(url);await page.waitForFunction(()=>window.timelineReady);await page.waitForTimeout(100);
    const m=await metrics(page);
-   assert.equal(m.frameHeight,570);assert.equal(m.hint,'none');assert(m.track);
+   assert(m.frameHeight>=298&&m.frameHeight<=306,'Compact desktop frame is about 302px, not 570px');
+   assert.equal(m.hint,'none');assert(m.track);
    assert(m.cards.every(c=>c.width===202&&c.height===178));
-   assert.equal(m.cards[0].y,4);assert.equal(m.cards[1].y,294);
+   assert(m.cards.every(c=>Math.abs(c.y-m.cards[0].y)<1),'All cards are on the same row');
    assert.equal(m.cards[1].x-m.cards[0].x,210);assert(m.cards[4].visible);
+   const coords=[...m.trackPath.matchAll(/[ML]\\s+([\\d.]+)\\s+([\\d.]+)/g)]
+    .map(match=>[Number(match[1]),Number(match[2])]);
+   assert.equal(coords.length,10,'One track point per milestone');
+   assert(coords.every(([x,y])=>Math.abs(y-coords[0][1])<1),'No zigzag');
+   assert.equal(await page.locator('.orca-timeline-generate,.orca-history-year-once').count(),0);
+   assert.equal(await page.evaluate(()=>window.paidCalls),0,'Anonymous views make no paid request');
    assert(await page.locator('.orca-timeline-navigation').isVisible());
    for(const [label,i] of [['Jump to earliest event',0],['Jump to latest event',9]]){
     await page.getByRole('button',{name:label}).click();
@@ -153,7 +183,7 @@ async function swipe(page,direction){
      return card.left>=rail.left&&card.right<=rail.right;
     },i);
    }
-   console.log('PASS desktop '+size.width+'×'+size.height+': original geometry, middle card, zigzag and navigation');
+   console.log('PASS desktop '+size.width+'×'+size.height+': compact straight rail, no manual button and navigation');
    await context.close();
   }
   const context=await browser.newContext({viewport:{width:360,height:800},hasTouch:true,isMobile:true}),page=await context.newPage();
@@ -167,6 +197,18 @@ async function swipe(page,direction){
    assert.equal(await page.evaluate(()=>window.paidCalls),0);
   }
   await context.close();
-  console.log('PASS one-card, missing-photo fallback and empty timelines; browsing never triggers research');
+  console.log('PASS anonymous one-card, missing-photo and empty timelines without billable calls');
+  await page.goto(url+'?authorized');await page.waitForFunction(()=>window.timelineReady);
+  await page.waitForFunction(()=>window.apiCalls.some(x=>x.scope==='current'),null,{timeout:5000});
+  await page.waitForFunction(()=>document.querySelectorAll('.orca-timeline-event').length===11);
+  assert.equal(await page.locator('.orca-timeline-generate,.orca-history-refill-action').count(),0);
+  assert.equal(await page.evaluate(()=>window.apiCalls.filter(x=>x.scope==='current').length),1);
+  assert(await page.evaluate(()=>window.paidCalls)>=1,'Authorized opted-in researcher auto-generates missing current-year milestone');
+  console.log('PASS authorized first page load runs unchanged current-year API once');
+  await page.goto(url+'?authorized&statusFail');await page.waitForFunction(()=>window.timelineReady);
+  await page.waitForTimeout(250);
+  assert.equal(await page.evaluate(()=>window.paidCalls),0,'Backend status failure blocks paid generation');
+  assert.equal(await page.locator('.orca-timeline-generate').count(),0);
+  console.log('PASS failed backend status blocks automatic paid history research');
  }finally{if(browser)await browser.close();await new Promise(resolve=>server.close(resolve))}
 })().catch(error=>{console.error(error);process.exitCode=1});
