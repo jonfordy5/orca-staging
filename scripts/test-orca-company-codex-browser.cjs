@@ -64,7 +64,7 @@ async function main(){
    assert.equal(await page.locator('#company-profile .codex-title').innerText(),'The Company Codex');
    assert.equal(await page.locator('#company-profile .company-name').innerText(),'Rocket Lab Corporation');
    assert.equal(await page.locator('#company-profile .codex-insight').count(),4);
-   assert.match(await page.locator('#company-profile .codex-insight').first().innerText(),/launch services/i);
+   assert.match(await page.locator('#company-profile .codex-insight').first().innerText(),/dedicated launches/i);
    assert.match(await page.locator('#company-profile .codex-insight').nth(1).innerText(),/customer need/i);
    assert.match(await page.locator('#company-profile .codex-insight').nth(0).innerText(),/REVENUE ENGINE CASH FLOW/);
    assert.match(await page.locator('#company-profile .codex-insight').nth(1).innerText(),/COMPANY CAPABILITIES/);
