@@ -131,7 +131,7 @@ check('Milestone popup supports meaningful short briefs and source links', () =>
   timeline.includes("const takeaway=document.createElement('p')") &&
   timeline.includes("link.href=event.source_url"));
 check('Approved timeline design is locked in the universal stock-page standard', () =>
-  pageStandard.includes('## Approved timeline design — locked baseline') &&
+  pageStandard.includes('## Approved timeline design — compact straight rail') &&
   pageStandard.includes('**Always-visible stacked charts:**') &&
   pageStandard.includes('**Direct connectors:**') &&
   pageStandard.includes('**Traveling light:**') &&
@@ -140,23 +140,16 @@ check('Approved timeline design is locked in the universal stock-page standard',
   pageStandard.includes('**Mobile (700px and narrower):**') &&
   pageStandard.includes('**Photo interface:**'));
 
-check('Locked design keeps the current rendering unchanged', () =>
-  workspace.includes('id="chart-frame"') &&
-  workspace.includes('id="timeline-frame"') &&
-  !workspace.includes('id="living-show"') &&
-  !workspace.includes('id="living-tradingview"') &&
-  workspace.includes('height:570px') &&
-  workspace.includes('flex:0 0 210px') &&
-  timeline.includes('stop.append(stem,card,year)') &&
-  !timeline.includes("dot.className='orca-history-dot'") &&
-  timeline.includes("spine.append(svg)") &&
-  timeline.includes('const futureStep=190;') &&
-  timeline.includes("const tailFadeStart=Math.max(0,futurePoints[1][0]-150)") &&
-  timeline.includes("centerMilestone(card,'auto')") &&
-  workspace.includes('touch-action:pan-x pan-y pinch-zoom!important') &&
-  !photos.includes('Check Unsplash API') &&
-  workspace.includes('.orca-company-timeline .orca-photo-context{display:none!important}'));
-
+check('Owner-approved timeline is compact, straight and keeps the charts stacked', () =>
+ workspace.includes('id="chart-frame"') && workspace.includes('id="timeline-frame"') &&
+ workspace.includes('height:302px') && workspace.includes('height:220px!important') &&
+ workspace.includes('flex:0 0 210px!important') &&
+ timeline.includes('stop.append(stem,card)') && timeline.includes('spine.append(svg)') &&
+ !timeline.includes('const futureStep=') && !timeline.includes('orca-history-refill-action') &&
+ timeline.includes("centerMilestone(card,'auto')") &&
+ workspace.includes('touch-action:pan-x pan-y pinch-zoom!important') &&
+ !photos.includes('Check Unsplash API') &&
+ workspace.includes('.orca-company-timeline .orca-photo-context{display:none!important}'));
 check('TradingView remains fully visible above an independent timeline', () =>
   timeline.includes("mountLivingTimeline({sb,") &&
   timeline.includes("document.getElementById('timeline-frame')") &&
@@ -168,35 +161,23 @@ check('TradingView remains fully visible above an independent timeline', () =>
   !workspace.includes('id="living-tradingview"') &&
   !workspace.includes('id="living-show"') &&
   workspace.includes('createMarketChart();createMarketQuote()'));
-check('Timeline connects directly to card stems with no circle nodes', () =>
-  timeline.includes("stop.querySelector('.orca-history-stem').getBoundingClientRect()") &&
-  timeline.includes('i%2===0?rect.bottom:rect.top') &&
-  timeline.includes('spine.append(svg)') &&
-  !timeline.includes('spine.prepend(svg)') &&
-  !timeline.includes("dot.className='orca-history-dot'") &&
-  timeline.includes('stop.append(stem,card,year)') &&
-  workspace.includes('top:182px!important;height:34px!important') &&
-  workspace.includes('top:266px!important;height:26px!important') &&
-  !workspace.includes('animation:orca-dot-arrival'));
-
-check('Every event retains its own year label and clickable sourced photo', () =>
-  timeline.includes("stop.append(stem,card,year)") &&
-  !timeline.includes('yearLabelIndex') &&
-  timeline.includes("card.addEventListener('click',()=>selectMilestone(i))") &&
-  workspace.includes('top:187px!important') &&
-  workspace.includes('top:277px!important'));
-
-check('Timeline extends beyond the newest milestone and fades into the future', () =>
-  timeline.includes('const futureStep=190;') &&
-  timeline.includes('const futurePoints=[') &&
-  timeline.includes('const entireLine=[...points,...futurePoints]') &&
-  timeline.includes("const tailFadeStart=Math.max(0,futurePoints[1][0]-150)") &&
-  timeline.includes("tailGradient.setAttribute('gradientUnits','userSpaceOnUse')") &&
-  timeline.includes("base.setAttribute('mask','url(#'+tailId+')')") &&
-  timeline.includes("beam.setAttribute('mask','url(#'+tailId+')')") &&
-  timeline.includes('Math.max(420,Math.round') &&
-  workspace.includes('v=mobile-carousel-v44'));
-
+check('Each photo stem reaches the same horizontal line without nodes', () =>
+ timeline.includes("stop.querySelector('.orca-history-stem').getBoundingClientRect()") &&
+ timeline.includes("Math.round(rect.bottom-spineRect.top)") &&
+ !timeline.includes('i%2===0?rect.bottom:rect.top') &&
+ timeline.includes("const pathData='M '+points.map(([x,y])=>x+' '+y).join(' L ')") &&
+ timeline.includes('stop.append(stem,card)') && !timeline.includes("dot.className='orca-history-dot'") &&
+ workspace.includes('top:182px!important;height:30px!important') && !workspace.includes('animation:orca-dot-arrival'));
+check('Photo cards retain dates and click details without numeric year nodes', () =>
+ timeline.includes("date.textContent=eventDate(event)") &&
+ timeline.includes("card.addEventListener('click',()=>selectMilestone(i))") &&
+ timeline.includes('stop.append(stem,card)') && !timeline.includes("year.className='orca-history-year-once'"));
+check('Timeline ends at last real milestone with minimal space, not fake future tail', () =>
+ timeline.includes('const width=Math.ceil(points[points.length-1][0])+2;') &&
+ timeline.includes("spine.style.paddingRight=(mobile?0:16)+'px'") &&
+ !timeline.includes('const futurePoints=') &&
+ !timeline.includes("setAttribute('mask'") &&
+ workspace.includes('v=mobile-carousel-v44'));
 check('Open-ended timeline preserves milestones and beam arrival effects', () =>
   timeline.includes('const nodeDistances=[0]') &&
   timeline.includes('for(let i=1;i<points.length;i++)') &&
@@ -254,12 +235,13 @@ check('Real photos come from cached metadata while original fallback art is clea
   photos.includes("return 'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg)") &&
   photos.includes('renderIllustration(card)') &&
   photos.includes('Original abstract illustration; not a historical photograph'));
-check('No separate photo button: the unified research action owns picture completion', () =>
-  photos.includes('button.hidden=true') &&
-  photos.includes('return {refresh,fillMissing,getCoverage};') &&
-  photos.includes('visibleCards.filter(card=>!photos.has(card.dataset.eventId))') &&
-  timeline.includes('photoMount.fillMissing({includeBrand:brandPhotoPending})') &&
-  timeline.includes("const needed=completionStatusKnown&&(needsResearch()||needsPhotoWork())"));
+check('No visible manual generation controls, photo completion remains internal', () =>
+ photos.includes('button.hidden=true') &&
+ photos.includes('return {refresh,fillMissing,getCoverage};') &&
+ timeline.includes('photoMount.fillMissing({includeBrand:brandPhotoPending})') &&
+ !timeline.includes('orca-timeline-generate') &&
+ !timeline.includes('orca-history-refill-action') &&
+ !timeline.includes("generate.addEventListener('click'"));
 check('Open-ended photo coverage never repeats an old saved image', () =>
   photos.includes('seen.has(p.photo_id)') &&
   photos.includes('seen.add(p.photo_id)') &&
@@ -281,10 +263,11 @@ check('Brand new stocks request full ten-event history, not a single origin even
   timeline.includes("showResearchFeedback(summaries.join(' ')") &&
   timeline.includes("researchFeedback&&!data.length") &&
   !timeline.includes('attemptedScopesThisSession'));
-check('Empty registered timelines explain consent and offer a generate action', () =>
-  timeline.includes("empty.textContent='No sourced company milestones cached") &&
-  timeline.includes("generate.textContent='Complete company timeline'") &&
-  timeline.includes("generate.addEventListener('click',()=>void maybePopulateCompanyHistory())"));
+check('Empty registered timeline has status, no Complete button', () =>
+ timeline.includes("empty.textContent='No sourced company milestones cached") &&
+ timeline.includes("rail.append(empty)") &&
+ !timeline.includes("generate.textContent='Complete company timeline'") &&
+ !timeline.includes("generate.addEventListener('click',()=>void maybePopulateCompanyHistory())"));
 check('Timeline generation checks opted-in researcher without requiring stock membership in UI', () =>
   timeline.includes("async function checkHistoryPermission()") &&
   timeline.includes(".eq('owner_id',user.id).eq('opted_in',true)") &&
@@ -307,14 +290,14 @@ check('Company incorporation founding milestone suppresses unnecessary paid orig
   isOrigin({title:'The company was incorporated'}) &&
   !isOrigin({title:'Intel introduces a new chip'});
 });
-check('Meta Harvard founding is recognized and 2026 is handled within the first click', () => {
+check('Founding and current-year stages retain existing bounded research logic', () => {
  const source=timeline.match(/const isOrigin=e=>[\s\S]*?;\n/);
  if(!source)return false;
  const isOrigin=new Function('e','return '+source[0].replace(/^const isOrigin=e=>/,'').replace(/;\n$/,''));
  return isOrigin({title:'Facebook launches at Harvard'}) &&
   timeline.includes("!hasCurrentYear()&&!attempted.has('current')") &&
   !timeline.includes("completionAttemptedThisView") &&
-  timeline.includes("if(!needed||!getUser())") &&
+  timeline.includes("if(getUser()&&historyAuthorized&&completionStatusHealthy&&mayRequestHistory())") &&
   timeline.includes("if(code==='no_acceptable_primary_source_milestones'||code==='cost_envelope_exceeded')continue;") &&
   timeline.includes("if(photoMount&&allVerified.length)");
 });
@@ -326,28 +309,25 @@ check('McDonald brothers opening the first restaurant counts as founding', () =>
   isOrigin({title:'The company opens the first restaurant'}) &&
   !isOrigin({title:'McDonald’s opens in Moscow for the first time'});
 });
-check('Empty new stock boards cannot render two Complete timeline buttons', () =>
- timeline.includes('if(!data.length){\n   old?.remove();') &&
- timeline.includes("const emptyButton=rail.querySelector('.orca-timeline-generate')") &&
- timeline.includes('if(!old){') &&
- timeline.includes('frame.insertBefore(generate,rail)'));
-check('Missing image records keep Complete timeline action available', () =>
+check('No Complete Timeline button exists anywhere in the shared timeline module', () =>
+ !timeline.includes('Complete company timeline') &&
+ !timeline.includes('orca-timeline-generate') &&
+ !timeline.includes('orca-history-refill-action') &&
+ !workspace.includes('orca-timeline-generate'));
+check('Missing photos keep existing authorized fillMissing eligible', () =>
  timeline.includes("const mayRequestHistory=()=>completionStatusKnown&&!discoveryPending&&(needsResearch()||needsPhotoWork())") &&
- timeline.includes('photoMissing=Math.max(0,Number(coverage?.missing||0))') &&
+ timeline.includes("photoMissing=Math.max(0,Number(coverage?.missing||0))") &&
  photos.includes('return getCoverage();'));
-check('Open-ended histories provide opt-in founding and current-year refreshes', () =>
-  timeline.includes("generate.textContent='Complete company timeline'") &&
-  timeline.includes("const nextScope=()=>!allVerified.length&&!historyAttempts&&!blockedScopes.history?'history':") &&
-  timeline.includes('const nextData=verified;') &&
-  timeline.includes('halfYearStart') &&
-  !timeline.includes('attemptedScopesThisSession') &&
-  timeline.includes('await checkHistoryPermission();') &&
-  !timeline.includes('if(!data.length)await maybePopulateCompanyHistory()') &&
-  timeline.includes("const maxBudget=0.15;") &&
-  timeline.includes("if(!scope||(scope!=='history'&&attempted.has(scope)))break;") &&
-  timeline.includes("body:{ticker,scope,max_budget_usd:stageBudget,final_history_pass:scope==='history'&&historyAttempts===2}") &&
-  timeline.includes('frame.insertBefore(generate,rail)') &&
-  timeline.includes("frame.querySelector('.orca-history-refill-action')?.remove()"));
+check('Automatic research preserves existing scopes, read gates and per-pass budgets', () =>
+ timeline.includes("const nextScope=()=>!allVerified.length&&!historyAttempts&&!blockedScopes.history?'history':") &&
+ timeline.includes('const nextData=verified;') && timeline.includes('halfYearStart') &&
+ !timeline.includes('attemptedScopesThisSession') &&
+ timeline.includes('await checkHistoryPermission();') &&
+ timeline.includes('const maxBudget=0.15;') &&
+ timeline.includes("if(!scope||(scope!=='history'&&attempted.has(scope)))break;") &&
+ timeline.includes("body:{ticker,scope,max_budget_usd:stageBudget,final_history_pass:scope==='history'&&historyAttempts===2}") &&
+ timeline.includes('if(getUser()&&historyAuthorized&&completionStatusHealthy&&mayRequestHistory())') &&
+ !timeline.includes("frame.insertBefore(generate,rail)"));
 const discovery=read('supabase/functions/orca-timeline-discovery/index.ts');
 check('Timeline discovery covers historical company origins with capped primary-source research', () =>
   discovery.includes("FULL HISTORY") &&
@@ -366,25 +346,26 @@ check('Development retries retain authorization, duplicate-request lock and per-
  retrySql.includes('p.opted_in IS TRUE')&&retrySql.includes('pg_advisory_xact_lock')&&
  retrySql.includes('0.15')&&!retrySql.includes("state','cooldown")&&
  !timeline.includes('attemptedScopesThisSession'));
-check('Cached timelines check research consent on load without starting paid generation', () =>
-  timeline.includes('await loadEvents();') &&
-  timeline.includes('await checkHistoryPermission();') &&
-  timeline.includes("canContribute:()=>historyAuthorized") &&
-  !timeline.includes('if(!data.length)await maybePopulateCompanyHistory()'));
+check('Auto-completion only runs after healthy backend status and opted-in user check', () =>
+ timeline.includes('await loadEvents();') &&
+ timeline.includes('await checkHistoryPermission();') &&
+ timeline.includes('completionStatusHealthy=false') &&
+ timeline.includes('completionStatusHealthy=true') &&
+ timeline.includes("canContribute:()=>historyAuthorized") &&
+ timeline.includes('if(getUser()&&historyAuthorized&&completionStatusHealthy&&mayRequestHistory())') &&
+ timeline.includes('void maybePopulateCompanyHistory().catch(error=>'));
 check('Photos depend on business descriptions, never events or ticker-specific rules',()=>{
  const engine=read('supabase/functions/orca-timeline-photo-fill/index.ts');
  return engine.includes('async function businessQueries(')&&!engine.includes('eventVisualPlan')&&
  !engine.includes('eventCandidateScore')&&!engine.includes('ticker===')&&
  engine.includes('originalUrl(p.full_image_url)')&&engine.includes('if(added>=needed)break;');
 });
-check('Photo selection is initiated only by a signed-in Complete timeline click', () =>
-  !photos.includes('Check Unsplash API') &&
-  !photos.includes('diagnosticsButton') &&
-  !photos.includes("button.addEventListener('click',()=>void fillPhotos())") &&
-  !photos.includes('autoRepairAttempted') &&
-  photos.includes('async function fillMissing({includeBrand=false}={})') &&
-  photos.includes('await refreshAndMaybeFill()') &&
-  timeline.includes('const photoResult=await photoMount.fillMissing({includeBrand:brandPhotoPending})'));
-
+check('Photo selection remains inside existing authorized capped completion path', () =>
+ !photos.includes('Check Unsplash API') && !photos.includes('diagnosticsButton') &&
+ !photos.includes("button.addEventListener('click',()=>void fillPhotos())") &&
+ !photos.includes('autoRepairAttempted') &&
+ photos.includes('async function fillMissing({includeBrand=false}={})') &&
+ photos.includes('await refreshAndMaybeFill()') &&
+ timeline.includes('const photoResult=await photoMount.fillMissing({includeBrand:brandPhotoPending})'));
 console.log('\nShared workspace checks: ' + passed + ' passed, ' + failures.length + ' failed.');
 if (failures.length) process.exitCode = 1;
