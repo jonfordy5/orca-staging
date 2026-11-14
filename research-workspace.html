@@ -599,7 +599,7 @@ main{max-width:1020px;margin:0 auto;padding:27px 16px 55px}
  #chart-section .orca-timeline-frame .orca-timeline-heading span{display:none}
  #chart-section .orca-timeline-frame .orca-timeline-navigation{display:none!important}
  #chart-section .orca-timeline-frame .orca-timeline-events{
-  display:block!important;flex:none!important;min-height:0!important;
+  display:block!important;flex:none!important;height:auto!important;min-height:0!important;
   overflow-x:auto!important;overflow-y:hidden!important;padding:0!important;
   touch-action:pan-x pan-y pinch-zoom!important;
   scroll-snap-type:x mandatory!important;scrollbar-width:none;
@@ -619,6 +619,8 @@ main{max-width:1020px;margin:0 auto;padding:27px 16px 55px}
  #chart-section .orca-timeline-frame .orca-history-dot,
  #chart-section .orca-timeline-frame .orca-history-stem,
  #chart-section .orca-timeline-frame .orca-history-year-once{display:none!important}
+ /* Desktop stems must not leak into the phone swipe carousel. */
+ #chart-section .orca-timeline-frame .orca-history-stop .orca-history-stem{display:none!important}
  #chart-section .orca-timeline-frame .orca-history-stop .orca-timeline-event{
   position:relative!important;top:auto!important;bottom:auto!important;left:auto!important;
   width:100%!important;height:var(--orca-mobile-card-height)!important;
