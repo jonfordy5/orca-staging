@@ -198,18 +198,27 @@ async function swipe(page,direction){
    },null,{timeout:5000});
    const first=await motionPage.evaluate(()=>{
     const beam=document.querySelector('.orca-history-track-beam');
+    const glint=document.querySelector('.orca-history-sparkle-head');
     return {x:beam.getBBox().x,width:beam.getBBox().width,d:beam.getAttribute('d'),stroke:getComputedStyle(beam).strokeWidth,
      filter:getComputedStyle(beam).filter,
+     glintX:Number(glint?.getAttribute('cx')),glintOpacity:Number(glint?.getAttribute('opacity')),
+     glintRadius:Number(glint?.getAttribute('r')),glintFill:glint?.getAttribute('fill'),
      trackLength:document.querySelector('.orca-history-track-base').getTotalLength()};
    });
    await motionPage.waitForTimeout(850);
    const second=await motionPage.evaluate(()=>{
     const beam=document.querySelector('.orca-history-track-beam');
-    return {x:beam.getBBox().x,d:beam.getAttribute('d'),width:beam.getBBox().width};
+    const glint=document.querySelector('.orca-history-sparkle-head');
+    return {x:beam.getBBox().x,d:beam.getAttribute('d'),width:beam.getBBox().width,
+     glintX:Number(glint?.getAttribute('cx')),glintOpacity:Number(glint?.getAttribute('opacity'))};
    });
    assert(first.trackLength>900,'Long straight rail has room for the comet');
    assert(first.stroke.startsWith('3.3'),'Muted gold tracer remains slightly thicker than the base');
    assert.notEqual(first.filter,'none','Soft moving light remains visible');
+   assert.equal(first.glintFill,'#fff2c7','The moving focal point is champagne gold');
+   assert(first.glintRadius>=3&&first.glintRadius<=4,'The glint stays small rather than Tron-bright');
+   assert(first.glintOpacity>.15,'The glint is actually visible, not an invisible SVG shape');
+   assert(second.glintX>first.glintX+25,'The champagne-gold glint visibly travels along the rail');
    const palette=await motionPage.evaluate(()=>{
     const head=document.querySelector('.orca-timeline-heading strong');
     const card=document.querySelector('.orca-timeline-event');
@@ -249,6 +258,8 @@ async function swipe(page,direction){
    await motionPage.waitForFunction(()=>!document.querySelector('.orca-history-track'));
    assert.equal(await motionPage.locator('.orca-history-track-beam').count(),0,
     'Mobile remains swipe-only even when motion is enabled');
+   assert.equal(await motionPage.locator('.orca-history-sparkle-head').count(),0,
+    'No moving glint leaks into mobile carousel');
    assert.deepEqual(motionErrors,[]);
    await motionContext.close();
    console.log('PASS visible animated comet travels on desktop; mobile remains swipe-only');
@@ -259,6 +270,8 @@ async function swipe(page,direction){
     'Reduced motion keeps a static gold rail');
    assert.equal(await reducePage.locator('.orca-history-track-dust').count(),0,
     'Reduced motion does not create moving dust');
+   assert.equal(await reducePage.locator('.orca-history-sparkle-head').count(),0,
+    'Reduced motion does not create a moving sparkle');
    await reduceContext.close();
    console.log('PASS reduced-motion visitors retain a static glowing rail');
   }
