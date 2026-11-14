@@ -20,7 +20,9 @@ const authorized=params.has('authorized'),statusFail=params.has('statusFail');
 let rows=Array.from({length:count},(_,i)=>({id:'event-'+i,event_at:(1990+i)+'-01-01',category:'product',
  title:i?'Company opens a significant new facility and expands its original business':'Company opens its first restaurant',
  ai_summary:'A verified milestone with a readable summary. Select this card to read the full original source and photograph credits.',
- source_url:'https://example.com/history/'+i,quick_brief:{}}));
+ source_url:'https://example.com/history/'+i,
+  quick_brief:i===0?{points:['First sourced milestone detail','Second sourced milestone detail'],
+   why:'The original milestone matters for the company history.'}:{}}));
 const photos=params.has('noPhotos')?[]:rows.map((r,i)=>({event_id:r.id,photo_id:'photo-'+i,
  image_url:location.origin+'/image-'+i+'.svg',full_image_url:location.origin+'/image-'+i+'.svg',
  photographer:'Test photographer',photographer_url:'https://unsplash.com/@test',photo_url:'https://unsplash.com/photos/'+i,
@@ -66,6 +68,41 @@ async function metrics(page){
      stem:getComputedStyle(card.parentElement.querySelector('.orca-history-stem')).display};
    })};
  });
+}
+
+async function assertLegendsPopover(page){
+ const p=await page.evaluate(()=>{
+  const popup=document.querySelector('.orca-history-popover');
+  const title=popup.querySelector('h3'),meta=popup.querySelector('small');
+  const bullets=popup.querySelector('.orca-brief-points');
+  const marker=bullets?.querySelector('li');
+  const takeaway=popup.querySelector('.orca-brief-takeaway');
+  const source=popup.querySelector('a[href^="https://example.com/history/"]');
+  const css=el=>getComputedStyle(el);
+  return {
+   visible:!popup.hidden, background:css(popup).backgroundImage,
+   border:css(popup).borderTopColor,colorScheme:css(popup).colorScheme,
+   scrollbar:css(popup).scrollbarColor,
+   title:css(title).color,meta:css(meta).color,bullets:css(bullets).color,
+   marker:getComputedStyle(marker,'::marker').color,
+   takeawayBorder:css(takeaway).borderLeftColor,
+   sourceColor:css(source).color,sourceHref:source.href,
+   role:popup.getAttribute('role')
+  };
+ });
+ assert(p.visible,'Milestone details remain open');
+ assert.match(p.background,/linear-gradient/,'Popup uses charcoal, not blue fill');
+ assert.equal(p.border,'rgb(187, 151, 93)','Border is antique gold');
+ assert.equal(p.title,'rgb(244, 219, 154)','Heading matches the Legends gold lettering');
+ assert.equal(p.meta,'rgb(207, 184, 141)','Metadata uses warm gold');
+ assert.equal(p.bullets,'rgb(237, 227, 210)','Supporting points retain readable parchment text');
+ assert.equal(p.marker,'rgb(215, 178, 112)','Bullets are warm gold rather than blue');
+ assert.equal(p.takeawayBorder,'rgb(203, 164, 103)','Takeaway accent is antique gold');
+ assert.equal(p.sourceColor,'rgb(233, 199, 127)','Original source link is gold');
+ assert.equal(p.colorScheme,'dark','Browser scrollbars use a dark scheme');
+ assert.match(p.scrollbar,/rgb\(172, 137, 84\)/,'Scroll thumb is muted gold');
+ assert.match(p.sourceHref,/example\.com\/history\/0/,'Original source link remains available');
+ assert.equal(p.role,'dialog','Accessible role remains unchanged');
 }
 
 async function showCard(page,i){
@@ -198,6 +235,7 @@ async function particleTravel(page,index){
    assert(await page.locator('.orca-history-popover').isVisible());
    assert(await page.locator('.orca-history-popover a[href="https://example.com/history/0"]').count());
    assert.match(await page.locator('.orca-photo-attribution').innerText(),/Test photographer/);
+   await assertLegendsPopover(page);
    await page.keyboard.press('Escape');assert(!(await page.locator('.orca-history-popover').isVisible()));
    assert.equal(await page.evaluate(()=>window.paidCalls),0);assert.deepEqual(errors,[]);
    console.log('PASS mobile '+size.width+'×'+size.height+': all 10 framed cards, boundaries, sources and credits');
@@ -238,7 +276,12 @@ async function particleTravel(page,index){
      return card.left>=rail.left&&card.right<=rail.right;
     },i);
    }
-   console.log('PASS desktop '+size.width+'×'+size.height+': compact straight rail, no manual button and navigation');
+   await page.locator('.orca-timeline-event').first().click();
+   assert(await page.locator('.orca-history-popover').isVisible());
+   await assertLegendsPopover(page);
+   await page.keyboard.press('Escape');
+   assert(!(await page.locator('.orca-history-popover').isVisible()));
+   console.log('PASS desktop '+size.width+'×'+size.height+': compact straight rail, Legends popup and navigation');
    await context.close();
   }
   // Ambient dust stays tied to fixed anchors: no leader, trail or global sweep.
