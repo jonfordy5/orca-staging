@@ -52,11 +52,11 @@ main{max-width:1060px;margin:0 auto;padding:30px 18px 50px}.eyebrow{font-size:12
 /* Research waterfall: an intentionally compact Legends-style dark-glass viewport. */
 body.orca-auth-shell #activity-card{
  background:radial-gradient(ellipse at 8% 0%,#58a4d626,transparent 60%),linear-gradient(145deg,#1c3448f5,#0c1b2ff8);
- border:1px solid #ae905a;color:#eaf3ff;box-shadow:0 14px 45px #0007
+ border:1px solid #ae905a;color:#eaf3ff;box-shadow:0 14px 45px #0007;padding:17px 18px
 }
 body.orca-auth-shell #activity-card h2{color:#f4dca5}
-#activity-card .sub{color:#bdcbda}
-#activity-card #cycle-status{background:#24445dbb;border-color:#64869b;color:#eef5fa;padding:10px 13px;margin:9px 0 12px}
+#activity-card .sub{color:#bdcbda;font-size:12px;line-height:1.35;margin:5px 0 7px}
+#activity-card #cycle-status{background:#24445dbb;border-color:#64869b;color:#eef5fa;padding:8px 11px;margin:6px 0 8px;font-size:12px;line-height:1.3}
 #activity-card #cycle-status p,#activity-card #cycle-status small{color:#bed1df}
 #activity-card .activity-count{background:#2c455a;color:#e7d0a1}
 #activity-card .activity-count.live{background:#1a5645;color:#c0fadd}
@@ -64,7 +64,7 @@ body.orca-auth-shell #activity-card h2{color:#f4dca5}
 .waterfall-toggle{border:1px solid #819bb0;border-radius:999px;background:#293f57;color:#e4f4ff;
  cursor:pointer;font-size:11px;font-weight:800;padding:7px 10px;min-height:32px;white-space:nowrap}
 .waterfall-toggle:hover,.waterfall-toggle:focus-visible{border-color:#e7c887;background:#39536e}
-#activity-card .orca-task-waterfall{height:320px;position:relative;overflow:auto hidden;overflow-y:auto;overflow-x:hidden;
+#activity-card .orca-task-waterfall{height:275px;position:relative;overflow:auto hidden;overflow-y:auto;overflow-x:hidden;
  overscroll-behavior:contain;scroll-behavior:auto;border:1px solid #7395aa;border-radius:16px;
  background:linear-gradient(145deg,#16304eb5,#09192ee0);box-shadow:inset 0 4px 16px #0007,0 0 17px #6ca6df33;
  scrollbar-width:thin;scrollbar-color:#80aec9 #15283c;-webkit-overflow-scrolling:touch;
@@ -81,13 +81,13 @@ body.orca-auth-shell #activity-card .orca-task-waterfall .task h3{color:#f3f8fd;
 #activity-card .orca-task-waterfall .task .task-preview{color:#c7d9e6;line-height:1.45;font-size:11px;
  margin:7px 0 4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 #activity-card .orca-task-waterfall .task .task-meta{margin-top:6px;font-size:10px;color:#afc5d2}
-#activity-card .waterfall-hint{font-size:11px;color:#b6cedd;margin:7px 0 0;line-height:1.4}
-#activity-card .controls{margin:10px 0 0}
+#activity-card .waterfall-hint{font-size:10px;color:#b6cedd;margin:5px 0 0;line-height:1.4}
+#activity-card .controls{margin:7px 0 0;gap:6px}#activity-card .controls .btn{padding:9px 12px;font-size:12px}
 #activity-card .btn.alt{background:#2e485e;color:#ebf5ff;border:1px solid #6d95ab}
 #activity-card .btn.alt:hover{background:#3a5974}
 #activity-card .btn:not(.alt){background:#5bd9b0;color:#08382d}
 #members{max-height:250px;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#9fb8bc transparent}
-@media(max-width:760px){#activity-card .orca-task-waterfall{height:280px}#activity-card .activity-head{align-items:flex-start}}
+@media(max-width:760px){#activity-card .orca-task-waterfall{height:260px}#activity-card .activity-head{align-items:flex-start}}
 @media(prefers-reduced-motion:reduce){#activity-card .orca-task-waterfall{scroll-behavior:auto}}
 </style>
 <link rel="stylesheet" href="./orca-commons-theme.css">
