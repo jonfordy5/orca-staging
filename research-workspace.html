@@ -507,10 +507,10 @@ main{max-width:1020px;margin:0 auto;padding:27px 16px 55px}
 
 /* Compact continuous company history: all photo milestones above one straight rail.
    Card dates remain inside photos; no redundant numbered/year nodes below the cards.
-   Keep the original one-beam arrival lighting and mobile swipe behavior. */
+   Leave room for local hover enlargement while preserving mobile swipe behavior. */
 #chart-section .chart-frame{height:clamp(320px,58vw,520px)!important}
 #chart-section .orca-timeline-frame{
- position:relative;width:100%;height:302px;margin:10px 0 0;
+ position:relative;width:100%;height:332px;margin:10px 0 0;
  border:1px solid #303b4d;border-radius:14px;overflow:hidden;
  background:#141922;
 }
@@ -532,73 +532,34 @@ main{max-width:1020px;margin:0 auto;padding:27px 16px 55px}
  white-space:nowrap;flex-shrink:0;
 }
 #chart-section .orca-timeline-frame .orca-timeline-events{
- flex:0 0 222px!important;height:222px!important;min-height:0!important;
+ flex:0 0 252px!important;height:252px!important;min-height:0!important;
  overflow-x:auto!important;overflow-y:hidden!important;padding:2px 0 0!important;
  scroll-snap-type:x proximity;
 }
 #chart-section .orca-timeline-frame .orca-history-spine{
- height:220px!important;min-height:220px!important;position:relative!important;
+ height:250px!important;min-height:250px!important;position:relative!important;
  display:flex!important;gap:0!important;align-items:flex-start!important;
 }
 #chart-section .orca-timeline-frame .orca-history-spine::before{display:none!important}
 #chart-section .orca-timeline-frame .orca-history-stop{
- flex:0 0 210px!important;width:210px!important;
- height:220px!important;min-height:220px!important;
+ flex:0 0 222px!important;width:222px!important;
+ height:250px!important;min-height:250px!important;
  display:block!important;position:relative!important;
 }
 .orca-timeline-frame .orca-history-zigzag{display:none!important}
 #chart-section .orca-timeline-frame .orca-history-track{
- position:absolute;left:0;top:0;height:220px!important;width:auto;max-width:none;
+ position:absolute;left:0;top:0;height:250px!important;width:auto;max-width:none;
  overflow:visible;pointer-events:none;z-index:1;
-}
-.orca-timeline-frame .orca-history-track-base{
- stroke:#78bdff;stroke-width:3.2;opacity:.93;
- filter:drop-shadow(0 0 4px #73bcffdd) drop-shadow(0 0 9px #428cfa88);
- animation:orca-history-rail-shimmer 5s ease-in-out infinite;
-}
-.orca-timeline-frame .orca-history-track-beam{
- stroke-width:5.3;opacity:1;
- filter:drop-shadow(0 0 3px #fff) drop-shadow(0 0 8px #a1dfff) drop-shadow(0 0 12px #559cffaa);
-}
-@keyframes orca-history-rail-shimmer{
- 0%,100%{opacity:.82}
- 50%{opacity:1}
 }
 #chart-section .orca-timeline-frame .orca-history-stop .orca-history-stem{
  z-index:4!important;display:block!important;
- position:absolute!important;top:182px!important;height:30px!important;bottom:auto!important;
+ position:absolute!important;top:188px!important;height:48px!important;bottom:auto!important;
  left:50%!important;width:2px!important;transform:translateX(-50%)!important;
- background:#55abff!important;box-shadow:0 0 6px #63b4ff88;
-}
-.orca-timeline-frame .orca-history-stop .orca-history-stem::after{
- content:"";position:absolute;inset:0;background:#e8fdff;
- opacity:0;transform:scaleY(0);transform-origin:bottom center;
- box-shadow:0 0 6px #8ddfff;pointer-events:none;
-}
-.orca-timeline-frame .orca-history-stop.orca-history-activated .orca-history-stem::after{
- animation:orca-connector-arrival 1.4s ease-out both;
-}
-.orca-timeline-frame .orca-history-stop.orca-history-activated .orca-timeline-event{
- animation:orca-photo-arrival 1.4s ease-out both;
-}
-@keyframes orca-connector-arrival{
- 0%{opacity:.12;transform:scaleY(0)}
- 30%{opacity:1;transform:scaleY(1)}
- 65%{opacity:.9;transform:scaleY(1)}
- 100%{opacity:0;transform:scaleY(1)}
-}
-@keyframes orca-photo-arrival{
- 0%,100%{filter:none}
- 32%,68%{filter:drop-shadow(0 0 10px #89ddffcc)}
-}
-@media(prefers-reduced-motion:reduce){
- .orca-timeline-frame .orca-history-track-base{animation:none!important}
- .orca-timeline-frame .orca-history-stop.orca-history-activated .orca-history-stem::after,
- .orca-timeline-frame .orca-history-stop.orca-history-activated .orca-timeline-event{animation:none!important}
+ background:#b9955d!important;box-shadow:0 0 4px #b9955d5c;
 }
 #chart-section .orca-timeline-frame .orca-history-stop .orca-timeline-event{
- position:absolute!important;top:4px!important;bottom:auto!important;
- left:4px!important;width:calc(100% - 8px)!important;
+ position:absolute!important;top:10px!important;bottom:auto!important;
+ left:10px!important;width:calc(100% - 20px)!important;
  height:178px!important;min-height:178px!important;max-height:178px!important;
  z-index:3!important;
 }
@@ -694,21 +655,9 @@ main{max-width:1020px;margin:0 auto;padding:27px 16px 55px}
  filter:drop-shadow(0 0 3px #be945b66);
  animation:none;
 }
-#chart-section .orca-timeline-frame .orca-history-track-beam{
- stroke-width:3.3;
- opacity:.75;
- filter:drop-shadow(0 0 3px #ddb46b66) drop-shadow(0 0 6px #d9b36b33);
-}
-#chart-section .orca-timeline-frame .orca-history-track-dust{
- filter:drop-shadow(0 0 2px #ead39b77);
-}
-#chart-section .orca-timeline-frame .orca-history-stop .orca-history-stem{
- background:#b9955d!important;
- box-shadow:0 0 4px #b9955d5c;
-}
-#chart-section .orca-timeline-frame .orca-history-stop .orca-history-stem::after{
- background:#f5d995;
- box-shadow:0 0 5px #d1ad70a6;
+#chart-section .orca-timeline-frame .orca-history-dust{
+ filter:drop-shadow(0 0 2px #ead39b70);
+ pointer-events:none;
 }
 /* All history boxes retain their photos and white dates, titles and summaries. */
 #chart-section .orca-timeline-frame .orca-history-stop .orca-timeline-event{
@@ -728,29 +677,10 @@ main{max-width:1020px;margin:0 auto;padding:27px 16px 55px}
 #chart-section .orca-timeline-frame .orca-history-stop .orca-timeline-event > .orca-history-teaser{
  color:#f8fbff!important;
 }
-/* The beam gives a passing card a restrained metallic reflection with
-   a few tiny dust glints; not a persistent flashing neon outline. */
-#chart-section .orca-timeline-frame .orca-history-stop.orca-history-activated .orca-timeline-event{
- animation:orca-photo-arrival 1.6s ease-out both!important;
-}
-@keyframes orca-photo-arrival{
- 0%,100%{filter:none}
- 40%{filter:drop-shadow(0 0 4px #dfc08880)}
- 65%{filter:drop-shadow(0 0 2px #d7ae6e55)}
-}
-#chart-section .orca-timeline-frame .orca-history-stop.orca-history-activated .orca-timeline-event::after{
- content:"";position:absolute;inset:0;z-index:4;pointer-events:none;
- border-radius:inherit;
- background:
-  radial-gradient(circle at 12% 4%,#f6dba99e 0 1px,transparent 2.5px),
-  radial-gradient(circle at 64% 0%,#d9b67c8e 0 1px,transparent 3px),
-  radial-gradient(circle at 91% 6%,#f5e0b167 0 1px,transparent 2.5px);
- animation:orca-gold-card-dust 1.6s ease-out both;
-}
-@keyframes orca-gold-card-dust{
- 0%,100%{opacity:0}
- 30%{opacity:.48}
- 60%{opacity:.20}
+/* A card gently energizes only its own dust field on a desktop pointer. */
+#chart-section .orca-timeline-frame .orca-history-stop .orca-timeline-event{
+ transform-origin:center bottom;
+ transition:transform 280ms ease, border-color 280ms ease, box-shadow 280ms ease;
 }
 /* Distinguish keyboard focus/selected events without reverting to electric blue. */
 #chart-section .orca-timeline-frame .orca-history-stop .orca-timeline-event[aria-pressed="true"],
@@ -762,23 +692,20 @@ main{max-width:1020px;margin:0 auto;padding:27px 16px 55px}
  outline:2px solid #f4db9a!important;
  outline-offset:2px;
 }
-@media(prefers-reduced-motion:reduce){
- #chart-section .orca-timeline-frame .orca-history-stop.orca-history-activated .orca-timeline-event,
- #chart-section .orca-timeline-frame .orca-history-stop.orca-history-activated .orca-timeline-event::after{
-  animation:none!important;
+@media(min-width:701px) and (hover:hover) and (pointer:fine){
+ #chart-section .orca-timeline-frame .orca-history-stop.orca-history-excited{z-index:5}
+ #chart-section .orca-timeline-frame .orca-history-stop.orca-history-excited .orca-timeline-event,
+ #chart-section .orca-timeline-frame .orca-history-stop.orca-history-excited .orca-timeline-event:has(.orca-history-thumb img){
+  transform:scale(1.035);
+  border-color:#f0d59e!important;
+  box-shadow:0 0 0 1px #ddba7670,0 0 16px #d6b27440,0 8px 20px #0008,inset 0 0 0 1px #ffe3ac30!important;
  }
 }
-
-/* The antique-gold rail is intentionally calm; this tiny moving sparkle keeps
-   the direction of travel visible without brightening the full interface. */
-#chart-section .orca-timeline-frame .orca-history-sparkle-head{
- filter:drop-shadow(0 0 3px #ffe5acb3) drop-shadow(0 0 6px #ddb47766);
-}
-#chart-section .orca-timeline-frame .orca-history-sparkle-halo{
- filter:drop-shadow(0 0 4px #e8c58b70);
-}
-#chart-section .orca-timeline-frame .orca-history-track-beam{
- filter:drop-shadow(0 0 3px #ddb46b8f) drop-shadow(0 0 7px #d9b36b45);
+@media(prefers-reduced-motion:reduce){
+ #chart-section .orca-timeline-frame .orca-history-stop .orca-timeline-event{
+  transform:none!important;
+  transition:none!important;
+ }
 }
 
 /* Research realms — full uncropped portrait illustrations, with labels INSIDE each research card image. */
@@ -1921,7 +1848,7 @@ document.addEventListener('visibilitychange',()=>{if(document.visibilityState===
  void loadWorkspaceCompanyName();
  const {data}=await sb.auth.getUser();user=data?.user||null;await renderCompanyProfile(ticker,sb);await refresh();
  mountStockSearch({sb,root:$('workspace-stock-search'),activeTicker:ticker}).catch(()=>{$('workspace-stock-search').textContent='Stock lookup unavailable. The requested stock workspace can still be used.';});
- if(isOrcaStaging)import('./orca-living-timeline.js?v=gold-glint-v47').then(({mountLivingTimeline})=>
+ if(isOrcaStaging)import('./orca-living-timeline.js?v=ambient-dust-v48').then(({mountLivingTimeline})=>
   mountLivingTimeline({sb,ticker,getUser:()=>user,canContribute:()=>ready,getFindings:()=>findings})
  ).catch(err=>{console.error('ORCA Living Timeline isolated error:',err);$('living-status').textContent='Timeline unavailable; TradingView remains available.';});
   // Passive monitor for the HUMAN observer's browser; no autonomous research or API requests.

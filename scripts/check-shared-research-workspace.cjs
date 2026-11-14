@@ -134,7 +134,7 @@ check('Latest straight timeline design is recorded in universal stock-page stand
   pageStandard.includes('## Approved timeline design — compact straight rail') &&
   pageStandard.includes('**Always-visible stacked charts:**') &&
   pageStandard.includes('**Direct connectors:**') &&
-  pageStandard.includes('**Traveling light:**') &&
+  pageStandard.includes('**Ambient magic dust:**') &&
   pageStandard.includes('**Real history endpoint:**') &&
   pageStandard.includes('**Initial and subsequent navigation:**') &&
   pageStandard.includes('**Mobile (700px and narrower):**') &&
@@ -142,8 +142,8 @@ check('Latest straight timeline design is recorded in universal stock-page stand
 
 check('Owner-approved timeline is compact, straight and keeps the charts stacked', () =>
  workspace.includes('id="chart-frame"') && workspace.includes('id="timeline-frame"') &&
- workspace.includes('height:302px') && workspace.includes('height:220px!important') &&
- workspace.includes('flex:0 0 210px!important') &&
+ workspace.includes('height:332px') && workspace.includes('height:250px!important') &&
+ workspace.includes('flex:0 0 222px!important') &&
  timeline.includes('stop.append(stem,card)') && timeline.includes('spine.append(svg)') &&
  !timeline.includes('const futureStep=') && !timeline.includes('orca-history-refill-action') &&
  timeline.includes("centerMilestone(card,'auto')") &&
@@ -167,7 +167,7 @@ check('Each photo stem reaches the same horizontal line without nodes', () =>
  !timeline.includes('i%2===0?rect.bottom:rect.top') &&
  timeline.includes("const pathData='M '+points.map(([x,y])=>x+' '+y).join(' L ')") &&
  timeline.includes('stop.append(stem,card)') && !timeline.includes("dot.className='orca-history-dot'") &&
- workspace.includes('top:182px!important;height:30px!important') && !workspace.includes('animation:orca-dot-arrival'));
+ workspace.includes('top:188px!important;height:48px!important') && !workspace.includes('animation:orca-dot-arrival'));
 check('Photo cards retain dates and click details without numeric year nodes', () =>
  timeline.includes("date.textContent=eventDate(event)") &&
  timeline.includes("card.addEventListener('click',()=>selectMilestone(i))") &&
@@ -177,42 +177,38 @@ check('Timeline ends at last real milestone with minimal space, not fake future 
  timeline.includes("spine.style.paddingRight=(mobile?0:16)+'px'") &&
  !timeline.includes('const futurePoints=') &&
  !timeline.includes("setAttribute('mask'") &&
- workspace.includes('v=gold-glint-v47'));
-check('Open-ended timeline preserves milestones and beam arrival effects', () =>
-  timeline.includes('const nodeDistances=[0]') &&
-  timeline.includes('for(let i=1;i<points.length;i++)') &&
-  timeline.includes('const length=base.getTotalLength()') &&
-  timeline.includes("stops[i].classList.add('orca-history-activated')") &&
-  !timeline.includes('futureStop') &&
-  workspace.includes('animation:orca-photo-arrival 1.4s'));
+ workspace.includes('v=ambient-dust-v48'));
+check('Ambient dust uses bounded viewport pools with local stationary anchors', () =>
+  timeline.includes('const poolSize=Math.min(stops.length,Math.ceil(rail.clientWidth/pitch)+2,18)') &&
+  timeline.includes('const particles=Array.from({length:32}') &&
+  timeline.includes("circle.dataset.region=i<14?'rail':i<24?'connector':'card'") &&
+  timeline.includes('particle.circle.dataset.anchorX=particle.x.toFixed(2)') &&
+  timeline.includes('particle.circle.dataset.anchorY=particle.y.toFixed(2)') &&
+  timeline.includes('updateDustWindow();') &&
+  !timeline.includes('futureStop') && workspace.includes('stroke:#bb9255;'));
 
-check('A single muted-gold tracer leaves a long bounded dust tail', () =>
-  timeline.includes("gradient.setAttribute('id',gradientId)") &&
-  timeline.includes("beam.setAttribute('stroke','url(#'+gradientId+')')") &&
-  timeline.includes("const beamLength=Math.min(820,Math.max(260,rail.clientWidth*0.62))") &&
-  timeline.includes('const travelMs=7600') &&
-  timeline.includes("beam.setAttribute('stroke-linecap','round')") &&
-  workspace.includes('stroke-width:3.3;') &&
-   workspace.includes('stroke:#bb9255;') &&
-   timeline.includes('const dustLength=beamLength*1.25') &&
-   timeline.includes('const visibleFrom=Math.max(0,railRect.left-liveSpineRect.left-points[0][0])') &&
-   timeline.includes('const visibleTo=Math.min(length,railRect.right-liveSpineRect.left-points[0][0])') &&
-   timeline.includes('const particles=Array.from({length:42}') &&
-   timeline.includes("sparkleHead.classList.add('orca-history-sparkle-head')") &&
-   timeline.includes("sparkleHalo.classList.add('orca-history-sparkle-halo')") &&
-  workspace.includes('orca-history-rail-shimmer') &&
-  workspace.includes('.orca-history-track-beam') &&
-  !workspace.includes('.orca-history-track-glow{') &&
-  !timeline.includes("makePath('orca-history-track-glow')"));
+check('Timeline has no traveling beam, head, trail or sequential arrival activation', () =>
+  !/beamFrame|stopBeam|travelMs|beamLength|dustLength|previousHead|nodeDistances|getPointAtLength/.test(timeline) &&
+  !/orca-history-track-beam|orca-history-sparkle-head|orca-history-sparkle-halo|orca-history-activated/.test(timeline+workspace) &&
+  !/orca-connector-arrival|orca-photo-arrival|orca-history-rail-shimmer/.test(workspace));
 
-check('Beam touches milestone and lights connector up to the photo', () =>
-  timeline.includes("nodeDistances[i]>previousHead&&nodeDistances[i]<=head") &&
-  timeline.includes("stops[i].classList.add('orca-history-activated')") &&
-  timeline.includes("e.animationName==='orca-photo-arrival'") &&
-  workspace.includes('animation:orca-connector-arrival 1.4s') &&
-  !workspace.includes('animation:orca-dot-arrival') &&
-  workspace.includes('animation:orca-photo-arrival 1.4s') &&
+check('Card-only fine-pointer hover excites local dust while respecting reduced motion', () =>
+  timeline.includes("window.matchMedia('(hover:hover) and (pointer:fine)')") &&
+  timeline.includes("card.addEventListener('pointerenter'") &&
+  timeline.includes("card.addEventListener('pointerleave'") &&
+  timeline.includes('reducedMotion.matches') &&
+  timeline.includes('clearDustExcitement()') &&
+  timeline.includes('group.excitement+=(target-group.excitement)') &&
+  workspace.includes('transform:scale(1.035)') &&
+  workspace.includes('transform-origin:center bottom') &&
   workspace.includes('prefers-reduced-motion:reduce'));
+
+check('Dust stops on hidden pages and responds to motion-preference changes', () =>
+  timeline.includes("reducedMotion.addEventListener('change',refreshDustPreferences)") &&
+  timeline.includes("hoverPointer.addEventListener('change',refreshDustPreferences)") &&
+  timeline.includes("if(!svg.isConnected||document.visibilityState==='hidden')") &&
+  timeline.includes('cancelAnimationFrame(dustFrame)') &&
+  timeline.includes("spine.querySelector('.orca-history-track')?.remove()"));
 
 check('Desktop centers the middle milestone, mobile starts at the beginning, navigation remains intact', () =>
   timeline.includes('const middle=Math.floor((data.length-1)/2)') &&
@@ -220,7 +216,7 @@ check('Desktop centers the middle milestone, mobile starts at the beginning, nav
   timeline.includes("centerMilestone(card,'auto')") &&
   timeline.includes("prev.addEventListener('click',()=>jumpTo(0))") &&
   timeline.includes("next.addEventListener('click',()=>jumpTo(data.length-1))") &&
-  workspace.includes('v=gold-glint-v47'));
+  workspace.includes('v=ambient-dust-v48'));
 
 check('Mobile history stays a swipe carousel without zigzag or glowing track', () =>
   workspace.includes('touch-action:pan-x pan-y pinch-zoom!important') &&

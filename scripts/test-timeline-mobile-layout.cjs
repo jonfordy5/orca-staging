@@ -8,6 +8,8 @@ const {chromium}=require(process.env.ORCA_PLAYWRIGHT_MODULE||'playwright');
 const root=path.resolve(__dirname,'..');
 const workspace=fs.readFileSync(path.join(root,'research-workspace.html'),'utf8');
 const css=workspace.match(/<style>([\s\S]*?)<\/style>/)[1];
+const captureDir=process.env.ORCA_TIMELINE_CAPTURE_DIR;
+if(captureDir)fs.mkdirSync(captureDir,{recursive:true});
 const fixture=`<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>${css}</style></head>
 <body><main><section class="card" id="chart-section"><div class="chart-frame">Market chart unchanged</div>
 <div id="timeline-frame" class="orca-timeline-frame"></div><p id="living-status"></p></section><div style="height:1000px"></div></main>
@@ -29,7 +31,7 @@ const sb={from(table){
   table==='orca_timeline_photo_selections'?photos:
   table==='agent_profiles'&&authorized?[{id:'owned-researcher'}]:[]};
  const q={select(){return q},eq(){return q},is(){return q},order(){return q},
-  range(){return Promise.resolve(result)},limit(){return Promise.resolve(result)}};return q;
+  range(from,to){return Promise.resolve({...result,data:result.data.slice(from,to+1)})},limit(){return Promise.resolve(result)}};return q;
 },functions:{async invoke(name,{body}){
  window.apiCalls.push({name,scope:body?.scope||null});
  if(name==='orca-timeline-discovery'&&body?.scope==='status')return statusFail?
@@ -94,6 +96,32 @@ async function swipe(page,direction){
  await page.waitForTimeout(650);
 }
 
+
+async function dustState(page){
+ return page.evaluate(()=>({groups:[...document.querySelectorAll('.orca-history-dust-group')].map(group=>({
+  index:Number(group.dataset.index),excitement:Number(group.dataset.excitement),
+  particles:[...group.querySelectorAll('.orca-history-dust')].map(p=>({
+   region:p.dataset.region,anchorX:Number(p.dataset.anchorX),anchorY:Number(p.dataset.anchorY),
+   x:Number(p.getAttribute('cx')),y:Number(p.getAttribute('cy')),opacity:Number(p.getAttribute('opacity')),
+  })),
+ }))}));
+}
+function sumOpacity(group,region){return group.particles.filter(p=>!region||p.region===region).reduce((sum,p)=>sum+p.opacity,0)}
+function assertBoundedDust(state,bound){
+ assert(state.groups.every(g=>g.particles.every(p=>Math.abs(p.x-p.anchorX)<bound&&Math.abs(p.y-p.anchorY)<bound)),
+  'Dust stays close to stationary anchors instead of sweeping along the rail');
+}
+async function particleTravel(page,index){
+ let prior=(await dustState(page)).groups.find(g=>g.index===index),travel=0;
+ for(let i=0;i<5;i++){
+  await page.waitForTimeout(120);
+  const current=(await dustState(page)).groups.find(g=>g.index===index);
+  travel+=current.particles.reduce((sum,p,j)=>sum+Math.hypot(p.x-prior.particles[j].x,p.y-prior.particles[j].y),0);
+  prior=current;
+ }
+ return travel;
+}
+
 (async()=>{
  const server=http.createServer((req,res)=>{
   const url=new URL(req.url,'http://localhost');
@@ -130,6 +158,17 @@ async function swipe(page,direction){
    assert.equal((await metrics(page)).scrollLeft,m.scrollLeft);
    await showCard(page,0);
    if(size.width===393){
+    if(captureDir)await page.locator('#timeline-frame').screenshot({path:path.join(captureDir,'ambient-mobile.png')});
+    // A pending mobile progress RAF must not latch its ID across BFcache.
+    // Dispatch and hide in the same task, before that callback can run.
+    await page.evaluate(()=>{
+     document.querySelector('.orca-timeline-events').dispatchEvent(new Event('scroll'));
+     window.dispatchEvent(new PageTransitionEvent('pagehide',{persisted:true}));
+     window.dispatchEvent(new PageTransitionEvent('pageshow',{persisted:true}));
+    });
+    await showCard(page,1);
+    assert((await metrics(page)).cards[1].visible,'Mobile progress resumes after BFcache cancels a pending scroll frame');
+    await showCard(page,0);
     await swipe(page,'left');assert((await metrics(page)).scrollLeft>0,'Native touch swipe advances the timeline');
     await page.waitForFunction(()=>/2 of 10/.test(document.querySelector('.orca-timeline-mobile-progress').textContent));
     assert((await metrics(page)).cards[1].visible,'Touch swipe snaps to a fully visible card');
@@ -164,11 +203,11 @@ async function swipe(page,direction){
    const context=await browser.newContext({viewport:size,reducedMotion:'reduce'}),page=await context.newPage();
    await page.goto(url);await page.waitForFunction(()=>window.timelineReady);await page.waitForTimeout(100);
    const m=await metrics(page);
-   assert(m.frameHeight>=298&&m.frameHeight<=306,'Compact desktop frame is about 302px, not 570px');
+   assert(m.frameHeight>=328&&m.frameHeight<=336,'Desktop adds only 30px of breathing room to the compact frame');
    assert.equal(m.hint,'none');assert(m.track);
    assert(m.cards.every(c=>c.width===202&&c.height===178));
    assert(m.cards.every(c=>Math.abs(c.y-m.cards[0].y)<1),'All cards are on the same row');
-   assert.equal(m.cards[1].x-m.cards[0].x,210);assert(m.cards[4].visible);
+   assert.equal(m.cards[1].x-m.cards[0].x,222);assert(m.cards[4].visible);
    const coords=[...m.trackPath.matchAll(/[ML]\s+([\d.]+)\s+([\d.]+)/g)]
     .map(match=>[Number(match[1]),Number(match[2])]);
    assert.equal(coords.length,10,'One track point per milestone');
@@ -186,94 +225,185 @@ async function swipe(page,direction){
    console.log('PASS desktop '+size.width+'×'+size.height+': compact straight rail, no manual button and navigation');
    await context.close();
   }
-  // Earlier coverage checked only reduced-motion layouts, not moving light.
+  // Ambient dust stays tied to fixed anchors: no leader, trail or global sweep.
   {
-   const motionContext=await browser.newContext({viewport:{width:1440,height:900},reducedMotion:'no-preference'});
-   const motionPage=await motionContext.newPage();
-   const motionErrors=[];motionPage.on('pageerror',error=>motionErrors.push(error.message));
+   const motionContext=await browser.newContext({viewport:{width:1440,height:1000},reducedMotion:'no-preference'});
+   await motionContext.addInitScript(()=>{
+    const request=window.requestAnimationFrame.bind(window),cancel=window.cancelAnimationFrame.bind(window);
+    window.timelineFrames=new Set();window.timelineRafTicks=0;
+    window.requestAnimationFrame=callback=>{
+     const id=request(time=>{window.timelineFrames.delete(id);window.timelineRafTicks++;callback(time)});
+     window.timelineFrames.add(id);return id;
+    };
+    window.cancelAnimationFrame=id=>{window.timelineFrames.delete(id);return cancel(id)};
+   });
+   const motionPage=await motionContext.newPage(),motionErrors=[];
+   motionPage.on('pageerror',error=>motionErrors.push(error.message));
    await motionPage.goto(url);await motionPage.waitForFunction(()=>window.timelineReady);
-   await motionPage.waitForFunction(()=>{
-    const beam=document.querySelector('.orca-history-track-beam');
-    return beam?.getAttribute('d')?.length>30&&beam.getBBox().width>15;
-   },null,{timeout:5000});
-   const first=await motionPage.evaluate(()=>{
-    const beam=document.querySelector('.orca-history-track-beam');
-    const glint=document.querySelector('.orca-history-sparkle-head');
-    return {x:beam.getBBox().x,width:beam.getBBox().width,d:beam.getAttribute('d'),stroke:getComputedStyle(beam).strokeWidth,
-     filter:getComputedStyle(beam).filter,
-     glintX:Number(glint?.getAttribute('cx')),glintOpacity:Number(glint?.getAttribute('opacity')),
-     glintRadius:Number(glint?.getAttribute('r')),glintFill:glint?.getAttribute('fill'),
-     trackLength:document.querySelector('.orca-history-track-base').getTotalLength()};
-   });
-   await motionPage.waitForTimeout(850);
-   const second=await motionPage.evaluate(()=>{
-    const beam=document.querySelector('.orca-history-track-beam');
-    const glint=document.querySelector('.orca-history-sparkle-head');
-    return {x:beam.getBBox().x,d:beam.getAttribute('d'),width:beam.getBBox().width,
-     glintX:Number(glint?.getAttribute('cx')),glintOpacity:Number(glint?.getAttribute('opacity'))};
-   });
-   assert(first.trackLength>900,'Long straight rail has room for the comet');
-   assert(first.stroke.startsWith('3.3'),'Muted gold tracer remains slightly thicker than the base');
-   assert.notEqual(first.filter,'none','Soft moving light remains visible');
-   assert.equal(first.glintFill,'#fff2c7','The moving focal point is champagne gold');
-   assert(first.glintRadius>=3&&first.glintRadius<=4,'The glint stays small rather than Tron-bright');
-   assert(first.glintOpacity>.15,'The glint is actually visible, not an invisible SVG shape');
-   assert(second.glintX>first.glintX+25,'The champagne-gold glint visibly travels along the rail');
+   await motionPage.locator('#timeline-frame').scrollIntoViewIfNeeded();
+   await motionPage.waitForFunction(()=>document.querySelectorAll('.orca-history-dust').length>0);
+   await motionPage.waitForTimeout(100);
+   const absent='.orca-history-track-beam,.orca-history-sparkle-head,.orca-history-sparkle-halo,.orca-history-track-glow';
+   assert.equal(await motionPage.locator(absent).count(),0,'There is no comet, moving head, halo or sweeping beam');
+   const first=await dustState(motionPage);
+   assert(first.groups.length>0&&first.groups.length<=18,'Only a bounded viewport pool is mounted');
+   assert(first.groups.every(g=>g.particles.length===32),'Each pool has a fixed particle budget');
+   for(const group of first.groups){
+    for(const region of ['rail','connector','card']){
+     assert(group.particles.some(p=>p.region===region&&p.opacity>0),'Ambient dust surrounds '+region+' for milestone '+group.index);
+    }
+   }
+   const total=first.groups.reduce((sum,g)=>sum+g.particles.length,0);
+   if(captureDir)await motionPage.locator('#timeline-frame').screenshot({path:path.join(captureDir,'ambient-rest.png')});
    const palette=await motionPage.evaluate(()=>{
-    const head=document.querySelector('.orca-timeline-heading strong');
-    const card=document.querySelector('.orca-timeline-event');
-    const base=document.querySelector('.orca-history-track-base');
-    return {heading:getComputedStyle(head).color,cardBorder:getComputedStyle(card).borderTopColor,
-     base:getComputedStyle(base).stroke,dust:document.querySelectorAll('.orca-history-track-dust').length,
-     headingText:head.textContent,cardDate:getComputedStyle(card.querySelector('small')).color};
+    const heading=document.querySelector('.orca-timeline-heading strong'),card=document.querySelector('.orca-timeline-event');
+    return {heading:getComputedStyle(heading).color,headingText:heading.textContent,
+     border:getComputedStyle(card).borderTopColor,base:getComputedStyle(document.querySelector('.orca-history-track-base')).stroke,
+     date:getComputedStyle(card.querySelector('small')).color};
    });
-   assert.equal(palette.heading,'rgb(244, 219, 154)','History heading matches Council antique gold');
-   assert.equal(palette.base,'rgb(187, 146, 85)','Rail is muted gold, not neon blue');
-   assert(['rgb(199, 164, 108)','rgb(221, 188, 128)'].includes(palette.cardBorder),'Cards have restrained gold borders, with a slightly brighter selected outline');
-   assert.equal(palette.cardDate,'rgb(248, 251, 255)','Milestone lettering remains white');
-   assert.equal(palette.dust,42,'Bounded gold particles remain in the trailing path');
-   assert.match(palette.headingText,/History of TEST/);
-   assert(second.x+second.width>first.x+first.width+25,'The comet leading edge advances across the straight rail');
-   assert.notEqual(first.d,second.d,'Comet shape updates as it advances');
-   // Verify the light is visible regardless of where a long timeline is scrolled.
-   const viewHead=()=>motionPage.evaluate(()=>{
-    const rail=document.querySelector('.orca-timeline-events');
-    const beam=document.querySelector('.orca-history-track-beam');
-    const r=rail.getBoundingClientRect(),b=beam.getBoundingClientRect();
-    return {left:r.left,right:r.right,head:b.right,beamWidth:b.width,scrollLeft:rail.scrollLeft};
+   assert.equal(palette.heading,'rgb(244, 219, 154)');assert.equal(palette.base,'rgb(187, 146, 85)');
+   assert(['rgb(199, 164, 108)','rgb(221, 188, 128)'].includes(palette.border));
+   assert.equal(palette.date,'rgb(248, 251, 255)');assert.match(palette.headingText,/History of TEST/);
+   await motionPage.waitForTimeout(850);
+   const second=await dustState(motionPage);
+   assert.deepEqual(second.groups.map(g=>g.particles.map(p=>[p.anchorX,p.anchorY])),
+    first.groups.map(g=>g.particles.map(p=>[p.anchorX,p.anchorY])),'Particle anchors never progress along the rail');
+   assert(second.groups.some((g,i)=>g.particles.some((p,j)=>p.x!==first.groups[i].particles[j].x||p.y!==first.groups[i].particles[j].y)),
+    'Dust gently drifts in the resting field');
+   assertBoundedDust(second,8);
+   assert.equal(await motionPage.evaluate(()=>window.timelineFrames.size),1,'One animation frame loop serves the complete dust field');
+
+   const card=motionPage.locator('.orca-timeline-event[data-index="4"]');
+   const cardBefore=await card.boundingBox();
+   const borderBefore=await card.evaluate(el=>getComputedStyle(el).boxShadow);
+   const calm=(await dustState(motionPage)).groups.find(g=>g.index===4);
+   const calmMotion=await particleTravel(motionPage,4);
+   await card.hover();
+   await motionPage.waitForFunction(()=>Number(document.querySelector('.orca-history-dust-group[data-index="4"]')?.dataset.excitement)>.9);
+   await motionPage.waitForTimeout(300);
+   const excited=await dustState(motionPage),local=excited.groups.find(g=>g.index===4);
+   const cardAfter=await card.boundingBox();
+   assert(cardAfter.width>cardBefore.width*1.025&&cardAfter.width<cardBefore.width*1.05,'Hovered card enlarges slightly');
+   assert.notEqual(await card.evaluate(el=>getComputedStyle(el).boxShadow),borderBefore,'Hover adds a tasteful local border glow');
+   assert(excited.groups.filter(g=>g.index!==4).every(g=>g.excitement===0),'Neighbor dust remains calm');
+   assert(sumOpacity(local)>sumOpacity(calm)*1.5,'Hovered milestone dust becomes brighter');
+   assert(local.particles.filter(p=>p.opacity>.2).length>calm.particles.filter(p=>p.opacity>.2).length,
+    'More of the fixed pool sparkles visibly on hover');
+   for(const region of ['rail','connector','card']){
+    assert(sumOpacity(local,region)>sumOpacity(calm,region)*1.4,'Hover energizes the local '+region+' dust');
+   }
+   const excitedMotion=await particleTravel(motionPage,4);
+   assert(excitedMotion>calmMotion*1.3,'Hovered dust moves more energetically within its local field');
+   assertBoundedDust(await dustState(motionPage),16);
+   const spacing=await motionPage.evaluate(()=>{
+    const cards=[...document.querySelectorAll('.orca-timeline-event')].map(c=>c.getBoundingClientRect());
+    const rail=document.querySelector('.orca-timeline-events').getBoundingClientRect(),card=cards[4];
+    const stem=document.querySelectorAll('.orca-history-stem')[4].getBoundingClientRect();
+    return {left:card.left-cards[3].right,right:cards[5].left-card.right,top:card.top-rail.top,
+     bottom:rail.bottom-stem.bottom,connectorGap:stem.top-card.bottom};
    });
-   let visibleHead=await viewHead();
-   assert(visibleHead.head>=visibleHead.left+5&&visibleHead.head<=visibleHead.right+5,
-    'Moving gold glint starts visibly inside the current rail');
+   assert(spacing.left>8&&spacing.right>8,'Scaled card keeps comfortable separation from its neighbors');
+   assert(spacing.top>=0&&spacing.bottom>5,'Hover and dust fit inside the frame without clipping');
+   assert(Math.abs(spacing.connectorGap)<2,'Bottom-origin scaling keeps card and connector joined');
+   if(captureDir)await motionPage.locator('#timeline-frame').screenshot({path:path.join(captureDir,'ambient-hover.png')});
+   await motionPage.mouse.move(0,0);
+   await motionPage.waitForFunction(()=>Number(document.querySelector('.orca-history-dust-group[data-index="4"]')?.dataset.excitement)<.01);
+   await motionPage.waitForTimeout(300);
+   assert(Math.abs((await card.boundingBox()).width-cardBefore.width)<.1,'Card smoothly returns to its original size');
+   assert.equal(await motionPage.locator('.orca-history-excited').count(),0);
+   assert.equal(await motionPage.locator('.orca-history-dust').count(),total,'Hover reuses particles instead of accumulating them');
+   // Entering empty connector space must not masquerade as card hover.
+   const stemBox=await motionPage.locator('.orca-history-stem').nth(4).boundingBox();
+   await motionPage.mouse.move(stemBox.x+stemBox.width/2,stemBox.y+stemBox.height/2);
+   await motionPage.waitForTimeout(120);
+   assert.equal(await motionPage.locator('.orca-history-excited').count(),0,'Only the card activates dust');
+   await motionPage.mouse.move(0,0);
+
+   // Hidden pages stop work and restart one clean field; no stale pools remain.
    await motionPage.evaluate(()=>{
-    const rail=document.querySelector('.orca-timeline-events');
-    rail.scrollTo({left:rail.scrollWidth,behavior:'instant'});
+    Object.defineProperty(document,'visibilityState',{configurable:true,value:'hidden'});
+    document.dispatchEvent(new Event('visibilitychange'));
    });
-   await motionPage.waitForTimeout(220);
-   visibleHead=await viewHead();
-   assert(visibleHead.scrollLeft>100,'Test scrolled to a later milestone');
-   assert(visibleHead.head>=visibleHead.left+5&&visibleHead.head<=visibleHead.right+5,
-    'Moving gold glint follows the viewed milestones rather than disappearing off-screen');
+   assert.equal(await motionPage.evaluate(()=>window.timelineFrames.size),0,'Hidden document cancels animation');
+   const hiddenTicks=await motionPage.evaluate(()=>window.timelineRafTicks);
+   await motionPage.waitForTimeout(150);
+   assert.equal(await motionPage.evaluate(()=>window.timelineRafTicks),hiddenTicks);
+   await motionPage.evaluate(()=>{
+    Object.defineProperty(document,'visibilityState',{configurable:true,value:'visible'});
+    document.dispatchEvent(new Event('visibilitychange'));
+   });
+   await motionPage.waitForTimeout(100);
+   assert.equal(await motionPage.locator('.orca-history-track').count(),1);assert.equal(await motionPage.locator('.orca-history-dust').count(),total);
+   assert.equal(await motionPage.evaluate(()=>window.timelineFrames.size),1);
+
+   // BFcache pauses work, then restores a single field and live preference listeners.
+   await motionPage.evaluate(()=>window.dispatchEvent(new PageTransitionEvent('pagehide',{persisted:true})));
+   assert.equal(await motionPage.evaluate(()=>window.timelineFrames.size),0,'BFcache entry pauses animation');
+   await motionPage.evaluate(()=>window.dispatchEvent(new PageTransitionEvent('pageshow',{persisted:true})));
+   await motionPage.waitForTimeout(100);
+   assert.equal(await motionPage.evaluate(()=>window.timelineFrames.size),1,'BFcache restoration restarts exactly one loop');
+   assert.equal(await motionPage.locator('.orca-history-track').count(),1);
+
+   // Changing the OS setting while mounted freezes dust and card enlargement.
+   await card.hover();
+   await motionPage.waitForFunction(()=>Number(document.querySelector('.orca-history-dust-group[data-index="4"]')?.dataset.excitement)>.5);
+   await motionPage.emulateMedia({reducedMotion:'reduce'});await motionPage.waitForTimeout(100);
+   assert.equal(await motionPage.evaluate(()=>window.timelineFrames.size),0,'Reduced motion cancels the active RAF immediately');
+   assert.equal(await motionPage.locator('.orca-history-excited').count(),0,'Preference change clears excitation');
+   const frozen=await dustState(motionPage);await motionPage.waitForTimeout(350);
+   assert.deepEqual(await dustState(motionPage),frozen,'Reduced motion retains perfectly static ambient dust');
+   assert(Math.abs((await card.boundingBox()).width-cardBefore.width)<.1,'Reduced motion suppresses enlargement');
+   await motionPage.emulateMedia({reducedMotion:'no-preference'});await motionPage.mouse.move(0,0);await motionPage.waitForTimeout(100);
+   assert.equal(await motionPage.evaluate(()=>window.timelineFrames.size),1,'Motion can be enabled again without duplicate loops');
+
+   // Long histories recycle local pools as the user scrolls; nodes stay bounded.
+   await motionPage.goto(url+'?count=120');await motionPage.waitForFunction(()=>window.timelineReady);
+   const poolCount=await motionPage.locator('.orca-history-dust').count();
+   assert(poolCount>0&&poolCount<=18*32,'Long history has a strict SVG particle budget');
+   for(const position of [0,1,0.35,0.8,0]){
+    await motionPage.evaluate(fraction=>{
+     const rail=document.querySelector('.orca-timeline-events');rail.scrollTo({left:fraction*(rail.scrollWidth-rail.clientWidth),behavior:'instant'});
+    },position);
+    await motionPage.waitForTimeout(100);
+    const state=await dustState(motionPage);
+    assert.equal(await motionPage.locator('.orca-history-track').count(),1);
+    assert(state.groups.reduce((sum,g)=>sum+g.particles.length,0)<=18*32);
+    assert.equal(new Set(state.groups.map(g=>g.index)).size,state.groups.length,'No duplicate local pools after scroll');
+    const covered=await motionPage.evaluate(()=>{
+     const r=document.querySelector('.orca-timeline-events').getBoundingClientRect();
+     const groups=new Set([...document.querySelectorAll('.orca-history-dust-group')].map(g=>Number(g.dataset.index)));
+     return [...document.querySelectorAll('.orca-timeline-event')].every(c=>{
+      const b=c.getBoundingClientRect();return b.right<=r.left||b.left>=r.right||groups.has(Number(c.dataset.index));
+     });
+    });
+    assert(covered,'Every viewed milestone receives its own rail and connector dust');
+   }
+   await motionPage.setViewportSize({width:1024,height:900});await motionPage.waitForTimeout(100);
+   assert.equal(await motionPage.locator('.orca-history-track').count(),1);
+   assert((await motionPage.locator('.orca-history-dust').count())<=18*32);
+   assert.equal(await motionPage.evaluate(()=>window.timelineFrames.size),1,'Resizing replaces, rather than duplicates, the frame loop');
    await motionPage.setViewportSize({width:393,height:851});
    await motionPage.waitForFunction(()=>!document.querySelector('.orca-history-track'));
-   assert.equal(await motionPage.locator('.orca-history-track-beam').count(),0,
-    'Mobile remains swipe-only even when motion is enabled');
-   assert.equal(await motionPage.locator('.orca-history-sparkle-head').count(),0,
-    'No moving glint leaks into mobile carousel');
-   assert.deepEqual(motionErrors,[]);
-   await motionContext.close();
-   console.log('PASS visible animated comet travels on desktop; mobile remains swipe-only');
-   const reduceContext=await browser.newContext({viewport:{width:1440,height:900},reducedMotion:'reduce'});
-   const reducePage=await reduceContext.newPage();
-   await reducePage.goto(url);await reducePage.waitForFunction(()=>window.timelineReady);
-   assert.equal(await reducePage.locator('.orca-history-track-beam').getAttribute('d'),null,
-    'Reduced motion keeps a static gold rail');
-   assert.equal(await reducePage.locator('.orca-history-track-dust').count(),0,
-    'Reduced motion does not create moving dust');
-   assert.equal(await reducePage.locator('.orca-history-sparkle-head').count(),0,
-    'Reduced motion does not create a moving sparkle');
-   await reduceContext.close();
-   console.log('PASS reduced-motion visitors retain a static glowing rail');
+   assert.equal(await motionPage.locator(absent).count(),0);assert.equal(await motionPage.locator('.orca-history-dust').count(),0);
+   await motionPage.locator('.orca-timeline-event').first().dispatchEvent('pointerenter',{pointerType:'mouse'});
+   assert.equal(await motionPage.locator('.orca-history-excited').count(),0,'Phone carousel never acquires desktop hover state');
+   await motionPage.waitForTimeout(100);assert.equal(await motionPage.evaluate(()=>window.timelineFrames.size),0);
+   await motionPage.setViewportSize({width:1440,height:1000});await motionPage.waitForTimeout(100);
+   assert.equal(await motionPage.evaluate(()=>window.timelineFrames.size),1);
+   await motionPage.evaluate(()=>window.dispatchEvent(new PageTransitionEvent('pagehide',{persisted:false})));
+   assert.equal(await motionPage.evaluate(()=>window.timelineFrames.size),0,'Final page exit cancels the dust loop');
+   assert.deepEqual(motionErrors,[]);await motionContext.close();
+   console.log('PASS ambient rail/connector dust, local card hover, static reduced motion, visibility cleanup and bounded long-history pools');
+
+   const touchContext=await browser.newContext({viewport:{width:1024,height:800},hasTouch:true,reducedMotion:'no-preference'});
+   const touchPage=await touchContext.newPage();await touchPage.goto(url);await touchPage.waitForFunction(()=>window.timelineReady);
+   assert(await touchPage.locator('.orca-history-dust').count()>0,'Touch tablets keep resting dust around the desktop rail');
+   const touchCard=touchPage.locator('.orca-timeline-event[data-index="4"]'),touchBefore=await touchCard.boundingBox();
+   await touchCard.dispatchEvent('pointerenter',{pointerType:'touch'});await touchPage.waitForTimeout(300);
+   assert.equal(await touchPage.locator('.orca-history-excited').count(),0,'Touch contact does not latch hover excitement');
+   assert.equal((await touchCard.boundingBox()).width,touchBefore.width,'Touch card does not enlarge');
+   assert((await dustState(touchPage)).groups.every(g=>g.excitement===0));
+   await touchContext.close();console.log('PASS coarse-pointer resting magic without sticky hover');
   }
   const context=await browser.newContext({viewport:{width:360,height:800},hasTouch:true,isMobile:true}),page=await context.newPage();
   for(const query of ['?count=1','?count=6&noPhotos','?count=0']){
