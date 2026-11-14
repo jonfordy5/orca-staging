@@ -153,6 +153,7 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
    const element=document.createElementNS(ns,'g');
    element.classList.add('orca-history-dust-group');
    element.dataset.excitement='0';
+   element.dataset.railExcitement='0';
    const particles=Array.from({length:32},(_,i)=>{
     const circle=document.createElementNS(ns,'circle');
     circle.classList.add('orca-history-dust');
@@ -162,7 +163,7 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
     return {circle,x:0,y:0,phase:0,seed:0,extra:i%4===3};
    });
    svg.append(element);
-   return {element,particles,index:-1,excitement:0};
+   return {element,particles,index:-1,excitement:0,railExcitement:0};
   });
   // One reusable background layer belongs to the spine, NOT the hovered stop.
   // With z-index below every photo card, motes visible beyond the hovered photo
@@ -173,7 +174,7 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
   orbit.setAttribute('aria-hidden','true');
   orbit.setAttribute('width','470');
   orbit.setAttribute('height','300');
-  const perimeterCount=112,sideCount=28;
+  const perimeterCount=112,sideCount=12;
   const orbitMotes=Array.from({length:perimeterCount+sideCount*2},(_,i)=>{
    const mote=document.createElementNS(ns,'circle');
    mote.classList.add('orca-history-orbit-mote');
@@ -232,7 +233,7 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
      y=centerY+(sideFraction-0.5)*(card.offsetHeight-12)*spread+
       Math.cos(orbitTime*2+seed*9)*1.8;
     }
-    const strength=hue==='gold'?(region==='halo'?0.40+0.36*seed:0.58+0.27*seed):0.34+0.20*seed;
+    const strength=hue==='gold'?(region==='halo'?0.40+0.36*seed:0.42+0.20*seed):0.34+0.20*seed;
     mote.setAttribute('cx',x.toFixed(2));
     mote.setAttribute('cy',y.toFixed(2));
     mote.setAttribute('r',(0.85+seed*1.05+Math.max(0,shimmer-0.7)*0.55).toFixed(2));
@@ -240,31 +241,45 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
    }
    orbit.dataset.excitement=orbitIntensity.toFixed(3);
   };
-  const paint=(group,elapsed,staticDust)=>{
+  // Hover energy diffuses along the visible horizontal rail, with no traveling
+  // comet or moving leader. Only existing viewport-bounded rail motes brighten.
+  const railBloomRadius=Math.max(475,Math.min(840,rail.clientWidth*0.72));
+  const paint=(group,elapsed,staticDust,hoveredX=null)=>{
    const target=!staticDust&&hoverPointer.matches&&
     stops[group.index].classList.contains('orca-history-excited')?1:0;
    // Time-based easing keeps quick entries/exits smooth at any frame rate.
    group.excitement+=(target-group.excitement)*(1-Math.exp(-elapsed/(target?0.18:0.32)));
    const excitement=group.excitement;
    group.element.dataset.excitement=excitement.toFixed(3);
+   const distance=hoveredX===null?Infinity:Math.abs(points[group.index][0]-hoveredX);
+   const railTarget=!staticDust&&distance<railBloomRadius?
+    0.28+0.72*Math.pow(1-distance/railBloomRadius,1.15):0;
+   group.railExcitement+=(railTarget-group.railExcitement)*
+    (1-Math.exp(-elapsed/(railTarget?0.20:0.34)));
+   group.element.dataset.railExcitement=group.railExcitement.toFixed(3);
    for(const particle of group.particles){
     const {circle,seed}=particle;
-    particle.phase+=elapsed*(0.55+seed*0.35+excitement*1.1);
+    // Neighboring card/connector fields stay calm; horizontal rail alone
+    // responds across the wide marked section.
+    const activity=circle.dataset.region==='rail'?
+     Math.max(excitement,group.railExcitement):excitement;
+    particle.phase+=elapsed*(0.55+seed*0.35+activity*1.1);
     const phase=particle.phase;
-    const driftX=staticDust?0:Math.sin(phase)*(1.6+excitement*5.2);
-    const driftY=staticDust?0:Math.cos(phase*0.83+seed*8)*(1.8+excitement*4.6);
+    const driftX=staticDust?0:Math.sin(phase)*(1.6+activity*5.2);
+    const driftY=staticDust?0:Math.cos(phase*0.83+seed*8)*(1.8+activity*4.6);
     const shimmer=staticDust?0.84:0.84+Math.sin(phase*1.3+seed*12)*0.16;
-    // Extra motes fade in locally; no particles are allocated on hover.
-    const strength=particle.extra?excitement*0.65:0.20+seed*0.20+excitement*0.40;
+    // Reuse existing motes: no additional nodes, comet or traveling beam.
+    const strength=particle.extra?activity*0.65:0.20+seed*0.20+activity*0.40;
     circle.setAttribute('cx',(particle.x+driftX).toFixed(2));
     circle.setAttribute('cy',(particle.y+driftY).toFixed(2));
-    circle.setAttribute('r',(0.8+seed*0.65+excitement*0.25).toFixed(2));
+    circle.setAttribute('r',(0.8+seed*0.65+activity*0.25).toFixed(2));
     circle.setAttribute('opacity',(strength*shimmer).toFixed(3));
    }
   };
   const assign=(group,index)=>{
    group.index=index;
    group.excitement=0;
+   group.railExcitement=0;
    group.element.dataset.index=String(index);
    const [x,y]=points[index];
    const stemTop=stems[index].top-spineRect.top;
@@ -310,7 +325,9 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
    if(!svg.isConnected||document.visibilityState==='hidden'){stopDust();return}
    const elapsed=previousTime?Math.min((now-previousTime)/1000,0.05):0;
    previousTime=now;
-   for(const group of groups)paint(group,elapsed,false);
+   const hovered=stops.findIndex(stop=>stop.classList.contains('orca-history-excited'));
+   const hoveredX=hovered<0?null:points[hovered][0];
+   for(const group of groups)paint(group,elapsed,false,hoveredX);
    paintOrbit(elapsed);
    dustFrame=requestAnimationFrame(animate);
   };

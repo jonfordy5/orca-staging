@@ -58,7 +58,8 @@ export async function mountTimelinePhotos({sb,ticker,frame,rail,status,getUser,c
   img.alt='Original abstract illustration; not a historical photograph';
   img.loading='lazy';
   slot.replaceChildren(img);slot.classList.add('orca-history-thumb');
-  card.title='Original ORCA decorative illustration. Historical event details are sourced separately.';
+  // Credits remain in the clicked detail dialog, never in a hover tooltip.
+  card.removeAttribute('title');
  }
  function updatePhotoAction(){button.hidden=true;button.disabled=actionPending;}
  function getCoverage(){
@@ -83,6 +84,9 @@ export async function mountTimelinePhotos({sb,ticker,frame,rail,status,getUser,c
   // misrepresented as ten different photographs to public visitors.
   const originalKey=p=>{try{const u=new URL(p.full_image_url||p.image_url);return u.origin+u.pathname}catch{return p.image_url}};
   const seen=new Set(),seenUrls=new Set(),visibleCards=Array.from(rail.querySelectorAll('button[data-event-id]'));
+  // Remove native hover popups from previously loaded photo and fallback cards.
+  // The click-to-open detail dialog still shows photographers and licenses.
+  for(const card of visibleCards)card.removeAttribute('title');
   photos=new Map();
   for(const card of visibleCards){
    const p=rawPhotos.get(card.dataset.eventId);
@@ -128,9 +132,8 @@ export async function mountTimelinePhotos({sb,ticker,frame,rail,status,getUser,c
    img.dataset.photoUrl=p.image_url;img.src=p.image_url;img.alt='Illustrative photography, not the historical event';img.loading='lazy';
    img.addEventListener('error',()=>{renderIllustration(card)},{once:true});
    slot.replaceChildren(img);slot.classList.add('orca-history-thumb');
-   const provider=p.source_type==='wikimedia_commons'?'Wikimedia Commons':'Unsplash';
-   card.title=(p.temporary?'Temporary company illustration · ':p.needs_review?'Illustrative photo awaiting improvement · ':'Illustrative photo · ')+
-    'Image: '+p.photographer+' on '+provider+'.'+(p.license_name?' License: '+p.license_name+'.':'');
+   // No title tooltip. Photographer, source and license links remain in
+   // .orca-photo-attribution when this milestone's detail dialog opens.
   }
   return getCoverage();
  }
