@@ -1,9 +1,9 @@
-// Execute the actual click handler and persisted-status loader with staged replies.
+// Execute the unchanged capped timeline completion routine and persisted-status loader with staged replies.
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const vm=require('node:vm');
 const source=fs.readFileSync(__dirname+'/../orca-living-timeline.js','utf8');
-const handler=source.slice(source.indexOf(' async function maybePopulateCompanyHistory(){'),source.indexOf(' // Display cached history immediately;'));
+const handler=source.slice(source.indexOf(' async function maybePopulateCompanyHistory(){'),source.indexOf(' // Cached history always displays;'));
 const helpers=source.slice(source.indexOf(' let blockedScopes='),source.indexOf(' let discoveryPending='));
 const origins=source.match(/const isOrigin=e=>[\s\S]*?;\n/)[0];
 const y=new Date().getUTCFullYear();
@@ -57,7 +57,7 @@ async function run({rows=[],initial=10,failCurrent=false,gapLimit=10,historyCost
 (async()=>{
  let r=await run({rows:history()});
  assert.deepEqual(r.requests.map(x=>x.scope),['current']);assert.equal(r.saved.length,11);assert.equal(r.photoCalls,1);assert(r.feedback.includes('Timeline complete.'));
- console.log('PASS META: existing founding/history reused; current-year event and photo finish in one click');
+ console.log('PASS META: existing history reused; same bounded routine completes current year and photo work');
  for(const origin of ['First Wendy’s opens in Columbus','Facebook launches at Harvard','McDonald brothers open the first McDonald’s','Intel incorporates to pursue continuous innovation','Sam Walton opens first Walmart in Rogers']){
   r=await run({rows:[...history(10,origin),current()]});
   assert.equal(r.requests.length,0);assert.equal(r.photoCalls,0);assert.equal(r.saved.length,11);assert.equal(r.eligible,false);
@@ -94,7 +94,7 @@ async function run({rows=[],initial=10,failCurrent=false,gapLimit=10,historyCost
  console.log('PASS budget-limited final history pass saves partial results, reports $0.149 and stops');
  r=await run({rows:[...history(),current()],brandPending:true});
  assert.equal(r.requests.length,0);assert.equal(r.photoCalls,1);assert.equal(r.saved.length,11);
- console.log('PASS completed company can receive a one-time branded-photo upgrade with the same button and no history research');
+ console.log('PASS completed company can receive a cached branded-photo upgrade without new history research');
  r=await run({rows:history(),failCurrent:true});
  assert.equal(r.saved.length,10);assert(r.feedback.includes('no verified '+y+' event'));assert.equal(r.eligible,false);
  console.log('PASS unverifiable current-year evidence leaves an explicit cached limitation');
