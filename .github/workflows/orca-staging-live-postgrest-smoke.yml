@@ -1,0 +1,25 @@
+name: ORCA staging public REST smoke (read only)
+
+on:
+  push:
+    branches:
+      - security/orca-oauth-readonly-gateway-20261112
+    paths:
+      - scripts/test-orca-live-postgrest-public-reads.mjs
+      - .github/workflows/orca-staging-live-postgrest-smoke.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  live-anonymous-http-read:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: GET public ORCA staging stocks and research without credentials or writes
+        run: node scripts/test-orca-live-postgrest-public-reads.mjs
