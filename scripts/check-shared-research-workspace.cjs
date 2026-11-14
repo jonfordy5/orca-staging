@@ -142,7 +142,7 @@ check('Latest straight timeline design is recorded in universal stock-page stand
 
 check('Owner-approved timeline is compact, straight and keeps the charts stacked', () =>
  workspace.includes('id="chart-frame"') && workspace.includes('id="timeline-frame"') &&
- workspace.includes('height:382px') && workspace.includes('height:300px!important') &&
+ workspace.includes('height:354px') && workspace.includes('height:272px!important') &&
  workspace.includes('flex:0 0 222px!important') &&
  timeline.includes('stop.append(stem,card)') && timeline.includes('spine.append(svg)') &&
  !timeline.includes('const futureStep=') && !timeline.includes('orca-history-refill-action') &&
