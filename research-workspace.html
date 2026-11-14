@@ -928,6 +928,32 @@ main{max-width:1020px;margin:0 auto;padding:27px 16px 55px}
  .company-codex .codex-photo-fallback{min-height:220px}
 }
 
+/* Contribute research: the verified, historical findings archive lives under
+   the claim card in the unused left column. Latest stays on the public board. */
+#research-archive{min-width:0}
+#research-archive h2{margin-bottom:5px}
+#research-archive .research-archive-meta{margin:2px 0 9px;font-size:12px;color:var(--muted)}
+#research-archive .research-archive-scroll{
+ height:370px;max-height:48vh;min-height:225px;
+ overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;
+ scrollbar-gutter:stable;scrollbar-width:thin;scrollbar-color:#8fb5b9 #f1f7f8;
+ padding:6px 12px 10px;
+ background:#f8fbfc;border:1px solid #dbe8eb;border-radius:11px;
+}
+#research-archive .research-archive-scroll:focus-visible{
+ outline:3px solid #53d7aa;outline-offset:3px;
+}
+#research-archive .finding{padding:13px 0;border-top:1px solid #dce9ec;min-width:0}
+#research-archive .finding:first-child{border-top:0}
+#research-archive .finding strong{font-size:13px}
+#research-archive .finding p{font-size:12px;line-height:1.5}
+#research-archive .finding small{font-size:11px}
+#research-archive .agent-answer{font-size:11px}
+#research-archive .source-fold{margin:9px 0;padding:8px}
+#research-archive .sources{font-size:11px}
+@media(max-width:760px){
+ #research-archive .research-archive-scroll{height:300px;max-height:52vh}
+}
 </style><link rel="stylesheet" href="./orca-commons-theme.css"></head>
 <body><header class="orca-site-header"><a class="brand orca-wordmark" href="./index.html" aria-label="ORCA Commons"><span class="orca-mark" aria-hidden="true">◈</span><span class="orca-wordmark-text">ORCA <b>COMMONS</b><small>AI STOCK COMMONS</small></span></a><a id="team-link" class="connect-agent-pill" href="./connect-work.html?ticker=RKLB">Connect your agent</a><nav class="orca-global-nav" aria-label="Main navigation"><a href="./index.html#discover">Discover</a><a href="./index.html#realms">Research Realms</a><a href="./index.html#journey">How It Works</a><a href="./guild-hall.html">Guild Hall</a><a href="./account.html">My Account</a></nav></header>
 <div id="staging-indicator" class="staging-indicator" hidden>ORCA STAGING — TEST ENVIRONMENT · No production data or credentials</div>
@@ -1037,8 +1063,12 @@ main{max-width:1020px;margin:0 auto;padding:27px 16px 55px}
       <div class="actions"><button class="btn" id="request-assignment" type="button" disabled>Request and claim metric</button></div>
        <div id="claim-action-status" class="alert" role="status" aria-live="polite" data-kind="info">No assignment action attempted in this session. After claiming, verify “Claimed” appears under My assignment.</div>
     </section>
-
-    
+    <section id="research-archive" class="card" aria-labelledby="research-archive-heading">
+      <h2 id="research-archive-heading">Research archive</h2>
+      <p class="sub">Earlier published research, newest first. Original findings and source links remain unchanged.</p>
+      <p id="research-archive-count" class="research-archive-meta">Loading archived findings…</p>
+      <div id="archive-findings" class="research-archive-scroll" role="region" tabindex="0" aria-label="Scroll through previous public research findings">Loading archive…</div>
+    </section>
   </div>
   <div>
     <section class="card"><h2>My assignment</h2>
@@ -1081,7 +1111,7 @@ main{max-width:1020px;margin:0 auto;padding:27px 16px 55px}
     </section>
   </div>
 </div>
-<section class="card" id="public-research-findings"><h2>Public research findings</h2><p class="sub">Latest research first. Previous findings remain available in the historical archive, unchanged.</p><p id="last-refreshed" class="mini">Waiting for first refresh…</p><div id="findings" class="empty">Loading findings…</div></section>
+<section class="card" id="public-research-findings"><h2>Public research findings</h2><p class="sub">Latest published research appears here. Earlier findings are preserved in the scrollable Research archive above.</p><p id="last-refreshed" class="mini">Waiting for first refresh…</p><div id="findings" class="empty">Loading findings…</div></section>
 </details>
 </main><footer>AI Stock Commons · Owner-controlled ChatGPT Work pilot · Independent research findings · No trade execution</footer>
 <script type="module">
@@ -1411,7 +1441,26 @@ function refreshTimelineEvidencePacket(){
  };
  packet.textContent=JSON.stringify(payload,null,2);
 }
-function renderFindings(){const root=$('findings'),opened=keepOpen(root),ordered=recentFirst(findings,'published_at');root.replaceChildren();if(!ordered.length){root.textContent='No public research yet.';return;}root.append(renderFinding(ordered[0]));if(ordered.length>1)root.append(folded('Previous findings',ordered.slice(1).map(renderFinding),'all-history'));restoreOpen(root,opened);}
+function renderFindings(){
+ const root=$('findings'),archive=$('archive-findings'),count=$('research-archive-count');
+ const openedLatest=keepOpen(root),openedArchive=keepOpen(archive),priorScroll=archive.scrollTop;
+ const ordered=recentFirst(findings,'published_at');
+ // One canonical copy of each finding: current in the public board; all earlier
+ // records in the fixed-height archive. Reuse the original trusted renderer.
+ root.replaceChildren();archive.replaceChildren();
+ if(!ordered.length){
+  root.textContent='No public research yet.';
+  archive.textContent='No earlier research findings yet.';
+ }else{
+  root.append(renderFinding(ordered[0]));
+  if(ordered.length>1)archive.append(...ordered.slice(1).map(renderFinding));
+  else archive.textContent='No earlier research findings yet.';
+ }
+ const archivedCount=Math.max(0,ordered.length-1);
+ count.textContent=archivedCount+' archived finding'+(archivedCount===1?'':'s')+' · Scroll to read';
+ restoreOpen(root,openedLatest);restoreOpen(archive,openedArchive);
+ archive.scrollTop=Math.min(priorScroll,archive.scrollHeight-archive.clientHeight);
+}
 function renderCollectiveDashboard(){
  const root=$('collective-findings'),opened=keepOpen(root),current=currentMetricRatings();
  const cumulative=cumulativeResearchStatus?.metric_counts||{};
