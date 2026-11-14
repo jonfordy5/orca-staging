@@ -724,6 +724,73 @@ main{max-width:1020px;margin:0 auto;padding:27px 16px 55px}
  }
 }
 
+
+/* ORCA Legends · sourced milestone detail dialog.
+   Keep the source-backed content, links and scrolling; remove legacy icy-blue
+   modal styling only, without recoloring milestone cards or research tools. */
+#chart-section .orca-timeline-frame .orca-timeline-details.orca-history-popover{
+ color:#f4f0e6;
+ color-scheme:dark;
+ background:linear-gradient(155deg,#24252a 0%,#1b1e23 65%,#171a1f 100%);
+ border:1px solid #bb975d;
+ box-shadow:0 18px 46px #000b,0 0 0 1px #e0bb741c!important;
+ scrollbar-width:thin;
+ scrollbar-color:#ac8954 #1b1e23;
+}
+#chart-section .orca-timeline-frame .orca-timeline-details.orca-history-popover::-webkit-scrollbar{
+ width:9px;
+}
+#chart-section .orca-timeline-frame .orca-timeline-details.orca-history-popover::-webkit-scrollbar-track{
+ background:#1b1e23;
+ border-radius:8px;
+}
+#chart-section .orca-timeline-frame .orca-timeline-details.orca-history-popover::-webkit-scrollbar-thumb{
+ background:#a38658;
+ border:2px solid #1b1e23;
+ border-radius:8px;
+}
+#chart-section .orca-timeline-frame .orca-history-popover h3{
+ color:#f4db9a;
+ font-family:Georgia,serif;
+ font-size:clamp(20px,2.3vw,24px);
+}
+#chart-section .orca-timeline-frame .orca-history-popover > small{
+ color:#cfb88d;
+}
+#chart-section .orca-timeline-frame .orca-history-popover > p{
+ color:#f4f0e6;
+}
+#chart-section .orca-timeline-frame .orca-history-popover .orca-brief-points{
+ color:#ede3d2;
+}
+#chart-section .orca-timeline-frame .orca-history-popover .orca-brief-points li::marker{
+ color:#d7b270;
+}
+#chart-section .orca-timeline-frame .orca-history-popover .orca-brief-takeaway{
+ background:#d7b27016;
+ border-left:3px solid #cba467;
+ color:#f2e8d7;
+}
+#chart-section .orca-timeline-frame .orca-timeline-details.orca-history-popover a,
+#chart-section .orca-timeline-frame .orca-history-popover .orca-photo-attribution a{
+ color:#e9c77f;
+ text-decoration-color:#bd995c;
+ text-underline-offset:3px;
+}
+#chart-section .orca-timeline-frame .orca-timeline-details.orca-history-popover a:hover,
+#chart-section .orca-timeline-frame .orca-timeline-details.orca-history-popover a:focus-visible{
+ color:#fff0cb;
+ text-decoration-color:#f6db9d;
+}
+#chart-section .orca-timeline-frame .orca-timeline-details.orca-history-popover a:focus-visible{
+ outline:2px solid #e9c77f;
+ outline-offset:3px;
+ border-radius:2px;
+}
+#chart-section .orca-timeline-frame .orca-history-popover .orca-photo-attribution{
+ color:#c8b998;
+}
+
 /* Research realms — full uncropped portrait illustrations, with labels INSIDE each research card image. */
 .investor-question .orca-realm-art{aspect-ratio:3/4;height:auto;margin:-14px -14px 15px;border-radius:11px 11px 0 0;background:#14202c;position:relative;overflow:hidden;isolation:isolate}
 .investor-question .orca-realm-art img{position:absolute;inset:0;display:block;width:100%;height:100%;object-fit:contain;object-position:center;background:#14202c}
