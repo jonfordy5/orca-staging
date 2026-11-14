@@ -61,6 +61,8 @@ jobs:
         run: NODE_PATH="$RUNNER_TEMP/orca-browser/node_modules" node scripts/test-orca-commons-r5-browser.cjs
       - name: Verify compact endless research waterfall, accessibility and mobile browsing
         run: NODE_PATH="$RUNNER_TEMP/orca-browser/node_modules" node scripts/test-commons-research-waterfall-browser.cjs
+      - name: Verify archived research findings scroll beneath assignment without duplication
+        run: NODE_PATH="$RUNNER_TEMP/orca-browser/node_modules" node scripts/test-research-archive-browser.cjs
       - name: Verify Guild Hall owner data, active mission, privacy and responsive layout
         run: NODE_PATH="$RUNNER_TEMP/orca-browser/node_modules" node scripts/test-orca-guild-hall-browser.cjs
       - name: Verify Legends cinematic preview is opt-in, responsive and does not unlock gameplay
