@@ -8,14 +8,16 @@ const css=source.match(/<style>([\s\S]*?)<\/style>/)?.[1];
 assert(css,'Production CSS is present');
 const start=source.indexOf('<div class="cols">\n  <div>\n    <section id="request-research"');
 const end=source.indexOf('</details>\n</main><footer>',start);
-assert(start>=0&&end>start,'Original assignment columns and findings exist');
+assert(start>=0&&end>start,'Original assignment columns and scrollable archive exist');
 const markup=source.slice(start,end);
 const from=source.indexOf('function renderFindings(){');
 const to=source.indexOf('function renderCollectiveDashboard(){',from);
 assert(from>=0&&to>from,'Production findings renderer exists');
 const render=source.slice(from,to);
-assert(render.includes("archive.append(...ordered.slice(1).map(renderFinding))"),'History routes to archive');
-assert(!render.includes("folded('Previous findings'"),'No duplicate history below latest');
+assert(render.includes('archive.append(...ordered.map(renderFinding))'),'Every finding, including latest, goes to archive');
+assert(!source.includes('id="public-research-findings"'),'Original full-width public findings card is gone');
+assert(!source.includes('id="last-refreshed"'),'Removed card has no leftover status element');
+assert(!source.includes('id="findings"'),'Removed card has no leftover findings container');
 const fixture=[
  '<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>',css,
  '</style></head><body><main>',markup,'</main><script>',
@@ -46,10 +48,9 @@ const fixture=[
    const page=await context.newPage();const errors=[];
    page.on('pageerror',error=>errors.push(error.message));
    await page.setContent(fixture);
-   assert.equal(await page.locator('#findings .finding').count(),1,'Latest is in the public board');
-   assert.equal(await page.locator('#archive-findings .finding').count(),7,'Earlier entries are in archive once');
-   assert.equal(await page.locator('#findings .history-fold').count(),0);
-   assert.match(await page.locator('#research-archive-count').innerText(),/7 archived findings/);
+   assert.equal(await page.locator('#public-research-findings').count(),0,'Old full-width card is removed');
+   assert.equal(await page.locator('#archive-findings .finding').count(),8,'Latest and seven earlier findings all appear in one scroll pane');
+   assert.match(await page.locator('#research-archive-count').innerText(),/8 published findings/);
    const layout=await page.evaluate(()=>{
     const rect=id=>document.getElementById(id).getBoundingClientRect();
     const claim=rect('request-research'),archive=rect('research-archive'),right=rect('myclaim'),box=rect('archive-findings');
@@ -69,21 +70,19 @@ const fixture=[
    const after=await page.evaluate(()=>({
     top:document.getElementById('archive-findings').scrollTop,
     open:document.querySelector('#archive-findings .source-fold').open,
-    latest:document.querySelector('#findings .finding strong').textContent,
-    historical:[...document.querySelectorAll('#archive-findings .finding strong')].map(el=>el.textContent)
+    all:[...document.querySelectorAll('#archive-findings .finding strong')].map(el=>el.textContent)
    }));
    assert(after.open,'Source accordion remains open after refresh');
    assert(after.top>0,'Scroll position persists after refresh');
-   assert.equal(after.latest,'Published finding 7');
-   assert.deepEqual(after.historical,Array.from({length:7},(_,i)=>'Published finding '+(6-i)));
-   assert.equal(await page.locator('#archive-findings a[href^="https://example.com/"]').count(),7);
+   assert.deepEqual(after.all,Array.from({length:8},(_,i)=>'Published finding '+(7-i)),'Newest is first, no finding is lost');
+   assert.equal(await page.locator('#archive-findings a[href^="https://example.com/"]').count(),8);
    await page.evaluate(()=>window.showFindings(1));
-   assert.equal(await page.locator('#archive-findings .finding').count(),0);
-   assert.match(await page.locator('#archive-findings').innerText(),/No earlier research findings/);
+   assert.equal(await page.locator('#archive-findings .finding').count(),1,'Single latest finding remains visible in archive');
+   assert.match(await page.locator('#research-archive-count').innerText(),/1 published finding/);
    await page.evaluate(()=>window.showFindings(0));
-   assert.equal(await page.locator('#findings').innerText(),'No public research yet.');
+   assert.equal(await page.locator('#archive-findings').innerText(),'No public research findings yet.');
    assert.deepEqual(errors,[]);
-   console.log('PASS archive '+size.width+'px: single-copy findings, scroll, sources, refresh and layout');
+   console.log('PASS archive '+size.width+'px: all findings, no duplicate panel, scroll, sources, refresh and layout');
    await context.close();
   }
  }finally{await browser.close()}

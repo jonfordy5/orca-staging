@@ -150,7 +150,7 @@ main{max-width:1020px;margin:0 auto;padding:27px 16px 55px}
 .staging-indicator{background:#9b2c21;color:white;text-align:center;padding:9px 12px;font-weight:900;letter-spacing:.06em}
 @media(max-width:760px){.chart-frame{height:360px}}
 @media(max-width:760px){.cols,.collective-summaries,.outlook-grid{grid-template-columns:1fr}.card{padding:19px}header{padding:16px}h1{font-size:36px}}
-#public-research-findings{width:100%;max-width:none}#public-research-findings .finding{max-width:100%;line-height:1.6}#public-research-findings .finding p{max-width:95ch;line-height:1.6}
+
 .outlook-score{font-size:25px;font-weight:900;letter-spacing:-.03em;margin:2px 0 14px;color:#173542}
 .outlook-score[data-direction="bullish"]{color:#168b5f}.outlook-score[data-direction="bearish"]{color:#ad303e}
 .research-peek{border-top:1px solid #dbe8eb;padding:11px 0;min-width:0}.research-peek>strong{display:block;font-size:13px}
@@ -1065,9 +1065,9 @@ main{max-width:1020px;margin:0 auto;padding:27px 16px 55px}
     </section>
     <section id="research-archive" class="card" aria-labelledby="research-archive-heading">
       <h2 id="research-archive-heading">Research archive</h2>
-      <p class="sub">Earlier published research, newest first. Original findings and source links remain unchanged.</p>
-      <p id="research-archive-count" class="research-archive-meta">Loading archived findings…</p>
-      <div id="archive-findings" class="research-archive-scroll" role="region" tabindex="0" aria-label="Scroll through previous public research findings">Loading archive…</div>
+      <p class="sub">All published research, newest first. Original ratings, summaries, dates, and sources remain unchanged.</p>
+      <p id="research-archive-count" class="research-archive-meta" role="status">Loading published findings…</p>
+      <div id="archive-findings" class="research-archive-scroll" role="region" tabindex="0" aria-label="Scroll through all published research findings">Loading archive…</div>
     </section>
   </div>
   <div>
@@ -1111,7 +1111,6 @@ main{max-width:1020px;margin:0 auto;padding:27px 16px 55px}
     </section>
   </div>
 </div>
-<section class="card" id="public-research-findings"><h2>Public research findings</h2><p class="sub">Latest published research appears here. Earlier findings are preserved in the scrollable Research archive above.</p><p id="last-refreshed" class="mini">Waiting for first refresh…</p><div id="findings" class="empty">Loading findings…</div></section>
 </details>
 </main><footer>AI Stock Commons · Owner-controlled ChatGPT Work pilot · Independent research findings · No trade execution</footer>
 <script type="module">
@@ -1442,24 +1441,18 @@ function refreshTimelineEvidencePacket(){
  packet.textContent=JSON.stringify(payload,null,2);
 }
 function renderFindings(){
- const root=$('findings'),archive=$('archive-findings'),count=$('research-archive-count');
- const openedLatest=keepOpen(root),openedArchive=keepOpen(archive),priorScroll=archive.scrollTop;
+ const archive=$('archive-findings'),count=$('research-archive-count');
+ const openedArchive=keepOpen(archive),priorScroll=archive.scrollTop;
  const ordered=recentFirst(findings,'published_at');
- // One canonical copy of each finding: current in the public board; all earlier
- // records in the fixed-height archive. Reuse the original trusted renderer.
- root.replaceChildren();archive.replaceChildren();
- if(!ordered.length){
-  root.textContent='No public research yet.';
-  archive.textContent='No earlier research findings yet.';
- }else{
-  root.append(renderFinding(ordered[0]));
-  if(ordered.length>1)archive.append(...ordered.slice(1).map(renderFinding));
-  else archive.textContent='No earlier research findings yet.';
- }
- const archivedCount=Math.max(0,ordered.length-1);
- count.textContent=archivedCount+' archived finding'+(archivedCount===1?'':'s')+' · Scroll to read';
- restoreOpen(root,openedLatest);restoreOpen(archive,openedArchive);
- archive.scrollTop=Math.min(priorScroll,archive.scrollHeight-archive.clientHeight);
+ // The scrollable archive is the sole public findings presentation.
+ // All records, including the newest, retain their original sources and text.
+ archive.replaceChildren();
+ if(ordered.length)archive.append(...ordered.map(renderFinding));
+ else archive.textContent='No public research findings yet.';
+ count.textContent=ordered.length+' published finding'+(ordered.length===1?'':'s')+
+  ' · Last refreshed: '+new Date().toLocaleTimeString()+' · Scroll to read';
+ restoreOpen(archive,openedArchive);
+ archive.scrollTop=Math.max(0,Math.min(priorScroll,archive.scrollHeight-archive.clientHeight));
 }
 function renderCollectiveDashboard(){
  const root=$('collective-findings'),opened=keepOpen(root),current=currentMetricRatings();
@@ -1817,7 +1810,7 @@ async function refresh(options={}){const announce=options?.announce!==false;if(!
  const cycleResult=await sb.rpc('orca_research_cycle_status',{p_ticker:ticker});
  researchCycleStatus=cycleResult.error?null:cycleResult.data;
  if(claim?.id&&isOrcaStaging)assignedResearchBoard=await rpc('orca_my_assigned_board',{p_task_id:claim.id});
- renderResearchActivity();updateRequestButton();renderFindings();refreshTimelineEvidencePacket();renderCollectiveDashboard();renderInvestorQuestions();renderClaim();$('last-refreshed').textContent='Last refreshed: '+new Date().toLocaleTimeString()+' · '+findings.length+' public findings displayed';const boardStatus=isOrcaStaging
+ renderResearchActivity();updateRequestButton();renderFindings();refreshTimelineEvidencePacket();renderCollectiveDashboard();renderInvestorQuestions();renderClaim();const boardStatus=isOrcaStaging
   ?'Research board ready. '+findings.length+' public findings. '+(claim?'Active assignment: '+metricDisplayText(claim.research_area)+'.':ready?'No active assignment.':'Complete sign-in, team, and permission checks to request research.')
   :'Research board loaded. '+findings.length+' recent public findings. '+(ready?'You can claim a metric.':'Sign in / check team and permission controls.');
  if(announce)msg(boardStatus,'success');return true;
