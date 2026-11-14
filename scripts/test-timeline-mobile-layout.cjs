@@ -196,7 +196,6 @@ async function swipe(page,direction){
    else {assert(await page.locator('.orca-timeline-empty').isVisible());assert(!(await page.locator('.orca-timeline-mobile-progress').isVisible()))}
    assert.equal(await page.evaluate(()=>window.paidCalls),0);
   }
-  await context.close();
   console.log('PASS anonymous one-card, missing-photo and empty timelines without billable calls');
   await page.goto(url+'?authorized');await page.waitForFunction(()=>window.timelineReady);
   await page.waitForFunction(()=>window.apiCalls.some(x=>x.scope==='current'),null,{timeout:5000});
@@ -210,5 +209,6 @@ async function swipe(page,direction){
   assert.equal(await page.evaluate(()=>window.paidCalls),0,'Backend status failure blocks paid generation');
   assert.equal(await page.locator('.orca-timeline-generate').count(),0);
   console.log('PASS failed backend status blocks automatic paid history research');
+  await context.close();
  }finally{if(browser)await browser.close();await new Promise(resolve=>server.close(resolve))}
 })().catch(error=>{console.error(error);process.exitCode=1});
