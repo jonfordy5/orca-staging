@@ -51,6 +51,7 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
  const researchNeed=()=>!allVerified.length?'history':!hasCurrentYear()?'current':
   !hasOrigin()?'origin':allVerified.length<initialHistoryGoal?'history':'none';
  let blockedScopes={};
+ let completionStatusHealthy=false;
  let brandPhotoPending=false;
  const needsPhotoWork=()=>photoMissing>0||brandPhotoPending;
  let completionStatusKnown=false;
@@ -60,11 +61,13 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
   (allVerified.length<initialHistoryGoal&&!blockedScopes.history);
  const mayRequestHistory=()=>completionStatusKnown&&!discoveryPending&&(needsResearch()||needsPhotoWork());
  async function loadCompletionStatus(completedRunIds=[]){
+  completionStatusHealthy=false;
   if(getUser()){
    try{
     const {data,error}=await sb.functions.invoke('orca-timeline-discovery',{
      body:{ticker,scope:'status',completed_run_ids:completedRunIds}});
     if(!error){
+     completionStatusHealthy=true;
      blockedScopes=data?.stopped||{};
      brandPhotoPending=!!data?.photo_brand_pending;
      if(allVerified.length>=initialHistoryGoal)delete blockedScopes.history;
@@ -89,8 +92,8 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
  let photoMount=null;
  let photoMissing=0;
  let lastEventFingerprint='';
- // Render the zigzag directly through measured photo connector endpoints.
- // No circles, no gaps, and no hard-coded node coordinates.
+ // Straight connectors to one horizontal track; the trailing light remains.
+ // No numeric nodes or invented future space.
  let beamFrame=0;
  function stopBeam(){
   if(beamFrame)cancelAnimationFrame(beamFrame);
@@ -101,32 +104,20 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
   const spine=rail.querySelector('.orca-history-spine');
   if(!spine)return;
   spine.querySelector('.orca-history-track')?.remove();
-  // Mobile has no off-screen zigzag or future tail to scroll into.
+  // Mobile keeps its original swipe-only photo carousel.
   if(mobileLayout.matches)return;
   const stops=[...spine.querySelectorAll('.orca-history-stop')];
   if(!stops.length)return;
   const spineRect=spine.getBoundingClientRect();
-  const points=stops.map((stop,i)=>{
+  const points=stops.map(stop=>{
    const rect=stop.querySelector('.orca-history-stem').getBoundingClientRect();
    return [Math.round(rect.left+rect.width/2-spineRect.left),
-    Math.round((i%2===0?rect.bottom:rect.top)-spineRect.top)];
+    Math.round(rect.bottom-spineRect.top)];
   });
-  // The history has no permanent endpoint. Extend two more zigzag legs
-  // (~380px total) beyond the newest milestone, without inventing an event.
-  // Once a new milestone arrives, the continuation grows from that event.
-  const futureStep=190;
-  const last=points[points.length-1];
-  const prior=points[points.length-2]||[last[0]-210,last[1]+50];
-  const originalStep=Math.max(1,last[0]-prior[0]);
-  const nextRise=-(last[1]-prior[1])*futureStep/originalStep;
-  const futurePoints=[
-   [last[0]+futureStep,last[1]+nextRise],
-   [last[0]+futureStep*2,last[1]]
-  ];
-  const entireLine=[...points,...futurePoints];
-  const width=Math.ceil(futurePoints[1][0])+1;
+  // End the real history line at the final milestone.
+  const width=Math.ceil(points[points.length-1][0])+2;
   const height=Math.max(1,Math.ceil(spine.clientHeight));
-  const pathData='M '+entireLine.map(([x,y])=>Math.round(x)+' '+Math.round(y)).join(' L ');
+  const pathData='M '+points.map(([x,y])=>x+' '+y).join(' L ');
   const ns='http://www.w3.org/2000/svg';
   const svg=document.createElementNS(ns,'svg');
   svg.classList.add('orca-history-track');
@@ -157,51 +148,16 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
    stop.setAttribute('stop-opacity',opacity);
    gradient.append(stop);
   }
-  // Only the final 150px fades, so a new future milestone can extend
-  // the same continuous line. The beam fades with the line at its endpoint.
-  const tailFadeStart=Math.max(0,futurePoints[1][0]-150);
-  const tailId='orca-future-tail-'+ticker.toLowerCase().replace(/[^a-z0-9]/g,'');
-  const tailGradient=document.createElementNS(ns,'linearGradient');
-  tailGradient.setAttribute('id',tailId+'-gradient');
-  tailGradient.setAttribute('gradientUnits','userSpaceOnUse');
-  tailGradient.setAttribute('x1',String(tailFadeStart));
-  tailGradient.setAttribute('y1','0');
-  tailGradient.setAttribute('x2',String(futurePoints[1][0]));
-  tailGradient.setAttribute('y2','0');
-  for(const [offset,opacity] of [['0%','1'],['100%','0']]){
-   const step=document.createElementNS(ns,'stop');
-   step.setAttribute('offset',offset);
-   step.setAttribute('stop-color','white');
-   step.setAttribute('stop-opacity',opacity);
-   tailGradient.append(step);
-  }
-  const tailMask=document.createElementNS(ns,'mask');
-  tailMask.setAttribute('id',tailId);
-  tailMask.setAttribute('maskUnits','userSpaceOnUse');
-  tailMask.setAttribute('x','0');
-  tailMask.setAttribute('y','0');
-  tailMask.setAttribute('width',String(width));
-  tailMask.setAttribute('height',String(height));
-  const maskFill=document.createElementNS(ns,'rect');
-  maskFill.setAttribute('x','0');
-  maskFill.setAttribute('y','0');
-  maskFill.setAttribute('width',String(width));
-  maskFill.setAttribute('height',String(height));
-  maskFill.setAttribute('fill','url(#'+tailId+'-gradient)');
-  tailMask.append(maskFill);
-  defs.append(gradient,tailGradient,tailMask);
-  base.setAttribute('mask','url(#'+tailId+')');
+  defs.append(gradient);
   const beam=document.createElementNS(ns,'path');
   beam.classList.add('orca-history-track-beam');
   beam.setAttribute('fill','none');
   beam.setAttribute('stroke','url(#'+gradientId+')');
-  beam.setAttribute('mask','url(#'+tailId+')');
   beam.setAttribute('vector-effect','non-scaling-stroke');
   beam.setAttribute('stroke-linecap','butt');
   beam.setAttribute('stroke-linejoin','round');
   svg.append(defs,base,beam);
-  // Append to keep :nth-child parity of alternating milestone cards stable.
-  // The track is absolutely positioned behind photos and stems by z-index.
+  // Keep the SVG behind the cards and their connecting stems.
   spine.append(svg);
   if(stops.length<2||mobileLayout.matches||
      window.matchMedia('(prefers-reduced-motion: reduce)').matches||
@@ -248,10 +204,9 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
   const stop=spine?.querySelector('.orca-history-stop');
   if(!spine||!stop||!rail.clientWidth)return;
   const mobile=mobileLayout.matches;
-  // Desktop gets enough room to reveal the future continuation beyond
-  // the last company event. Mobile remains a normal swipe-only photo strip.
-  spine.style.paddingLeft=(mobile?0:20)+'px';
-  spine.style.paddingRight=(mobile?0:Math.max(420,Math.round((rail.clientWidth-stop.getBoundingClientRect().width)/2)))+'px';
+  // Only tiny edge insets: no oversized empty future after the last card.
+  spine.style.paddingLeft=(mobile?0:16)+'px';
+  spine.style.paddingRight=(mobile?0:16)+'px';
  }
  function centerMilestone(element,behavior='smooth'){
   const stop=element?.closest('.orca-history-stop');
@@ -356,38 +311,7 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
   const selected=rail.querySelector('.orca-timeline-event[data-index="'+activeIndex+'"]');
   if(selected){centerMilestone(selected);selected.focus({preventScroll:true});}
  }
- function updateCompleteAction(){
-  const old=frame.querySelector('.orca-history-refill-action');
-  // Empty stocks already have the sole action inside the empty-state rail.
-  // Never insert a second toolbar button before the first milestone exists.
-  if(!data.length){
-   old?.remove();
-   const emptyButton=rail.querySelector('.orca-timeline-generate');
-   if(emptyButton){
-    if(completionStatusKnown&&!needsResearch()&&!needsPhotoWork()){emptyButton.remove();return}
-    emptyButton.disabled=!completionStatusKnown||discoveryPending||!historyAuthorized;
-    emptyButton.textContent=discoveryPending?'Completing company timeline…':'Complete company timeline';
-   }
-   return;
-  }
-  const needed=completionStatusKnown&&(needsResearch()||needsPhotoWork());
-  // Saved coverage determines completion; an attempted click is not success.
-  if(!needed||!getUser()){old?.remove();return}
-  const generate=old||document.createElement('button');
-  generate.type='button';
-  generate.className='orca-timeline-generate orca-history-refill-action';
-  generate.textContent=discoveryPending?'Completing company timeline…':'Complete company timeline';
-  generate.title=needsResearch()?'One authorized action checks missing sourced milestones and unique photo coverage':'History is saved. Check for up to two recognizable company photographs while retaining other photos.';
-  generate.disabled=discoveryPending||!historyAuthorized;
-  if(!old){
-   generate.addEventListener('click',()=>void maybePopulateCompanyHistory());
-   frame.insertBefore(generate,rail);
-  }
- }
  function renderCards(){
-  // Rebuild the visible refill toolbar with the cards, never inside the
-  // horizontally scrolling event rail where it would disappear off-screen.
-  frame.querySelector('.orca-history-refill-action')?.remove();
   rail.replaceChildren();
   closeDetails();
   frame.classList.toggle('orca-history-empty',!data.length);
@@ -399,16 +323,6 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
    if(researchFeedback){
     const feedback=document.createElement('div');feedback.className='orca-timeline-research-feedback';
     feedback.textContent=researchFeedback;rail.append(feedback);
-   }
-   if(getUser()){
-    const generate=document.createElement('button');
-    generate.type='button';
-    generate.className='orca-timeline-generate';
-    generate.textContent='Complete company timeline';
-    generate.title='Complete missing sourced history, founding and current-year milestones within a shared $0.15 estimated budget';
-    generate.disabled=discoveryPending||!historyAuthorized;
-    generate.addEventListener('click',()=>void maybePopulateCompanyHistory());
-    rail.append(generate);
    }
    details.hidden=true;return;
   }
@@ -438,13 +352,8 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
    card.append(icon,date,title,summary);
    // The single continuous SVG track is mounted after cards are laid out.
    const stem=document.createElement('span');stem.className='orca-history-stem';
-   // Repeat the year on every node, including neighboring same-year events.
-   const eventYear=new Date(event.event_at).getUTCFullYear();
-   const year=document.createElement('span');
-   year.className='orca-history-year-once';
-   year.textContent=String(eventYear);
-   year.setAttribute('aria-label','Year '+eventYear);
-   stop.append(stem,card,year);
+   // Dates remain on the photographed cards; no standalone numbered nodes.
+   stop.append(stem,card);
    card.addEventListener('animationend',e=>{
     if(e.animationName==='orca-photo-arrival')
      stop.classList.remove('orca-history-activated');
@@ -454,8 +363,6 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
    spine.append(stop);
   });
   rail.append(spine);
-  // A single control handles both research and optional photographs.
-  updateCompleteAction();
   fitRailEdges();
   drawHistoryTrack();
   updateMobileProgress();
@@ -537,7 +444,6 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
   }catch{historyAuthorized=false}
   finally{historyPermissionPending=false}
   if(photoMount)void photoMount.refresh();
-  updateCompleteAction();
   return historyAuthorized;
  }
  function showResearchFeedback(message){
@@ -562,8 +468,6 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
   discoveryPending=true;
   researchFeedback='';
   rail.querySelector('.orca-timeline-research-feedback')?.remove();
-  const generateButton=frame.querySelector('.orca-history-refill-action')||rail.querySelector('.orca-timeline-generate');
-  if(generateButton){generateButton.disabled=true;generateButton.textContent='Completing company timeline…';}
   let spent=0;
   const maxBudget=0.15;
   const attempted=new Set();
@@ -652,8 +556,8 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
    }
    await loadCompletionStatus(completedRunIds);
    await loadEvents();
-   // Photo selection is an internal, authorized part of this action, not
-   // another button. It never generates historical milestones or adds
+   // Photo selection is the existing authorized part of completion.
+   // It never generates historical milestones or adds
    // to the $0.15 research-generation estimate.
    if(photoMount&&allVerified.length){
     const initial=await photoMount.refresh();
@@ -677,12 +581,9 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
      ' Timeline incomplete: '+(!hasCurrentYear()?'no verified '+year()+' event; ':'')+(!hasOrigin()?'founding evidence missing; ':'')+(allVerified.length<initialHistoryGoal?'starter history has '+allVerified.length+' of approximately 10 events; ':'')+(photoMissing?photoMissing+' photographs unavailable.':'')+(limitationText()?' '+limitationText()+'. Saved results retained; refresh will not restart paid research.':'')));
   }finally{
    discoveryPending=false;
-   updateCompleteAction();
-   const button=rail.querySelector('.orca-timeline-generate');
-   if(button){button.disabled=!mayRequestHistory();button.textContent='Complete company timeline';}
   }
  }
- // Display cached history immediately; paid history research remains opt-in.
+ // Cached history always displays; consented researchers automatically fill what is missing.
  await loadEvents();
  // Cached histories and existing photo repairs should work immediately
  // without relying on the old manual Living Timeline toggle.
@@ -703,8 +604,15 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
   if(limitationText())showResearchFeedback(status.textContent+' · '+limitationText()+'. Saved results retained; refresh will not restart paid research.');
   const coverage=photoMount.getCoverage();
   photoMissing=Math.max(0,Number(coverage?.missing||0))+Math.max(0,Number(coverage?.duplicates||0));
-  updateCompleteAction();
- }catch(error){console.warn('Optional history photography is unavailable',error);await loadCompletionStatus();updateCompleteAction()}
+ }catch(error){console.warn('Optional history photography is unavailable',error);await loadCompletionStatus()}
+ // Reuse the existing capped history/photo routine once, after verified status.
+ // No new APIs, anonymous calls, or billable retries on failed status checks.
+ if(getUser()&&historyAuthorized&&completionStatusHealthy&&mayRequestHistory()){
+  void maybePopulateCompanyHistory().catch(error=>{
+   console.warn('Automatic timeline completion unavailable',error);
+   showResearchFeedback('Automatic history completion unavailable. Saved milestones remain available.');
+  });
+ }
  const poll=setInterval(()=>{if(document.visibilityState==='visible')loadEvents()},60000);
  window.addEventListener('pagehide',()=>{stopBeam();clearInterval(poll)},{once:true});
 }
