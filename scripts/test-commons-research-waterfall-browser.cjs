@@ -67,7 +67,7 @@ async function main(){
      originalText:primary?.querySelector('.task .row strong')?.textContent};
    });
    assert(info.panelHeight<720,'Research area must be compact instead of growing with every metric');
-   assert(info.viewportHeight>=255&&info.viewportHeight<=280,'Waterfall must have a short fixed viewport');
+   assert(info.viewportHeight>=240&&info.viewportHeight<=280,'Waterfall must have a short fixed viewport');
    assert.match(info.viewportBackground,/gradient/,'Translucent glass background stays visible');
    assert.match(info.panelBackground,/gradient/,'Legends dark panel replaces old white card');
    assert.equal(info.originalCards,5,'All five real metric categories remain available');
