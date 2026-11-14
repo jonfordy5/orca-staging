@@ -380,6 +380,143 @@ export function renderUnifiedCompanyProfile(root,ticker,profile={}){
   const date=new Date(profile.sourceUpdated);
   if(!Number.isNaN(date.getTime()))$(sources,'p','company-asof','Source updated '+date.toLocaleDateString());
  }
+ // The four chapters replace the old separate dossier; original sourced nodes
+ // are reorganized, never discarded or sent to a billable model on page load.
+ activateInteractiveCodex(root,ticker,profile);
+}
+function activateInteractiveCodex(root,ticker,profile){
+ const grid=root.querySelector('.codex-insight-grid'),old=[...grid.children];
+ const dossier=root.querySelector('.codex-dossier');
+ if(old.length!==4||!dossier)return;
+ const source=dossier.querySelector('.codex-dossier-body');
+ const original={
+  mission:source.querySelector('.company-mission'),
+  facts:source.querySelector('.company-facts'),
+  business:source.querySelector('.company-business'),
+  metrics:source.querySelector('.company-business-breakdown')
+ };
+ const content={
+  revenue:document.createElement('div'),capabilities:document.createElement('div'),
+  watchtower:document.createElement('div'),vulnerabilities:document.createElement('div')
+ };
+ for(const item of [original.business,original.metrics])if(item)content.revenue.append(item);
+ $(content.revenue,'small','codex-evidence-caution','Annual revenue means sales, not cash flow. Cash-flow figures are shown only when independently sourced.');
+ if(profile.businessSource)urlLink(content.revenue,'Original business model source',profile.businessSource);
+ for(const item of [original.mission,original.facts])if(item)content.capabilities.append(item);
+ for(const item of [...old[1].querySelectorAll('p,ul,small')])content.capabilities.append(item);
+ if(profile.businessSource)urlLink(content.capabilities,'Company disclosure source',profile.businessSource);
+ const unavailable='Current source-checked monthly intelligence has not yet been published.';
+ const summarize=(value,max=170)=>{
+  const t=String(value||'').replace(/\s+/g,' ').trim();
+  if(t.length<=max)return t;
+  const n=t.slice(0,max).lastIndexOf(' ');
+  return t.slice(0,n>65?n:max).replace(/[ ,;]+$/,'')+'…';
+ };
+ const titles=[
+  ['revenue','01 / REVENUE ENGINE CASH FLOW','How the business makes money',profile.operations],
+  ['capabilities','02 / COMPANY CAPABILITIES','Strengths & advantages',
+   Array.isArray(profile.strengths)&&profile.strengths.length?profile.strengths[0]:
+   'Company capabilities and verified operating facts, with evidence gaps clearly marked.'],
+  ['watchtower','03 / THE WATCHTOWER','What investors watch',unavailable],
+  ['vulnerabilities','04 / VULNERABILITIES','Risks & unknowns',unavailable]
+ ];
+ grid.replaceChildren();
+ dossier.remove();
+ const detail=$(grid.parentElement,'section','codex-chapter-detail');
+ detail.id='codex-chapter-detail';
+ detail.hidden=true;
+ detail.setAttribute('role','region');
+ detail.setAttribute('aria-label','Selected company intelligence chapter');
+ const tabs=new Map(),monthly=new Map();
+ let selected='';
+ const refresh=()=>{
+  detail.replaceChildren();
+  detail.hidden=!selected;
+  for(const [key,tab] of tabs){
+   const active=key===selected;
+   tab.button.setAttribute('aria-expanded',String(active));
+   tab.card.classList.toggle('codex-insight-selected',active);
+   tab.hint.textContent=active?'Close chapter −':'Open chapter ↗';
+  }
+  if(!selected)return;
+  const current=tabs.get(selected);
+  $(detail,'span','codex-panel-kicker',current.kicker);
+  $(detail,'h4','codex-chapter-heading',current.title);
+  if(selected==='watchtower'||selected==='vulnerabilities'){
+   const record=monthly.get(selected);
+   if(!record){
+    $(detail,'p','codex-evidence-unavailable',unavailable);
+    $(detail,'small','codex-evidence-caution','No speculative rating or unsupported market claim is substituted for missing evidence.');
+    return;
+   }
+   const paragraphs=Array.isArray(record.analysis)?record.analysis:
+    String(record.analysis||'').split(/\n\s*\n/);
+   for(const text of paragraphs.filter(t=>typeof t==='string'&&t.trim()).slice(0,6))
+    $(detail,'p','codex-analysis-paragraph',text.trim());
+   if(Array.isArray(record.watch_items)&&record.watch_items.length){
+    $(detail,'h5',null,'Specific information to watch');
+    const ul=$(detail,'ul','codex-chapter-list');
+    for(const item of record.watch_items.slice(0,4))if(typeof item==='string')$(ul,'li',null,item);
+   }
+   const when=new Date(record.generated_at);
+   const time=Number.isNaN(when.getTime())?'Date unavailable':when.toLocaleDateString();
+   $(detail,'small','codex-chapter-meta','Updated '+time+' · '+Math.max(0,Number(record.findings_count)||0)+' findings reviewed');
+   const urls=Array.isArray(record.source_urls)?record.source_urls:[];
+   if(urls.length){
+    const evidence=$(detail,'details','codex-chapter-evidence');
+    $(evidence,'summary',null,'Supporting evidence ('+urls.length+')');
+    urls.slice(0,12).forEach((url,i)=>urlLink(evidence,'Original source '+(i+1),url));
+   }
+   if(Array.isArray(record.previous_versions)&&record.previous_versions.length){
+    const archive=$(detail,'details','codex-chapter-archive');
+    $(archive,'summary',null,'Previous monthly summaries ('+record.previous_versions.length+')');
+    for(const edition of record.previous_versions.slice(0,6)){
+     const section=$(archive,'div','codex-chapter-past');
+     const at=new Date(edition.generated_at);
+     $(section,'small',null,Number.isNaN(at.getTime())?'Older analysis':at.toLocaleDateString());
+     $(section,'p',null,String(edition.summary||''));
+    }
+   }
+  }else detail.append(content[selected]);
+ };
+ for(const [key,kicker,title,preview] of titles){
+  const card=$(grid,'section','codex-insight');
+  card.dataset.chapter=key;
+  const button=$(card,'button','codex-insight-trigger');
+  button.type='button';
+  button.setAttribute('aria-controls','codex-chapter-detail');
+  button.setAttribute('aria-expanded','false');
+  $(button,'span','codex-panel-kicker',kicker);
+  $(button,'span','codex-insight-title',title);
+  const teaser=$(button,'span','codex-insight-preview',summarize(preview||unavailable));
+  const hint=$(button,'span','codex-insight-open','Open chapter ↗');
+  button.addEventListener('click',()=>{
+   selected=selected===key?'':key;
+   refresh();
+  });
+  tabs.set(key,{card,button,teaser,hint,kicker,title});
+ }
+ root.dataset.codexTicker=ticker;
+ root.applyCodexIntelligence=(rows)=>{
+  if(root.dataset.codexTicker!==ticker)return;
+  for(const key of ['watchtower','vulnerabilities']){
+   const versions=(Array.isArray(rows)?rows:[])
+    .filter(row=>row?.chapter===key&&row.status==='ready')
+    .sort((a,b)=>Date.parse(b.generated_at)-Date.parse(a.generated_at));
+   const current=versions[0]?{...versions[0],previous_versions:versions.slice(1)}:null;
+   monthly.set(key,current);
+   const tab=tabs.get(key);
+   tab.teaser.textContent=current?summarize(current.summary,190):unavailable;
+   let meta=tab.card.querySelector('.codex-insight-meta');
+   if(current){
+    if(!meta)meta=$(tab.card,'small','codex-insight-meta');
+    const updated=new Date(current.generated_at);
+    meta.textContent=(Number.isNaN(updated.getTime())?'Undated':updated.toLocaleDateString())+
+     ' · '+Math.max(0,Number(current.findings_count)||0)+' findings';
+   }else meta?.remove();
+  }
+  if(selected==='watchtower'||selected==='vulnerabilities')refresh();
+ };
 }
 function logoDevImage(ticker){
  const key=String(ORCA_LOGO_DEV_PUBLISHABLE_KEY||'').trim();
