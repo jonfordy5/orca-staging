@@ -177,7 +177,7 @@ check('Timeline ends at last real milestone with minimal space, not fake future 
  timeline.includes("spine.style.paddingRight=(mobile?0:16)+'px'") &&
  !timeline.includes('const futurePoints=') &&
  !timeline.includes("setAttribute('mask'") &&
- workspace.includes('v=orbit-dust-v49'));
+ workspace.includes('v=background-gaps-v50'));
 check('Ambient dust uses bounded viewport pools with local stationary anchors', () =>
   timeline.includes('const poolSize=Math.min(stops.length,Math.ceil(rail.clientWidth/pitch)+2,18)') &&
   timeline.includes('const particles=Array.from({length:32}') &&
@@ -205,14 +205,21 @@ check('Card-only fine-pointer hover excites local dust while respecting reduced 
 
 check('Hovered card emits a reusable oval sparkle field with rare red and green motes', () =>
  timeline.includes("orbit.classList.add('orca-history-orbit')") &&
- timeline.includes('const orbitMotes=Array.from({length:112}') &&
+ timeline.includes('const orbitMotes=Array.from({length:perimeterCount+sideCount*2}') &&
+ timeline.includes('const perimeterCount=112,sideCount=28') &&
  timeline.includes("mote.dataset.hue=hue") &&
- timeline.includes("stops[next].append(orbit)") &&
- timeline.includes("stops[next].classList.add('orca-history-orbit-visible')") &&
+ timeline.includes('mote.dataset.region=region') &&
+ timeline.includes("region==='left-gap'") &&
+ timeline.includes("?'left-gap':'right-gap'") &&
+ timeline.includes('spine.append(orbit)') &&
+ timeline.includes("orbit.style.left=(stop.offsetLeft+stop.offsetWidth/2)+'px'") &&
+ !timeline.includes('stops[next].append(orbit)') &&
  timeline.includes("paintOrbit(elapsed)") &&
  workspace.includes('orca-history-orbit-mote[data-hue="red"]') &&
  workspace.includes('orca-history-orbit-mote[data-hue="green"]') &&
- workspace.includes('orca-history-orbit-visible{z-index:5') &&
+ workspace.includes('isolation:isolate;') &&
+ workspace.includes('z-index:2;overflow:visible;pointer-events:none;') &&
+ !workspace.includes('orca-history-orbit-visible{z-index:5') &&
  workspace.includes('width:470px;height:300px') &&
  !timeline.includes('new Audio('));
 
@@ -229,7 +236,7 @@ check('Desktop centers the middle milestone, mobile starts at the beginning, nav
   timeline.includes("centerMilestone(card,'auto')") &&
   timeline.includes("prev.addEventListener('click',()=>jumpTo(0))") &&
   timeline.includes("next.addEventListener('click',()=>jumpTo(data.length-1))") &&
-  workspace.includes('v=orbit-dust-v49'));
+  workspace.includes('v=background-gaps-v50'));
 
 check('Mobile history stays a swipe carousel without zigzag or glowing track', () =>
   workspace.includes('touch-action:pan-x pan-y pinch-zoom!important') &&

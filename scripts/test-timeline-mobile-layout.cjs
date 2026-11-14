@@ -290,7 +290,7 @@ async function particleTravel(page,index){
     const motes=[...orbit.querySelectorAll('.orca-history-orbit-mote')].map(el=>{
      const rect=el.getBoundingClientRect();
      return {x:rect.x+rect.width/2,y:rect.y+rect.height/2,
-      opacity:Number(el.getAttribute('opacity')),hue:el.dataset.hue,
+      opacity:Number(el.getAttribute('opacity')),hue:el.dataset.hue,region:el.dataset.region,
       cx:el.getAttribute('cx'),cy:el.getAttribute('cy')};
     });
     const visible=motes.filter(p=>p.opacity>.09),c=cards[4];
@@ -301,18 +301,30 @@ async function particleTravel(page,index){
      left:visible.filter(p=>p.x<c.left).length,right:visible.filter(p=>p.x>c.right).length,
      acrossLeft:visible.filter(p=>on(p,cards[3])).length,
      acrossRight:visible.filter(p=>on(p,cards[5])).length,
+     leftGap:visible.filter(p=>p.region==='left-gap'&&p.x>cards[3].right+0.5&&
+      p.x<c.left-0.5&&p.y>c.top&&p.y<c.bottom).length,
+     rightGap:visible.filter(p=>p.region==='right-gap'&&p.x>c.right+0.5&&
+      p.x<cards[5].left-0.5&&p.y>c.top&&p.y<c.bottom).length,
      pointer:getComputedStyle(orbit).pointerEvents,
-     z:Number(getComputedStyle(orbit).zIndex),cardZ:Number(getComputedStyle(document.querySelector('.orca-timeline-event[data-index="4"]')).zIndex),
-     parent:orbit.parentElement===document.querySelectorAll('.orca-history-stop')[4],
+     z:Number(getComputedStyle(orbit).zIndex),
+     cardZ:Number(getComputedStyle(document.querySelector('.orca-timeline-event[data-index="4"]')).zIndex),
+     leftZ:Number(getComputedStyle(document.querySelector('.orca-timeline-event[data-index="3"]')).zIndex),
+     rightZ:Number(getComputedStyle(document.querySelector('.orca-timeline-event[data-index="5"]')).zIndex),
+     isolated:getComputedStyle(document.querySelector('.orca-history-spine')).isolation==='isolate',
+     parent:orbit.parentElement===document.querySelector('.orca-history-spine'),
      nodes:motes.slice(0,8).map(p=>[p.cx,p.cy,p.opacity])};
    });
-   assert.equal(orbitBefore.count,112,'Single bounded orbit is reused');
-   assert(orbitBefore.parent&&orbitBefore.pointer==='none'&&orbitBefore.z<orbitBefore.cardZ,
-    'Particles originate behind hovered photo without intercepting card interaction');
+   assert.equal(orbitBefore.count,168,'The single bounded orbit reuses 112 halo and 56 side motes');
+   assert(orbitBefore.parent&&orbitBefore.pointer==='none'&&orbitBefore.isolated,
+    'The orbit is attached to an isolated background layer, not the hovered card');
+   assert(orbitBefore.z<orbitBefore.cardZ&&orbitBefore.z<orbitBefore.leftZ&&orbitBefore.z<orbitBefore.rightZ,
+    'Every photo card paints above the dust, including both neighbors');
    assert(orbitBefore.above>3&&orbitBefore.below>3&&orbitBefore.left>3&&orbitBefore.right>3,
     'Shimmer wraps all four sides of the chosen card');
    assert(orbitBefore.acrossLeft>1&&orbitBefore.acrossRight>1,
-    'Gold dust reaches both neighboring images');
+    'The dust field reaches behind neighboring photos without painting on them');
+   assert(orbitBefore.leftGap>=10&&orbitBefore.rightGap>=10,
+    'Dense moving motes visibly fill both narrow gaps beside the enlarged card');
    assert(orbitBefore.red>=1&&orbitBefore.green>=1,'A few red and green sparks complement gold');
    await motionPage.waitForTimeout(180);
    const orbitAfter=await motionPage.evaluate(()=>[...document.querySelectorAll('.orca-history-orbit-mote')].slice(0,8)
