@@ -1,0 +1,1 @@
+alter table public.orca_codex_refresh_runs add column if not exists attempts smallint not null default 1 check (attempts between 1 and 2);
