@@ -168,13 +168,15 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
   if(!length)return;
   // Extended fairy-dust wake, deliberately softer than a neon beam.
   // Fixed SVG particles avoid canvas, random flicker and network work.
-  const travelMs=14000;
-  const beamLength=Math.min(520,Math.max(220,length*0.28));
+  // Keep the traveling glint inside the *visible* rail window, even when
+  // the company has a long history that extends far off-screen.
+  const travelMs=7600;
+  const beamLength=Math.min(820,Math.max(260,rail.clientWidth*0.62));
   const dustLength=beamLength*1.25;
-  const particles=Array.from({length:24},(_,i)=>{
+  const particles=Array.from({length:42},(_,i)=>{
    const sparkle=document.createElementNS(ns,'circle');
    sparkle.classList.add('orca-history-track-dust');
-   sparkle.setAttribute('r',String(i%7===0?0.95:0.6));
+   sparkle.setAttribute('r',String(i%7===0?1.3:0.85));
    sparkle.setAttribute('fill',i%5===0?'#ffedc1':'#d6b67d');
    sparkle.setAttribute('opacity','0');
    return sparkle;
@@ -189,7 +191,16 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
   const animate=now=>{
    if(document.visibilityState==='hidden'||!svg.isConnected){beamFrame=0;return}
    if(!startTime)startTime=now;
-   const head=((now-startTime)%travelMs)/travelMs*(length+dustLength);
+   // The SVG remains one complete company history. Only its moving highlight
+   // follows the rail's current viewport, so it never spends seconds off-screen.
+   const railRect=rail.getBoundingClientRect();
+   const liveSpineRect=spine.getBoundingClientRect();
+   const visibleFrom=Math.max(0,railRect.left-liveSpineRect.left-points[0][0]);
+   const visibleTo=Math.min(length,railRect.right-liveSpineRect.left-points[0][0]);
+   const phase=((now-startTime)/travelMs+0.20)%1;
+   const head=visibleFrom+phase*Math.max(0,visibleTo-visibleFrom);
+   const edgeFade=Math.min(1,phase*10,(1-phase)*10);
+   beam.style.opacity=String((0.78*edgeFade).toFixed(2));
    if(head<previousHead)previousHead=-1;
    const from=Math.max(0,head-beamLength),to=Math.min(length,head);
    if(to>from){
@@ -210,10 +221,11 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
     const p=base.getPointAtLength(position);
     particle.setAttribute('cx',(p.x+Math.sin(i*2.3)*2.6).toFixed(1));
     particle.setAttribute('cy',(p.y+Math.cos(i*1.7)*3.5).toFixed(1));
-    particle.setAttribute('opacity',(0.07+(1-fraction)*0.28).toFixed(2));
+    particle.setAttribute('opacity',((0.12+(1-fraction)*0.32)*edgeFade).toFixed(2));
    }
    for(let i=0;i<stops.length;i++){
-    if(nodeDistances[i]>previousHead&&nodeDistances[i]<=head){
+    if(nodeDistances[i]>previousHead&&nodeDistances[i]<=head&&
+       nodeDistances[i]>=visibleFrom&&nodeDistances[i]<=visibleTo){
      stops[i].classList.remove('orca-history-activated');
      void stops[i].offsetWidth;
      stops[i].classList.add('orca-history-activated');
