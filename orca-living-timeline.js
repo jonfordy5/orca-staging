@@ -176,12 +176,26 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
   const particles=Array.from({length:42},(_,i)=>{
    const sparkle=document.createElementNS(ns,'circle');
    sparkle.classList.add('orca-history-track-dust');
-   sparkle.setAttribute('r',String(i%7===0?1.3:0.85));
+   sparkle.setAttribute('r',String(i%7===0?1.8:1.1));
    sparkle.setAttribute('fill',i%5===0?'#ffedc1':'#d6b67d');
    sparkle.setAttribute('opacity','0');
    return sparkle;
   });
   svg.append(...particles);
+  // A tiny champagne-gold glint provides a legible moving focal point.
+  // The head is deliberately independent of the quiet trailing stroke, whose
+  // contrast may disappear against an already-gold base on some displays.
+  const sparkleHalo=document.createElementNS(ns,'circle');
+  sparkleHalo.classList.add('orca-history-sparkle-halo');
+  sparkleHalo.setAttribute('r','7');
+  sparkleHalo.setAttribute('fill','#f4cf83');
+  sparkleHalo.setAttribute('opacity','0');
+  const sparkleHead=document.createElementNS(ns,'circle');
+  sparkleHead.classList.add('orca-history-sparkle-head');
+  sparkleHead.setAttribute('r','3.4');
+  sparkleHead.setAttribute('fill','#fff2c7');
+  sparkleHead.setAttribute('opacity','0');
+  svg.append(sparkleHalo,sparkleHead);
   const nodeDistances=[0];
   for(let i=1;i<points.length;i++){
    const [x0,y0]=points[i-1], [x1,y1]=points[i];
@@ -200,7 +214,14 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
    const phase=((now-startTime)/travelMs+0.20)%1;
    const head=visibleFrom+phase*Math.max(0,visibleTo-visibleFrom);
    const edgeFade=Math.min(1,phase*10,(1-phase)*10);
-   beam.style.opacity=String((0.78*edgeFade).toFixed(2));
+   beam.style.opacity=String((0.93*edgeFade).toFixed(2));
+   const highlight=base.getPointAtLength(Math.min(length,Math.max(0,head)));
+   for(const circle of [sparkleHalo,sparkleHead]){
+    circle.setAttribute('cx',highlight.x.toFixed(1));
+    circle.setAttribute('cy',highlight.y.toFixed(1));
+   }
+   sparkleHalo.setAttribute('opacity',(0.20*edgeFade).toFixed(2));
+   sparkleHead.setAttribute('opacity',(0.95*edgeFade).toFixed(2));
    if(head<previousHead)previousHead=-1;
    const from=Math.max(0,head-beamLength),to=Math.min(length,head);
    if(to>from){
@@ -219,9 +240,9 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
     const particle=particles[i];
     if(position<0||position>length){particle.setAttribute('opacity','0');continue}
     const p=base.getPointAtLength(position);
-    particle.setAttribute('cx',(p.x+Math.sin(i*2.3)*2.6).toFixed(1));
-    particle.setAttribute('cy',(p.y+Math.cos(i*1.7)*3.5).toFixed(1));
-    particle.setAttribute('opacity',((0.12+(1-fraction)*0.32)*edgeFade).toFixed(2));
+    particle.setAttribute('cx',(p.x+Math.sin(i*2.3)*3.2).toFixed(1));
+    particle.setAttribute('cy',(p.y+Math.cos(i*1.7)*4.4).toFixed(1));
+    particle.setAttribute('opacity',((0.20+(1-fraction)*0.42)*edgeFade).toFixed(2));
    }
    for(let i=0;i<stops.length;i++){
     if(nodeDistances[i]>previousHead&&nodeDistances[i]<=head&&
