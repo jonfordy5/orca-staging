@@ -208,8 +208,22 @@ async function swipe(page,direction){
     return {x:beam.getBBox().x,d:beam.getAttribute('d'),width:beam.getBBox().width};
    });
    assert(first.trackLength>900,'Long straight rail has room for the comet');
-   assert(first.stroke.startsWith('5.3'),'White-blue tracer is visibly thicker than the base');
-   assert.notEqual(first.filter,'none','Tracer has a neon glow');
+   assert(first.stroke.startsWith('3.3'),'Muted gold tracer remains slightly thicker than the base');
+   assert.notEqual(first.filter,'none','Soft moving light remains visible');
+   const palette=await motionPage.evaluate(()=>{
+    const head=document.querySelector('.orca-timeline-heading strong');
+    const card=document.querySelector('.orca-timeline-event');
+    const base=document.querySelector('.orca-history-track-base');
+    return {heading:getComputedStyle(head).color,cardBorder:getComputedStyle(card).borderTopColor,
+     base:getComputedStyle(base).stroke,dust:document.querySelectorAll('.orca-history-track-dust').length,
+     headingText:head.textContent,cardDate:getComputedStyle(card.querySelector('small')).color};
+   });
+   assert.equal(palette.heading,'rgb(244, 219, 154)','History heading matches Council antique gold');
+   assert.equal(palette.base,'rgb(187, 146, 85)','Rail is muted gold, not neon blue');
+   assert(['rgb(199, 164, 108)','rgb(221, 188, 128)'].includes(palette.cardBorder),'Cards have restrained gold borders, with a slightly brighter selected outline');
+   assert.equal(palette.cardDate,'rgb(248, 251, 255)','Milestone lettering remains white');
+   assert.equal(palette.dust,24,'Bounded dust particles illuminate a long trailing path');
+   assert.match(palette.headingText,/History of TEST/);
    assert(second.x+second.width>first.x+first.width+25,'The comet leading edge advances across the straight rail');
    assert.notEqual(first.d,second.d,'Comet shape updates as it advances');
    await motionPage.setViewportSize({width:393,height:851});
@@ -223,7 +237,9 @@ async function swipe(page,direction){
    const reducePage=await reduceContext.newPage();
    await reducePage.goto(url);await reducePage.waitForFunction(()=>window.timelineReady);
    assert.equal(await reducePage.locator('.orca-history-track-beam').getAttribute('d'),null,
-    'Reduced motion keeps a static luminous rail instead of moving light');
+    'Reduced motion keeps a static gold rail');
+   assert.equal(await reducePage.locator('.orca-history-track-dust').count(),0,
+    'Reduced motion does not create moving dust');
    await reduceContext.close();
    console.log('PASS reduced-motion visitors retain a static glowing rail');
   }

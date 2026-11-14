@@ -667,6 +667,108 @@ main{max-width:1020px;margin:0 auto;padding:27px 16px 55px}
 
 
 
+
+/* ORCA Legends timeline: Council-matched typography and muted reflective gold.
+   Scope only the company-history presentation; never recolor data-box text. */
+#chart-section .orca-timeline-frame{
+ border-color:#7d663f;
+ background:#141922;
+}
+#chart-section .orca-timeline-frame .orca-timeline-heading strong{
+ color:#f4db9a!important;
+ font-family:Georgia,serif;
+ font-weight:900;
+}
+#chart-section .orca-timeline-frame .orca-timeline-heading span{
+ color:#e8d19c;
+}
+#chart-section .orca-timeline-frame .orca-timeline-navigation button{
+ border-color:#8f7347;
+ color:#f4db9a;
+ background:#242a32;
+}
+#chart-section .orca-timeline-frame .orca-history-track-base{
+ stroke:#bb9255;
+ stroke-width:2.7;
+ opacity:.78;
+ filter:drop-shadow(0 0 3px #be945b66);
+ animation:none;
+}
+#chart-section .orca-timeline-frame .orca-history-track-beam{
+ stroke-width:3.3;
+ opacity:.75;
+ filter:drop-shadow(0 0 3px #ddb46b66) drop-shadow(0 0 6px #d9b36b33);
+}
+#chart-section .orca-timeline-frame .orca-history-track-dust{
+ filter:drop-shadow(0 0 2px #ead39b77);
+}
+#chart-section .orca-timeline-frame .orca-history-stop .orca-history-stem{
+ background:#b9955d!important;
+ box-shadow:0 0 4px #b9955d5c;
+}
+#chart-section .orca-timeline-frame .orca-history-stop .orca-history-stem::after{
+ background:#f5d995;
+ box-shadow:0 0 5px #d1ad70a6;
+}
+/* All history boxes retain their photos and white dates, titles and summaries. */
+#chart-section .orca-timeline-frame .orca-history-stop .orca-timeline-event{
+ border:2px solid #c7a46c!important;
+ box-shadow:0 7px 18px #0007, inset 0 0 0 1px #ffdfa51a!important;
+}
+#chart-section .orca-timeline-frame .orca-history-stop .orca-timeline-event:has(.orca-history-thumb img){
+ border-color:#c7a46c!important;
+ box-shadow:0 7px 18px #0007, inset 0 0 0 1px #ffdfa51a!important;
+}
+#chart-section .orca-timeline-frame .orca-history-stop .orca-timeline-event:not(:has(.orca-history-thumb img)){
+ background:#192434!important;
+ color:#f8fbff!important;
+}
+#chart-section .orca-timeline-frame .orca-history-stop .orca-timeline-event > small,
+#chart-section .orca-timeline-frame .orca-history-stop .orca-timeline-event > strong,
+#chart-section .orca-timeline-frame .orca-history-stop .orca-timeline-event > .orca-history-teaser{
+ color:#f8fbff!important;
+}
+/* The beam gives a passing card a restrained metallic reflection with
+   a few tiny dust glints; not a persistent flashing neon outline. */
+#chart-section .orca-timeline-frame .orca-history-stop.orca-history-activated .orca-timeline-event{
+ animation:orca-photo-arrival 1.6s ease-out both!important;
+}
+@keyframes orca-photo-arrival{
+ 0%,100%{filter:none}
+ 40%{filter:drop-shadow(0 0 4px #dfc08880)}
+ 65%{filter:drop-shadow(0 0 2px #d7ae6e55)}
+}
+#chart-section .orca-timeline-frame .orca-history-stop.orca-history-activated .orca-timeline-event::after{
+ content:"";position:absolute;inset:0;z-index:4;pointer-events:none;
+ border-radius:inherit;
+ background:
+  radial-gradient(circle at 12% 4%,#f6dba99e 0 1px,transparent 2.5px),
+  radial-gradient(circle at 64% 0%,#d9b67c8e 0 1px,transparent 3px),
+  radial-gradient(circle at 91% 6%,#f5e0b167 0 1px,transparent 2.5px);
+ animation:orca-gold-card-dust 1.6s ease-out both;
+}
+@keyframes orca-gold-card-dust{
+ 0%,100%{opacity:0}
+ 30%{opacity:.48}
+ 60%{opacity:.20}
+}
+/* Distinguish keyboard focus/selected events without reverting to electric blue. */
+#chart-section .orca-timeline-frame .orca-history-stop .orca-timeline-event[aria-pressed="true"],
+#chart-section .orca-timeline-frame .orca-history-stop .orca-timeline-event:has(.orca-history-thumb img)[aria-pressed="true"]{
+ border-color:#ddbc80!important;
+ box-shadow:0 0 0 1px #d7b7777d,0 7px 18px #0007!important;
+}
+#chart-section .orca-timeline-frame .orca-history-stop .orca-timeline-event:focus-visible{
+ outline:2px solid #f4db9a!important;
+ outline-offset:2px;
+}
+@media(prefers-reduced-motion:reduce){
+ #chart-section .orca-timeline-frame .orca-history-stop.orca-history-activated .orca-timeline-event,
+ #chart-section .orca-timeline-frame .orca-history-stop.orca-history-activated .orca-timeline-event::after{
+  animation:none!important;
+ }
+}
+
 /* Research realms — full uncropped portrait illustrations, with labels INSIDE each research card image. */
 .investor-question .orca-realm-art{aspect-ratio:3/4;height:auto;margin:-14px -14px 15px;border-radius:11px 11px 0 0;background:#14202c;position:relative;overflow:hidden;isolation:isolate}
 .investor-question .orca-realm-art img{position:absolute;inset:0;display:block;width:100%;height:100%;object-fit:contain;object-position:center;background:#14202c}
@@ -1765,7 +1867,7 @@ document.addEventListener('visibilitychange',()=>{if(document.visibilityState===
  void loadWorkspaceCompanyName();
  const {data}=await sb.auth.getUser();user=data?.user||null;await renderCompanyProfile(ticker,sb);await refresh();
  mountStockSearch({sb,root:$('workspace-stock-search'),activeTicker:ticker}).catch(()=>{$('workspace-stock-search').textContent='Stock lookup unavailable. The requested stock workspace can still be used.';});
- if(isOrcaStaging)import('./orca-living-timeline.js?v=mobile-carousel-v44').then(({mountLivingTimeline})=>
+ if(isOrcaStaging)import('./orca-living-timeline.js?v=antique-gold-v45').then(({mountLivingTimeline})=>
   mountLivingTimeline({sb,ticker,getUser:()=>user,canContribute:()=>ready,getFindings:()=>findings})
  ).catch(err=>{console.error('ORCA Living Timeline isolated error:',err);$('living-status').textContent='Timeline unavailable; TradingView remains available.';});
   // Passive monitor for the HUMAN observer's browser; no autonomous research or API requests.
