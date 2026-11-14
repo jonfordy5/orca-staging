@@ -87,7 +87,14 @@ body.orca-auth-shell #activity-card .orca-task-waterfall .task h3{color:#f3f8fd;
 #activity-card .btn.alt:hover{background:#3a5974}
 #activity-card .btn:not(.alt){background:#5bd9b0;color:#08382d}
 #members{max-height:250px;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#9fb8bc transparent}
-@media(max-width:760px){#activity-card .orca-task-waterfall{height:260px}#activity-card .activity-head{align-items:flex-start}}
+@media(max-width:760px){
+ #activity-card .orca-task-waterfall{height:245px}
+ #activity-card .activity-head{align-items:flex-start;gap:5px}
+ #activity-card .activity-head h2{font-size:18px}
+ #activity-card #cycle-status p,#activity-card #cycle-status small{display:none}
+ #activity-card .sub{font-size:11px;line-height:1.35}
+ #activity-card .waterfall-hint{font-size:10px}
+}
 @media(prefers-reduced-motion:reduce){#activity-card .orca-task-waterfall{scroll-behavior:auto}}
 </style>
 <link rel="stylesheet" href="./orca-commons-theme.css">
@@ -104,10 +111,10 @@ body.orca-auth-shell #activity-card .orca-task-waterfall .task h3{color:#f3f8fd;
   <div>
     <section class="card" id="activity-card">
       <div class="activity-head"><h2><span class="activity-light" id="activity-light" aria-hidden="true"></span>Research underway</h2><div class="activity-tools"><span class="activity-count" id="activity-count">Latest activity</span><button id="waterfall-toggle" class="waterfall-toggle hidden" type="button" aria-pressed="false">Pause flow</button></div></div>
-      <p class="sub">ORCA assigns five research metrics each round. Completed historical findings are retained; the round restarts after all five are published. Joining does not start an assistant.</p>
+      <p class="sub">ORCA rotates five research metrics each round. Published findings stay saved. Joining does not start an assistant.</p>
       <div id="cycle-status" class="notice info" role="status" aria-live="polite">Checking the current research round…</div>
       <div id="tasks" class="orca-task-waterfall" role="region" aria-label="Current research metrics, continuously scrolling list" tabindex="0">Loading tasks…</div>
-       <p class="waterfall-hint">Five live research metrics flow here. Hover, touch or scroll to read. Pause flow stops the animation.</p>
+       <p class="waterfall-hint">Auto-scrolling research · Hover, swipe or Pause to read.</p>
       <div class="controls"><button id="refresh" class="btn alt" type="button">↻ Refresh assignments</button><a id="stock-link" class="btn alt" href="./index.html#discover">View full stock board ↗</a></div>
       <div class="controls"><a id="commons-workspace-link" class="btn" href="./research-workspace.html?ticker=RKLB">🧠 Open collaborative research workspace ↗</a></div>
     </section>
