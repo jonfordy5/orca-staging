@@ -138,11 +138,11 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
   gradient.setAttribute('id',gradientId);
   gradient.setAttribute('x1','0%');gradient.setAttribute('y1','0%');
   gradient.setAttribute('x2','100%');gradient.setAttribute('y2','0%');
-  // One moving comet: a fading blue tail ending in a bright white-blue flash.
+  // Antique-gold light: a long faint tail and a warm leading glint.
   for(const [offset,color,opacity] of [
-   ['0%','#64b6ff','0'],['16%','#83c9ff','0.26'],
-   ['38%','#a6dfff','0.63'],['65%','#d9faff','0.90'],
-   ['84%','#ffffff','1'],['100%','#f7ffff','0.95']
+   ['0%','#a9814f','0'],['18%','#b9965d','0.10'],
+   ['42%','#cba96d','0.24'],['68%','#e2bf80','0.38'],
+   ['87%','#f2d598','0.62'],['100%','#fff0c6','0.79']
   ]){
    const stop=document.createElementNS(ns,'stop');
    stop.setAttribute('offset',offset);
@@ -166,9 +166,20 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
      document.visibilityState==='hidden')return;
   const length=base.getTotalLength();
   if(!length)return;
-  // A longer, brighter trail that crosses the visible cards on a regular cycle.
-  const travelMs=11500;
-  const beamLength=Math.min(185,Math.max(115,length*0.10));
+  // Extended fairy-dust wake, deliberately softer than a neon beam.
+  // Fixed SVG particles avoid canvas, random flicker and network work.
+  const travelMs=14000;
+  const beamLength=Math.min(520,Math.max(220,length*0.28));
+  const dustLength=beamLength*1.25;
+  const particles=Array.from({length:24},(_,i)=>{
+   const sparkle=document.createElementNS(ns,'circle');
+   sparkle.classList.add('orca-history-track-dust');
+   sparkle.setAttribute('r',String(i%7===0?0.95:0.6));
+   sparkle.setAttribute('fill',i%5===0?'#ffedc1':'#d6b67d');
+   sparkle.setAttribute('opacity','0');
+   return sparkle;
+  });
+  svg.append(...particles);
   const nodeDistances=[0];
   for(let i=1;i<points.length;i++){
    const [x0,y0]=points[i-1], [x1,y1]=points[i];
@@ -178,7 +189,7 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
   const animate=now=>{
    if(document.visibilityState==='hidden'||!svg.isConnected){beamFrame=0;return}
    if(!startTime)startTime=now;
-   const head=((now-startTime)%travelMs)/travelMs*(length+beamLength);
+   const head=((now-startTime)%travelMs)/travelMs*(length+dustLength);
    if(head<previousHead)previousHead=-1;
    const from=Math.max(0,head-beamLength),to=Math.min(length,head);
    if(to>from){
@@ -190,6 +201,17 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
     }
     beam.setAttribute('d',coords.join(' '));
    }else beam.setAttribute('d','');
+   for(let i=0;i<particles.length;i++){
+    // Nonuniform fixed positions and minute off-rail drift suggest gold dust.
+    const fraction=(i*0.61803398875+0.17)%1;
+    const position=head-fraction*dustLength;
+    const particle=particles[i];
+    if(position<0||position>length){particle.setAttribute('opacity','0');continue}
+    const p=base.getPointAtLength(position);
+    particle.setAttribute('cx',(p.x+Math.sin(i*2.3)*2.6).toFixed(1));
+    particle.setAttribute('cy',(p.y+Math.cos(i*1.7)*3.5).toFixed(1));
+    particle.setAttribute('opacity',(0.07+(1-fraction)*0.28).toFixed(2));
+   }
    for(let i=0;i<stops.length;i++){
     if(nodeDistances[i]>previousHead&&nodeDistances[i]<=head){
      stops[i].classList.remove('orca-history-activated');
