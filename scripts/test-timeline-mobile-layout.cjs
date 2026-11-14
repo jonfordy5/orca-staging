@@ -169,7 +169,7 @@ async function swipe(page,direction){
    assert(m.cards.every(c=>c.width===202&&c.height===178));
    assert(m.cards.every(c=>Math.abs(c.y-m.cards[0].y)<1),'All cards are on the same row');
    assert.equal(m.cards[1].x-m.cards[0].x,210);assert(m.cards[4].visible);
-   const coords=[...m.trackPath.matchAll(/[ML]\\s+([\\d.]+)\\s+([\\d.]+)/g)]
+   const coords=[...m.trackPath.matchAll(/[ML]\s+([\d.]+)\s+([\d.]+)/g)]
     .map(match=>[Number(match[1]),Number(match[2])]);
    assert.equal(coords.length,10,'One track point per milestone');
    assert(coords.every(([x,y])=>Math.abs(y-coords[0][1])<1),'No zigzag');
