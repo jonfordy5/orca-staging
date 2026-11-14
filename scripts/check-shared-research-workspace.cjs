@@ -177,7 +177,7 @@ check('Timeline ends at last real milestone with minimal space, not fake future 
  timeline.includes("spine.style.paddingRight=(mobile?0:16)+'px'") &&
  !timeline.includes('const futurePoints=') &&
  !timeline.includes("setAttribute('mask'") &&
- workspace.includes('v=antique-gold-v45'));
+ workspace.includes('v=gold-dust-visible-v46'));
 check('Open-ended timeline preserves milestones and beam arrival effects', () =>
   timeline.includes('const nodeDistances=[0]') &&
   timeline.includes('for(let i=1;i<points.length;i++)') &&
@@ -189,13 +189,15 @@ check('Open-ended timeline preserves milestones and beam arrival effects', () =>
 check('A single muted-gold tracer leaves a long bounded dust tail', () =>
   timeline.includes("gradient.setAttribute('id',gradientId)") &&
   timeline.includes("beam.setAttribute('stroke','url(#'+gradientId+')')") &&
-  timeline.includes("const beamLength=Math.min(520,Math.max(220,length*0.28))") &&
-  timeline.includes('const travelMs=14000') &&
+  timeline.includes("const beamLength=Math.min(820,Math.max(260,rail.clientWidth*0.62))") &&
+  timeline.includes('const travelMs=7600') &&
   timeline.includes("beam.setAttribute('stroke-linecap','round')") &&
   workspace.includes('stroke-width:3.3;') &&
    workspace.includes('stroke:#bb9255;') &&
    timeline.includes('const dustLength=beamLength*1.25') &&
-   timeline.includes('const particles=Array.from({length:24}') &&
+   timeline.includes('const visibleFrom=Math.max(0,railRect.left-liveSpineRect.left-points[0][0])') &&
+   timeline.includes('const visibleTo=Math.min(length,railRect.right-liveSpineRect.left-points[0][0])') &&
+   timeline.includes('const particles=Array.from({length:42}') &&
   workspace.includes('orca-history-rail-shimmer') &&
   workspace.includes('.orca-history-track-beam') &&
   !workspace.includes('.orca-history-track-glow{') &&
@@ -216,7 +218,7 @@ check('Desktop centers the middle milestone, mobile starts at the beginning, nav
   timeline.includes("centerMilestone(card,'auto')") &&
   timeline.includes("prev.addEventListener('click',()=>jumpTo(0))") &&
   timeline.includes("next.addEventListener('click',()=>jumpTo(data.length-1))") &&
-  workspace.includes('v=antique-gold-v45'));
+  workspace.includes('v=gold-dust-visible-v46'));
 
 check('Mobile history stays a swipe carousel without zigzag or glowing track', () =>
   workspace.includes('touch-action:pan-x pan-y pinch-zoom!important') &&

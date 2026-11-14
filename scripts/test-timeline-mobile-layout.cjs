@@ -222,10 +222,29 @@ async function swipe(page,direction){
    assert.equal(palette.base,'rgb(187, 146, 85)','Rail is muted gold, not neon blue');
    assert(['rgb(199, 164, 108)','rgb(221, 188, 128)'].includes(palette.cardBorder),'Cards have restrained gold borders, with a slightly brighter selected outline');
    assert.equal(palette.cardDate,'rgb(248, 251, 255)','Milestone lettering remains white');
-   assert.equal(palette.dust,24,'Bounded dust particles illuminate a long trailing path');
+   assert.equal(palette.dust,42,'Bounded gold particles remain in the trailing path');
    assert.match(palette.headingText,/History of TEST/);
    assert(second.x+second.width>first.x+first.width+25,'The comet leading edge advances across the straight rail');
    assert.notEqual(first.d,second.d,'Comet shape updates as it advances');
+   // Verify the light is visible regardless of where a long timeline is scrolled.
+   const viewHead=()=>motionPage.evaluate(()=>{
+    const rail=document.querySelector('.orca-timeline-events');
+    const beam=document.querySelector('.orca-history-track-beam');
+    const r=rail.getBoundingClientRect(),b=beam.getBoundingClientRect();
+    return {left:r.left,right:r.right,head:b.right,beamWidth:b.width,scrollLeft:rail.scrollLeft};
+   });
+   let visibleHead=await viewHead();
+   assert(visibleHead.head>=visibleHead.left+5&&visibleHead.head<=visibleHead.right+5,
+    'Moving gold glint starts visibly inside the current rail');
+   await motionPage.evaluate(()=>{
+    const rail=document.querySelector('.orca-timeline-events');
+    rail.scrollTo({left:rail.scrollWidth,behavior:'instant'});
+   });
+   await motionPage.waitForTimeout(220);
+   visibleHead=await viewHead();
+   assert(visibleHead.scrollLeft>100,'Test scrolled to a later milestone');
+   assert(visibleHead.head>=visibleHead.left+5&&visibleHead.head<=visibleHead.right+5,
+    'Moving gold glint follows the viewed milestones rather than disappearing off-screen');
    await motionPage.setViewportSize({width:393,height:851});
    await motionPage.waitForFunction(()=>!document.querySelector('.orca-history-track'));
    assert.equal(await motionPage.locator('.orca-history-track-beam').count(),0,
