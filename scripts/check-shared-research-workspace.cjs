@@ -130,12 +130,12 @@ check('Milestone popup supports meaningful short briefs and source links', () =>
   timeline.includes("const points=document.createElement('ul')") &&
   timeline.includes("const takeaway=document.createElement('p')") &&
   timeline.includes("link.href=event.source_url"));
-check('Approved timeline design is locked in the universal stock-page standard', () =>
+check('Latest straight timeline design is recorded in universal stock-page standard', () =>
   pageStandard.includes('## Approved timeline design — compact straight rail') &&
   pageStandard.includes('**Always-visible stacked charts:**') &&
   pageStandard.includes('**Direct connectors:**') &&
   pageStandard.includes('**Traveling light:**') &&
-  pageStandard.includes('**Open-ended company history:**') &&
+  pageStandard.includes('**Real history endpoint:**') &&
   pageStandard.includes('**Initial and subsequent navigation:**') &&
   pageStandard.includes('**Mobile (700px and narrower):**') &&
   pageStandard.includes('**Photo interface:**'));
