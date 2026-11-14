@@ -212,8 +212,72 @@ function showResearchCycle(cycle,tasks,findings){
  note.textContent='Published findings from earlier rounds stay saved and are not counted as a new round.';
  node.append(note);
 }
+// Presentation-only waterfall. Real metrics appear once for assistive technology;
+// the duplicate visual cycle contains no live controls and creates no new findings.
+const waterfallViewport=$('tasks'),waterfallButton=$('waterfall-toggle');
+const waterfallReduced=window.matchMedia('(prefers-reduced-motion: reduce)');
+let waterfallFrame=0,waterfallLast=0,waterfallCycleHeight=0;
+let waterfallPaused=false,waterfallHoldUntil=0;
+function stopWaterfall(){
+ if(waterfallFrame)cancelAnimationFrame(waterfallFrame);
+ waterfallFrame=0;waterfallLast=0;
+}
+function updateWaterfallButton(){
+ const available=waterfallCycleHeight>0&&!waterfallReduced.matches;
+ waterfallButton.classList.toggle('hidden',!available);
+ waterfallButton.textContent=waterfallPaused?'Resume flow':'Pause flow';
+ waterfallButton.setAttribute('aria-pressed',String(waterfallPaused));
+}
+function setupWaterfall(){
+ stopWaterfall();
+ const primary=waterfallViewport.querySelector('.orca-waterfall-stack:not(.orca-waterfall-clone)');
+ waterfallViewport.querySelector('.orca-waterfall-clone')?.remove();
+ waterfallCycleHeight=0;
+ if(!primary)return;
+ if(primary.offsetHeight<=waterfallViewport.clientHeight+3||waterfallReduced.matches){
+  updateWaterfallButton();return;
+ }
+ const duplicate=primary.cloneNode(true);
+ duplicate.classList.add('orca-waterfall-clone');
+ duplicate.setAttribute('aria-hidden','true');
+ duplicate.inert=true;
+ waterfallViewport.append(duplicate);
+ waterfallCycleHeight=primary.offsetHeight;
+ waterfallViewport.scrollTop=0;
+ updateWaterfallButton();
+ const tick=now=>{
+  if(!waterfallViewport.isConnected){stopWaterfall();return}
+  if(!waterfallLast)waterfallLast=now;
+  if(!document.hidden&&!waterfallPaused&&!waterfallReduced.matches&&
+     !waterfallViewport.matches(':hover')&&!waterfallViewport.matches(':focus-within')&&
+     now>=waterfallHoldUntil){
+   waterfallViewport.scrollTop+=Math.min(64,now-waterfallLast)*0.031;
+  }
+  // The same geometry at the seam makes the research stream loop seamlessly.
+  if(waterfallCycleHeight&&waterfallViewport.scrollTop>=waterfallCycleHeight)
+   waterfallViewport.scrollTop-=waterfallCycleHeight;
+  waterfallLast=now;
+  waterfallFrame=requestAnimationFrame(tick);
+ };
+ waterfallFrame=requestAnimationFrame(tick);
+}
+function holdWaterfall(){waterfallHoldUntil=performance.now()+8000}
+for(const name of ['wheel','pointerdown','touchstart','keydown']){
+ waterfallViewport.addEventListener(name,holdWaterfall,{passive:name!=='keydown'});
+}
+waterfallButton.addEventListener('click',()=>{
+ waterfallPaused=!waterfallPaused;updateWaterfallButton();
+});
+waterfallReduced.addEventListener?.('change',setupWaterfall);
+window.addEventListener('pagehide',stopWaterfall);
+let waterfallResizeTimer=0;
+window.addEventListener('resize',()=>{
+ clearTimeout(waterfallResizeTimer);waterfallResizeTimer=setTimeout(setupWaterfall,150);
+});
 function renderTasks(tasks,findings=[],cycle=null){
+ stopWaterfall();
  const root=$('tasks');root.replaceChildren();
+ const stack=document.createElement('div');stack.className='orca-waterfall-stack';
  const active=tasks.filter(t=>taskStatus(t)==='claimed').length;
  $('activity-light').classList.toggle('live',active>0);
  $('activity-count').classList.toggle('live',active>0);
@@ -250,8 +314,10 @@ function renderTasks(tasks,findings=[],cycle=null){
    const when=document.createElement('span');when.textContent='Published '+displayTime(finding.published_at);meta.append(when);
   }
   if(meta.childNodes.length)box.append(meta);
-  root.append(box);
+  stack.append(box);
  }
+ root.append(stack);
+ setupWaterfall();
 }
 function renderMembers(rows){const root=$('members');root.replaceChildren();if(!user){root.textContent='Sign in to view the team.';return;}if(!rows.length){root.textContent='No one has joined this stock yet. Be the first!';return;}for(const m of rows){const line=document.createElement('div');line.className='participant';const icon=document.createElement('span');icon.className='avatar';icon.textContent=(m.display_name||'?').charAt(0).toUpperCase();const body=document.createElement('div');const name=document.createElement('strong');name.textContent=m.display_name||'Participant';const small=document.createElement('small');const when=new Date(m.joined_at);small.textContent='Joined '+(Number.isNaN(when.getTime())?'recently':when.toLocaleDateString());body.append(name,small);line.append(icon,body);root.append(line)}}
 function setBusy(on){busy=on;$('join').disabled=on;$('leave').disabled=on;$('refresh').disabled=on;}
