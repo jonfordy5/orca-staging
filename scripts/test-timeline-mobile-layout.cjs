@@ -186,6 +186,47 @@ async function swipe(page,direction){
    console.log('PASS desktop '+size.width+'×'+size.height+': compact straight rail, no manual button and navigation');
    await context.close();
   }
+  // Earlier coverage checked only reduced-motion layouts, not moving light.
+  {
+   const motionContext=await browser.newContext({viewport:{width:1440,height:900},reducedMotion:'no-preference'});
+   const motionPage=await motionContext.newPage();
+   const motionErrors=[];motionPage.on('pageerror',error=>motionErrors.push(error.message));
+   await motionPage.goto(url);await motionPage.waitForFunction(()=>window.timelineReady);
+   await motionPage.waitForFunction(()=>{
+    const beam=document.querySelector('.orca-history-track-beam');
+    return beam?.getAttribute('d')?.length>30&&beam.getBBox().width>15;
+   },null,{timeout:5000});
+   const first=await motionPage.evaluate(()=>{
+    const beam=document.querySelector('.orca-history-track-beam');
+    return {x:beam.getBBox().x,d:beam.getAttribute('d'),stroke:getComputedStyle(beam).strokeWidth,
+     filter:getComputedStyle(beam).filter,
+     trackLength:document.querySelector('.orca-history-track-base').getTotalLength()};
+   });
+   await motionPage.waitForTimeout(850);
+   const second=await motionPage.evaluate(()=>{
+    const beam=document.querySelector('.orca-history-track-beam');
+    return {x:beam.getBBox().x,d:beam.getAttribute('d'),width:beam.getBBox().width};
+   });
+   assert(first.trackLength>900,'Long straight rail has room for the comet');
+   assert(first.stroke.startsWith('5.3'),'White-blue tracer is visibly thicker than the base');
+   assert.notEqual(first.filter,'none','Tracer has a neon glow');
+   assert(second.x>first.x+25,'The white-blue tail travels across the line');
+   assert.notEqual(first.d,second.d,'Comet shape updates as it advances');
+   await motionPage.setViewportSize({width:393,height:851});
+   await motionPage.waitForFunction(()=>!document.querySelector('.orca-history-track'));
+   assert.equal(await motionPage.locator('.orca-history-track-beam').count(),0,
+    'Mobile remains swipe-only even when motion is enabled');
+   assert.deepEqual(motionErrors,[]);
+   await motionContext.close();
+   console.log('PASS visible animated comet travels on desktop; mobile remains swipe-only');
+   const reduceContext=await browser.newContext({viewport:{width:1440,height:900},reducedMotion:'reduce'});
+   const reducePage=await reduceContext.newPage();
+   await reducePage.goto(url);await reducePage.waitForFunction(()=>window.timelineReady);
+   assert.equal(await reducePage.locator('.orca-history-track-beam').getAttribute('d'),null,
+    'Reduced motion keeps a static luminous rail instead of moving light');
+   await reduceContext.close();
+   console.log('PASS reduced-motion visitors retain a static glowing rail');
+  }
   const context=await browser.newContext({viewport:{width:360,height:800},hasTouch:true,isMobile:true}),page=await context.newPage();
   for(const query of ['?count=1','?count=6&noPhotos','?count=0']){
    await page.goto(url+query);await page.waitForFunction(()=>window.timelineReady);
