@@ -1,0 +1,22 @@
+{
+  "name": "@orca/owned-research-mcp-staging",
+  "version": "0.0.0-offline",
+  "private": true,
+  "type": "module",
+  "description": "Disabled ORCA read-only MCP SDK v2 integration (not a public service)",
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/server": "2.3.1",
+    "zod": "4.1.12"
+  },
+  "scripts": {
+    "test": "node --test secure-handler.test.mjs official-client.test.mjs node-ingress.test.mjs locked-https.test.mjs deployment-preflight.test.mjs host-tls-preflight.test.mjs",
+    "preflight": "node deployment-preflight.cli.mjs",
+    "preflight:tls": "node host-tls-preflight.cli.mjs"
+  },
+  "devDependencies": {
+    "@modelcontextprotocol/client": "2.3.1"
+  }
+}

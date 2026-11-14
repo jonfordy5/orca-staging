@@ -1,0 +1,36 @@
+# Stage 14: LOCKED MCP staging shell, not an OAuth or research deployment.
+# This compose file deliberately binds only to the machine's loopback address.
+# Never publish port 8443 directly to the Internet without an audited
+# direct-TLS deployment plan and a real hostname/certificate.
+services:
+  orca-mcp-locked:
+    build:
+      context: ../../..
+      dockerfile: services/orca-owned-oauth/mcp-sdk/Dockerfile.staging
+    image: orca-mcp-locked:stage14
+    restart: unless-stopped
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 64
+    mem_limit: 256m
+    cpus: 1
+    ports:
+      - "127.0.0.1:8443:8443"
+    volumes:
+      - type: bind
+        source: ${ORCA_SECRETS_DIR:?Set an absolute directory containing key.pem and cert.pem}
+        target: /run/secrets
+        read_only: true
+    environment:
+      PORT: "8443"
+      ORCA_BIND_ADDRESS: "0.0.0.0"
+      ORCA_STAGE14_LOCKED_ACK: "LOCKED_STAGING_ONLY"
+      ORCA_MCP_ENABLED: "false"
+      ORCA_OWNED_ISSUER_ENABLED: "false"
+      ORCA_ISSUER_ORIGIN: ${ORCA_ISSUER_ORIGIN:?Set the planned HTTPS issuer origin}
+      ORCA_MCP_RESOURCE: ${ORCA_MCP_RESOURCE:?Set the planned HTTPS MCP /mcp URL}
+      ORCA_TLS_PRIVATE_KEY_FILE: /run/secrets/key.pem
+      ORCA_TLS_CERTIFICATE_FILE: /run/secrets/cert.pem

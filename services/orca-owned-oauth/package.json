@@ -1,0 +1,13 @@
+{
+  "name": "@orca/owned-oauth-staging-preview",
+  "version": "0.0.0-security-preview",
+  "private": true,
+  "type": "module",
+  "description": "Loopback-only OAuth discovery smoke; no public listener or credential issuance",
+  "engines": {"node": ">=22"},
+  "dependencies": {"oidc-provider": "9.14.0"},
+  "scripts": {
+    "test:preview": "node --test ../../scripts/test-orca-owned-oauth-library-smoke.mjs",
+    "preview": "node dev-preview.mjs"
+  }
+}

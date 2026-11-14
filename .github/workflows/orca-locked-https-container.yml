@@ -1,0 +1,170 @@
+name: ORCA Stage 14 locked HTTPS container (no deployment)
+
+on:
+  push:
+    branches:
+      - feat/orca-owned-oauth-fallback-20261112
+    paths:
+      - services/orca-owned-oauth/mcp-sdk/**
+      - services/orca-owned-oauth/bound-token.mjs
+      - services/orca-owned-oauth/mcp-resource-policy.mjs
+      - services/orca-owned-oauth/read-only-research-dispatcher.mjs
+      - .github/workflows/orca-locked-https-container.yml
+  pull_request:
+    paths:
+      - services/orca-owned-oauth/mcp-sdk/**
+      - services/orca-owned-oauth/bound-token.mjs
+      - services/orca-owned-oauth/mcp-resource-policy.mjs
+      - services/orca-owned-oauth/read-only-research-dispatcher.mjs
+      - .github/workflows/orca-locked-https-container.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  local-container-security:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Verify locked HTTPS TLS handshake and release-denial tests
+        working-directory: services/orca-owned-oauth/mcp-sdk
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          node --test locked-https.test.mjs
+      - name: Validate the locked Compose deployment configuration
+        env:
+          ORCA_SECRETS_DIR: /tmp
+          ORCA_ISSUER_ORIGIN: https://auth.orca.example.invalid
+          ORCA_MCP_RESOURCE: https://mcp.stage.example.invalid/mcp
+        run: |
+          docker compose \
+            -f services/orca-owned-oauth/mcp-sdk/compose.locked-staging.yml \
+            config --quiet
+      - name: Validate opt-in public 443 locked-only Compose and no write scopes
+        env:
+          ORCA_SECRETS_DIR: /tmp
+          ORCA_ISSUER_ORIGIN: https://auth.orca.example.invalid
+          ORCA_MCP_RESOURCE: https://mcp.stage.example.invalid/mcp
+          ORCA_PUBLIC_LOCKED_DEPLOY_ACK: I_APPROVE_PUBLIC_LOCKED_TLS_ONLY
+        run: |
+          docker compose --profile public-locked \
+            -f services/orca-owned-oauth/mcp-sdk/compose.public-locked.yml \
+            config --format json > "$RUNNER_TEMP/orca-public-locked.json"
+          node --input-type=module <<'JS'
+          import {readFileSync} from 'node:fs';
+          import assert from 'node:assert/strict';
+          const c=JSON.parse(readFileSync(process.env.RUNNER_TEMP+'/orca-public-locked.json','utf8'));
+          const s=c.services?.['orca-mcp-public-locked'];
+          assert.ok(s,'public locked service required');
+          assert.deepEqual(s.profiles,['public-locked']);
+          assert.equal(s.read_only,true);
+          assert.ok(s.cap_drop.includes('ALL'));
+          assert.equal(s.security_opt?.[0],'no-new-privileges:true');
+          assert.equal(s.ports?.length,1);
+          assert.equal(String(s.ports[0].published),'443');
+          assert.equal(Number(s.ports[0].target),8443);
+          assert.equal(s.ports[0].host_ip,'0.0.0.0');
+          assert.equal(s.environment?.ORCA_MCP_ENABLED,'false');
+          assert.equal(s.environment?.ORCA_OWNED_ISSUER_ENABLED,'false');
+          assert.equal(s.environment?.ORCA_PUBLIC_LOCKED_DEPLOY_ACK,
+            'I_APPROVE_PUBLIC_LOCKED_TLS_ONLY');
+          assert.ok(s.volumes?.some(v=>v.target==='/run/secrets'&&v.read_only===true));
+          JS
+          if env -u ORCA_PUBLIC_LOCKED_DEPLOY_ACK docker compose --profile public-locked \
+              -f services/orca-owned-oauth/mcp-sdk/compose.public-locked.yml \
+              config --quiet >/dev/null 2>&1; then
+            echo "SECURITY FAILURE: public config accepted missing operator acknowledgement"
+            exit 1
+          fi
+          rm -f "$RUNNER_TEMP/orca-public-locked.json"
+      - name: Build local container without publishing it
+        run: |
+          docker build --pull --no-cache \
+            -f services/orca-owned-oauth/mcp-sdk/Dockerfile.staging \
+            -t orca-stage14-locked:ci .
+      - name: Generate disposable certificates and start locked HTTPS
+        run: |
+          mkdir -p "$RUNNER_TEMP/orca-stage14-certs"
+          openssl req -x509 -newkey rsa:2048 -nodes \
+            -keyout "$RUNNER_TEMP/orca-stage14-certs/key.pem" \
+            -out "$RUNNER_TEMP/orca-stage14-certs/cert.pem" \
+            -days 1 -subj "/CN=mcp.stage.example.invalid" \
+            -addext "subjectAltName=DNS:mcp.stage.example.invalid"
+          chmod 644 "$RUNNER_TEMP/orca-stage14-certs/key.pem" \
+                    "$RUNNER_TEMP/orca-stage14-certs/cert.pem"
+          docker run -d --name orca-stage14-locked-ci \
+            --read-only --cap-drop ALL \
+            --security-opt no-new-privileges \
+            --pids-limit 64 --memory 256m --cpus 1 \
+            -p 127.0.0.1:18443:8443 \
+            --mount "type=bind,src=$RUNNER_TEMP/orca-stage14-certs,dst=/run/secrets,readonly" \
+            -e ORCA_STAGE14_LOCKED_ACK=LOCKED_STAGING_ONLY \
+            -e ORCA_MCP_ENABLED=false \
+            -e ORCA_OWNED_ISSUER_ENABLED=false \
+            -e ORCA_ISSUER_ORIGIN=https://auth.orca.example.invalid \
+            -e ORCA_MCP_RESOURCE=https://mcp.stage.example.invalid/mcp \
+            -e ORCA_TLS_PRIVATE_KEY_FILE=/run/secrets/key.pem \
+            -e ORCA_TLS_CERTIFICATE_FILE=/run/secrets/cert.pem \
+            orca-stage14-locked:ci
+      - name: Validate HTTPS liveness and 503 for every protected route
+        run: |
+          for i in $(seq 1 30); do
+            if curl -ksSf \
+               -H "Host: mcp.stage.example.invalid" \
+               https://127.0.0.1:18443/healthz \
+               -o "$RUNNER_TEMP/orca-health.json"; then
+              break
+            fi
+            sleep 1
+          done
+          grep -q '"status":"locked"' "$RUNNER_TEMP/orca-health.json"
+          for path in /mcp \
+              /.well-known/oauth-protected-resource/mcp \
+              /.well-known/oauth-authorization-server; do
+            status=$(curl -ksS -o /dev/null -w "%{http_code}" \
+              -H "Host: mcp.stage.example.invalid" \
+              "https://127.0.0.1:18443$path")
+            test "$status" = 503
+          done
+          test "$(docker inspect -f '{{.Config.User}}' orca-stage14-locked-ci)" = node
+      - name: Ensure environment flags cannot activate the locked image
+        run: |
+          if docker run --rm \
+              -e ORCA_STAGE14_LOCKED_ACK=LOCKED_STAGING_ONLY \
+              -e ORCA_MCP_ENABLED=true \
+              -e ORCA_OWNED_ISSUER_ENABLED=false \
+              orca-stage14-locked:ci >/dev/null 2>&1; then
+            echo "SECURITY FAILURE: MCP enabled by environment alone"
+            exit 1
+          fi
+          if docker run --rm \
+              -e ORCA_STAGE14_LOCKED_ACK=LOCKED_STAGING_ONLY \
+              -e ORCA_MCP_ENABLED=false \
+              -e ORCA_OWNED_ISSUER_ENABLED=true \
+              orca-stage14-locked:ci >/dev/null 2>&1; then
+            echo "SECURITY FAILURE: OAuth issuer enabled by environment alone"
+            exit 1
+          fi
+      - name: Reject incorrect public locked-only acknowledgement
+        run: |
+          if docker run --rm \
+              -e ORCA_STAGE14_LOCKED_ACK=LOCKED_STAGING_ONLY \
+              -e ORCA_MCP_ENABLED=false \
+              -e ORCA_OWNED_ISSUER_ENABLED=false \
+              -e ORCA_PUBLIC_LOCKED_DEPLOY_ACK=NOT_APPROVED \
+              orca-stage14-locked:ci >"$RUNNER_TEMP/invalid-ack.out" 2>&1; then
+            echo "SECURITY FAILURE: invalid operator acknowledgement accepted"
+            exit 1
+          fi
+          grep -q "invalid_public_locked_deploy_ack" "$RUNNER_TEMP/invalid-ack.out"
+          rm -f "$RUNNER_TEMP/invalid-ack.out"
+      - name: Tear down test-only container and temporary certificate
+        if: always()
+        run: |
+          docker rm -f orca-stage14-locked-ci >/dev/null 2>&1 || true
+          rm -rf "$RUNNER_TEMP/orca-stage14-certs"

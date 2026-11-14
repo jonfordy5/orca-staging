@@ -1,0 +1,146 @@
+name: ORCA-owned MCP reader RLS (isolated PostgreSQL only)
+
+on:
+  push:
+    branches:
+      - feat/orca-owned-oauth-fallback-20261112
+    paths:
+      - services/orca-owned-oauth/mcp-reader-rls-review-only.sql
+      - .github/workflows/orca-owned-oauth-reader-policy.yml
+  pull_request:
+    paths:
+      - services/orca-owned-oauth/mcp-reader-rls-review-only.sql
+      - .github/workflows/orca-owned-oauth-reader-policy.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  reader-policy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: orca_mcp_reader_ephemeral
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: local-test-password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d orca_mcp_reader_ephemeral"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: "5432"
+      PGUSER: postgres
+      PGPASSWORD: local-test-password
+      PGDATABASE: orca_mcp_reader_ephemeral
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create only isolated dummy ORCA tables and two research owners
+        run: |
+          psql -v ON_ERROR_STOP=1 <<'SQL'
+          create table public.agent_profiles(
+            owner_id uuid primary key,display_name text,opted_in boolean);
+          create table public.stock_research_memberships(user_id uuid,ticker text);
+          create table public.research_tasks(
+            id uuid primary key,ticker text,research_area text,
+            research_question text,claimed_until timestamptz,
+            claimed_owner_id uuid,status text,created_at timestamptz);
+          create table public.orca_research_board_assignments(
+            task_id uuid,ticker text,board_key text,category_key text,metric_key text);
+          alter table public.agent_profiles enable row level security;
+          alter table public.stock_research_memberships enable row level security;
+          alter table public.research_tasks enable row level security;
+          alter table public.orca_research_board_assignments enable row level security;
+          insert into public.agent_profiles values
+            ('aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee','Researcher A',true),
+            ('bbbbbbbb-cccc-4ddd-8eee-ffffffffffff','Researcher B',true);
+          insert into public.stock_research_memberships values
+            ('aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee','RKLB'),
+            ('bbbbbbbb-cccc-4ddd-8eee-ffffffffffff','RKLB');
+          insert into public.research_tasks values
+            ('11111111-2222-4333-8444-555555555555','RKLB','Management',
+             'A-only research',now()+interval '1 day',
+             'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee','claimed',now()),
+            ('66666666-7777-4888-8999-aaaaaaaaaaaa','RKLB','Earnings',
+             'B-only research',now()+interval '1 day',
+             'bbbbbbbb-cccc-4ddd-8eee-ffffffffffff','claimed',now());
+          insert into public.orca_research_board_assignments values
+            ('11111111-2222-4333-8444-555555555555','RKLB',
+             'execution','management','execution'),
+            ('66666666-7777-4888-8999-aaaaaaaaaaaa','RKLB',
+             'pricing','earnings','pricing');
+          SQL
+      - name: Parse reviewer policy against only the ephemeral database
+        run: psql -v ON_ERROR_STOP=1 -f services/orca-owned-oauth/mcp-reader-rls-review-only.sql
+      - name: Verify strictly read-only database role and two-owner RLS isolation
+        run: |
+          psql -v ON_ERROR_STOP=1 <<'SQL'
+          do $$
+          begin
+            if exists (
+              select 1 from pg_roles where rolname='orca_owned_mcp_reader'
+                and (rolcanlogin or rolbypassrls or rolsuper or rolcreatedb or rolcreaterole)
+            ) then raise exception 'Reader role has excessive capability'; end if;
+            if exists (
+              select 1 from information_schema.role_table_grants
+              where grantee='orca_owned_mcp_reader' and privilege_type <> 'SELECT'
+            ) then raise exception 'Reader has write privilege'; end if;
+          end $$;
+          begin read only;
+          set local role orca_owned_mcp_reader;
+          select set_config('orca.verified_owner_id',
+            'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee',true);
+          do $$
+          declare n integer;
+          begin
+            select count(owner_id) into n from public.agent_profiles;
+            if n<>1 then raise exception 'Profile RLS leak'; end if;
+            select count(user_id) into n from public.stock_research_memberships;
+            if n<>1 then raise exception 'Membership RLS leak'; end if;
+            select count(id) into n from public.research_tasks;
+            if n<>1 then raise exception 'Task RLS leak'; end if;
+            select count(task_id) into n from public.orca_research_board_assignments;
+            if n<>1 then raise exception 'Board RLS leak'; end if;
+          end $$;
+          rollback;
+          begin read only;
+          set local role orca_owned_mcp_reader;
+          select set_config('orca.verified_owner_id',
+            'bbbbbbbb-cccc-4ddd-8eee-ffffffffffff',true);
+          do $$
+          declare n integer;
+          begin
+            select count(owner_id) into n from public.agent_profiles;
+            if n<>1 then raise exception 'B profile RLS leak'; end if;
+            select count(id) into n from public.research_tasks;
+            if n<>1 then raise exception 'B task RLS leak'; end if;
+          end $$;
+          rollback;
+          begin read only;
+          set local role orca_owned_mcp_reader;
+          do $$
+          declare n integer;
+          begin
+            select count(owner_id) into n from public.agent_profiles;
+            if n<>0 then raise exception 'Missing owner context must return zero'; end if;
+            select count(id) into n from public.research_tasks;
+            if n<>0 then raise exception 'Missing owner context must deny claims'; end if;
+          end $$;
+          rollback;
+          SQL
+      - name: Prove reader cannot mutate a research task
+        run: |
+          if psql -v ON_ERROR_STOP=1 <<'SQL'
+          set role orca_owned_mcp_reader;
+          update public.research_tasks set research_question='bad';
+          SQL
+          then
+            echo "ERROR: reader unexpectedly changed a research task"
+            exit 1
+          fi
+          echo "PASS: isolated database role denies updates"

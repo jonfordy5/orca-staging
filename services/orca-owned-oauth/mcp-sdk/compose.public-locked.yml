@@ -1,0 +1,50 @@
+# ORCA: EXPLICIT PUBLIC "LOCKED" PILOT ONLY. This is deliberately
+# a DIFFERENT file from compose.locked-staging.yml, which binds 127.0.0.1.
+# It publishes host port 443. Deploy ONLY after operator has approved
+# the Docker host, DNS, TLS certificate, firewall and key lifecycle.
+#
+# This image is still PHYSICALLY INCAPABLE of enabling OAuth or MCP.
+# Do not add a reverse proxy that hides the TLS socket or expose Supabase keys.
+#
+# Usage from repo root (on approved host only):
+# docker compose --profile public-locked --env-file /private/locked.env \
+#    -f services/orca-owned-oauth/mcp-sdk/compose.public-locked.yml config
+# docker compose --profile public-locked --env-file /private/locked.env \
+#    -f services/orca-owned-oauth/mcp-sdk/compose.public-locked.yml up -d --build
+services:
+  orca-mcp-public-locked:
+    profiles: [public-locked]
+    build:
+      context: ../../..
+      dockerfile: services/orca-owned-oauth/mcp-sdk/Dockerfile.staging
+    image: orca-mcp-public-locked:stage16
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 64
+    mem_limit: 256m
+    cpus: 1
+    ports:
+      # WARNING: binds all host interfaces! Firewall must restrict as reviewed.
+      - target: 8443
+        published: "443"
+        protocol: tcp
+        host_ip: "0.0.0.0"
+    volumes:
+      - type: bind
+        source: ${ORCA_SECRETS_DIR:?Set the audited private absolute TLS secret directory}
+        target: /run/secrets
+        read_only: true
+    environment:
+      PORT: "8443"
+      ORCA_BIND_ADDRESS: "0.0.0.0"
+      ORCA_STAGE14_LOCKED_ACK: "LOCKED_STAGING_ONLY"
+      ORCA_PUBLIC_LOCKED_DEPLOY_ACK: ${ORCA_PUBLIC_LOCKED_DEPLOY_ACK:?Explicit public locked-only approval is required}
+      ORCA_MCP_ENABLED: "false"
+      ORCA_OWNED_ISSUER_ENABLED: "false"
+      ORCA_ISSUER_ORIGIN: ${ORCA_ISSUER_ORIGIN:?Exact approved HTTPS issuer origin required}
+      ORCA_MCP_RESOURCE: ${ORCA_MCP_RESOURCE:?Exact approved HTTPS MCP resource required}
+      ORCA_TLS_PRIVATE_KEY_FILE: /run/secrets/key.pem
+      ORCA_TLS_CERTIFICATE_FILE: /run/secrets/cert.pem

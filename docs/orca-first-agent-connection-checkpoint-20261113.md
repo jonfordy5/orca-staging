@@ -1,0 +1,205 @@
+# ORCA first real AI agent — implementation checkpoint (2026-11-13)
+
+**Branch:** `feat/orca-owned-oauth-fallback-20261112` (draft PR #83).  
+**Deployment:** CODE ONLY. No Plan B issuer, MCP endpoint, public login/consent route, database migration, signing secrets, or client is activated. The owner-issued token release switch is OFF. No production changes.
+
+## What is built
+
+- Stages 1–5: verified researcher binding, exact client/callback/resource policy, ES256 resource-bound tokens, revocable private grant registry and encrypted OAuth storage adapter. A real `oidc-provider@9.14.0` authorization-code + PKCE + consent + token exchange succeeds **in an isolated local test with a synthetic Supabase identity and mock persistence**. This is not a real ChatGPT connection.
+- Stage 6: `trusted-browser-session.mjs` seals a short-lived existing Supabase session into an HttpOnly, Secure, SameSite, host-only AES-256-GCM cookie. Requires authenticated same-origin HTTPS POST, verified `Auth.getUser`, opted-in owner profile, approved host and proxy/TLS trust. No token is handed to an agent. Key rotation and hostile-input tests pass.
+- Stage 7: `interaction-http-routes.mjs` is a **non-listening**, disabled-by-default interaction adapter. It can render a script-free login/consent page with explicit Approve/Deny for `orca:research.read`, strict same-origin form POSTs, bounded bodies, one-use CSRF via the verified existing-controller, and no arbitrary owner/alias input. The private finalizer is server-only. HTTP regression tests pass.
+- Stage 8: `mcp-admission-http.mjs` is a **non-listening**, disabled-by-default protected-resource metadata and MCP admission adapter. It rejects missing, wrong-audience, expired or revoked ORCA-issued bearers, enforces exact user/client/current grant, permits only `orca_whoami` and `orca_my_assignment` tool calls, and passes only scoped identity and limited JSON to a future vetted dispatcher. It does not implement a full MCP SDK server or read the database. Regression tests pass.
+- Additional local code-flow test examines RFC 9207 `iss` callback consistency instead of assuming eligibility for ChatGPT's stable redirect URI.
+
+## Checkpoint security evidence
+
+- Offline policy, session, consent-HTTP and MCP-admission tests: https://github.com/jonfordy5/orca-staging/actions/runs/43474225489
+- Maintained-library local OAuth/PKCE loopback smoke: https://github.com/jonfordy5/orca-staging/actions/runs/43474225446
+- The isolated private PostgreSQL schema checks are **not** a live Supabase migration.
+
+## What is still required for a first real agent test
+
+1. Select and securely host real HTTPS issuer and MCP resource endpoints. Publish exact protected-resource and OAuth discovery plus JWKS, and verify callback-mode requirements with the ChatGPT plugin management page. Stable callback requires RFC 9207 issuer identification; otherwise use the actual callback-ID-specific redirect from the management page. Never guess a client ID, callback or domain.
+2. Run a maintained OAuth server with real signing key custody/rotation, persistent encrypted provider state and approved ORCA grant registry under an audited least-privilege PostgreSQL role. Review schema and implement controlled migrations, preserving the current website and research data.
+3. Provide a real same-origin Supabase sign-in/bootstrap on the issuer host, verify the browser cookie and owner profile at each step, and bind the Stage 7 approval flow to the deployed OAuth runtime. Review cookie size, server-session invalidation and token handling; an opaque server-side session is preferable before public release.
+4. Implement and test the actual MCP SDK read-only tool dispatcher using owner-scoped research queries **without forwarding ORCA tokens to Supabase Auth/Data API**. Research publication is out of scope for the first connection test.
+5. Independently exercise two distinct real researcher accounts, current grant checks, signed token exchange, negative paths, revoked-token rejection, and no write/RPC bypass. Confirm existing site sign-in, aliases, tasks and published findings are unchanged.
+
+## Next success condition
+
+A real ChatGPT MCP client discovers ORCA staging, signs the human into the correct existing ORCA researcher identity, obtains explicit approval, exchanges PKCE for a resource-bound token, and successfully calls `orca_my_assignment` for that user only. Then revoke access and confirm the same token is denied. No live deployment is claimed until every step is observed.
+
+Do **not** merge or activate Plan B solely because the offline tests pass. PRs #79/#80/#81/#82 remain separate and should not be accidentally merged as a shortcut.
+
+## Stages 9–10 — research database and least-privilege boundary (November 13, 2026)
+
+**CODE ONLY — no deployment, live migration or real account connection.**
+
+- Built `services/orca-owned-oauth/read-only-research-dispatcher.mjs`, implementing `orca_whoami` and `orca_my_assignment` with three static, parameterized SELECT statements against actual ORCA staging tables. The verified OAuth owner is the only owner used in queries; agent-supplied identity is never accepted.
+- Unit and composed request tests check two different synthetic owners on the same ticker, signed owner/client/grant isolation, research opt-out, revoked access, unjoined ticker, malformed board and private database failure. No automatic claiming, findings, or publishing.
+- Added `services/orca-owned-oauth/verified-owner-read-query.mjs`: an allowlisted query adapter requiring `orca_owned_mcp_reader` current_user, READ ONLY transactions, and transaction-local verified owner context. It rejects service_role, admin and arbitrary SQL and rolls back on failure.
+- Added `services/orca-owned-oauth/mcp-reader-rls-review-only.sql`: NOLOGIN, NOBYPASSRLS dedicated role blueprint, minimal column SELECT grants and owner-filtered row policies. **Not migrated.** The custom PostgreSQL owner setting is defense in depth, not independent cryptographic authentication.
+- Added `.github/workflows/orca-owned-oauth-reader-policy.yml`: isolated PostgreSQL 17 tests prove two-owner profile/membership/task/board visibility and deny writes. The actual assignment SELECT also compiled under read-only EXPLAIN against the real ORCA staging schema, without executing the SELECT or changing records.
+
+**CI passed at commit 8e103c21:**
+- OAuth offline security: https://github.com/jonfordy5/orca-staging/actions/runs/43479621149
+- Private PostgreSQL reader RLS: https://github.com/jonfordy5/orca-staging/actions/runs/43479621115
+- Standards-library OAuth loopback: https://github.com/jonfordy5/orca-staging/actions/runs/43479621510
+- Isolated private schema: https://github.com/jonfordy5/orca-staging/actions/runs/43479621160
+
+**Still required for first live ChatGPT agent test:** audited private role and connection, real Supabase browser session/consent on HTTPS issuer, correctly configured ChatGPT client/callback and signing keys, deployed MCP SDK gateway, real two-account and revocation acceptance. The release gate remains OFF.
+
+
+## Stage 11 — opaque browser sessions and OAuth discovery (November 13, 2026)
+
+**Status: draft code only, OAuth issuer and MCP still disabled and undeployed. No real user credentials or approved client.**
+
+- Replaced the proposed browser-token-in-cookie approach with a new **opaque encrypted server-side session** path (`services/orca-owned-oauth/opaque-browser-session.mjs`). A host-only `__Host-` cookie contains only a random 32-byte handle. The SHA-256 handle digest indexes an AES-256-GCM encrypted server-side record containing the verified existing Supabase bearer, owner ID and a separate browser-session binding. No bearer leaves the issuer in a cookie.
+- The bridge requires exact same-origin HTTPS bootstrap, verified Supabase `getUser`, current opted-in owner profile, secure cookie flags, expiration, a private store, authorized decryption key and durable logout revocation. The OAuth interaction controller still verifies the researcher again on each login/consent action.
+- Added private PostgreSQL store adapter with fixed, parameterized insert/select/revoke statements and `browser-sessions-review-only.sql` to propose a private RLS table. **This SQL was tested only in ephemeral PostgreSQL; not applied to Supabase staging.** Dedicated least-privileged DB role, credential rotation and live revocation tests remain required.
+- Expanded automated session tests for no bearer in cookies, encrypted storage, expiry, tampering, wrong host/origin/TLS, cross-site, account opt-out, database read/write shape, key rotation and confirmed logout revocation.
+- Swapped the earlier fixture-signed cookie in `services/orca-owned-oauth/tests/code-flow.test.mjs` for the actual encrypted opaque bridge. The full maintained `oidc-provider@9.14.0` code+PKCE+human-consent+ES256 token+revocation path still runs only with a **synthetic Supabase identity and in-memory storage over loopback**, not a real user or public service.
+- Corrected Stage 8 protected resource metadata routing to canonical RFC 9728 well-known path `/.well-known/oauth-protected-resource/<resource-path>`; tests reject the old nonstandard path. Actual HTTPS domain and exact ChatGPT callback/client metadata must be obtained from the management page.
+
+**Verification:**
+- Offline OAuth/session tests: https://github.com/jonfordy5/orca-staging/actions/runs/43483473109
+- Real-library OAuth code-flow with opaque session: https://github.com/jonfordy5/orca-staging/actions/runs/43483473234
+- Ephemeral PostgreSQL private schema (including opaque browser sessions): https://github.com/jonfordy5/orca-staging/actions/runs/43482892661
+
+**What remains before real-agent testing:** choose a vetted HTTPS issuer+MCP host, install and lock the official MCP v2 SDK, deploy the maintained issuer with private signing keys and persistent state, establish dedicated private DB roles, connect real Supabase sign-in and human consent, register the exact ChatGPT client/callback, then run two actual owners and revoke/write-bypass acceptance. The existing OAuth release gate stays OFF.
+
+
+## Stage 12 — official MCP SDK HTTP boundary (November 13, 2026)
+
+**Code only; not deployed.** Added a real HTTP MCP protocol implementation from the maintained official TypeScript SDK v2.
+
+- Package: `services/orca-owned-oauth/mcp-sdk`, pinning `@modelcontextprotocol/server@2.3.1` and `zod@4.1.12` with a committed resolved `package-lock.json` and `npm ci` in CI.
+- `secure-handler.mjs` uses SDK `createMcpHandler` with an isolated per-request `McpServer`, a 16 KiB request cap, schema-validated `orca_whoami` and `orca_my_assignment`, and SDK-managed legacy 2025 stateless compatibility alongside newer protocol support.
+- Every MCP POST passes the previously implemented ES256 bearer signature, exact issuer/resource/client, and **fresh durable grant** check BEFORE the SDK creates a server or invokes a tool. The SDK tool callback receives only the verified owner/client/grant identity. No raw OAuth access token is passed into the database.
+- SDK tools reuse the existing owner-scoped Stage 9 read dispatcher, backed by the Stage 10 static parameterized SELECT-only SQL adapter (to be provisioned under its dedicated read-only DB role). Both tools have readOnlyHint=true; publishing, claiming and other mutations are not exposed.
+- Added official SDK integration tests for OAuth resource metadata, 2025-style initialize and tool listing, two synthetic owners with different assignments, rejected malicious tool names and schema arguments, wrong/absent bearer, and immediate denial of previously issued tokens after grant revocation.
+- CI successful with a reproducible clean `npm ci`, no dynamic npm install or drift; test-only synthetic identities and ephemeral ES256 keys. [Official SDK run](https://github.com/jonfordy5/orca-staging/actions/runs/43485762865).
+
+**First real-agent blockers remain:** HTTPS host and exact registered client/callback, live OAuth issuer and fresh grant-checking database role, real Supabase browser account/consent, signing secret custody, deploy of SDK handler behind a trusted HTTPS reverse proxy, and two *real* owner acceptance tests. OAuth activation switch stays OFF. No production or live staging schema changes.
+
+
+## Stage 12b — official MCP client acceptance (November 13, 2026)
+
+**TESTS ONLY, NOT A REAL CONNECTED ACCOUNT.** Added `@modelcontextprotocol/client@2.3.1` as a pinned dev-only dependency and regenerated/committed the npm lock; CI returned to strict `npm ci`.
+
+- `services/orca-owned-oauth/mcp-sdk/official-client.test.mjs` launches TWO distinct official MCP SDK clients (not hand-built JSON-RPC objects) through a test-only fetch transport into the actual Stage 12 official MCP server handler. The bridge rewrites synthetic loopback URL to a fictional HTTPS resource solely inside the test; no real public service exists.
+- The official clients negotiate MCP, list only `orca_whoami` and `orca_my_assignment`, receive their separately owned synthetic research assignments, and confirm revoked consent immediately blocks any additional reads.
+- Tests reuse ephemeral ES256 signing keys and synthetic researcher IDs. Neither a real ChatGPT client, actual Supabase Auth user session, genuine consent, nor live staging DB is involved.
+- Official client/server integration with temporary resolved lock: https://github.com/jonfordy5/orca-staging/actions/runs/43486435877 (PASS). Final clean-lock CI remains required after this checkpoint update.
+
+**First real connection remains gated:** real HTTPS issuer and MCP host, audit-ready private DB role/schema and secret custody, verified Supabase login/consent, vetted ChatGPT callback/client, live two-owner isolation and revoke tests, and existing-site acceptance. No live OAuth enablement or data mutations.
+
+
+## Stage 13 — real Node HTTP ingress and network acceptance (November 13, 2026)
+
+**CODE ONLY, LIVE ISSUER AND MCP RELEASE OFF.**
+
+- Added `services/orca-owned-oauth/mcp-sdk/node-ingress.mjs`, a Node HTTP ingress adapter that creates a server but NEVER starts listening on import. It wraps the Stage 12 official MCP gateway, keeping its read-only owner-scoped tools and fresh-grant verification.
+- Enforces an approved HTTPS host, no browser Origin/cookies, no query credentials or unusual paths, strict method rules, 16 KiB request and 128 KiB response caps, safe response headers and deliberately narrow proxy behavior. It does not trust `X-Forwarded-Proto`, `Forwarded` or other client-supplied proxy headers. Default ingress trust requires a real TLS socket; a trusted reverse proxy must supply an independently audited backend trust mechanism.
+- `node-ingress.test.mjs` starts the Node HTTP server **only** on local `127.0.0.1` with synthetic ES256 signing keys and in-memory research fixtures. A test-only fetch-compatible Node TCP adapter sends a simulated public Host header so strict host validation is exercised without weakening it.
+- Two real instances of the official MCP TypeScript Client connect over actual local TCP; each lists the two tools, retrieves a different synthetic researcher assignment, and loses read permission immediately when the grant is revoked. Other tests reject forwarded-TLS spoofing, wrong host, Origin, cookies, unauthorized calls, queries, unapproved paths and oversized bodies.
+- GitHub CI passed 13/13 (0 failures) at [Stage 13 official MCP network CI run](https://github.com/jonfordy5/orca-staging/actions/runs/43489222497). No actual ChatGPT account or Supabase identity was connected in this test.
+
+**Remaining deployment handoff:** A reviewed, real HTTPS Node host (not GitHub Pages) and authenticated private reverse-proxy boundary; real DNS and TLS; a vetted issuer service with real signing keys and a durable, least-privileged private DB role; owner-authenticated Supabase browser sign-in, consent and callback; exact registered ChatGPT OAuth client/redirect; live two-account isolation and revocation tests. Do not enable public listening or release gates until those checks pass. Live staging and production remain unchanged.
+
+
+## Stage 14 — locked direct-TLS staging deployment package (Nov 13, 2026)
+
+**Committed, NOT PUBLICLY DEPLOYED.** Stage 14 adds a Node 24 direct-HTTPS staging shell with no live MCP or OAuth activation, a non-root Docker image, a loopback-only Compose manifest, explicit release-off/secret-mount validation, and GitHub Actions isolated TLS+container tests.
+
+- `mcp-sdk/locked-https.mjs`: real Node HTTPS server with mounted TLS key/certificate, internal GET /healthz = {service:'orca-mcp-staging',status:'locked'}, everything protected = 503. Both issuer and MCP enabled=true are rejected by construction.
+- `mcp-sdk/run-locked-staging.mjs`: requires exact disabled flags and an explicit locked-mode acknowledgement, HTTPS issuer and MCP URLs, and files from /run/secrets. No production credentials in GitHub.
+- `mcp-sdk/Dockerfile.staging`: non-root Node 24, pinned package lock via npm ci, no secret files baked into image, and no code path to enable the real issuer.
+- `mcp-sdk/compose.locked-staging.yml`: localhost-only 127.0.0.1:8443 bind, read-only container, dropped capabilities, memory/PID limits, read-only host TLS mount. Not a publicly exposed deployment.
+- `.github/workflows/orca-locked-https-container.yml`: real local TLS handshake, Docker build and smoke, 200 locked health, 503 MCP/discovery, proof environment alone cannot enable it, Compose config validation.
+- `docs/orca-stage14-deployment-course.md`: host/DNS/TLS prerequisites, exact local Compose rehearsal, next OAuth issuer/MCP activation gates, two-real-user acceptance, rollback and safeguards.
+
+**Still BLOCKED on external infrastructure:** no selected server, real hostnames/certificates, live issuer signing keys, approved client callback, private DB roles, or two-real-account test. Do not claim public deployment. Draft PR #83 stays unmerged and both release flags OFF.
+
+
+## Stage 15 — deployment preflight (November 13, 2026)
+
+**CODE ONLY / CI TESTED; no public host, OAuth connection, or real user activation.**
+
+- `mcp-sdk/deployment-preflight.mjs` validates separate operator-approved public HTTPS resource and issuer URLs (no HTTP, URL credentials, query tokens, IP/localhost/reserved hosts, noncanonical /mcp paths, or redirects). It uses normal Node TLS certificate verification and bounded 16 KiB JSON-only probes.
+- **Locked mode:** checks `/healthz` is exactly the locked Node service and both MCP POST and protected-resource discovery return 503. A health check alone does not mean a live connector exists.
+- **OAuth discovery mode:** checks protected-resource issuer/resource/read-only scope metadata, 401 WWW-Authenticate challenge, OAuth authorization-code + PKCE S256 metadata, issuer-only HTTPS endpoints and public ES256 JWKS with no private key fields.
+- `mcp-sdk/deployment-preflight.cli.mjs` runs only when the operator supplies both actual approved public HTTPS URLs and an explicit mode. It rejects `NODE_TLS_REJECT_UNAUTHORIZED=0`, does not accept a bearer token, and sets `publicDeploymentAuthorized=false` even on success.
+- `mcp-sdk/deployment-preflight.test.mjs` tests pass and fail cases including wrong scope, spoofed issuer, broken PKCE, untrusted network failure, accidental unlocked access, wrong signing-key metadata and leaked private JWKS material. Included in official MCP SDK CI; tests run only against mocked endpoints and do NOT query a real public host.
+- Operator runbook updated: `docs/orca-stage14-deployment-course.md`, with commands and stop conditions.
+
+**Still blocked:** choose real Docker-capable host/domain/DNS/TLS, protect issuer secrets and DB roles, deploy and audit the real human-consent issuer, register exact ChatGPT client/callback, prove two real opted-in ORCA researcher accounts and instant token revocation. Keep OAuth and MCP OFF; the GitHub Pages frontend and research data are unchanged.
+
+
+## Stage 16 — opt-in public locked HTTPS deployment rehearsal (November 13, 2026)
+
+**CODE ONLY. Not publicly deployed. OAuth and MCP both stay off.**
+
+- `mcp-sdk/compose.public-locked.yml` introduces a **separate, operator-opt-in** port 443 -> 8443 direct-TLS Compose profile. This is NOT included in normal local-only Compose. The file demands `ORCA_PUBLIC_LOCKED_DEPLOY_ACK` and the launcher verifies the exact `I_APPROVE_PUBLIC_LOCKED_TLS_ONLY` acknowledgement. Only the locked health endpoint is accessible; MCP and OAuth continue returning 503 regardless of environment attempts.
+- The public locked Compose keeps non-root Node, read-only container filesystem, dropped capabilities, no-new-privileges, 256 MiB memory/PID limits and a read-only server-side certificate mount. Docker's port publication may bypass some host firewall rules, so a provider-level 443 firewall and operator-approved DNS/TLS are required.
+- Added `mcp-sdk/host-tls-preflight.mjs` and operator CLI to reject certificate SAN/hostname mismatches, nonmatching private keys, expired or soon-expiring certificates (<14 days), insecure private-key file permissions and unsafe host URLs. No PEM or key material is logged, embedded or transmitted. This local checker does **not** validate the public CA chain; the separate remote HTTPS preflight will perform actual TLS chain and hostname verification after hosting.
+- Added negative tests for wrong hostname, wrong key, low validity, bad PEM, key-file permission issues and missing approved host. Tests run within the official MCP SDK CI suite using disposable, synthetic OpenSSL certificates.
+- Expanded `.github/workflows/orca-locked-https-container.yml` to validate the public locked Compose profile, exact 443-only mapping, secret mount, mandatory approval and locked release flags. CI still never publishes a real image or deploys a public service.
+- Operator course updated in `docs/orca-stage14-deployment-course.md` with a dedicated public-locked pilot path, preflight commands, explicit no-go conditions, and safe rollback. This step is **not** a real ChatGPT connection and has no Supabase data changes.
+
+**External prerequisite remains:** operator must select and approve a real VPS/host, distinct domains, DNS, a trusted TLS cert and a secure secrets mount before there can be any public locked staging deployment. The issuer, client callback, private roles, live OAuth and two-real-account acceptance remain separate. Do not merge/activate this draft as a shortcut.
+
+
+## Stages 17–18 — real consent HTTP and Supabase user-token adapter (November 13, 2026)
+
+**Draft branch only. NO real account connected, database migration, public issuer or live OAuth token.**
+
+- Stage 17 replaced the shortcut interaction handler inside the **actual oidc-provider 9.14.0 local code-flow test** with the Stage 7 `createOrcaIssuerInteractionHttp` HTML login/approve routes. The test posts the consent form's real one-use challenge and CSRF, rejects cross-origin requests, and continues to PKCE S256 exchange, ES256 signed resource-bound token, real provider-to-ORCA grant link, instant grant revocation and replay rejection. It also obtains an opaque HttpOnly/Secure/SameSite session cookie through the actual `/session/bootstrap` HTTP route. The HTTPS Host translation used in this fixture is explicitly **test-only** and may never be used by the real issuer.
+- Stage 18 added `services/orca-owned-oauth/supabase-existing-researcher-http.mjs`, a **server-side read-only HTTP adapter** with two fixed paths: `GET /auth/v1/user` using the existing user's Supabase session bearer, and `GET /rest/v1/agent_profiles?select=owner_id,opted_in&owner_id=eq.<verified-user-id>&limit=2` using the same user bearer plus only a **Supabase publishable key**. It rejects secret/service-role keys, non-Supabase origins, redirects, abnormal response sizes, anonymous users, missing opt-in and wrong-owner profiles. No direct user-metadata authorization, elevated database connection, identity creation, publishing, team updates or write request is permitted.
+- Supabase staging RLS policies were inspected read-only: `public.agent_profiles` already has a policy for `owner_id = auth.uid()`. This adapter relies on **that owner-scoped RLS** as independent enforcement and must NOT be used if a later policy opens profile reads. Production is unchanged.
+- `scripts/test-orca-existing-supabase-http.mjs` simulates two unique signed-in owners and wrong owner/token, expired Auth response, opt-out, privileged key misuse, redirect, network failure and malformed JSON. It runs in the isolated OAuth security CI workflow.
+- The local **real oidc-provider** end-to-end code-flow test now uses this production-shaped Supabase HTTP adapter with synthetic GET responses, rather than hand-written `getUser`/profile functions, verifying that all layers can be composed. It **does NOT call live Supabase Auth** and cannot prove live session persistence.
+
+**Known remaining release blockers:** choose and securely host separate real MCP and issuer HTTPS domains, provision vetted private PostgreSQL schema and reader, install server-side signing key custody and real persistent oidc-provider adapter, verify the real Supabase Auth GET/profile RLS for two signed-in consenting users, obtain actual registered ChatGPT client and callback, then repeat signed token, role isolation, consent revocation and write-denial acceptance. Keep pilot release OFF.
+
+
+## Stage 19 — real PostgreSQL private OAuth persistence and split roles (November 13, 2026)
+
+**Completed locally against isolated PostgreSQL 17. NOT a Supabase staging migration. NOT a live ChatGPT connection.**
+
+- Created `services/orca-owned-oauth/private-db-roles-review-only.sql` (separate from supabase/migrations). It defines two `NOLOGIN`, `NOBYPASSRLS` roles: `orca_owned_issuer_writer` (narrowly scoped private OAuth grant/provider-model/CSRF/session operations) and `orca_owned_mcp_grant_reader` (column-limited **SELECT only** on a single-current-grant table). The issuer role is not for browser or Data API use. The MCP reader RLS policy requires transaction-local verified owner ID, grant ID, registered client and resource, with read-only scope, unrevoked and unexpired grant. Custom GUCs are defense in depth, **not authentication**.
+- Created `services/orca-owned-oauth/verified-current-grant-query.mjs`. This checks the exact static `CURRENT_GRANT_SELECT`, UUIDs, client ID, resource and read scope, verifies `current_user` is the dedicated grant-reader role, sets each verified owner/grant/client/resource context transaction-locally, and runs a **READ ONLY** transaction. It refuses issuer/postgres/admin/service roles and arbitrary SQL; any error rolls back and fails closed. The existing `grant-registry.mjs` exports the shared fixed query string.
+- New offline JS security suite `scripts/test-orca-private-current-grant-query.mjs` covers role failures, query allowlist, owner swaps, client swaps, revocation and database outages.
+- New GitHub Actions workflow `.github/workflows/orca-private-oauth-roles.yml` provisions an **ephemeral PostgreSQL 17** database, applies the original review-only schema, browser-session schema and new reviewer role SQL; verifies no API-role access, least privilege, owner-bound RLS, no default visible grant, cross-owner denial, no updates/session inspection by MCP, and immediate denial after issuer revocation.
+- Added private `node-postgres` acceptance package (`pg@8.23.1`, resolved npm lock) at `services/orca-owned-oauth/private-pg-tests/`; its **five real-database tests passed**: two-owner grant checks with current RLS, encrypted OIDC state persisted across adapter instances with one-time code consumption, one-use CSRF challenge, encrypted opaque browser session storage/logout/revocation, and correct issuer-role identity. All identities, keys, approvals and credentials were **synthetic**; Node connected exclusively to a local ephemeral database. First PostgreSQL integration CI PASS: https://github.com/jonfordy5/orca-staging/actions/runs/43505887781.
+- The workflow now uses reproducible `npm ci` from the committed lock file. No real Supabase `postgres` password or client secret has been requested or entered. No live private SQL has been applied.
+
+**Remaining operational blockers:** security audit and approved hosted Supabase private schema/role migration with backups/rollback, truly dedicated authenticated database login(s) limited to exactly these roles, SSL certificate verification (`verify-full`), a real persistent oidc-provider issuer, controlled signing keys, real HTTPS issuer and MCP host, verified ChatGPT OAuth client/callback, two actual consenting ORCA accounts and live revocation/cross-user acceptance. Production and public launch remain OFF.
+
+
+## Stage 20 — verified PostgreSQL backend login and real local TLS (November 13, 2026)
+
+**Code committed and isolated CI PASSED. No hosted Supabase migration, credentials, public issuer, or real agent yet.**
+
+- `services/orca-owned-oauth/verified-supabase-db-connector.mjs` creates a new CA/hostname-verified, TLS 1.2+ session to **only** the operator-approved Supabase direct endpoint or the session pooler on port 5432. It refuses transaction pooling on 6543, unapproved project/host/database/login, privileged logins, insecure TLS and wrong PostgreSQL role; rate limits concurrent connections and discards each session rather than pooling role-specific state.
+- `services/orca-owned-oauth/private-db-logins-review-only.sql` creates separate NOLOGIN, NOINHERIT roles with mutually exclusive SET ROLE memberships for the issuer and MCP grant checker. It has no password, does not activate a login, and is not in migrations. The real operator must review credentials/privileges and activate only inside approved staging infrastructure.
+- `scripts/test-orca-verified-db-connector.mjs` validates fail-closed TLS, role and host configuration with fake drivers. [Offline security suite PASS](https://github.com/jonfordy5/orca-staging/actions/runs/43508150986).
+- `.github/workflows/orca-private-oauth-roles.yml` now tests **real separately authenticated PostgreSQL 17 login roles** using disposable credentials, proving that issuer login and MCP reader cannot assume each other's roles and no permissions are inherited before SET ROLE. [Login-role isolation PASS](https://github.com/jonfordy5/orca-staging/actions/runs/43508151152).
+- `.github/workflows/orca-stage20-real-tls.yml` starts a **real PostgreSQL 17 server using an ephemeral CA-signed TLS certificate**, local hostname mapping and two distinct restricted logins. `private-pg-tests/verify-full-real-tls.test.mjs` uses the production-shaped connector with actual `pg.Client` to prove CA/hostname verification, owner-scoped grant lookup, revocation and unrelated-CA rejection. [Real TLS integration PASS](https://github.com/jonfordy5/orca-staging/actions/runs/43508676800). No network call to the real Supabase project.
+- Operator setup and staged go/no-go are documented in [docs/orca-stage20-private-db-connection.md](https://github.com/jonfordy5/orca-staging/blob/feat/orca-owned-oauth-fallback-20261112/docs/orca-stage20-private-db-connection.md).
+
+**Next blockers:** independent migration/role and backup review; an actual hosted Supabase staging login and CA setup under operator-controlled secrets; real HTTPS issuer with persistent OAuth provider and signing keys; exact ChatGPT app callback/client registration; two actual owner sign-ins/consent and revoked-token acceptance. Keep PR draft and both agent release gates OFF; production remains unchanged.
+
+
+## Stage 21 — locked, integrated issuer assembly (November 13, 2026)
+
+**Code only, NOT an activated issuer, real user login or public agent connection. PR stays DRAFT and both release gates OFF.**
+
+- `services/orca-owned-oauth/locked-issuer-assembly.mjs` now composes an actual pinned `oidc-provider@9.14.0` instance, real ES256 P-256 signing-key validation, 2 independent provider cookie secrets, distinct provider-state AES-256-GCM and browser-session AES-256-GCM keyrings, encrypted private PostgreSQL OIDC model adapter, ORCA owner-bound grant registry, one-use CSRF challenges, opaque server-side browser sessions, real Supabase `getUser`/owner-RLS researcher adapter, verified human login and consent controller and finalizer.
+- The assembly takes ONLY a Stage 20 style verified issuer database connector, not a raw SQL callback. New `services/orca-owned-oauth/issuer-private-query.mjs` restricts internal fixed private SQL operations to bounded SELECT/INSERT/UPDATE/DELETE statements on exactly the four OAuth-private tables; each operation uses a fresh verified issuer-only DB session, BEGIN/COMMIT and rollback/release on any failure. Tests reject arbitrary/multiple SQL, bad result shape and sensitive error leakage.
+- The assembly returns only non-secret metadata and an always-503 locked handler; it never returns the underlying issuer provider callback, private JWK, DB query adapter or enabled consent endpoint. A separate reviewed activation entrypoint is needed for live service. No hostname, TLS certificate, client callback, Supabase token, or PostgreSQL credential has been deployed or generated for a real account.
+- New `services/orca-owned-oauth/tests/locked-issuer-assembly.test.mjs` constructs the real maintained OAuth provider using ephemeral test keys and the real-shaped Supabase HTTP adapter with blocked/intercepted network; confirms all sensitive routes stay 503, no database/Supabase calls happen in locked mode, and invalid P-256 keys, weak/duplicate cookie secrets, shared encryption keys, unsafe URLs and missing verified dependencies fail closed.
+- New `scripts/test-orca-issuer-private-query.mjs` tests issuer transaction/read-write boundary and rollback. Both included in existing GitHub security/standards-library CI. [OAuth assembly CI PASS](https://github.com/jonfordy5/orca-staging/actions/runs/43511215553) and [private issuer-query security CI PASS](https://github.com/jonfordy5/orca-staging/actions/runs/43511215589).
+- Dedicated operator notes and remaining release gates: `docs/orca-stage21-issuer-assembly.md`.
+
+**Remaining real connection blockers:** Operator-approved direct-TLS issuer and MCP hosts with trusted certs, private secret mounts/rotation, reviewed Supabase staging schema plus per-service authenticated DB login credentials, verified existing live user consent and exact ChatGPT OAuth client callback, and two real researcher/role-isolation/revocation tests. Do not merge or publish as a shortcut.

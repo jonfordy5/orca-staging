@@ -1,0 +1,318 @@
+name: ORCA Stage 19 private OAuth issuer and MCP grant roles (isolated only)
+
+on:
+  push:
+    branches:
+      - feat/orca-owned-oauth-fallback-20261112
+    paths:
+      - services/orca-owned-oauth/private-schema-review-only.sql
+      - services/orca-owned-oauth/browser-sessions-review-only.sql
+      - services/orca-owned-oauth/private-db-roles-review-only.sql
+      - services/orca-owned-oauth/private-db-logins-review-only.sql
+      - services/orca-owned-oauth/verified-supabase-db-connector.mjs
+      - services/orca-owned-oauth/private-pg-tests/**
+      - services/orca-owned-oauth/verified-current-grant-query.mjs
+      - .github/workflows/orca-private-oauth-roles.yml
+  pull_request:
+    paths:
+      - services/orca-owned-oauth/private-schema-review-only.sql
+      - services/orca-owned-oauth/browser-sessions-review-only.sql
+      - services/orca-owned-oauth/private-db-roles-review-only.sql
+      - services/orca-owned-oauth/private-db-logins-review-only.sql
+      - services/orca-owned-oauth/verified-supabase-db-connector.mjs
+      - services/orca-owned-oauth/private-pg-tests/**
+      - services/orca-owned-oauth/verified-current-grant-query.mjs
+      - .github/workflows/orca-private-oauth-roles.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  isolated-private-role-acceptance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: ephemeral_orca_oauth_roles
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: isolated-only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d ephemeral_orca_oauth_roles"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: "5432"
+      PGUSER: postgres
+      PGPASSWORD: isolated-only
+      PGDATABASE: ephemeral_orca_oauth_roles
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install pinned node-postgres into isolated test package
+        working-directory: services/orca-owned-oauth/private-pg-tests
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Create isolated dummy Supabase API roles only
+        run: |
+          psql -v ON_ERROR_STOP=1 <<'SQL'
+          create role anon nologin;
+          create role authenticated nologin;
+          create role service_role nologin;
+          create role authenticator nologin;
+          SQL
+      - name: Apply review-only schemas to isolated PostgreSQL only
+        run: |
+          psql -v ON_ERROR_STOP=1 -f services/orca-owned-oauth/private-schema-review-only.sql
+          psql -v ON_ERROR_STOP=1 -f services/orca-owned-oauth/browser-sessions-review-only.sql
+          psql -v ON_ERROR_STOP=1 -f services/orca-owned-oauth/private-db-roles-review-only.sql
+          psql -v ON_ERROR_STOP=1 -f services/orca-owned-oauth/private-db-logins-review-only.sql
+      - name: Inspect reader permissions and API-role bans
+        run: |
+          psql -v ON_ERROR_STOP=1 <<'SQL'
+          do $$
+          declare role_name text; table_name text;
+          begin
+            foreach role_name in array
+              array['orca_owned_issuer_writer','orca_owned_mcp_grant_reader']
+            loop
+              if not exists (
+                select 1 from pg_roles where rolname=role_name
+                  and not rolcanlogin and not rolbypassrls
+                  and not rolsuper and not rolcreaterole and not rolcreatedb
+              ) then raise exception '% is not least-privileged NOLOGIN',role_name;
+              end if;
+            end loop;
+            foreach role_name in array
+              array['anon','authenticated','service_role','authenticator']
+            loop
+              if has_schema_privilege(role_name,
+                'orca_owned_oauth_private','USAGE') then
+                raise exception 'public API role % can use private schema',role_name;
+              end if;
+              if pg_has_role(role_name,'orca_owned_issuer_writer','MEMBER')
+                 or pg_has_role(role_name,'orca_owned_mcp_grant_reader','MEMBER') then
+                raise exception 'public API role % inherits a private issuer role',role_name;
+              end if;
+            end loop;
+            foreach table_name in array
+              array['provider_models','consent_challenges','browser_sessions']
+            loop
+              if has_table_privilege('orca_owned_mcp_grant_reader',
+                  'orca_owned_oauth_private.'||table_name,'SELECT') or
+                 has_table_privilege('orca_owned_mcp_grant_reader',
+                  'orca_owned_oauth_private.'||table_name,'INSERT') then
+                raise exception 'MCP grant reader sees private OAuth %',table_name;
+              end if;
+            end loop;
+            if has_table_privilege('orca_owned_mcp_grant_reader',
+                'orca_owned_oauth_private.grants','UPDATE') or
+               has_table_privilege('orca_owned_mcp_grant_reader',
+                'orca_owned_oauth_private.grants','INSERT') or
+               has_table_privilege('orca_owned_mcp_grant_reader',
+                'orca_owned_oauth_private.grants','DELETE') or
+               has_column_privilege('orca_owned_mcp_grant_reader',
+                'orca_owned_oauth_private.grants','provider_grant_hash','SELECT') then
+              raise exception 'MCP role can write or see provider secret hash';
+            end if;
+          end $$;
+          SQL
+      - name: Issuer writer may create and revoke only private model and grant records
+        run: |
+          psql -v ON_ERROR_STOP=1 <<'SQL'
+          begin;
+          set local role orca_owned_issuer_writer;
+          insert into orca_owned_oauth_private.grants
+             (id,owner_id,client_id,resource,scope,expires_at)
+          values
+            ('11111111-2222-4333-8444-555555555555',
+             'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee',
+             'registered-agent-a','https://mcp.orca.example/mcp',
+             'orca:research.read',clock_timestamp()+interval '1 hour'),
+            ('66666666-7777-4888-8999-aaaaaaaaaaaa',
+             'bbbbbbbb-cccc-4ddd-8eee-ffffffffffff',
+             'registered-agent-b','https://mcp.orca.example/mcp',
+             'orca:research.read',clock_timestamp()+interval '1 hour');
+          do $$
+          declare n integer;
+          begin
+            select count(*) into n from orca_owned_oauth_private.grants;
+            if n<>2 then raise exception 'Issuer could not store grants';end if;
+          end $$;
+          commit;
+          SQL
+      - name: MCP reader sees zero without context, own grant only with verified context
+        run: |
+          psql -v ON_ERROR_STOP=1 <<'SQL'
+          begin read only;
+          set local role orca_owned_mcp_grant_reader;
+          do $$
+          declare n integer;
+          begin
+            select count(*) into n from orca_owned_oauth_private.grants;
+            if n<>0 then raise exception 'Unauthenticated private grant exposed';end if;
+          end $$;
+          select set_config('orca.verified_owner_id',
+            'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee',true);
+          select set_config('orca.verified_grant_id',
+            '11111111-2222-4333-8444-555555555555',true);
+          select set_config('orca.verified_client_id','registered-agent-a',true);
+          select set_config('orca.verified_resource',
+            'https://mcp.orca.example/mcp',true);
+          do $$
+          declare n integer;
+          begin
+            select count(*) into n from orca_owned_oauth_private.grants;
+            if n<>1 then raise exception 'Expected exactly one matched owner grant';end if;
+          end $$;
+          select set_config('orca.verified_owner_id',
+            'bbbbbbbb-cccc-4ddd-8eee-ffffffffffff',true);
+          do $$
+          declare n integer;
+          begin
+            select count(*) into n from orca_owned_oauth_private.grants;
+            if n<>0 then raise exception 'Owner switch leaked another grant';end if;
+          end $$;
+          rollback;
+          begin read only;
+          set local role orca_owned_mcp_grant_reader;
+          do $$
+          declare n integer;
+          begin
+            select count(*) into n from orca_owned_oauth_private.grants;
+            if n<>0 then raise exception 'Session context leaked across transactions';end if;
+          end $$;
+          rollback;
+          SQL
+      - name: Deny MCP UPDATE and private consent-state reads
+        run: |
+          if psql -v ON_ERROR_STOP=1 <<'SQL'
+          set role orca_owned_mcp_grant_reader;
+          update orca_owned_oauth_private.grants
+          set revoked_at=clock_timestamp();
+          SQL
+          then echo 'FAIL: MCP grant reader could UPDATE';exit 1;fi
+          if psql -v ON_ERROR_STOP=1 <<'SQL'
+          set role orca_owned_mcp_grant_reader;
+          select * from orca_owned_oauth_private.browser_sessions;
+          SQL
+          then echo 'FAIL: MCP grant reader could SELECT browser sessions';exit 1;fi
+          echo 'PASS: grant reader cannot modify consent or see private sessions'
+      - name: Revoke grant as issuer, and ensure same MCP context sees zero immediately
+        run: |
+          psql -v ON_ERROR_STOP=1 <<'SQL'
+          begin;
+          set local role orca_owned_issuer_writer;
+          update orca_owned_oauth_private.grants
+             set revoked_at=clock_timestamp()
+           where id='11111111-2222-4333-8444-555555555555';
+          commit;
+          begin read only;
+          set local role orca_owned_mcp_grant_reader;
+          select set_config('orca.verified_owner_id',
+            'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee',true);
+          select set_config('orca.verified_grant_id',
+            '11111111-2222-4333-8444-555555555555',true);
+          select set_config('orca.verified_client_id','registered-agent-a',true);
+          select set_config('orca.verified_resource',
+            'https://mcp.orca.example/mcp',true);
+          do $$
+          declare n integer;
+          begin
+            select count(*) into n from orca_owned_oauth_private.grants;
+            if n<>0 then raise exception 'Revoked grant remained visible to MCP';end if;
+          end $$;
+          rollback;
+          SQL
+
+      - name: Exercise real PostgreSQL private OAuth storage, owner isolation and revocation
+        working-directory: services/orca-owned-oauth/private-pg-tests
+        env:
+          ORCA_SQL_EPHEMERAL_TEST_ONLY: "yes"
+        run: npm test
+
+      - name: Test separate NOINHERIT PostgreSQL logins with disposable runtime secrets
+        run: |
+          # Ephemeral credentials exist only inside this CI process, never
+          # committed, logged, or deployed to Supabase.
+          issuer_pw=$(openssl rand -hex 24)
+          reader_pw=$(openssl rand -hex 24)
+          psql -v ON_ERROR_STOP=1 \
+            -v issuer_password="$issuer_pw" \
+            -v reader_password="$reader_pw" <<'SQL'
+          alter role orca_owned_issuer_login
+            login password :'issuer_password';
+          alter role orca_owned_mcp_grant_login
+            login password :'reader_password';
+          do $$
+          begin
+            if pg_has_role('orca_owned_issuer_login',
+               'orca_owned_mcp_grant_reader','MEMBER')
+               or pg_has_role('orca_owned_mcp_grant_login',
+               'orca_owned_issuer_writer','MEMBER')
+               or pg_has_role('orca_owned_issuer_login',
+               'orca_owned_issuer_writer','USAGE')
+               or pg_has_role('orca_owned_mcp_grant_login',
+               'orca_owned_mcp_grant_reader','USAGE') then
+               raise exception 'Unsafe inherited or cross-issuer DB role';
+            end if;
+          end $$;
+          SQL
+
+          if PGPASSWORD="$issuer_pw" PGUSER=orca_owned_issuer_login \
+               psql -v ON_ERROR_STOP=1 -c \
+               "select count(*) from orca_owned_oauth_private.grants" \
+               >/dev/null 2>&1; then
+            echo "SECURITY FAILURE: issuer login inherited private table reads"
+            exit 1
+          fi
+          if PGPASSWORD="$reader_pw" PGUSER=orca_owned_mcp_grant_login \
+               psql -v ON_ERROR_STOP=1 -c \
+               "set role orca_owned_issuer_writer" \
+               >/dev/null 2>&1; then
+            echo "SECURITY FAILURE: MCP reader login could assume issuer writer"
+            exit 1
+          fi
+          if PGPASSWORD="$issuer_pw" PGUSER=orca_owned_issuer_login \
+               psql -v ON_ERROR_STOP=1 -c \
+               "set role orca_owned_mcp_grant_reader" \
+               >/dev/null 2>&1; then
+            echo "SECURITY FAILURE: issuer login could assume MCP grant reader"
+            exit 1
+          fi
+
+          PGPASSWORD="$issuer_pw" PGUSER=orca_owned_issuer_login \
+            psql -v ON_ERROR_STOP=1 <<'SQL'
+          set role orca_owned_issuer_writer;
+          do $$
+          declare n integer;
+          begin
+            select count(*) into n from orca_owned_oauth_private.grants;
+            if n<2 then raise exception 'Issuer login cannot access stored grants';end if;
+          end $$;
+          SQL
+
+          PGPASSWORD="$reader_pw" PGUSER=orca_owned_mcp_grant_login \
+            psql -v ON_ERROR_STOP=1 <<'SQL'
+          set role orca_owned_mcp_grant_reader;
+          begin read only;
+          select set_config('orca.verified_owner_id',
+            'bbbbbbbb-cccc-4ddd-8eee-ffffffffffff',true);
+          select set_config('orca.verified_grant_id',
+            '66666666-7777-4888-8999-aaaaaaaaaaaa',true);
+          select set_config('orca.verified_client_id','registered-agent-b',true);
+          select set_config('orca.verified_resource',
+            'https://mcp.orca.example/mcp',true);
+          do $$
+          declare n integer;
+          begin
+            select count(*) into n from orca_owned_oauth_private.grants;
+            if n<>1 then raise exception 'MCP login cannot see exact active grant';end if;
+          end $$;
+          rollback;
+          SQL

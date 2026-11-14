@@ -1,0 +1,40 @@
+name: ORCA-owned OAuth standards-library loopback smoke
+
+on:
+  push:
+    branches:
+      - feat/orca-owned-oauth-fallback-20261112
+    paths:
+      - services/orca-owned-oauth/**
+      - scripts/test-orca-owned-oauth-library-smoke.mjs
+      - scripts/test-orca-owned-oauth-library-storage.mjs
+      - services/orca-owned-oauth/tests/code-flow.test.mjs
+      - .github/workflows/orca-owned-oauth-library-smoke.yml
+  pull_request:
+    paths:
+      - services/orca-owned-oauth/**
+      - scripts/test-orca-owned-oauth-library-smoke.mjs
+      - scripts/test-orca-owned-oauth-library-storage.mjs
+      - services/orca-owned-oauth/tests/code-flow.test.mjs
+      - .github/workflows/orca-owned-oauth-library-smoke.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  library-local-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install exact pinned development-only OAuth library
+        run: npm ci --prefix services/orca-owned-oauth --no-audit --no-fund --ignore-scripts
+      - name: Test actual OAuth library discovery and deny all authorization endpoints
+        run: node --test scripts/test-orca-owned-oauth-library-smoke.mjs scripts/test-orca-owned-oauth-library-storage.mjs services/orca-owned-oauth/tests/code-flow.test.mjs services/orca-owned-oauth/tests/locked-issuer-assembly.test.mjs services/orca-owned-oauth/tests/locked-issuer-host-startup.test.mjs services/orca-owned-oauth/tests/locked-issuer-host-startup-integration.test.mjs services/orca-owned-oauth/tests/locked-issuer-tls-server.test.mjs
+      - name: Confirm no public OAuth release flag
+        run: |
+          node --input-type=module -e "import {ORCA_OWNED_ISSUER_ENABLED} from './services/orca-owned-oauth/issuer-policy.mjs';if(ORCA_OWNED_ISSUER_ENABLED!==false)process.exit(1)"

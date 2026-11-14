@@ -1,0 +1,26 @@
+# ORCA Stage 14 — LOCKED staging HTTPS shell only.
+# Build from repository root:
+#   docker build -f services/orca-owned-oauth/mcp-sdk/Dockerfile.staging .
+# No credentials, TLS keys, or production data are baked into this image.
+FROM node:24-bookworm-slim
+
+ENV NODE_ENV=production
+WORKDIR /srv/orca
+
+COPY services/orca-owned-oauth/mcp-sdk/package.json \
+     services/orca-owned-oauth/mcp-sdk/package-lock.json \
+     ./mcp-sdk/
+RUN cd mcp-sdk && npm ci --omit=dev --ignore-scripts --no-audit --no-fund && \
+    npm cache clean --force
+
+COPY services/orca-owned-oauth/mcp-sdk/locked-https.mjs ./mcp-sdk/
+COPY services/orca-owned-oauth/mcp-sdk/run-locked-staging.mjs ./mcp-sdk/
+COPY services/orca-owned-oauth/mcp-sdk/node-ingress.mjs ./mcp-sdk/
+COPY services/orca-owned-oauth/mcp-sdk/secure-handler.mjs ./mcp-sdk/
+COPY services/orca-owned-oauth/mcp-resource-policy.mjs ./
+COPY services/orca-owned-oauth/bound-token.mjs ./
+COPY services/orca-owned-oauth/read-only-research-dispatcher.mjs ./
+
+USER node
+EXPOSE 8443
+CMD ["node","/srv/orca/mcp-sdk/run-locked-staging.mjs"]

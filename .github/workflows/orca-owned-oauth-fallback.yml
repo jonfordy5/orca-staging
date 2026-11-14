@@ -1,0 +1,70 @@
+name: ORCA-owned OAuth fallback (offline security)
+
+on:
+  push:
+    branches:
+      - feat/orca-owned-oauth-fallback-20261112
+    paths:
+      - services/orca-owned-oauth/**
+      - scripts/test-orca-owned-oauth-fallback.mjs
+      - scripts/test-orca-owned-oauth-grant-registry.mjs
+      - scripts/test-orca-owned-oauth-provider-store.mjs
+      - scripts/test-orca-owned-oauth-consent-challenge.mjs
+      - scripts/test-orca-owned-oauth-interaction.mjs
+      - scripts/test-orca-owned-oauth-token-binding.mjs scripts/test-orca-owned-oauth-provider-grant-link.mjs scripts/test-orca-owned-oauth-consent-finalization.mjs
+      - scripts/test-orca-owned-oauth-provider-grant-link.mjs
+      - scripts/test-orca-owned-oauth-consent-finalization.mjs
+      - scripts/test-orca-owned-oauth-trusted-browser-session.mjs
+      - scripts/test-orca-owned-oauth-interaction-http.mjs
+      - scripts/test-orca-owned-oauth-mcp-admission.mjs
+      - scripts/test-orca-owned-oauth-read-dispatcher.mjs
+      - scripts/test-orca-owned-oauth-owner-read-query.mjs
+      - scripts/test-orca-owned-oauth-opaque-browser-session.mjs
+      - scripts/test-orca-existing-supabase-http.mjs
+      - scripts/test-orca-private-current-grant-query.mjs
+      - scripts/test-orca-verified-db-connector.mjs
+      - scripts/test-orca-issuer-private-query.mjs
+      - services/orca-owned-oauth/verified-supabase-db-connector.mjs
+      - .github/workflows/orca-owned-oauth-fallback.yml
+  pull_request:
+    paths:
+      - services/orca-owned-oauth/**
+      - scripts/test-orca-owned-oauth-fallback.mjs
+      - scripts/test-orca-owned-oauth-grant-registry.mjs
+      - scripts/test-orca-owned-oauth-provider-store.mjs
+      - scripts/test-orca-owned-oauth-consent-challenge.mjs
+      - scripts/test-orca-owned-oauth-interaction.mjs
+      - scripts/test-orca-owned-oauth-token-binding.mjs
+      - scripts/test-orca-owned-oauth-provider-grant-link.mjs
+      - scripts/test-orca-owned-oauth-consent-finalization.mjs
+      - scripts/test-orca-owned-oauth-trusted-browser-session.mjs
+      - scripts/test-orca-owned-oauth-interaction-http.mjs
+      - scripts/test-orca-owned-oauth-mcp-admission.mjs
+      - scripts/test-orca-owned-oauth-read-dispatcher.mjs
+      - scripts/test-orca-owned-oauth-owner-read-query.mjs
+      - scripts/test-orca-owned-oauth-opaque-browser-session.mjs
+      - scripts/test-orca-existing-supabase-http.mjs
+      - scripts/test-orca-private-current-grant-query.mjs
+      - scripts/test-orca-verified-db-connector.mjs
+      - scripts/test-orca-issuer-private-query.mjs
+      - services/orca-owned-oauth/verified-supabase-db-connector.mjs
+      - .github/workflows/orca-owned-oauth-fallback.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  owned-issuer-policy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Test binding, PKCE, ES256 signatures, account isolation and revocation
+        run: node --test scripts/test-orca-owned-oauth-fallback.mjs scripts/test-orca-owned-oauth-grant-registry.mjs scripts/test-orca-owned-oauth-provider-store.mjs scripts/test-orca-owned-oauth-consent-challenge.mjs scripts/test-orca-owned-oauth-interaction.mjs scripts/test-orca-owned-oauth-token-binding.mjs scripts/test-orca-owned-oauth-trusted-browser-session.mjs scripts/test-orca-owned-oauth-interaction-http.mjs scripts/test-orca-owned-oauth-mcp-admission.mjs scripts/test-orca-owned-oauth-read-dispatcher.mjs scripts/test-orca-owned-oauth-owner-read-query.mjs scripts/test-orca-owned-oauth-opaque-browser-session.mjs scripts/test-orca-existing-supabase-http.mjs scripts/test-orca-private-current-grant-query.mjs scripts/test-orca-verified-db-connector.mjs scripts/test-orca-issuer-private-query.mjs
+      - name: Verify operator release gate is disabled
+        run: |
+          node --input-type=module -e "import {ORCA_OWNED_ISSUER_ENABLED as enabled} from './services/orca-owned-oauth/issuer-policy.mjs';if(enabled!==false)process.exit(1)"
