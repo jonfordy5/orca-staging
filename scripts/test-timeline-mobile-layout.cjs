@@ -210,7 +210,7 @@ async function swipe(page,direction){
    assert(first.trackLength>900,'Long straight rail has room for the comet');
    assert(first.stroke.startsWith('5.3'),'White-blue tracer is visibly thicker than the base');
    assert.notEqual(first.filter,'none','Tracer has a neon glow');
-   assert(second.x+second.width>first.x+25,'The comet leading edge advances across the straight rail');
+   assert(second.x+second.width>first.x+first.width+25,'The comet leading edge advances across the straight rail');
    assert.notEqual(first.d,second.d,'Comet shape updates as it advances');
    await motionPage.setViewportSize({width:393,height:851});
    await motionPage.waitForFunction(()=>!document.querySelector('.orca-history-track'));
