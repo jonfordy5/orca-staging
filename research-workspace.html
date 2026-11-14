@@ -552,11 +552,17 @@ main{max-width:1020px;margin:0 auto;padding:27px 16px 55px}
  overflow:visible;pointer-events:none;z-index:1;
 }
 .orca-timeline-frame .orca-history-track-base{
- stroke:#70b8ff;stroke-width:3;opacity:.88;
- filter:drop-shadow(0 0 3px #55a6ffaa);
+ stroke:#78bdff;stroke-width:3.2;opacity:.93;
+ filter:drop-shadow(0 0 4px #73bcffdd) drop-shadow(0 0 9px #428cfa88);
+ animation:orca-history-rail-shimmer 5s ease-in-out infinite;
 }
 .orca-timeline-frame .orca-history-track-beam{
- stroke-width:3.4;opacity:1;filter:drop-shadow(0 0 3px #c8f6ff88);
+ stroke-width:5.3;opacity:1;
+ filter:drop-shadow(0 0 3px #fff) drop-shadow(0 0 8px #a1dfff) drop-shadow(0 0 12px #559cffaa);
+}
+@keyframes orca-history-rail-shimmer{
+ 0%,100%{opacity:.82}
+ 50%{opacity:1}
 }
 #chart-section .orca-timeline-frame .orca-history-stop .orca-history-stem{
  z-index:4!important;display:block!important;
@@ -586,6 +592,7 @@ main{max-width:1020px;margin:0 auto;padding:27px 16px 55px}
  32%,68%{filter:drop-shadow(0 0 10px #89ddffcc)}
 }
 @media(prefers-reduced-motion:reduce){
+ .orca-timeline-frame .orca-history-track-base{animation:none!important}
  .orca-timeline-frame .orca-history-stop.orca-history-activated .orca-history-stem::after,
  .orca-timeline-frame .orca-history-stop.orca-history-activated .orca-timeline-event{animation:none!important}
 }
