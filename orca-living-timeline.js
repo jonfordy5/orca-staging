@@ -157,8 +157,7 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
   beam.setAttribute('stroke-linecap','butt');
   beam.setAttribute('stroke-linejoin','round');
   svg.append(defs,base,beam);
-  // Append to keep :nth-child parity of alternating milestone cards stable.
-  // The track is absolutely positioned behind photos and stems by z-index.
+  // Keep the SVG behind the cards and their connecting stems.
   spine.append(svg);
   if(stops.length<2||mobileLayout.matches||
      window.matchMedia('(prefers-reduced-motion: reduce)').matches||
@@ -353,13 +352,8 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
    card.append(icon,date,title,summary);
    // The single continuous SVG track is mounted after cards are laid out.
    const stem=document.createElement('span');stem.className='orca-history-stem';
-   // Repeat the year on every node, including neighboring same-year events.
-   const eventYear=new Date(event.event_at).getUTCFullYear();
-   const year=document.createElement('span');
-   year.className='orca-history-year-once';
-   year.textContent=String(eventYear);
-   year.setAttribute('aria-label','Year '+eventYear);
-   stop.append(stem,card,year);
+   // Dates remain on the photographed cards; no standalone numbered nodes.
+   stop.append(stem,card);
    card.addEventListener('animationend',e=>{
     if(e.animationName==='orca-photo-arrival')
      stop.classList.remove('orca-history-activated');
@@ -562,8 +556,8 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
    }
    await loadCompletionStatus(completedRunIds);
    await loadEvents();
-   // Photo selection is an internal, authorized part of this action, not
-   // another button. It never generates historical milestones or adds
+   // Photo selection is the existing authorized part of completion.
+   // It never generates historical milestones or adds
    // to the $0.15 research-generation estimate.
    if(photoMount&&allVerified.length){
     const initial=await photoMount.refresh();
