@@ -207,7 +207,7 @@ async function particleTravel(page,index){
    const context=await browser.newContext({viewport:size,reducedMotion:'reduce'}),page=await context.newPage();
    await page.goto(url);await page.waitForFunction(()=>window.timelineReady);await page.waitForTimeout(100);
    const m=await metrics(page);
-   assert(m.frameHeight>=380&&m.frameHeight<=386,'Desktop leaves room around the hovering card and halo');
+   assert(m.frameHeight>=352&&m.frameHeight<=356,'Desktop trims excess top whitespace while keeping room for card and dust');
    assert.equal(m.hint,'none');assert(m.track);
    assert(m.cards.every(c=>c.width===202&&c.height===178));
    assert(m.cards.every(c=>Math.abs(c.y-m.cards[0].y)<1),'All cards are on the same row');
