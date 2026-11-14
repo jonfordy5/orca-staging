@@ -92,15 +92,23 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
  let photoMount=null;
  let photoMissing=0;
  let lastEventFingerprint='';
- // Straight connectors to one horizontal track; the trailing light remains.
- // No numeric nodes or invented future space.
- let beamFrame=0;
- function stopBeam(){
-  if(beamFrame)cancelAnimationFrame(beamFrame);
-  beamFrame=0;
+ // One static antique-gold rail. Dust drifts around fixed local anchors;
+ // there is no leading point, traveling stroke or sequential card activation.
+ const reducedMotion=window.matchMedia('(prefers-reduced-motion: reduce)');
+ const hoverPointer=window.matchMedia('(hover:hover) and (pointer:fine)');
+ let dustFrame=0;
+ let updateDustWindow=()=>{};
+ function stopDust(){
+  if(dustFrame)cancelAnimationFrame(dustFrame);
+  dustFrame=0;
+  updateDustWindow=()=>{};
+ }
+ function clearDustExcitement(){
+  for(const stop of rail.querySelectorAll('.orca-history-excited'))
+   stop.classList.remove('orca-history-excited');
  }
  function drawHistoryTrack(){
-  stopBeam();
+  stopDust();
   const spine=rail.querySelector('.orca-history-spine');
   if(!spine)return;
   spine.querySelector('.orca-history-track')?.remove();
@@ -109,11 +117,11 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
   const stops=[...spine.querySelectorAll('.orca-history-stop')];
   if(!stops.length)return;
   const spineRect=spine.getBoundingClientRect();
-  const points=stops.map(stop=>{
-   const rect=stop.querySelector('.orca-history-stem').getBoundingClientRect();
-   return [Math.round(rect.left+rect.width/2-spineRect.left),
-    Math.round(rect.bottom-spineRect.top)];
-  });
+  const stems=stops.map(stop=>stop.querySelector('.orca-history-stem').getBoundingClientRect());
+  const points=stems.map(rect=>[
+   Math.round(rect.left+rect.width/2-spineRect.left),
+   Math.round(rect.bottom-spineRect.top)
+  ]);
   // End the real history line at the final milestone.
   const width=Math.ceil(points[points.length-1][0])+2;
   const height=Math.max(1,Math.ceil(spine.clientHeight));
@@ -132,131 +140,110 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
   base.setAttribute('fill','none');
   base.setAttribute('vector-effect','non-scaling-stroke');
   base.setAttribute('stroke-linejoin','round');
-  const gradientId='orca-beam-fade-'+ticker.toLowerCase().replace(/[^a-z0-9]/g,'');
-  const defs=document.createElementNS(ns,'defs');
-  const gradient=document.createElementNS(ns,'linearGradient');
-  gradient.setAttribute('id',gradientId);
-  gradient.setAttribute('x1','0%');gradient.setAttribute('y1','0%');
-  gradient.setAttribute('x2','100%');gradient.setAttribute('y2','0%');
-  // Antique-gold light: a long faint tail and a warm leading glint.
-  for(const [offset,color,opacity] of [
-   ['0%','#a9814f','0'],['18%','#b9965d','0.10'],
-   ['42%','#cba96d','0.24'],['68%','#e2bf80','0.38'],
-   ['87%','#f2d598','0.62'],['100%','#fff0c6','0.79']
-  ]){
-   const stop=document.createElementNS(ns,'stop');
-   stop.setAttribute('offset',offset);
-   stop.setAttribute('stop-color',color);
-   stop.setAttribute('stop-opacity',opacity);
-   gradient.append(stop);
-  }
-  defs.append(gradient);
-  const beam=document.createElementNS(ns,'path');
-  beam.classList.add('orca-history-track-beam');
-  beam.setAttribute('fill','none');
-  beam.setAttribute('stroke','url(#'+gradientId+')');
-  beam.setAttribute('vector-effect','non-scaling-stroke');
-  beam.setAttribute('stroke-linecap','round');
-  beam.setAttribute('stroke-linejoin','round');
-  svg.append(defs,base,beam);
-  // Keep the SVG behind the cards and their connecting stems.
+  svg.append(base);
   spine.append(svg);
-  if(stops.length<2||mobileLayout.matches||
-     window.matchMedia('(prefers-reduced-motion: reduce)').matches||
-     document.visibilityState==='hidden')return;
-  const length=base.getTotalLength();
-  if(!length)return;
-  // Extended fairy-dust wake, deliberately softer than a neon beam.
-  // Fixed SVG particles avoid canvas, random flicker and network work.
-  // Keep the traveling glint inside the *visible* rail window, even when
-  // the company has a long history that extends far off-screen.
-  const travelMs=7600;
-  const beamLength=Math.min(820,Math.max(260,rail.clientWidth*0.62));
-  const dustLength=beamLength*1.25;
-  const particles=Array.from({length:42},(_,i)=>{
-   const sparkle=document.createElementNS(ns,'circle');
-   sparkle.classList.add('orca-history-track-dust');
-   sparkle.setAttribute('r',String(i%7===0?1.8:1.1));
-   sparkle.setAttribute('fill',i%5===0?'#ffedc1':'#d6b67d');
-   sparkle.setAttribute('opacity','0');
-   return sparkle;
+
+  // Recycle a small viewport pool, even for an open-ended company archive.
+  // Scroll/resize measures geometry; animation frames only update SVG attributes.
+  const pitch=stops[0].offsetWidth;
+  const spineInset=spineRect.left-rail.getBoundingClientRect().left+rail.scrollLeft;
+  const poolSize=Math.min(stops.length,Math.ceil(rail.clientWidth/pitch)+2,18);
+  const groups=Array.from({length:poolSize},()=>{
+   const element=document.createElementNS(ns,'g');
+   element.classList.add('orca-history-dust-group');
+   element.dataset.excitement='0';
+   const particles=Array.from({length:32},(_,i)=>{
+    const circle=document.createElementNS(ns,'circle');
+    circle.classList.add('orca-history-dust');
+    circle.dataset.region=i<14?'rail':i<24?'connector':'card';
+    circle.setAttribute('fill',i%7===0?'#ffedc1':'#d6b67d');
+    element.append(circle);
+    return {circle,x:0,y:0,phase:0,seed:0,extra:i%4===3};
+   });
+   svg.append(element);
+   return {element,particles,index:-1,excitement:0};
   });
-  svg.append(...particles);
-  // A tiny champagne-gold glint provides a legible moving focal point.
-  // The head is deliberately independent of the quiet trailing stroke, whose
-  // contrast may disappear against an already-gold base on some displays.
-  const sparkleHalo=document.createElementNS(ns,'circle');
-  sparkleHalo.classList.add('orca-history-sparkle-halo');
-  sparkleHalo.setAttribute('r','7');
-  sparkleHalo.setAttribute('fill','#f4cf83');
-  sparkleHalo.setAttribute('opacity','0');
-  const sparkleHead=document.createElementNS(ns,'circle');
-  sparkleHead.classList.add('orca-history-sparkle-head');
-  sparkleHead.setAttribute('r','3.4');
-  sparkleHead.setAttribute('fill','#fff2c7');
-  sparkleHead.setAttribute('opacity','0');
-  svg.append(sparkleHalo,sparkleHead);
-  const nodeDistances=[0];
-  for(let i=1;i<points.length;i++){
-   const [x0,y0]=points[i-1], [x1,y1]=points[i];
-   nodeDistances.push(nodeDistances[i-1]+Math.hypot(x1-x0,y1-y0));
-  }
-  let startTime=0,previousHead=-1;
-  const animate=now=>{
-   if(document.visibilityState==='hidden'||!svg.isConnected){beamFrame=0;return}
-   if(!startTime)startTime=now;
-   // The SVG remains one complete company history. Only its moving highlight
-   // follows the rail's current viewport, so it never spends seconds off-screen.
-   const railRect=rail.getBoundingClientRect();
-   const liveSpineRect=spine.getBoundingClientRect();
-   const visibleFrom=Math.max(0,railRect.left-liveSpineRect.left-points[0][0]);
-   const visibleTo=Math.min(length,railRect.right-liveSpineRect.left-points[0][0]);
-   const phase=((now-startTime)/travelMs+0.20)%1;
-   const head=visibleFrom+phase*Math.max(0,visibleTo-visibleFrom);
-   const edgeFade=Math.min(1,phase*10,(1-phase)*10);
-   beam.style.opacity=String((0.93*edgeFade).toFixed(2));
-   const highlight=base.getPointAtLength(Math.min(length,Math.max(0,head)));
-   for(const circle of [sparkleHalo,sparkleHead]){
-    circle.setAttribute('cx',highlight.x.toFixed(1));
-    circle.setAttribute('cy',highlight.y.toFixed(1));
+  const paint=(group,elapsed,staticDust)=>{
+   const target=!staticDust&&hoverPointer.matches&&
+    stops[group.index].classList.contains('orca-history-excited')?1:0;
+   // Time-based easing keeps quick entries/exits smooth at any frame rate.
+   group.excitement+=(target-group.excitement)*(1-Math.exp(-elapsed/(target?0.18:0.32)));
+   const excitement=group.excitement;
+   group.element.dataset.excitement=excitement.toFixed(3);
+   for(const particle of group.particles){
+    const {circle,seed}=particle;
+    particle.phase+=elapsed*(0.55+seed*0.35+excitement*1.1);
+    const phase=particle.phase;
+    const driftX=staticDust?0:Math.sin(phase)*(1.6+excitement*5.2);
+    const driftY=staticDust?0:Math.cos(phase*0.83+seed*8)*(1.8+excitement*4.6);
+    const shimmer=staticDust?0.84:0.84+Math.sin(phase*1.3+seed*12)*0.16;
+    // Extra motes fade in locally; no particles are allocated on hover.
+    const strength=particle.extra?excitement*0.65:0.20+seed*0.20+excitement*0.40;
+    circle.setAttribute('cx',(particle.x+driftX).toFixed(2));
+    circle.setAttribute('cy',(particle.y+driftY).toFixed(2));
+    circle.setAttribute('r',(0.8+seed*0.65+excitement*0.25).toFixed(2));
+    circle.setAttribute('opacity',(strength*shimmer).toFixed(3));
    }
-   sparkleHalo.setAttribute('opacity',(0.20*edgeFade).toFixed(2));
-   sparkleHead.setAttribute('opacity',(0.95*edgeFade).toFixed(2));
-   if(head<previousHead)previousHead=-1;
-   const from=Math.max(0,head-beamLength),to=Math.min(length,head);
-   if(to>from){
-    const samples=Math.max(5,Math.ceil((to-from)/5));
-    const coords=[];
-    for(let j=0;j<=samples;j++){
-     const p=base.getPointAtLength(from+(to-from)*j/samples);
-     coords.push((j?'L ':'M ')+p.x.toFixed(1)+' '+p.y.toFixed(1));
-    }
-    beam.setAttribute('d',coords.join(' '));
-   }else beam.setAttribute('d','');
-   for(let i=0;i<particles.length;i++){
-    // Nonuniform fixed positions and minute off-rail drift suggest gold dust.
-    const fraction=(i*0.61803398875+0.17)%1;
-    const position=head-fraction*dustLength;
-    const particle=particles[i];
-    if(position<0||position>length){particle.setAttribute('opacity','0');continue}
-    const p=base.getPointAtLength(position);
-    particle.setAttribute('cx',(p.x+Math.sin(i*2.3)*3.2).toFixed(1));
-    particle.setAttribute('cy',(p.y+Math.cos(i*1.7)*4.4).toFixed(1));
-    particle.setAttribute('opacity',((0.20+(1-fraction)*0.42)*edgeFade).toFixed(2));
-   }
-   for(let i=0;i<stops.length;i++){
-    if(nodeDistances[i]>previousHead&&nodeDistances[i]<=head&&
-       nodeDistances[i]>=visibleFrom&&nodeDistances[i]<=visibleTo){
-     stops[i].classList.remove('orca-history-activated');
-     void stops[i].offsetWidth;
-     stops[i].classList.add('orca-history-activated');
-    }
-   }
-   previousHead=head;
-   beamFrame=requestAnimationFrame(animate);
   };
-  beamFrame=requestAnimationFrame(animate);
+  const assign=(group,index)=>{
+   group.index=index;
+   group.excitement=0;
+   group.element.dataset.index=String(index);
+   const [x,y]=points[index];
+   const stemTop=stems[index].top-spineRect.top;
+   const card=stops[index].querySelector('.orca-timeline-event');
+   const cardHalf=card.offsetWidth/2;
+   const railFrom=index?x-pitch/2:x;
+   const railTo=index<stops.length-1?x+pitch/2:x;
+   group.particles.forEach((particle,i)=>{
+    // Independent deterministic seeds prevent synchronized sweeps or flashing.
+    const seed=((index+1)*0.754877666+i*0.618033989)%1;
+    const fraction=(i*0.381966011+index*0.141421356)%1;
+    particle.seed=seed;particle.phase=seed*Math.PI*2;
+    if(i<14){
+     particle.x=railFrom+(railTo-railFrom)*fraction;
+     particle.y=y+(seed-0.5)*12;
+    }else if(i<24){
+     particle.x=x+(seed-0.5)*12;
+     particle.y=stemTop+(y-stemTop)*fraction;
+    }else{
+     particle.x=x+(fraction-0.5)*cardHalf*1.85;
+     particle.y=stemTop+3+seed*5;
+    }
+    particle.circle.dataset.anchorX=particle.x.toFixed(2);
+    particle.circle.dataset.anchorY=particle.y.toFixed(2);
+   });
+   paint(group,0,reducedMotion.matches);
+  };
+  updateDustWindow=()=>{
+   const from=rail.scrollLeft-spineInset;
+   const first=Math.max(0,Math.min(stops.length-poolSize,
+    Math.floor((from-points[0][0])/pitch)));
+   const wanted=new Set(Array.from({length:poolSize},(_,i)=>first+i));
+   const available=groups.filter(group=>!wanted.has(group.index));
+   for(const index of wanted){
+    if(groups.some(group=>group.index===index))continue;
+    assign(available.pop(),index);
+   }
+  };
+  updateDustWindow();
+  if(reducedMotion.matches||document.visibilityState==='hidden')return;
+  let previousTime=0;
+  const animate=now=>{
+   if(!svg.isConnected||document.visibilityState==='hidden'){stopDust();return}
+   const elapsed=previousTime?Math.min((now-previousTime)/1000,0.05):0;
+   previousTime=now;
+   for(const group of groups)paint(group,elapsed,false);
+   dustFrame=requestAnimationFrame(animate);
+  };
+  dustFrame=requestAnimationFrame(animate);
  }
+ function refreshDustPreferences(){
+  clearDustExcitement();
+  drawHistoryTrack();
+ }
+ reducedMotion.addEventListener('change',refreshDustPreferences);
+ hoverPointer.addEventListener('change',refreshDustPreferences);
  function fitRailEdges(){
   const spine=rail.querySelector('.orca-history-spine');
   const stop=spine?.querySelector('.orca-history-stop');
@@ -284,10 +271,12 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
   mobileProgress.textContent='Swipe to explore · '+(mobileVisibleIndex+1)+' of '+data.length;
  }
  rail.addEventListener('scroll',()=>{
+  updateDustWindow();
   if(!mobileLayout.matches||mobileScrollFrame)return;
   mobileScrollFrame=requestAnimationFrame(()=>{mobileScrollFrame=0;updateMobileProgress()});
  },{passive:true});
  window.addEventListener('resize',()=>{
+  clearDustExcitement();
   fitRailEdges();drawHistoryTrack();
   if(mobileLayout.matches){
    cancelAnimationFrame(mobileScrollFrame);
@@ -300,7 +289,7 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
   }
  });
  document.addEventListener('visibilitychange',()=>{
-  if(document.visibilityState==='hidden')stopBeam();
+  if(document.visibilityState==='hidden'){clearDustExcitement();stopDust();}
   else drawHistoryTrack();
  });
  // The history section is permanently visible beneath the market chart.
@@ -370,6 +359,7 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
   if(selected){centerMilestone(selected);selected.focus({preventScroll:true});}
  }
  function renderCards(){
+  stopDust();
   rail.replaceChildren();
   closeDetails();
   frame.classList.toggle('orca-history-empty',!data.length);
@@ -412,10 +402,13 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
    const stem=document.createElement('span');stem.className='orca-history-stem';
    // Dates remain on the photographed cards; no standalone numbered nodes.
    stop.append(stem,card);
-   card.addEventListener('animationend',e=>{
-    if(e.animationName==='orca-photo-arrival')
-     stop.classList.remove('orca-history-activated');
+   card.addEventListener('pointerenter',event=>{
+    if(event.pointerType!=='touch'&&hoverPointer.matches&&!mobileLayout.matches&&!reducedMotion.matches)
+     stop.classList.add('orca-history-excited');
    });
+   const calm=()=>stop.classList.remove('orca-history-excited');
+   card.addEventListener('pointerleave',calm);
+   card.addEventListener('pointercancel',calm);
    card.addEventListener('click',()=>selectMilestone(i));
    stop.addEventListener('keydown',e=>{if(e.key==='ArrowRight'){e.preventDefault();selectMilestone(Math.min(i+1,data.length-1));}if(e.key==='ArrowLeft'){e.preventDefault();selectMilestone(Math.max(i-1,0));}});
    spine.append(stop);
@@ -671,6 +664,19 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
    showResearchFeedback('Automatic history completion unavailable. Saved milestones remain available.');
   });
  }
- const poll=setInterval(()=>{if(document.visibilityState==='visible')loadEvents()},60000);
- window.addEventListener('pagehide',()=>{stopBeam();clearInterval(poll)},{once:true});
+ const pollEvents=()=>{if(document.visibilityState==='visible')loadEvents()};
+ let poll=setInterval(pollEvents,60000);
+ window.addEventListener('pageshow',event=>{
+  if(!event.persisted)return;
+  fitRailEdges();drawHistoryTrack();
+  clearInterval(poll);poll=setInterval(pollEvents,60000);
+ });
+ window.addEventListener('pagehide',event=>{
+  clearDustExcitement();stopDust();cancelAnimationFrame(mobileScrollFrame);mobileScrollFrame=0;clearInterval(poll);
+  // A cached page resumes with the same listeners and live motion preferences.
+  if(!event.persisted){
+   reducedMotion.removeEventListener('change',refreshDustPreferences);
+   hoverPointer.removeEventListener('change',refreshDustPreferences);
+  }
+ });
 }
