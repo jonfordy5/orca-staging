@@ -176,8 +176,8 @@ check('Timeline ends at last real milestone with minimal space, not fake future 
  timeline.includes('const width=Math.ceil(points[points.length-1][0])+2;') &&
  timeline.includes("spine.style.paddingRight=(mobile?0:16)+'px'") &&
  !timeline.includes('const futurePoints=') &&
- !timeline.includes("setAttribute('mask'") &&
- workspace.includes('v=gold-glint-v47'));
+ timeline.includes('svg.append(defs,base,beam)') &&
+ workspace.includes('v=gold-comet-v48'));
 check('Open-ended timeline preserves milestones and beam arrival effects', () =>
   timeline.includes('const nodeDistances=[0]') &&
   timeline.includes('for(let i=1;i<points.length;i++)') &&
@@ -186,18 +186,18 @@ check('Open-ended timeline preserves milestones and beam arrival effects', () =>
   !timeline.includes('futureStop') &&
   workspace.includes('animation:orca-photo-arrival 1.4s'));
 
-check('A single muted-gold tracer leaves a long bounded dust tail', () =>
+check('One golden comet leaves a bounded, independently dissipating dust wake', () =>
   timeline.includes("gradient.setAttribute('id',gradientId)") &&
   timeline.includes("beam.setAttribute('stroke','url(#'+gradientId+')')") &&
-  timeline.includes("const beamLength=Math.min(820,Math.max(260,rail.clientWidth*0.62))") &&
-  timeline.includes('const travelMs=7600') &&
+  timeline.includes("const beamLength=Math.min(920,Math.max(260,rail.clientWidth*0.72))") &&
+  timeline.includes('const travelMs=16000') &&
   timeline.includes("beam.setAttribute('stroke-linecap','round')") &&
   workspace.includes('stroke-width:3.3;') &&
    workspace.includes('stroke:#bb9255;') &&
-   timeline.includes('const dustLength=beamLength*1.25') &&
+   timeline.includes('const dustLength=beamLength*1.12') &&
    timeline.includes('const visibleFrom=Math.max(0,railRect.left-liveSpineRect.left-points[0][0])') &&
    timeline.includes('const visibleTo=Math.min(length,railRect.right-liveSpineRect.left-points[0][0])') &&
-   timeline.includes('const particles=Array.from({length:42}') &&
+   timeline.includes('const particles=Array.from({length:180}') &&
    timeline.includes("sparkleHead.classList.add('orca-history-sparkle-head')") &&
    timeline.includes("sparkleHalo.classList.add('orca-history-sparkle-halo')") &&
   workspace.includes('orca-history-rail-shimmer') &&
@@ -220,7 +220,7 @@ check('Desktop centers the middle milestone, mobile starts at the beginning, nav
   timeline.includes("centerMilestone(card,'auto')") &&
   timeline.includes("prev.addEventListener('click',()=>jumpTo(0))") &&
   timeline.includes("next.addEventListener('click',()=>jumpTo(data.length-1))") &&
-  workspace.includes('v=gold-glint-v47'));
+  workspace.includes('v=gold-comet-v48'));
 
 check('Mobile history stays a swipe carousel without zigzag or glowing track', () =>
   workspace.includes('touch-action:pan-x pan-y pinch-zoom!important') &&

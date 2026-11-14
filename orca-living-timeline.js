@@ -22,6 +22,7 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
  const rail=document.createElement('div');
  rail.className='orca-timeline-events';
  const mobileLayout=window.matchMedia('(max-width:700px), (max-width:1000px) and (max-height:600px) and (hover:none) and (pointer:coarse)');
+ const motionPreference=window.matchMedia('(prefers-reduced-motion: reduce)');
  const mobileProgress=document.createElement('p');
  mobileProgress.className='orca-timeline-mobile-progress';
  mobileProgress.setAttribute('role','status');
@@ -94,7 +95,7 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
  let lastEventFingerprint='';
  // Straight connectors to one horizontal track; the trailing light remains.
  // No numeric nodes or invented future space.
- let beamFrame=0;
+ let beamFrame=0,beamElapsed=0;
  function stopBeam(){
   if(beamFrame)cancelAnimationFrame(beamFrame);
   beamFrame=0;
@@ -138,11 +139,12 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
   gradient.setAttribute('id',gradientId);
   gradient.setAttribute('x1','0%');gradient.setAttribute('y1','0%');
   gradient.setAttribute('x2','100%');gradient.setAttribute('y2','0%');
-  // Antique-gold light: a long faint tail and a warm leading glint.
+  gradient.setAttribute('gradientUnits','userSpaceOnUse');
+  // Keep the light concentrated immediately behind the champagne-gold head.
   for(const [offset,color,opacity] of [
-   ['0%','#a9814f','0'],['18%','#b9965d','0.10'],
-   ['42%','#cba96d','0.24'],['68%','#e2bf80','0.38'],
-   ['87%','#f2d598','0.62'],['100%','#fff0c6','0.79']
+   ['0%','#986a33','0'],['24%','#b58b4c','0.05'],
+   ['52%','#d4a754','0.17'],['78%','#edc777','0.38'],
+   ['94%','#ffe5a5','0.76'],['100%','#fff3cc','0.96']
   ]){
    const stop=document.createElementNS(ns,'stop');
    stop.setAttribute('offset',offset);
@@ -162,87 +164,145 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
   // Keep the SVG behind the cards and their connecting stems.
   spine.append(svg);
   if(stops.length<2||mobileLayout.matches||
-     window.matchMedia('(prefers-reduced-motion: reduce)').matches||
-     document.visibilityState==='hidden')return;
+     motionPreference.matches||document.visibilityState==='hidden')return;
   const length=base.getTotalLength();
   if(!length)return;
-  // Extended fairy-dust wake, deliberately softer than a neon beam.
-  // Fixed SVG particles avoid canvas, random flicker and network work.
-  // Keep the traveling glint inside the *visible* rail window, even when
-  // the company has a long history that extends far off-screen.
-  const travelMs=7600;
-  const beamLength=Math.min(820,Math.max(260,rail.clientWidth*0.62));
-  const dustLength=beamLength*1.25;
-  const particles=Array.from({length:42},(_,i)=>{
+  const travelMs=16000;
+  const beamLength=Math.min(920,Math.max(260,rail.clientWidth*0.72));
+  const dustLength=beamLength*1.12;
+  // A second clipped stroke lets the old wake dissipate after the head exits.
+  // The whole dust field must never blink out when the travel phase wraps.
+  const wakeGradient=gradient.cloneNode(true);
+  wakeGradient.setAttribute('id',gradientId+'-wake');
+  const wake=beam.cloneNode(true);
+  wake.classList.replace('orca-history-track-beam','orca-history-track-wake');
+  wake.setAttribute('stroke','url(#'+gradientId+'-wake)');
+  const edgeId=gradientId+'-edge',maskId=gradientId+'-mask';
+  const edgeGradient=document.createElementNS(ns,'linearGradient');
+  edgeGradient.setAttribute('id',edgeId);
+  edgeGradient.setAttribute('gradientUnits','userSpaceOnUse');
+  for(const [offset,opacity] of [['0%',0],['4%',1],['96%',1],['100%',0]]){
+   const stop=document.createElementNS(ns,'stop');
+   stop.setAttribute('offset',offset);stop.setAttribute('stop-color','white');
+   stop.setAttribute('stop-opacity',String(opacity));edgeGradient.append(stop);
+  }
+  const mask=document.createElementNS(ns,'mask');
+  mask.setAttribute('id',maskId);mask.setAttribute('maskUnits','userSpaceOnUse');
+  mask.setAttribute('x','0');mask.setAttribute('y','0');
+  mask.setAttribute('width',String(width));mask.setAttribute('height',String(height));
+  const maskRect=document.createElementNS(ns,'rect');
+  maskRect.setAttribute('height',String(height));
+  maskRect.setAttribute('fill','url(#'+edgeId+')');mask.append(maskRect);
+  const glowId=gradientId+'-halo';
+  const glow=document.createElementNS(ns,'radialGradient');
+  glow.setAttribute('id',glowId);
+  for(const [offset,color,opacity] of [
+   ['0%','#ffedbb','0.58'],['20%','#ffd789','0.32'],
+   ['52%','#e6a33b','0.12'],['100%','#bd751e','0']
+  ]){
+   const stop=document.createElementNS(ns,'stop');
+   stop.setAttribute('offset',offset);stop.setAttribute('stop-color',color);
+   stop.setAttribute('stop-opacity',opacity);glow.append(stop);
+  }
+  defs.append(wakeGradient,edgeGradient,mask,glow);
+  const comet=document.createElementNS(ns,'g');
+  comet.setAttribute('mask','url(#'+maskId+')');
+  comet.append(beam,wake);svg.append(comet);
+  // Fixed, bounded SVG particles have independent lifetimes, not frame-random
+  // opacity. Their emission points stay behind as the comet moves onward.
+  const particles=Array.from({length:180},(_,i)=>{
    const sparkle=document.createElementNS(ns,'circle');
    sparkle.classList.add('orca-history-track-dust');
-   sparkle.setAttribute('r',String(i%7===0?1.8:1.1));
-   sparkle.setAttribute('fill',i%5===0?'#ffedc1':'#d6b67d');
    sparkle.setAttribute('opacity','0');
-   return sparkle;
+   comet.append(sparkle);
+   return {element:sparkle,phase:(i*0.61803398875+0.17)%1,
+    drift:Math.sin(i*2.39996),wave:i*1.75488,
+    size:0.65+(i%11)/11,airy:i%4===0};
   });
-  svg.append(...particles);
-  // A tiny champagne-gold glint provides a legible moving focal point.
-  // The head is deliberately independent of the quiet trailing stroke, whose
-  // contrast may disappear against an already-gold base on some displays.
+  // Separate the compact luminous node from its broad, softly fading amber halo.
   const sparkleHalo=document.createElementNS(ns,'circle');
   sparkleHalo.classList.add('orca-history-sparkle-halo');
-  sparkleHalo.setAttribute('r','7');
-  sparkleHalo.setAttribute('fill','#f4cf83');
-  sparkleHalo.setAttribute('opacity','0');
+  sparkleHalo.setAttribute('fill','url(#'+glowId+')');
   const sparkleHead=document.createElementNS(ns,'circle');
   sparkleHead.classList.add('orca-history-sparkle-head');
-  sparkleHead.setAttribute('r','3.4');
   sparkleHead.setAttribute('fill','#fff2c7');
-  sparkleHead.setAttribute('opacity','0');
-  svg.append(sparkleHalo,sparkleHead);
+  const sparkleCore=document.createElementNS(ns,'circle');
+  sparkleCore.classList.add('orca-history-sparkle-core');
+  sparkleCore.setAttribute('fill','#fffdf0');
+  comet.append(sparkleHalo,sparkleHead,sparkleCore);
   const nodeDistances=[0];
   for(let i=1;i<points.length;i++){
    const [x0,y0]=points[i-1], [x1,y1]=points[i];
    nodeDistances.push(nodeDistances[i-1]+Math.hypot(x1-x0,y1-y0));
   }
-  let startTime=0,previousHead=-1;
+  const smooth=t=>{t=Math.max(0,Math.min(1,t));return t*t*(3-2*t)};
+  const paintBeam=(path,fade,head,visibleFrom,visibleTo)=>{
+   const from=Math.max(visibleFrom,head-beamLength),to=Math.min(visibleTo,head);
+   if(to<=from){path.setAttribute('d','');return}
+   const a=base.getPointAtLength(from),b=base.getPointAtLength(to);
+   path.setAttribute('d','M '+a.x+' '+a.y+' L '+b.x+' '+b.y);
+   // User-space stops preserve a dim tail even when clipped at the viewport.
+   fade.setAttribute('x1',String(points[0][0]+head-beamLength));
+   fade.setAttribute('x2',String(points[0][0]+head));
+  };
+  let previousTime=null,previousHead=-1;
   const animate=now=>{
    if(document.visibilityState==='hidden'||!svg.isConnected){beamFrame=0;return}
-   if(!startTime)startTime=now;
+   if(previousTime!==null)beamElapsed+=Math.max(0,Math.min(50,now-previousTime));
+   previousTime=now;
    // The SVG remains one complete company history. Only its moving highlight
    // follows the rail's current viewport, so it never spends seconds off-screen.
    const railRect=rail.getBoundingClientRect();
    const liveSpineRect=spine.getBoundingClientRect();
    const visibleFrom=Math.max(0,railRect.left-liveSpineRect.left-points[0][0]);
    const visibleTo=Math.min(length,railRect.right-liveSpineRect.left-points[0][0]);
-   const phase=((now-startTime)/travelMs+0.20)%1;
-   const head=visibleFrom+phase*Math.max(0,visibleTo-visibleFrom);
-   const edgeFade=Math.min(1,phase*10,(1-phase)*10);
-   beam.style.opacity=String((0.93*edgeFade).toFixed(2));
+   const visibleLength=visibleTo-visibleFrom;
+   if(visibleLength<=0){beamFrame=requestAnimationFrame(animate);return}
+   const pad=36,span=visibleLength+pad*2,speed=span/travelMs;
+   const phase=(beamElapsed/travelMs+0.20)%1;
+   const head=visibleFrom-pad+phase*span;
+   const seconds=beamElapsed/1000;
+   const edgeFade=smooth((head-visibleFrom)/20)*smooth((visibleTo-head)/20);
+   const breath=1+0.055*Math.sin(seconds*2*Math.PI/5.8)+
+    0.018*Math.sin(seconds*2*Math.PI/9.3+1.4);
+   edgeGradient.setAttribute('x1',String(points[0][0]+visibleFrom));
+   edgeGradient.setAttribute('x2',String(points[0][0]+visibleTo));
+   // Bound the mask surface to the viewport even for very long histories.
+   mask.setAttribute('x',String(points[0][0]+visibleFrom));
+   mask.setAttribute('width',String(visibleLength));
+   maskRect.setAttribute('x',String(points[0][0]+visibleFrom));
+   maskRect.setAttribute('width',String(visibleLength));
    const highlight=base.getPointAtLength(Math.min(length,Math.max(0,head)));
-   for(const circle of [sparkleHalo,sparkleHead]){
-    circle.setAttribute('cx',highlight.x.toFixed(1));
-    circle.setAttribute('cy',highlight.y.toFixed(1));
+   for(const circle of [sparkleHalo,sparkleHead,sparkleCore]){
+    circle.setAttribute('cx',highlight.x.toFixed(2));
+    circle.setAttribute('cy',highlight.y.toFixed(2));
+    circle.setAttribute('opacity',edgeFade.toFixed(3));
    }
-   sparkleHalo.setAttribute('opacity',(0.20*edgeFade).toFixed(2));
-   sparkleHead.setAttribute('opacity',(0.95*edgeFade).toFixed(2));
+   sparkleHalo.setAttribute('r',(27*breath).toFixed(2));
+   sparkleHead.setAttribute('r',(3.65*breath).toFixed(2));
+   sparkleCore.setAttribute('r',(1.65*breath).toFixed(2));
    if(head<previousHead)previousHead=-1;
-   const from=Math.max(0,head-beamLength),to=Math.min(length,head);
-   if(to>from){
-    const samples=Math.max(5,Math.ceil((to-from)/5));
-    const coords=[];
-    for(let j=0;j<=samples;j++){
-     const p=base.getPointAtLength(from+(to-from)*j/samples);
-     coords.push((j?'L ':'M ')+p.x.toFixed(1)+' '+p.y.toFixed(1));
-    }
-    beam.setAttribute('d',coords.join(' '));
-   }else beam.setAttribute('d','');
-   for(let i=0;i<particles.length;i++){
-    // Nonuniform fixed positions and minute off-rail drift suggest gold dust.
-    const fraction=(i*0.61803398875+0.17)%1;
-    const position=head-fraction*dustLength;
-    const particle=particles[i];
-    if(position<0||position>length){particle.setAttribute('opacity','0');continue}
+   paintBeam(beam,gradient,head,visibleFrom,visibleTo);
+   paintBeam(wake,wakeGradient,head+span,visibleFrom,visibleTo);
+   const trailLength=Math.min(dustLength,span*0.86);
+   const life=trailLength/speed;
+   for(const particle of particles){
+    const {element,drift,wave,size,airy}=particle;
+    const age=(beamElapsed/life+particle.phase)%1;
+    // Wrap the *emission position*, keeping the previous pass's dust alive.
+    let position=head-age*trailLength-age*2;
+    if(position<visibleFrom-pad)position+=span;
+    if(position<visibleFrom||position>visibleTo){element.setAttribute('opacity','0');continue}
     const p=base.getPointAtLength(position);
-    particle.setAttribute('cx',(p.x+Math.sin(i*2.3)*3.2).toFixed(1));
-    particle.setAttribute('cy',(p.y+Math.cos(i*1.7)*4.4).toFixed(1));
-    particle.setAttribute('opacity',((0.20+(1-fraction)*0.42)*edgeFade).toFixed(2));
+    const spread=2+Math.pow(age,0.65)*(airy?24:11);
+    const shimmer=0.82+0.18*Math.sin(seconds*1.2+wave);
+    const opacity=smooth(age/0.035)*Math.pow(1-age,1.7)*shimmer*(airy?0.66:0.86);
+    element.setAttribute('cx',p.x.toFixed(2));
+    element.setAttribute('cy',(p.y+drift*spread+Math.sin(seconds*0.65+wave)*age*2).toFixed(2));
+    element.setAttribute('r',Math.max(0.18,size*(1-age*0.76)).toFixed(2));
+    element.setAttribute('fill','rgb('+[255-103*age,229-117*age,165-104*age]
+     .map(Math.round).join(',')+')');
+    element.setAttribute('opacity',opacity.toFixed(3));
    }
    for(let i=0;i<stops.length;i++){
     if(nodeDistances[i]>previousHead&&nodeDistances[i]<=head&&
@@ -303,6 +363,7 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
   if(document.visibilityState==='hidden')stopBeam();
   else drawHistoryTrack();
  });
+ motionPreference.addEventListener('change',drawHistoryTrack);
  // The history section is permanently visible beneath the market chart.
  host.hidden=false;
  host.append(frame);
