@@ -138,13 +138,15 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
   gradient.setAttribute('id',gradientId);
   gradient.setAttribute('x1','0%');gradient.setAttribute('y1','0%');
   gradient.setAttribute('x2','100%');gradient.setAttribute('y2','0%');
-  for(const [offset,opacity] of [
-   ['0%','0'],['22%','0.82'],['42%','1'],
-   ['62%','1'],['82%','0.82'],['100%','0']
+  // One moving comet: a fading blue tail ending in a bright white-blue flash.
+  for(const [offset,color,opacity] of [
+   ['0%','#64b6ff','0'],['16%','#83c9ff','0.26'],
+   ['38%','#a6dfff','0.63'],['65%','#d9faff','0.90'],
+   ['84%','#ffffff','1'],['100%','#f7ffff','0.95']
   ]){
    const stop=document.createElementNS(ns,'stop');
    stop.setAttribute('offset',offset);
-   stop.setAttribute('stop-color','#f5ffff');
+   stop.setAttribute('stop-color',color);
    stop.setAttribute('stop-opacity',opacity);
    gradient.append(stop);
   }
@@ -154,7 +156,7 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
   beam.setAttribute('fill','none');
   beam.setAttribute('stroke','url(#'+gradientId+')');
   beam.setAttribute('vector-effect','non-scaling-stroke');
-  beam.setAttribute('stroke-linecap','butt');
+  beam.setAttribute('stroke-linecap','round');
   beam.setAttribute('stroke-linejoin','round');
   svg.append(defs,base,beam);
   // Keep the SVG behind the cards and their connecting stems.
@@ -164,8 +166,9 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
      document.visibilityState==='hidden')return;
   const length=base.getTotalLength();
   if(!length)return;
-  const travelMs=18000;
-  const beamLength=Math.min(115,Math.max(60,length*0.06));
+  // A longer, brighter trail that crosses the visible cards on a regular cycle.
+  const travelMs=11500;
+  const beamLength=Math.min(185,Math.max(115,length*0.10));
   const nodeDistances=[0];
   for(let i=1;i<points.length;i++){
    const [x0,y0]=points[i-1], [x1,y1]=points[i];
