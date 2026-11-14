@@ -3,3 +3,16 @@
 # explicit staging approval and end-user identity/isolation testing.
 [functions.orca-agent-readonly]
 verify_jwt = true
+
+# PROPOSAL ONLY: Do not deploy or enable OAuth server yet.
+# MCP protected-resource metadata must be publicly discoverable, so the
+# gateway cannot require an ORCA JWT. @supabase/server's user middleware
+# must verify every bearer token before any tool request is executed.
+# The server is not deployable until OAuth client_id-based write blocking
+# is confirmed on ALL existing Supabase Data API tables and write RPCs.
+[functions.orca-agent-mcp]
+verify_jwt = false
+
+# Hosted Supabase OAuth Server is deliberately NOT enabled by this file.
+# Set Authentication > OAuth Server in the Staging dashboard separately
+# only after backend client restrictions and consent-route review.

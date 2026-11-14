@@ -1,0 +1,25 @@
+name: ORCA public OAuth readiness preflight
+
+on:
+  push:
+    branches:
+      - feat/orca-oauth-mcp-readonly-20261112
+    paths:
+      - scripts/check-orca-oauth-staging-public-discovery.mjs
+      - .github/workflows/orca-oauth-discovery-preflight.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  public-discovery-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Probe public OAuth discovery and JWKS without enabling OAuth
+        run: node scripts/check-orca-oauth-staging-public-discovery.mjs

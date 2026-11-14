@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>ORCA — Manage AI Connections (Staging)</title>
+<style>
+:root{color-scheme:dark;--bg:#091923;--panel:#142b36;--line:#355361;--mint:#83e5b9;--text:#f6fbf7;--muted:#bed1d4}
+*{box-sizing:border-box}[hidden]{display:none!important}
+body{margin:0;background:radial-gradient(ellipse at top,#173d4e,var(--bg) 69%);font:16px/1.55 system-ui,sans-serif;color:var(--text)}
+main{max-width:750px;margin:7vh auto;padding:20px}
+section{border:1px solid var(--line);background:var(--panel);padding:26px;border-radius:20px}
+h1{font-size:clamp(27px,5vw,38px);line-height:1.15;margin:12px 0}
+h2{font-size:20px;margin:4px 0 6px}
+p{color:var(--muted)}
+a{color:var(--mint)}
+button,.button{border:1px solid var(--line);border-radius:10px;padding:10px 14px;font:700 14px system-ui,sans-serif;background:#294856;color:var(--text);cursor:pointer;text-decoration:none;display:inline-block}
+button:disabled{opacity:.55;cursor:not-allowed}
+button.danger{border-color:#df927d;background:#5a302e}
+button.confirm{background:#7b3b32;color:#fff;border-color:#e8a18f}
+button:focus-visible,a:focus-visible{outline:3px solid var(--mint);outline-offset:3px}
+#notice{padding:12px 14px;background:#294856;border-radius:9px;white-space:pre-wrap}
+#notice[data-kind=error]{background:#653c34;color:#fff}
+#grants{list-style:none;padding:0;margin:0;display:grid;gap:12px}
+#grants li{border:1px solid var(--line);padding:18px;border-radius:12px;background:#1b3846}
+#grants .name{font-weight:800;color:#fff;overflow-wrap:anywhere}
+#grants .detail{font-size:13px;color:var(--muted);overflow-wrap:anywhere;margin:6px 0 12px}
+.actions{display:flex;flex-wrap:wrap;gap:8px}
+.small{font-size:13px}
+</style>
+</head>
+<body>
+<main>
+<section>
+<div class="small" style="color:var(--mint);font-weight:800;letter-spacing:.12em">ORCA STAGING · ACCOUNT SECURITY</div>
+<h1>Manage your AI connections</h1>
+<p>Review applications authorized through your existing ORCA account. Disconnecting one application does not delete your researcher profile, team memberships, assignments, or published research.</p>
+<div id="notice" role="status" aria-live="polite">Checking your existing ORCA account…</div>
+<div id="signin" hidden>
+  <p>Sign in with your existing ORCA account to review connected applications.</p>
+  <a id="signin-link" class="button" href="./account.html">Sign in to ORCA</a>
+</div>
+<div id="authorized" hidden>
+  <h2>Authorized applications</h2>
+  <ul id="grants"></ul>
+  <p class="small">Disconnect revokes the selected application's OAuth grant and refresh sessions. An already-issued access token may remain valid until expiry; ORCA will not enable agent writes until server-side revocation enforcement is verified.</p>
+  <button id="reload" type="button">Refresh connections</button>
+</div>
+<p class="small">This is a development-only screen. No AI connection is enabled by visiting this page. This page never requests, displays, or shares your passwords or tokens.</p>
+</section>
+</main>
+<script type="module">
+import { selectSupabaseConfig } from './orca-staging-config.js';
+const $=id=>document.getElementById(id);
+const msg=(value,kind='info')=>{$('notice').textContent=value;$('notice').dataset.kind=kind};
+const exactStaging='vbziibatnejoswsdggga.supabase.co';
+const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+let client=null,verifiedOwnerId=null,busy=false;
+let listed=new Map();
+
+function signInLink(){
+  const next=new URL('./account.html',location.href);
+  next.searchParams.set('returnTo','orca-oauth-connections.html');
+  next.searchParams.set('environment','orca-staging');
+  $('signin-link').href=next.pathname+next.search;
+}
+async function verifySameOwner(){
+  const {data,error}=await client.auth.getUser();
+  if(error||!data?.user?.id||data.user.id!==verifiedOwnerId)throw new Error('ORCA account changed');
+}
+function resetList(){
+  listed=new Map();
+  $('grants').replaceChildren();
+}
+function showGrants(grants){
+  resetList();
+  // Revocation is limited to the exact IDs returned by this signed-in account.
+  for(const grant of grants){
+    const id=grant?.client?.id;
+    if(typeof id!=='string'||!uuid.test(id)||listed.has(id))continue;
+    listed.set(id,grant);
+    const li=document.createElement('li');
+    const name=document.createElement('div');
+    name.className='name';name.textContent=typeof grant.client.name==='string'&&grant.client.name.trim()
+      ?grant.client.name:'Unnamed authorized application';
+    const detail=document.createElement('div');
+    detail.className='detail';
+    const scopes=Array.isArray(grant.scopes)?grant.scopes.filter(s=>typeof s==='string').join(', '):'';
+    detail.textContent='Scopes: '+(scopes||'Not specified');
+    const actions=document.createElement('div');
+    actions.className='actions';
+    const disconnect=document.createElement('button');
+    disconnect.className='danger';disconnect.type='button';disconnect.textContent='Disconnect';
+    const confirm=document.createElement('button');
+    confirm.className='confirm';confirm.type='button';confirm.textContent='Confirm disconnect';confirm.hidden=true;
+    const cancel=document.createElement('button');
+    cancel.type='button';cancel.textContent='Cancel';cancel.hidden=true;
+    disconnect.addEventListener('click',()=>{
+      if(busy)return;
+      disconnect.hidden=true;confirm.hidden=false;cancel.hidden=false;
+      msg('Confirm to revoke this application for your existing ORCA account.');
+    });
+    cancel.addEventListener('click',()=>{
+      if(busy)return;
+      disconnect.hidden=false;confirm.hidden=true;cancel.hidden=true;
+      msg('No connection was changed.');
+    });
+    confirm.addEventListener('click',()=>revoke(id));
+    actions.append(disconnect,confirm,cancel);
+    li.append(name,detail,actions);$('grants').append(li);
+  }
+  $('authorized').hidden=false;
+  msg(listed.size
+    ?'Select an application, then explicitly confirm to disconnect it.'
+    :'No authorized OAuth applications were found for this account.');
+}
+
+async function loadGrants(){
+  if(busy||!client)return;
+  busy=true;$('reload').disabled=true;msg('Checking authorized applications…');
+  try{
+    await verifySameOwner();
+    const response=await client.auth.oauth.listGrants();
+    if(response.error||!Array.isArray(response.data))throw new Error('OAuth grant list unavailable');
+    showGrants(response.data);
+  }catch{
+    resetList();$('authorized').hidden=true;
+    msg('Unable to verify the connection list. The OAuth server may still be disabled; no account changes were made.','error');
+  }finally{busy=false;$('reload').disabled=false;}
+}
+async function revoke(clientId){
+  if(busy||!client||!listed.has(clientId)||!uuid.test(clientId))return;
+  busy=true;$('reload').disabled=true;
+  msg('Revoking authorization for the selected application…');
+  try{
+    await verifySameOwner();
+    // Supabase's native user-scoped method; no service_role or custom token transport.
+    const result=await client.auth.oauth.revokeGrant({clientId});
+    if(result.error)throw new Error('Revocation request failed');
+    const updated=await client.auth.oauth.listGrants();
+    if(updated.error||!Array.isArray(updated.data))throw new Error('Revocation cannot be confirmed');
+    if(updated.data.some(grant=>grant?.client?.id===clientId)){
+      throw new Error('Grant remains present');
+    }
+    showGrants(updated.data);
+    msg('Connection revoked and confirmed absent from this ORCA account. Previously issued access tokens may remain usable until expiry.');
+  }catch{
+    resetList();$('authorized').hidden=true;
+    msg('Unable to confirm disconnection. Refresh your connections and check again; no success is assumed.','error');
+  }finally{busy=false;$('reload').disabled=false;}
+}
+async function initialize(){
+  try{
+    const cfg=await selectSupabaseConfig();
+    if(!cfg.isOrcaStaging||new URL(cfg.projectUrl).hostname!==exactStaging)throw new Error('Wrong project');
+    const {createClient}=await import('https://esm.sh/@supabase/supabase-js@2.119.0');
+    client=createClient(cfg.projectUrl,cfg.publishableKey,
+      {auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+    const {data,error}=await client.auth.getUser();
+    if(error||!data?.user?.id){
+      signInLink();$('signin').hidden=false;
+      msg('Sign in to your existing ORCA account to manage its authorizations.');
+      return;
+    }
+    verifiedOwnerId=data.user.id;
+    await loadGrants();
+  }catch{msg('Unable to verify ORCA staging or your session. No account changes were made.','error');}
+}
+$('reload').addEventListener('click',loadGrants);
+initialize();
+</script>
+</body>
+</html>

@@ -1,0 +1,38 @@
+name: ORCA staging OAuth preactivation guard (code only)
+
+on:
+  push:
+    branches:
+      - feat/orca-oauth-mcp-readonly-20261112
+    paths:
+      - sql/orca_oauth_preactivation_inventory_readonly.sql
+      - scripts/orca-oauth-preactivation-gate.mjs
+      - scripts/test-orca-oauth-preactivation-gate.mjs
+      - scripts/check-orca-oauth-preactivation.mjs
+      - .github/workflows/orca-oauth-preactivation-gate.yml
+  pull_request:
+    paths:
+      - sql/orca_oauth_preactivation_inventory_readonly.sql
+      - scripts/orca-oauth-preactivation-gate.mjs
+      - scripts/test-orca-oauth-preactivation-gate.mjs
+      - scripts/check-orca-oauth-preactivation.mjs
+      - .github/workflows/orca-oauth-preactivation-gate.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  schema-policy-code-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Test approved staging-only inventory and fail-closed drift cases
+        run: node --test scripts/test-orca-oauth-preactivation-gate.mjs
+      - name: Verify the inspection query contains no write operations
+        run: |
+          node --input-type=module -e "import fs from 'node:fs';const s=fs.readFileSync('sql/orca_oauth_preactivation_inventory_readonly.sql','utf8').replace(/--[^\\n]*/g,'');if(/\\b(?:INSERT\\s+INTO|UPDATE\\s+\\w+\\s+SET|DELETE\\s+FROM|ALTER\\s+(?:ROLE|TABLE)|DROP\\s+(?:TABLE|POLICY)|CREATE\\s+(?:POLICY|TABLE|FUNCTION)|GRANT\\s+|REVOKE\\s+)\\b/i.test(s))process.exit(1);"
