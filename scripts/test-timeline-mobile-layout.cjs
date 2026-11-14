@@ -207,6 +207,7 @@ async function swipe(page,direction){
     const beam=document.querySelector('.orca-history-track-beam');
     return {x:beam.getBBox().x,d:beam.getAttribute('d'),width:beam.getBBox().width};
    });
+   console.log('ORCA comet movement diagnostic',JSON.stringify({first:{x:first.x,d:first.d?.slice(0,100),stroke:first.stroke,filter:first.filter,trackLength:first.trackLength},second:{x:second.x,width:second.width,d:second.d?.slice(0,100)}}));
    assert(first.trackLength>900,'Long straight rail has room for the comet');
    assert(first.stroke.startsWith('5.3'),'White-blue tracer is visibly thicker than the base');
    assert.notEqual(first.filter,'none','Tracer has a neon glow');
