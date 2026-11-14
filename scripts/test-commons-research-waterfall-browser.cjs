@@ -66,6 +66,7 @@ async function main(){
      horizontalOverflow:document.documentElement.scrollWidth>innerWidth,
      originalText:primary?.querySelector('.task .row strong')?.textContent};
    });
+   console.log('WATERFALL DIMENSIONS',width,JSON.stringify(info));
    assert(info.panelHeight<740,'Research area must be compact instead of growing with every metric');
    assert(info.viewportHeight>=275&&info.viewportHeight<=330,'Waterfall must have a short fixed viewport');
    assert.match(info.viewportBackground,/gradient/,'Translucent glass background stays visible');
