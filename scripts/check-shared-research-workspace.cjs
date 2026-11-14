@@ -186,10 +186,14 @@ check('Open-ended timeline preserves milestones and beam arrival effects', () =>
   !timeline.includes('futureStop') &&
   workspace.includes('animation:orca-photo-arrival 1.4s'));
 
-check('A single tapered beam replaces the former two-tone segment', () =>
+check('A single visible white-blue tracer sweeps the straight rail', () =>
   timeline.includes("gradient.setAttribute('id',gradientId)") &&
   timeline.includes("beam.setAttribute('stroke','url(#'+gradientId+')')") &&
-  timeline.includes("const beamLength=Math.min(115,Math.max(60,length*0.06))") &&
+  timeline.includes("const beamLength=Math.min(185,Math.max(115,length*0.10))") &&
+  timeline.includes('const travelMs=11500') &&
+  timeline.includes("beam.setAttribute('stroke-linecap','round')") &&
+  workspace.includes('stroke-width:5.3;opacity:1') &&
+  workspace.includes('orca-history-rail-shimmer') &&
   workspace.includes('.orca-history-track-beam') &&
   !workspace.includes('.orca-history-track-glow{') &&
   !timeline.includes("makePath('orca-history-track-glow')"));
