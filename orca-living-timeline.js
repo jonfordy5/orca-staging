@@ -113,8 +113,6 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
   if(!spine)return;
   spine.querySelector('.orca-history-track')?.remove();
   spine.querySelector('.orca-history-orbit')?.remove();
-  for(const stop of spine.querySelectorAll('.orca-history-orbit-visible'))
-   stop.classList.remove('orca-history-orbit-visible');
   // Mobile keeps its original swipe-only photo carousel.
   if(mobileLayout.matches)return;
   const stops=[...spine.querySelectorAll('.orca-history-stop')];
@@ -166,26 +164,30 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
    svg.append(element);
    return {element,particles,index:-1,excitement:0};
   });
-  // Reusable oval emitter. The reference's red ellipse marks the desired
-  // coverage, not a literal ring; particles bloom out from behind the photo.
-  // Mount it inside the active stop, above neighbors yet behind the active card.
+  // One reusable background layer belongs to the spine, NOT the hovered stop.
+  // With z-index below every photo card, motes visible beyond the hovered photo
+  // cannot paint over its neighbors. Two denser side ribbons fill the open gaps.
   const orbit=document.createElementNS(ns,'svg');
   orbit.classList.add('orca-history-orbit');
   orbit.setAttribute('viewBox','-235 0 470 300');
   orbit.setAttribute('aria-hidden','true');
   orbit.setAttribute('width','470');
   orbit.setAttribute('height','300');
-  const orbitMotes=Array.from({length:112},(_,i)=>{
+  const perimeterCount=112,sideCount=28;
+  const orbitMotes=Array.from({length:perimeterCount+sideCount*2},(_,i)=>{
    const mote=document.createElementNS(ns,'circle');
    mote.classList.add('orca-history-orbit-mote');
+   const region=i<perimeterCount?'halo':i<perimeterCount+sideCount?'left-gap':'right-gap';
    const hue=i%41===0?'red':i%37===0?'green':'gold';
+   mote.dataset.region=region;
    mote.dataset.hue=hue;
    mote.setAttribute('fill',hue==='red'?'#f47768':hue==='green'?'#80cc8f':
     (i%5===0?'#fff0b7':'#d9b775'));
    mote.setAttribute('opacity','0');
    orbit.append(mote);
    const seed=(i*0.61803398875+0.37)%1;
-   return {mote,seed,angle:Math.PI*2*(i/112),hue};
+   return {mote,seed,angle:Math.PI*2*(i/perimeterCount),hue,region,
+    sideFraction:region==='halo'?0:((i%sideCount+0.5)/sideCount)};
   });
   let orbitIntensity=0,orbitIndex=-1,orbitTime=0;
   const paintOrbit=(elapsed)=>{
@@ -193,16 +195,17 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
     stops[group.index].classList.contains('orca-history-excited'));
    const next=active?.index??-1;
    if(next>=0&&next!==orbitIndex){
-    if(orbitIndex>=0)stops[orbitIndex].classList.remove('orca-history-orbit-visible');
-    stops[next].append(orbit);
-    stops[next].classList.add('orca-history-orbit-visible');
+    // offsetLeft is measured in spine coordinates; position never follows the
+    // viewport or travels along the rail, only the currently hovered photo.
+    const stop=stops[next];
+    orbit.style.left=(stop.offsetLeft+stop.offsetWidth/2)+'px';
+    if(!orbit.isConnected)spine.append(orbit);
     orbitIndex=next;orbitIntensity=0;
    }
    orbitIntensity+=(Number(next>=0)-orbitIntensity)*
     (1-Math.exp(-elapsed/(next>=0?0.20:0.31)));
    if(orbitIndex<0)return;
    if(orbitIntensity<0.006&&next<0){
-    stops[orbitIndex].classList.remove('orca-history-orbit-visible');
     orbit.remove();orbitIndex=-1;
     return;
    }
@@ -210,14 +213,26 @@ export async function mountLivingTimeline({sb,ticker,getUser=()=>null,canContrib
    const card=stops[orbitIndex].querySelector('.orca-timeline-event');
    const centerY=card.offsetTop+card.offsetHeight/2;
    const bloom=0.23+0.77*Math.min(1,orbitIntensity*1.6);
-   for(const {mote,seed,angle,hue} of orbitMotes){
-    const rotation=angle+Math.sin(orbitTime*1.5+seed*14)*0.065;
-    const radiusX=(card.offsetWidth/2+62+seed*50)*bloom;
-    const radiusY=(card.offsetHeight/2+18+seed*13)*bloom;
+   for(const {mote,seed,angle,hue,region,sideFraction} of orbitMotes){
     const shimmer=0.72+0.28*Math.sin(orbitTime*(3+seed*3)+seed*17);
-    const x=Math.cos(rotation)*radiusX+Math.sin(orbitTime*2+seed*12)*3;
-    const y=centerY+Math.sin(rotation)*radiusY+Math.cos(orbitTime*1.7+seed*9)*2;
-    const strength=hue==='gold'?0.40+0.36*seed:0.34+0.20*seed;
+    let x,y;
+    if(region==='halo'){
+     const rotation=angle+Math.sin(orbitTime*1.5+seed*14)*0.065;
+     const radiusX=(card.offsetWidth/2+62+seed*50)*bloom;
+     const radiusY=(card.offsetHeight/2+18+seed*13)*bloom;
+     x=Math.cos(rotation)*radiusX+Math.sin(orbitTime*2+seed*12)*3;
+     y=centerY+Math.sin(rotation)*radiusY+Math.cos(orbitTime*1.7+seed*9)*2;
+    }else{
+     // Concentrate motes in the ~20px gaps bordering the enlarged card;
+     // the field begins behind the image then blossoms into those gaps.
+     const spread=0.24+0.76*Math.min(1,orbitIntensity*1.6);
+     const side=region==='left-gap'?-1:1;
+     const offset=card.offsetWidth/2+6+seed*11;
+     x=side*offset*spread+Math.sin(orbitTime*2.4+seed*12)*1.1;
+     y=centerY+(sideFraction-0.5)*(card.offsetHeight-12)*spread+
+      Math.cos(orbitTime*2+seed*9)*1.8;
+    }
+    const strength=hue==='gold'?(region==='halo'?0.40+0.36*seed:0.58+0.27*seed):0.34+0.20*seed;
     mote.setAttribute('cx',x.toFixed(2));
     mote.setAttribute('cy',y.toFixed(2));
     mote.setAttribute('r',(0.85+seed*1.05+Math.max(0,shimmer-0.7)*0.55).toFixed(2));
